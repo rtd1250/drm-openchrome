@@ -4,6 +4,6 @@
 
 ccflags-y := -Iinclude/drm
 via-y    := via_irq.o via_drv.o via_ioc32.o via_verifier.o via_video.o \
-		via_dma.o via_dmablit.o via_fb.o
+		via_dma.o via_dmablit.o via_fb.o init_ttm.o via_ttm.o
 
 obj-$(CONFIG_DRM_VIA)	+=via.o

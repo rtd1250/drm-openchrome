@@ -35,6 +35,12 @@
 #define DRIVER_MINOR		11
 #define DRIVER_PATCHLEVEL	1
 
+#include "ttm/ttm_bo_api.h"
+#include "ttm/ttm_bo_driver.h"
+#include "ttm/ttm_placement.h"
+#include "ttm/ttm_memory.h"
+#include "ttm/ttm_module.h"
+
 #include "via_regs.h"
 #include "via_drm.h"
 #include "via_verifier.h"
@@ -59,6 +65,10 @@ typedef struct drm_via_irq {
 } drm_via_irq_t;
 
 struct drm_via_private {
+	struct drm_global_reference mem_global_ref;
+	struct ttm_bo_global_ref bo_global_ref;
+	struct ttm_bo_device bdev;
+	struct drm_device *dev;
 	drm_via_sarea_t *sarea_priv;
 	drm_local_map_t *sarea;
 	drm_local_map_t *fb;
@@ -147,6 +157,26 @@ extern int via_dma_blit_sync(struct drm_device *dev, void *data, struct drm_file
 extern int via_dma_blit(struct drm_device *dev, void *data, struct drm_file *file_priv);
 
 extern int via_detect_vram(struct drm_device *dev);
+
+extern int via_ttm_init(struct drm_via_private *dev_priv);
+extern void via_ttm_bo_destroy(struct ttm_buffer_object *bo);
+
+extern int ttm_global_init(struct drm_global_reference *global_ref,
+				struct ttm_bo_global_ref *global_bo,
+				struct ttm_bo_driver *driver,
+				struct ttm_bo_device *bdev,
+				bool dma32);
+extern void ttm_global_fini(struct drm_global_reference *global_ref,
+				struct ttm_bo_global_ref *global_bo,
+				struct ttm_bo_device *bdev);
+
+extern int ttm_bo_allocate(struct ttm_bo_device *bdev, unsigned long size,
+				enum ttm_bo_type origin, int types,
+				uint32_t byte_align, uint32_t page_align,
+				unsigned long buffer_start, bool interruptible,
+				void (*destroy) (struct ttm_buffer_object *),
+				struct file *persistant_swap_storage,
+				struct ttm_buffer_object **p_bo);
 
 extern u32 via_get_vblank_counter(struct drm_device *dev, int crtc);
 extern int via_enable_vblank(struct drm_device *dev, int crtc);

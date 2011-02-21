@@ -36,8 +36,11 @@ static int via_driver_unload(struct drm_device *dev)
 
 	drm_sman_takedown(&dev_priv->sman);
 
-	kfree(dev_priv);
+	ttm_global_fini(&dev_priv->mem_global_ref,
+			&dev_priv->bo_global_ref,
+			&dev_priv->bdev);
 
+	kfree(dev_priv);
 	return 0;
 }
 
@@ -52,6 +55,10 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 
 	dev->dev_private = (void *)dev_priv;
 	dev_priv->chipset = chipset;
+
+	ret = via_ttm_init(dev_priv);
+	if (ret)
+		return ret;
 
 	ret = drm_sman_init(&dev_priv->sman, 2, 12, 8);
 	if (ret) {
