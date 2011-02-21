@@ -55,6 +55,7 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 
 	dev->dev_private = (void *)dev_priv;
 	dev_priv->chipset = chipset;
+	dev_priv->dev = dev;
 
 	ret = via_ttm_init(dev_priv);
 	if (ret)
@@ -130,7 +131,7 @@ static void via_reclaim_buffers_locked(struct drm_device *dev,
 static struct drm_driver via_driver = {
 	.driver_features =
 		DRIVER_USE_AGP | DRIVER_USE_MTRR | DRIVER_HAVE_IRQ |
-		DRIVER_IRQ_SHARED,
+		DRIVER_GEM | DRIVER_IRQ_SHARED,
 	.load = via_driver_load,
 	.unload = via_driver_unload,
 	.context_dtor = via_final_context,
@@ -146,13 +147,14 @@ static struct drm_driver via_driver = {
 	.reclaim_buffers_locked = NULL,
 	.reclaim_buffers_idlelocked = via_reclaim_buffers_locked,
 	.lastclose = via_lastclose,
+	.gem_init_object = via_gem_init_object,
 	.ioctls = via_ioctls,
 	.fops = {
 		.owner = THIS_MODULE,
 		.open = drm_open,
 		.release = drm_release,
 		.unlocked_ioctl = drm_ioctl,
-		.mmap = drm_mmap,
+		.mmap = drm_gem_mmap,
 		.poll = drm_poll,
 		.fasync = drm_fasync,
 		.llseek = noop_llseek,

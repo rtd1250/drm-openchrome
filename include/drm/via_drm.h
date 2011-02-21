@@ -69,7 +69,7 @@
 #define DRM_VIA_FB_INIT	        0x03
 #define DRM_VIA_MAP_INIT	0x04
 #define DRM_VIA_DEC_FUTEX       0x05
-#define NOT_USED
+#define DRM_VIA_GEM_CREATE	0x06
 #define DRM_VIA_DMA_INIT	0x07
 #define DRM_VIA_CMDBUFFER	0x08
 #define DRM_VIA_FLUSH	        0x09
@@ -86,6 +86,7 @@
 #define DRM_IOCTL_VIA_FB_INIT	  DRM_IOWR(DRM_COMMAND_BASE + DRM_VIA_FB_INIT, drm_via_fb_t)
 #define DRM_IOCTL_VIA_MAP_INIT	  DRM_IOWR(DRM_COMMAND_BASE + DRM_VIA_MAP_INIT, drm_via_init_t)
 #define DRM_IOCTL_VIA_DEC_FUTEX   DRM_IOW( DRM_COMMAND_BASE + DRM_VIA_DEC_FUTEX, drm_via_futex_t)
+#define DRM_IOCTL_VIA_GEM_CREATE  DRM_IOW( DRM_COMMAND_BASE + DRM_VIA_GEM_CREATE, struct drm_gem_create) 
 #define DRM_IOCTL_VIA_DMA_INIT	  DRM_IOWR(DRM_COMMAND_BASE + DRM_VIA_DMA_INIT, drm_via_dma_init_t)
 #define DRM_IOCTL_VIA_CMDBUFFER	  DRM_IOW( DRM_COMMAND_BASE + DRM_VIA_CMDBUFFER, drm_via_cmdbuffer_t)
 #define DRM_IOCTL_VIA_FLUSH	  DRM_IO(  DRM_COMMAND_BASE + DRM_VIA_FLUSH)
@@ -273,5 +274,42 @@ typedef struct drm_via_dmablit {
 
 	drm_via_blitsync_t sync;
 } drm_via_dmablit_t;
+
+#define TTM_PL_SYSTEM	0
+#define TTM_PL_TT	1
+#define TTM_PL_VRAM	2    
+
+struct drm_gem_create {
+	/**
+	 * Requested size for the object.
+	 *
+	 * The (page-aligned) allocated size for the object will be returned.
+	 */
+	__u64 size;
+
+	/**
+	 * Returned handle for the object.
+	 *
+	 * Object handles are nonzero.
+	 */
+	__u32 handle;
+
+	/**
+	 * Give hints where to allocate this object.
+	 */
+	__u32 write_domains;
+	__u32 read_domains;
+
+	/**
+	 * Format of data i.e tile pitch, for linear it is zero
+	 */
+	__u32 pitch;
+
+	/**
+	 * Padding for future expansion. 
+	 */
+	__u64 pad1;
+	__u64 pad2;
+};
 
 #endif				/* _VIA_DRM_H_ */

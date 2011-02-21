@@ -46,6 +46,8 @@
 #include "via_verifier.h"
 #include "via_dmablit.h"
 
+#define VIA_MM_ALIGN_SIZE 16
+
 #define VIA_PCI_BUF_SIZE 60000
 #define VIA_FIRE_BUF_SIZE  1024
 #define VIA_NUM_IRQS 4
@@ -177,6 +179,14 @@ extern int ttm_bo_allocate(struct ttm_bo_device *bdev, unsigned long size,
 				void (*destroy) (struct ttm_buffer_object *),
 				struct file *persistant_swap_storage,
 				struct ttm_buffer_object **p_bo);
+
+extern int via_gem_init_object(struct drm_gem_object *obj);
+extern void via_gem_free_object(struct drm_gem_object *obj);
+extern struct drm_gem_object *via_gem_create(struct drm_device *dev,
+						struct ttm_bo_device *bdev,
+						int type, int alignment,
+						unsigned long start,
+						unsigned long size);
 
 extern u32 via_get_vblank_counter(struct drm_device *dev, int crtc);
 extern int via_enable_vblank(struct drm_device *dev, int crtc);
