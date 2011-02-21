@@ -28,14 +28,14 @@
 
 #include "drm_pciids.h"
 
-static struct pci_device_id pciidlist[] = {
+static struct pci_device_id via_pci_table[] = {
 	viadrv_PCI_IDS
 };
 
-static struct drm_driver driver = {
+static struct drm_driver via_driver = {
 	.driver_features =
-	    DRIVER_USE_AGP | DRIVER_USE_MTRR | DRIVER_HAVE_IRQ |
-	    DRIVER_IRQ_SHARED,
+		DRIVER_USE_AGP | DRIVER_USE_MTRR | DRIVER_HAVE_IRQ |
+		DRIVER_IRQ_SHARED,
 	.load = via_driver_load,
 	.unload = via_driver_unload,
 	.context_dtor = via_final_context,
@@ -64,7 +64,7 @@ static struct drm_driver driver = {
 		},
 	.pci_driver = {
 		.name = DRIVER_NAME,
-		.id_table = pciidlist,
+		.id_table = via_pci_table,
 	},
 
 	.name = DRIVER_NAME,
@@ -77,14 +77,14 @@ static struct drm_driver driver = {
 
 static int __init via_init(void)
 {
-	driver.num_ioctls = via_max_ioctl;
+	via_driver.num_ioctls = via_max_ioctl;
 	via_init_command_verifier();
-	return drm_init(&driver);
+	return drm_init(&via_driver);
 }
 
 static void __exit via_exit(void)
 {
-	drm_exit(&driver);
+	drm_exit(&via_driver);
 }
 
 module_init(via_init);

@@ -25,7 +25,7 @@
 #define _VIA_DRV_H_
 
 #include "drm_sman.h"
-#define DRIVER_AUTHOR	"Various"
+#define DRIVER_AUTHOR		"Various"
 
 #define DRIVER_NAME		"via"
 #define DRIVER_DESC		"VIA Unichrome / Pro"
@@ -57,7 +57,7 @@ typedef struct drm_via_irq {
 	wait_queue_head_t irq_queue;
 } drm_via_irq_t;
 
-typedef struct drm_via_private {
+struct drm_via_private {
 	drm_via_sarea_t *sarea_priv;
 	drm_local_map_t *sarea;
 	drm_local_map_t *fb;
@@ -95,7 +95,7 @@ typedef struct drm_via_private {
 	unsigned long agp_offset;
 	drm_via_blitq_t blit_queues[VIA_NUM_BLIT_ENGINES];
 	uint32_t dma_diff;
-} drm_via_private_t;
+};
 
 enum via_family {
   VIA_OTHER = 0,     /* Baseline */
@@ -143,9 +143,9 @@ extern void via_driver_irq_uninstall(struct drm_device *dev);
 extern int via_dma_cleanup(struct drm_device *dev);
 extern void via_init_command_verifier(void);
 extern int via_driver_dma_quiescent(struct drm_device *dev);
-extern void via_init_futex(drm_via_private_t *dev_priv);
-extern void via_cleanup_futex(drm_via_private_t *dev_priv);
-extern void via_release_futex(drm_via_private_t *dev_priv, int context);
+extern void via_init_futex(struct drm_via_private *dev_priv);
+extern void via_cleanup_futex(struct drm_via_private *dev_priv);
+extern void via_release_futex(struct drm_via_private *dev_priv, int context);
 
 extern void via_reclaim_buffers_locked(struct drm_device *dev,
 				       struct drm_file *file_priv);

@@ -98,17 +98,17 @@ static unsigned time_diff(struct timeval *now, struct timeval *then)
 
 u32 via_get_vblank_counter(struct drm_device *dev, int crtc)
 {
-	drm_via_private_t *dev_priv = dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
+
 	if (crtc != 0)
 		return 0;
-
 	return atomic_read(&dev_priv->vbl_received);
 }
 
 irqreturn_t via_driver_irq_handler(DRM_IRQ_ARGS)
 {
 	struct drm_device *dev = (struct drm_device *) arg;
-	drm_via_private_t *dev_priv = (drm_via_private_t *) dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 	u32 status;
 	int handled = 0;
 	struct timeval cur_vblank;
@@ -159,7 +159,7 @@ irqreturn_t via_driver_irq_handler(DRM_IRQ_ARGS)
 		return IRQ_NONE;
 }
 
-static __inline__ void viadrv_acknowledge_irqs(drm_via_private_t *dev_priv)
+static __inline__ void viadrv_acknowledge_irqs(struct drm_via_private *dev_priv)
 {
 	u32 status;
 
@@ -173,7 +173,7 @@ static __inline__ void viadrv_acknowledge_irqs(drm_via_private_t *dev_priv)
 
 int via_enable_vblank(struct drm_device *dev, int crtc)
 {
-	drm_via_private_t *dev_priv = dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 	u32 status;
 
 	if (crtc != 0) {
@@ -192,7 +192,7 @@ int via_enable_vblank(struct drm_device *dev, int crtc)
 
 void via_disable_vblank(struct drm_device *dev, int crtc)
 {
-	drm_via_private_t *dev_priv = dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 	u32 status;
 
 	status = VIA_READ(VIA_REG_INTERRUPT);
@@ -209,7 +209,7 @@ static int
 via_driver_irq_wait(struct drm_device *dev, unsigned int irq, int force_sequence,
 		    unsigned int *sequence)
 {
-	drm_via_private_t *dev_priv = (drm_via_private_t *) dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 	unsigned int cur_irq_sequence;
 	drm_via_irq_t *cur_irq;
 	int ret = 0;
@@ -261,7 +261,7 @@ via_driver_irq_wait(struct drm_device *dev, unsigned int irq, int force_sequence
 
 void via_driver_irq_preinstall(struct drm_device *dev)
 {
-	drm_via_private_t *dev_priv = (drm_via_private_t *) dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 	u32 status;
 	drm_via_irq_t *cur_irq;
 	int i;
@@ -310,7 +310,7 @@ void via_driver_irq_preinstall(struct drm_device *dev)
 
 int via_driver_irq_postinstall(struct drm_device *dev)
 {
-	drm_via_private_t *dev_priv = (drm_via_private_t *) dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 	u32 status;
 
 	DRM_DEBUG("via_driver_irq_postinstall\n");
@@ -330,7 +330,7 @@ int via_driver_irq_postinstall(struct drm_device *dev)
 
 void via_driver_irq_uninstall(struct drm_device *dev)
 {
-	drm_via_private_t *dev_priv = (drm_via_private_t *) dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 	u32 status;
 
 	DRM_DEBUG("\n");
@@ -352,7 +352,7 @@ int via_wait_irq(struct drm_device *dev, void *data, struct drm_file *file_priv)
 	drm_via_irqwait_t *irqwait = data;
 	struct timeval now;
 	int ret = 0;
-	drm_via_private_t *dev_priv = (drm_via_private_t *) dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 	drm_via_irq_t *cur_irq = dev_priv->via_irqs;
 	int force_sequence;
 

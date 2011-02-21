@@ -36,7 +36,7 @@
 int via_agp_init(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	drm_via_agp_t *agp = data;
-	drm_via_private_t *dev_priv = (drm_via_private_t *) dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 	int ret;
 
 	mutex_lock(&dev->struct_mutex);
@@ -60,7 +60,7 @@ int via_agp_init(struct drm_device *dev, void *data, struct drm_file *file_priv)
 int via_fb_init(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	drm_via_fb_t *fb = data;
-	drm_via_private_t *dev_priv = (drm_via_private_t *) dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 	int ret;
 
 	mutex_lock(&dev->struct_mutex);
@@ -85,7 +85,7 @@ int via_fb_init(struct drm_device *dev, void *data, struct drm_file *file_priv)
 
 int via_final_context(struct drm_device *dev, int context)
 {
-	drm_via_private_t *dev_priv = (drm_via_private_t *) dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 
 	via_release_futex(dev_priv, context);
 
@@ -102,7 +102,7 @@ int via_final_context(struct drm_device *dev, int context)
 
 void via_lastclose(struct drm_device *dev)
 {
-	drm_via_private_t *dev_priv = (drm_via_private_t *) dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 
 	if (!dev_priv)
 		return;
@@ -120,7 +120,7 @@ int via_mem_alloc(struct drm_device *dev, void *data,
 	drm_via_mem_t *mem = data;
 	int retval = 0;
 	struct drm_memblock_item *item;
-	drm_via_private_t *dev_priv = (drm_via_private_t *) dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 	unsigned long tmpSize;
 
 	if (mem->type > VIA_MEM_AGP) {
@@ -159,7 +159,7 @@ int via_mem_alloc(struct drm_device *dev, void *data,
 
 int via_mem_free(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
-	drm_via_private_t *dev_priv = dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 	drm_via_mem_t *mem = data;
 	int ret;
 
@@ -175,7 +175,7 @@ int via_mem_free(struct drm_device *dev, void *data, struct drm_file *file_priv)
 void via_reclaim_buffers_locked(struct drm_device *dev,
 				struct drm_file *file_priv)
 {
-	drm_via_private_t *dev_priv = dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 
 	mutex_lock(&dev->struct_mutex);
 	if (drm_sman_owner_clean(&dev_priv->sman, (unsigned long)file_priv)) {

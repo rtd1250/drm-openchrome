@@ -27,7 +27,7 @@
 
 static int via_do_init_map(struct drm_device *dev, drm_via_init_t *init)
 {
-	drm_via_private_t *dev_priv = dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 
 	DRM_DEBUG("\n");
 
@@ -93,10 +93,10 @@ int via_map_init(struct drm_device *dev, void *data, struct drm_file *file_priv)
 
 int via_driver_load(struct drm_device *dev, unsigned long chipset)
 {
-	drm_via_private_t *dev_priv;
+	struct drm_via_private *dev_priv;
 	int ret = 0;
 
-	dev_priv = kzalloc(sizeof(drm_via_private_t), GFP_KERNEL);
+	dev_priv = kzalloc(sizeof(struct drm_via_private), GFP_KERNEL);
 	if (dev_priv == NULL)
 		return -ENOMEM;
 
@@ -122,7 +122,7 @@ int via_driver_load(struct drm_device *dev, unsigned long chipset)
 
 int via_driver_unload(struct drm_device *dev)
 {
-	drm_via_private_t *dev_priv = dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 
 	drm_sman_takedown(&dev_priv->sman);
 

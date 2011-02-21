@@ -208,7 +208,7 @@ via_free_sg_info(struct pci_dev *pdev, drm_via_sg_info_t *vsg)
 static void
 via_fire_dmablit(struct drm_device *dev, drm_via_sg_info_t *vsg, int engine)
 {
-	drm_via_private_t *dev_priv = (drm_via_private_t *)dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 
 	VIA_WRITE(VIA_PCI_DMA_MAR0 + engine*0x10, 0);
 	VIA_WRITE(VIA_PCI_DMA_DAR0 + engine*0x10, 0);
@@ -289,7 +289,7 @@ via_alloc_desc_pages(drm_via_sg_info_t *vsg)
 static void
 via_abort_dmablit(struct drm_device *dev, int engine)
 {
-	drm_via_private_t *dev_priv = (drm_via_private_t *)dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 
 	VIA_WRITE(VIA_PCI_DMA_CSR0 + engine*0x04, VIA_DMA_CSR_TA);
 }
@@ -297,12 +297,10 @@ via_abort_dmablit(struct drm_device *dev, int engine)
 static void
 via_dmablit_engine_off(struct drm_device *dev, int engine)
 {
-	drm_via_private_t *dev_priv = (drm_via_private_t *)dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 
 	VIA_WRITE(VIA_PCI_DMA_CSR0 + engine*0x04, VIA_DMA_CSR_TD | VIA_DMA_CSR_DD);
 }
-
-
 
 /*
  * The dmablit part of the IRQ handler. Trying to do only reasonably fast things here.
@@ -314,7 +312,7 @@ via_dmablit_engine_off(struct drm_device *dev, int engine)
 void
 via_dmablit_handler(struct drm_device *dev, int engine, int from_irq)
 {
-	drm_via_private_t *dev_priv = (drm_via_private_t *)dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 	drm_via_blitq_t *blitq = dev_priv->blit_queues + engine;
 	int cur;
 	int done_transfer;
@@ -429,8 +427,7 @@ via_dmablit_active(drm_via_blitq_t *blitq, int engine, uint32_t handle, wait_que
 static int
 via_dmablit_sync(struct drm_device *dev, uint32_t handle, int engine)
 {
-
-	drm_via_private_t *dev_priv = (drm_via_private_t *)dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 	drm_via_blitq_t *blitq = dev_priv->blit_queues + engine;
 	wait_queue_head_t *queue;
 	int ret = 0;
@@ -462,7 +459,7 @@ via_dmablit_timer(unsigned long data)
 	drm_via_blitq_t *blitq = (drm_via_blitq_t *) data;
 	struct drm_device *dev = blitq->dev;
 	int engine = (int)
-		(blitq - ((drm_via_private_t *)dev->dev_private)->blit_queues);
+		(blitq - ((struct drm_via_private *)dev->dev_private)->blit_queues);
 
 	DRM_DEBUG("Polling timer called for engine %d, jiffies %lu\n", engine,
 		  (unsigned long) jiffies);
@@ -503,7 +500,7 @@ via_dmablit_workqueue(struct work_struct *work)
 
 
 	DRM_DEBUG("Workqueue task called for blit engine %ld\n", (unsigned long)
-		  (blitq - ((drm_via_private_t *)dev->dev_private)->blit_queues));
+		  (blitq - ((struct drm_via_private *)dev->dev_private)->blit_queues));
 
 	spin_lock_irqsave(&blitq->blit_lock, irqsave);
 
@@ -541,9 +538,9 @@ via_dmablit_workqueue(struct work_struct *work)
 void
 via_init_dmablit(struct drm_device *dev)
 {
-	int i, j;
-	drm_via_private_t *dev_priv = (drm_via_private_t *)dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 	drm_via_blitq_t *blitq;
+	int i, j;
 
 	pci_set_master(dev->pdev);
 
@@ -724,7 +721,7 @@ via_dmablit_release_slot(drm_via_blitq_t *blitq)
 static int
 via_dmablit(struct drm_device *dev, drm_via_dmablit_t *xfer)
 {
-	drm_via_private_t *dev_priv = (drm_via_private_t *)dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 	drm_via_sg_info_t *vsg;
 	drm_via_blitq_t *blitq;
 	int ret;

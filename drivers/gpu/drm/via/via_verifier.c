@@ -520,8 +520,8 @@ static __inline__ int
 via_check_prim_list(uint32_t const **buffer, const uint32_t * buf_end,
 		    drm_via_state_t *cur_seq)
 {
-	drm_via_private_t *dev_priv =
-	    (drm_via_private_t *) cur_seq->dev->dev_private;
+	struct drm_via_private *dev_priv =
+	    (struct drm_via_private *) cur_seq->dev->dev_private;
 	uint32_t a_fire, bcmd, dw_count;
 	int ret = 0;
 	int have_fire;
@@ -713,7 +713,7 @@ via_check_header2(uint32_t const **buffer, const uint32_t *buf_end,
 }
 
 static __inline__ verifier_state_t
-via_parse_header2(drm_via_private_t *dev_priv, uint32_t const **buffer,
+via_parse_header2(struct drm_via_private *dev_priv, uint32_t const **buffer,
 		  const uint32_t *buf_end, int *fire_count)
 {
 	uint32_t cmd;
@@ -832,7 +832,7 @@ via_check_header1(uint32_t const **buffer, const uint32_t * buf_end)
 }
 
 static __inline__ verifier_state_t
-via_parse_header1(drm_via_private_t *dev_priv, uint32_t const **buffer,
+via_parse_header1(struct drm_via_private *dev_priv, uint32_t const **buffer,
 		  const uint32_t *buf_end)
 {
 	register uint32_t cmd;
@@ -883,7 +883,7 @@ via_check_vheader5(uint32_t const **buffer, const uint32_t *buf_end)
 }
 
 static __inline__ verifier_state_t
-via_parse_vheader5(drm_via_private_t *dev_priv, uint32_t const **buffer,
+via_parse_vheader5(struct drm_via_private *dev_priv, uint32_t const **buffer,
 		   const uint32_t *buf_end)
 {
 	uint32_t addr, count, i;
@@ -938,7 +938,7 @@ via_check_vheader6(uint32_t const **buffer, const uint32_t * buf_end)
 }
 
 static __inline__ verifier_state_t
-via_parse_vheader6(drm_via_private_t *dev_priv, uint32_t const **buffer,
+via_parse_vheader6(struct drm_via_private *dev_priv, uint32_t const **buffer,
 		   const uint32_t *buf_end)
 {
 
@@ -963,7 +963,7 @@ via_verify_command_stream(const uint32_t * buf, unsigned int size,
 			  struct drm_device * dev, int agp)
 {
 
-	drm_via_private_t *dev_priv = (drm_via_private_t *) dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 	drm_via_state_t *hc_state = &dev_priv->hc_state;
 	drm_via_state_t saved_state = *hc_state;
 	uint32_t cmd;
@@ -1039,7 +1039,7 @@ via_parse_command_stream(struct drm_device *dev, const uint32_t *buf,
 			 unsigned int size)
 {
 
-	drm_via_private_t *dev_priv = (drm_via_private_t *) dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 	uint32_t cmd;
 	const uint32_t *buf_end = buf + (size >> 2);
 	verifier_state_t state = state_command;

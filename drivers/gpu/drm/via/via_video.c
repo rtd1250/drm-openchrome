@@ -29,7 +29,7 @@
 #include "via_drm.h"
 #include "via_drv.h"
 
-void via_init_futex(drm_via_private_t *dev_priv)
+void via_init_futex(struct drm_via_private *dev_priv)
 {
 	unsigned int i;
 
@@ -41,11 +41,11 @@ void via_init_futex(drm_via_private_t *dev_priv)
 	}
 }
 
-void via_cleanup_futex(drm_via_private_t *dev_priv)
+void via_cleanup_futex(struct drm_via_private *dev_priv)
 {
 }
 
-void via_release_futex(drm_via_private_t *dev_priv, int context)
+void via_release_futex(struct drm_via_private *dev_priv, int context)
 {
 	unsigned int i;
 	volatile int *lock;
@@ -69,7 +69,7 @@ int via_decoder_futex(struct drm_device *dev, void *data, struct drm_file *file_
 {
 	drm_via_futex_t *fx = data;
 	volatile int *lock;
-	drm_via_private_t *dev_priv = (drm_via_private_t *) dev->dev_private;
+	struct drm_via_private *dev_priv = dev->dev_private;
 	drm_via_sarea_t *sAPriv = dev_priv->sarea_priv;
 	int ret = 0;
 
