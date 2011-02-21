@@ -35,6 +35,8 @@
 #define DRIVER_MINOR		11
 #define DRIVER_PATCHLEVEL	1
 
+#include "via_regs.h"
+#include "via_drm.h"
 #include "via_verifier.h"
 #include "via_dmablit.h"
 

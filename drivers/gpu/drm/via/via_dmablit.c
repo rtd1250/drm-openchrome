@@ -35,9 +35,7 @@
  */
 
 #include "drmP.h"
-#include "via_drm.h"
 #include "via_drv.h"
-#include "via_dmablit.h"
 
 #include <linux/pagemap.h>
 #include <linux/slab.h>

@@ -23,9 +23,7 @@
  */
 
 #include "drmP.h"
-#include "via_drm.h"
 #include "via_drv.h"
-
 #include "drm_pciids.h"
 
 static struct pci_device_id via_pci_table[] = {
@@ -65,9 +63,8 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 	if (ret) {
 		drm_sman_takedown(&dev_priv->sman);
 		kfree(dev_priv);
-		return ret;
 	}
-        return 0;
+	return ret;
 }
 
 static int via_final_context(struct drm_device *dev, int context)
