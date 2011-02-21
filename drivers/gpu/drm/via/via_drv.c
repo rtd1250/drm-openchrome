@@ -26,9 +26,17 @@
 #include "via_drv.h"
 #include "drm_pciids.h"
 
-static struct pci_device_id via_pci_table[] = {
+int via_modeset = 1;
+
+MODULE_PARM_DESC(modeset, "Disable/Enable modesetting");
+module_param_named(modeset, via_modeset, int, 0400);
+
+static struct pci_device_id via_pci_table[] __devinitdata = {
 	viadrv_PCI_IDS,
 };
+MODULE_DEVICE_TABLE(pci, via_pci_table);
+
+static struct drm_driver via_driver;
 
 #define VIA_AGP_MODE_MASK	0x17
 #define VIA_AGPV3_MODE		0x08
@@ -229,6 +237,32 @@ static void via_reclaim_buffers_locked(struct drm_device *dev,
 	return;
 }
 
+static int __devinit
+via_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
+{
+	return drm_get_pci_dev(pdev, ent, &via_driver);
+}
+
+static void __devexit
+via_pci_remove(struct pci_dev *pdev)
+{
+	struct drm_device *dev = pci_get_drvdata(pdev);
+
+	drm_put_dev(dev);
+}
+
+#ifdef CONFIG_PM
+int via_pci_suspend(struct pci_dev *pdev, pm_message_t state)
+{
+	return 0;
+}
+
+int via_pci_resume(struct pci_dev *pdev)
+{
+	return 0;
+}
+#endif
+
 static struct drm_driver via_driver = {
 	.driver_features =
 		DRIVER_USE_AGP | DRIVER_USE_MTRR | DRIVER_HAVE_IRQ |
@@ -263,6 +297,12 @@ static struct drm_driver via_driver = {
 	.pci_driver = {
 		.name = DRIVER_NAME,
 		.id_table = via_pci_table,
+		.probe	= via_pci_probe,
+		.remove	= __devexit_p(via_pci_remove),
+#ifdef CONFIG_PM
+		.suspend = via_pci_suspend,
+		.resume = via_pci_resume,
+#endif
 	},
 
 	.name = DRIVER_NAME,
@@ -278,6 +318,8 @@ static int __init via_init(void)
 	via_driver.num_ioctls = via_max_ioctl;
 	via_init_command_verifier();
 
+	if (via_modeset)
+		via_driver.driver_features |= DRIVER_MODESET;
 	return drm_init(&via_driver);
 }
 
