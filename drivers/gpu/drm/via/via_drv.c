@@ -27,21 +27,84 @@
 #include "drm_pciids.h"
 
 static struct pci_device_id via_pci_table[] = {
-	viadrv_PCI_IDS
+	viadrv_PCI_IDS,
 };
+
+#define VIA_AGP_MODE_MASK	0x17
+#define VIA_AGPV3_MODE		0x08
+#define VIA_AGPV3_8X_MODE	0x02
+#define VIA_AGPV3_4X_MODE	0x01
+#define VIA_AGP_4X_MODE		0x04
+#define VIA_AGP_2X_MODE		0x02
+#define VIA_AGP_1X_MODE		0x01
+#define VIA_AGP_FW_MODE		0x10
+
+static int via_detect_agp(struct drm_device *dev)
+{
+	struct drm_via_private *dev_priv = dev->dev_private;
+	struct drm_agp_info agp_info;
+	struct drm_agp_mode mode;
+	int ret = 0;
+
+	ret = drm_agp_acquire(dev);
+	if (ret) {
+		DRM_ERROR("Failed acquiring AGP device.\n");
+		return ret;
+	}
+
+	ret = drm_agp_info(dev, &agp_info);
+	if (ret) {
+		DRM_ERROR("Failed detecting AGP aperture size.\n");
+		goto out_err0;
+	}
+
+	mode.mode = agp_info.mode & ~VIA_AGP_MODE_MASK;
+	if (mode.mode & VIA_AGPV3_MODE)
+		mode.mode |= VIA_AGPV3_8X_MODE;
+	else
+		mode.mode |= VIA_AGP_4X_MODE;
+
+	mode.mode |= VIA_AGP_FW_MODE;
+	ret = drm_agp_enable(dev, mode);
+	if (ret) {
+		DRM_ERROR("Failed to enable the AGP bus.\n");
+		goto out_err0;
+	}
+
+	ret = ttm_bo_init_mm(&dev_priv->bdev, TTM_PL_TT, agp_info.aperture_size >> PAGE_SHIFT);
+	if (!ret) {
+		DRM_INFO("Detected %lu MB of AGP Aperture at "
+			"physical address 0x%08lx.\n",
+			agp_info.aperture_size >> 20,
+			agp_info.aperture_base);
+	} else {
+out_err0:
+		drm_agp_release(dev);
+	}
+        return ret;
+}
 
 static int via_driver_unload(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
+	int ret = 0;
 
-	drm_sman_takedown(&dev_priv->sman);
+	ret = via_dma_cleanup(dev);
+	if (ret)
+		return ret;
+
+	ttm_bo_clean_mm(&dev_priv->bdev, TTM_PL_VRAM);
+	ttm_bo_clean_mm(&dev_priv->bdev, TTM_PL_TT);
 
 	ttm_global_fini(&dev_priv->mem_global_ref,
 			&dev_priv->bo_global_ref,
 			&dev_priv->bdev);
 
+	if (dev->agp && dev->agp->acquired)
+		drm_agp_release(dev);
+
 	kfree(dev_priv);
-	return 0;
+	return ret;
 }
 
 static int via_driver_load(struct drm_device *dev, unsigned long chipset)
@@ -59,17 +122,17 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 
 	ret = via_ttm_init(dev_priv);
 	if (ret)
-		return ret;
-
-	ret = drm_sman_init(&dev_priv->sman, 2, 12, 8);
-	if (ret) {
-		kfree(dev_priv);
-		return ret;
-	}
+		goto out_err;
 
 	ret = via_detect_vram(dev);
 	if (ret)
 		goto out_err;
+
+	if (dev->agp && drm_device_is_agp(dev)) {
+		ret = via_detect_agp(dev);
+		if (ret)
+			goto out_err;
+	}
 
 	ret = drm_vblank_init(dev, 1);
 out_err:
@@ -101,29 +164,16 @@ static void via_lastclose(struct drm_device *dev)
 
 	if (!dev_priv)
 		return;
-
-	mutex_lock(&dev->struct_mutex);
-	drm_sman_cleanup(&dev_priv->sman);
-	dev_priv->vram_initialized = 0;
-	dev_priv->agp_initialized = 0;
-	mutex_unlock(&dev->struct_mutex);
 }
 
 static void via_reclaim_buffers_locked(struct drm_device *dev,
                                 struct drm_file *file_priv)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
-
 	mutex_lock(&dev->struct_mutex);
-	if (drm_sman_owner_clean(&dev_priv->sman, (unsigned long)file_priv)) {
-		mutex_unlock(&dev->struct_mutex);
-		return;
-	}
 
 	if (dev->driver->dma_quiescent)
 		dev->driver->dma_quiescent(dev);
 
-	drm_sman_owner_cleanup(&dev_priv->sman, (unsigned long)file_priv);
 	mutex_unlock(&dev->struct_mutex);
 	return;
 }
@@ -176,6 +226,7 @@ static int __init via_init(void)
 {
 	via_driver.num_ioctls = via_max_ioctl;
 	via_init_command_verifier();
+
 	return drm_init(&via_driver);
 }
 

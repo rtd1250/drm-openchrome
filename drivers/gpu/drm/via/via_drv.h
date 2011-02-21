@@ -24,7 +24,6 @@
 #ifndef _VIA_DRV_H_
 #define _VIA_DRV_H_
 
-#include "drm_sman.h"
 #define DRIVER_AUTHOR		"Various"
 
 #define DRIVER_NAME		"via"
@@ -103,9 +102,6 @@ struct drm_via_private {
 	uint32_t irq_pending_mask;
 	int *irq_map;
 	unsigned int idle_fault;
-	struct drm_sman sman;
-	int vram_initialized;
-	int agp_initialized;
 	unsigned long vram_offset;
 	unsigned long agp_offset;
 	drm_via_blitq_t blit_queues[VIA_NUM_BLIT_ENGINES];
