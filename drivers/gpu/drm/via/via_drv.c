@@ -122,6 +122,8 @@ err:
 	if (!ret) {
 		DRM_INFO("Detected MMIO at physical address 0x%08llx.\n",
 			(unsigned long long) pci_resource_start(dev->pdev, 1));
+		dev_priv->iga[0].vga_regs = (dev_priv->mmio.virtual + 0x83C0);
+		dev_priv->iga[1].vga_regs = (dev_priv->mmio.virtual + 0x83C0);
 	} else
 		ttm_bo_clean_mm(&dev_priv->bdev, TTM_PL_PRIV0);
 	return ret;
@@ -189,6 +191,12 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 
 	if (dev->agp && drm_device_is_agp(dev)) {
 		ret = via_detect_agp(dev);
+		if (ret)
+			goto out_err;
+	}
+
+	if (dev->driver->driver_features & DRIVER_MODESET) {
+		ret = via_modeset_init(dev);
 		if (ret)
 			goto out_err;
 	}

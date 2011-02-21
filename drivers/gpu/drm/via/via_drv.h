@@ -60,6 +60,12 @@ typedef struct drm_via_irq {
 	wait_queue_head_t irq_queue;
 } drm_via_irq_t;
 
+struct via_crtc {
+	struct drm_gem_object *cursor_bo;
+	void __iomem *vga_regs;
+	struct drm_crtc crtc;
+};
+
 struct drm_via_private {
 	struct drm_global_reference mem_global_ref;
 	struct ttm_bo_global_ref bo_global_ref;
@@ -67,6 +73,7 @@ struct drm_via_private {
 	struct drm_device *dev;
 	drm_via_sarea_t *sarea_priv;
 	drm_local_map_t *sarea;
+	struct via_crtc iga[2];
 	unsigned long vram_start;
 	u8 vram_type;
 	wait_queue_head_t decoder_queue[VIA_NR_XVMC_LOCKS];
@@ -194,5 +201,11 @@ extern void via_release_futex(struct drm_via_private *dev_priv, int context);
 
 extern void via_dmablit_handler(struct drm_device *dev, int engine, int from_irq);
 extern void via_init_dmablit(struct drm_device *dev);
+
+extern int via_modeset_init(struct drm_device *dev);
+extern int via_get_modes(struct drm_connector *connector);
+extern void via_analog_init(struct drm_device *dev);
+extern int via_encoder_probe(struct drm_device *dev, int encoder,
+			void __iomem *iobase, unsigned int index);
 
 #endif
