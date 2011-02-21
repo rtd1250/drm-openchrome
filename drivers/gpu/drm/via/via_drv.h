@@ -63,6 +63,8 @@ struct drm_via_private {
 	drm_local_map_t *sarea;
 	drm_local_map_t *fb;
 	drm_local_map_t *mmio;
+	unsigned long vram_start;
+	u8 vram_type;
 	unsigned long agpAddr;
 	wait_queue_head_t decoder_queue[VIA_NR_XVMC_LOCKS];
 	char *dma_ptr;
@@ -104,6 +106,24 @@ enum via_family {
   VIA_DX9_0          /* Same video as pro_group_a, but 3D is unsupported */
 };
 
+#define VIA_MEM_NONE		0x00
+#define VIA_MEM_SDR66		0x01
+#define VIA_MEM_SDR100		0x02
+#define VIA_MEM_SDR133		0x03
+#define VIA_MEM_DDR_200 	0x04
+#define VIA_MEM_DDR_266 	0x05
+#define VIA_MEM_DDR_333 	0x06
+#define VIA_MEM_DDR_400 	0x07
+#define VIA_MEM_DDR2_400	0x08
+#define VIA_MEM_DDR2_533	0x09
+#define VIA_MEM_DDR2_667	0x0A
+#define VIA_MEM_DDR2_800	0x0B
+#define VIA_MEM_DDR2_1066	0x0C
+#define VIA_MEM_DDR3_800	0x0D
+#define VIA_MEM_DDR3_1066	0x0E
+#define VIA_MEM_DDR3_1333	0x0F
+#define VIA_MEM_DDR3_1600	0x10
+
 /* VIA MMIO register access */
 #define VIA_BASE ((dev_priv->mmio))
 
@@ -125,6 +145,8 @@ extern int via_decoder_futex(struct drm_device *dev, void *data, struct drm_file
 extern int via_wait_irq(struct drm_device *dev, void *data, struct drm_file *file_priv);
 extern int via_dma_blit_sync(struct drm_device *dev, void *data, struct drm_file *file_priv);
 extern int via_dma_blit(struct drm_device *dev, void *data, struct drm_file *file_priv);
+
+extern int via_detect_vram(struct drm_device *dev);
 
 extern u32 via_get_vblank_counter(struct drm_device *dev, int crtc);
 extern int via_enable_vblank(struct drm_device *dev, int crtc);

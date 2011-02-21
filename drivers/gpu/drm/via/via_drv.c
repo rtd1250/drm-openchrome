@@ -59,11 +59,14 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 		return ret;
 	}
 
+	ret = via_detect_vram(dev);
+	if (ret)
+		goto out_err;
+
 	ret = drm_vblank_init(dev, 1);
-	if (ret) {
-		drm_sman_takedown(&dev_priv->sman);
-		kfree(dev_priv);
-	}
+out_err:
+	if (ret)
+		via_driver_unload(dev);
 	return ret;
 }
 
