@@ -32,6 +32,94 @@ static struct pci_device_id via_pci_table[] = {
 	viadrv_PCI_IDS
 };
 
+static int via_driver_unload(struct drm_device *dev)
+{
+	struct drm_via_private *dev_priv = dev->dev_private;
+
+	drm_sman_takedown(&dev_priv->sman);
+
+	kfree(dev_priv);
+
+	return 0;
+}
+
+static int via_driver_load(struct drm_device *dev, unsigned long chipset)
+{
+	struct drm_via_private *dev_priv;
+	int ret = 0;
+
+	dev_priv = kzalloc(sizeof(struct drm_via_private), GFP_KERNEL);
+	if (dev_priv == NULL)
+		return -ENOMEM;
+
+	dev->dev_private = (void *)dev_priv;
+	dev_priv->chipset = chipset;
+
+	ret = drm_sman_init(&dev_priv->sman, 2, 12, 8);
+	if (ret) {
+		kfree(dev_priv);
+		return ret;
+	}
+
+	ret = drm_vblank_init(dev, 1);
+	if (ret) {
+		drm_sman_takedown(&dev_priv->sman);
+		kfree(dev_priv);
+		return ret;
+	}
+        return 0;
+}
+
+static int via_final_context(struct drm_device *dev, int context)
+{
+	struct drm_via_private *dev_priv = dev->dev_private;
+
+	via_release_futex(dev_priv, context);
+
+	/* Linux specific until context tracking code gets ported to BSD */
+	/* Last context, perform cleanup */
+	if (dev->ctx_count == 1 && dev->dev_private) {
+		DRM_DEBUG("Last Context\n");
+		drm_irq_uninstall(dev);
+		via_cleanup_futex(dev_priv);
+		via_dma_cleanup(dev);
+	}
+	return 1;
+}
+
+static void via_lastclose(struct drm_device *dev)
+{
+	struct drm_via_private *dev_priv = dev->dev_private;
+
+	if (!dev_priv)
+		return;
+
+	mutex_lock(&dev->struct_mutex);
+	drm_sman_cleanup(&dev_priv->sman);
+	dev_priv->vram_initialized = 0;
+	dev_priv->agp_initialized = 0;
+	mutex_unlock(&dev->struct_mutex);
+}
+
+static void via_reclaim_buffers_locked(struct drm_device *dev,
+                                struct drm_file *file_priv)
+{
+	struct drm_via_private *dev_priv = dev->dev_private;
+
+	mutex_lock(&dev->struct_mutex);
+	if (drm_sman_owner_clean(&dev_priv->sman, (unsigned long)file_priv)) {
+		mutex_unlock(&dev->struct_mutex);
+		return;
+	}
+
+	if (dev->driver->dma_quiescent)
+		dev->driver->dma_quiescent(dev);
+
+	drm_sman_owner_cleanup(&dev_priv->sman, (unsigned long)file_priv);
+	mutex_unlock(&dev->struct_mutex);
+	return;
+}
+
 static struct drm_driver via_driver = {
 	.driver_features =
 		DRIVER_USE_AGP | DRIVER_USE_MTRR | DRIVER_HAVE_IRQ |

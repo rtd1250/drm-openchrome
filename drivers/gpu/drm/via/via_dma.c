@@ -224,7 +224,7 @@ static int via_initialize(struct drm_device *dev,
 	return 0;
 }
 
-static int via_dma_init(struct drm_device *dev, void *data, struct drm_file *file_priv)
+int via_dma_init(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
 	drm_via_dma_init_t *init = data;
@@ -255,7 +255,7 @@ static int via_dma_init(struct drm_device *dev, void *data, struct drm_file *fil
 	return retcode;
 }
 
-static int via_dispatch_cmdbuffer(struct drm_device *dev, drm_via_cmdbuffer_t *cmd)
+int via_dispatch_cmdbuffer(struct drm_device *dev, drm_via_cmdbuffer_t *cmd)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
 	uint32_t *vb;
@@ -313,7 +313,7 @@ int via_driver_dma_quiescent(struct drm_device *dev)
 	return 0;
 }
 
-static int via_flush_ioctl(struct drm_device *dev, void *data, struct drm_file *file_priv)
+int via_flush_ioctl(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 
 	LOCK_TEST_WITH_RETURN(dev, file_priv);
@@ -321,7 +321,7 @@ static int via_flush_ioctl(struct drm_device *dev, void *data, struct drm_file *
 	return via_driver_dma_quiescent(dev);
 }
 
-static int via_cmdbuffer(struct drm_device *dev, void *data, struct drm_file *file_priv)
+int via_cmdbuffer(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	drm_via_cmdbuffer_t *cmdbuf = data;
 	int ret;
@@ -357,7 +357,7 @@ static int via_dispatch_pci_cmdbuffer(struct drm_device *dev,
 	return ret;
 }
 
-static int via_pci_cmdbuffer(struct drm_device *dev, void *data, struct drm_file *file_priv)
+int via_pci_cmdbuffer(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	drm_via_cmdbuffer_t *cmdbuf = data;
 	int ret;
@@ -580,7 +580,7 @@ static inline void via_dummy_bitblt(struct drm_via_private *dev_priv)
 	SetReg2DAGP(0x0, 0x1 | 0x2000 | 0xAA000000);
 }
 
-static void via_cmdbuf_jump(struct drm_via_private *dev_priv)
+static void via_cmdbuf_rewind(struct drm_via_private *dev_priv)
 {
 	uint32_t agp_base;
 	uint32_t pause_addr_lo, pause_addr_hi;
@@ -600,7 +600,7 @@ static void via_cmdbuf_jump(struct drm_via_private *dev_priv)
 
 	dev_priv->dma_low = 0;
 	if (via_cmdbuf_wait(dev_priv, CMDBUF_ALIGNMENT_SIZE) != 0)
-		DRM_ERROR("via_cmdbuf_jump failed\n");
+		DRM_ERROR("via_cmdbuf_rewind failed\n");
 
 	via_dummy_bitblt(dev_priv);
 	via_dummy_bitblt(dev_priv);
@@ -637,12 +637,6 @@ static void via_cmdbuf_jump(struct drm_via_private *dev_priv)
 	via_hook_segment(dev_priv, pause_addr_hi, pause_addr_lo, 0);
 }
 
-
-static void via_cmdbuf_rewind(struct drm_via_private *dev_priv)
-{
-	via_cmdbuf_jump(dev_priv);
-}
-
 static void via_cmdbuf_flush(struct drm_via_private *dev_priv, uint32_t cmd_type)
 {
 	uint32_t pause_addr_lo, pause_addr_hi;
@@ -666,17 +660,15 @@ static void via_cmdbuf_reset(struct drm_via_private *dev_priv)
  * User interface to the space and lag functions.
  */
 
-static int via_cmdbuf_size(struct drm_device *dev, void *data, struct drm_file *file_priv)
+int via_cmdbuf_size(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
+	struct drm_via_private *dev_priv = dev->dev_private;
 	drm_via_cmdbuf_size_t *d_siz = data;
-	int ret = 0;
 	uint32_t tmp_size, count;
-	struct drm_via_private *dev_priv;
+	int ret = 0;
 
 	DRM_DEBUG("\n");
 	LOCK_TEST_WITH_RETURN(dev, file_priv);
-
-	dev_priv = dev->dev_private;
 
 	if (dev_priv->ring.virtual_start == NULL) {
 		DRM_ERROR("called without initializing AGP ring buffer.\n");
@@ -715,22 +707,3 @@ static int via_cmdbuf_size(struct drm_device *dev, void *data, struct drm_file *
 
 	return ret;
 }
-
-struct drm_ioctl_desc via_ioctls[] = {
-	DRM_IOCTL_DEF_DRV(VIA_ALLOCMEM, via_mem_alloc, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(VIA_FREEMEM, via_mem_free, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(VIA_AGP_INIT, via_agp_init, DRM_AUTH|DRM_MASTER),
-	DRM_IOCTL_DEF_DRV(VIA_FB_INIT, via_fb_init, DRM_AUTH|DRM_MASTER),
-	DRM_IOCTL_DEF_DRV(VIA_MAP_INIT, via_map_init, DRM_AUTH|DRM_MASTER),
-	DRM_IOCTL_DEF_DRV(VIA_DEC_FUTEX, via_decoder_futex, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(VIA_DMA_INIT, via_dma_init, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(VIA_CMDBUFFER, via_cmdbuffer, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(VIA_FLUSH, via_flush_ioctl, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(VIA_PCICMD, via_pci_cmdbuffer, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(VIA_CMDBUF_SIZE, via_cmdbuf_size, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(VIA_WAIT_IRQ, via_wait_irq, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(VIA_DMA_BLIT, via_dma_blit, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(VIA_BLIT_SYNC, via_dma_blit_sync, DRM_AUTH)
-};
-
-int via_max_ioctl = DRM_ARRAY_SIZE(via_ioctls);

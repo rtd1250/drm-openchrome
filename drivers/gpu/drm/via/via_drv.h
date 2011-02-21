@@ -36,7 +36,6 @@
 #define DRIVER_PATCHLEVEL	1
 
 #include "via_verifier.h"
-
 #include "via_dmablit.h"
 
 #define VIA_PCI_BUF_SIZE 60000
@@ -114,23 +113,17 @@ enum via_family {
 extern struct drm_ioctl_desc via_ioctls[];
 extern int via_max_ioctl;
 
-extern int via_fb_init(struct drm_device *dev, void *data, struct drm_file *file_priv);
-extern int via_mem_alloc(struct drm_device *dev, void *data, struct drm_file *file_priv);
-extern int via_mem_free(struct drm_device *dev, void *data, struct drm_file *file_priv);
-extern int via_agp_init(struct drm_device *dev, void *data, struct drm_file *file_priv);
-extern int via_map_init(struct drm_device *dev, void *data, struct drm_file *file_priv);
+extern int via_dma_init(struct drm_device *dev, void *data, struct drm_file *file_priv);
+extern int via_flush_ioctl(struct drm_device *dev, void *data, struct drm_file *file_priv);
+extern int via_dispatch_cmdbuffer(struct drm_device *dev, drm_via_cmdbuffer_t *cmd);
+extern int via_cmdbuffer(struct drm_device *dev, void *data, struct drm_file *file_priv);
+extern int via_cmdbuf_size(struct drm_device *dev, void *data, struct drm_file *file_priv);
+extern int via_pci_cmdbuffer(struct drm_device *dev, void *data, struct drm_file *file_priv);
 extern int via_decoder_futex(struct drm_device *dev, void *data, struct drm_file *file_priv);
 extern int via_wait_irq(struct drm_device *dev, void *data, struct drm_file *file_priv);
 extern int via_dma_blit_sync(struct drm_device *dev, void *data, struct drm_file *file_priv);
 extern int via_dma_blit(struct drm_device *dev, void *data, struct drm_file *file_priv);
 
-extern int via_driver_load(struct drm_device *dev, unsigned long chipset);
-extern int via_driver_unload(struct drm_device *dev);
-
-extern int via_init_context(struct drm_device *dev, int context);
-extern int via_final_context(struct drm_device *dev, int context);
-
-extern int via_do_cleanup_map(struct drm_device *dev);
 extern u32 via_get_vblank_counter(struct drm_device *dev, int crtc);
 extern int via_enable_vblank(struct drm_device *dev, int crtc);
 extern void via_disable_vblank(struct drm_device *dev, int crtc);
@@ -140,16 +133,12 @@ extern void via_driver_irq_preinstall(struct drm_device *dev);
 extern int via_driver_irq_postinstall(struct drm_device *dev);
 extern void via_driver_irq_uninstall(struct drm_device *dev);
 
-extern int via_dma_cleanup(struct drm_device *dev);
 extern void via_init_command_verifier(void);
 extern int via_driver_dma_quiescent(struct drm_device *dev);
+extern int via_dma_cleanup(struct drm_device *dev);
 extern void via_init_futex(struct drm_via_private *dev_priv);
 extern void via_cleanup_futex(struct drm_via_private *dev_priv);
 extern void via_release_futex(struct drm_via_private *dev_priv, int context);
-
-extern void via_reclaim_buffers_locked(struct drm_device *dev,
-				       struct drm_file *file_priv);
-extern void via_lastclose(struct drm_device *dev);
 
 extern void via_dmablit_handler(struct drm_device *dev, int engine, int from_irq);
 extern void via_init_dmablit(struct drm_device *dev);
