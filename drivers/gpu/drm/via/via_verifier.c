@@ -227,7 +227,10 @@ static hz_init_t init_table3[] = {
 	{0xf2, check_for_header2_err},
 	{0xf0, check_for_header1_err},
 	{0xcc, check_for_dummy},
-	{0x00, check_number_texunits}
+	{0x00, check_number_texunits},
+	{0x01, no_check},
+	{0x02, no_check},
+	{0x03, no_check}
 };
 
 static hazard_t table1[256];
@@ -767,11 +770,12 @@ static __inline__ int verify_mmio_address(uint32_t address)
 		DRM_ERROR("Invalid VIDEO DMA command. "
 			  "Attempt to access 3D- or command burst area.\n");
 		return 1;
-	} else if ((address > 0xCFF) && (address < 0x1300)) {
+	} else if ((address > 0xDFF) && (address < 0x1200)) {
 		DRM_ERROR("Invalid VIDEO DMA command. "
 			  "Attempt to access PCI DMA area.\n");
 		return 1;
-	} else if (address > 0x13FF) {
+	} else if (((address > 0x13FF) && (address < 0x2200)) ||
+		(address > 0x33ff)) {
 		DRM_ERROR("Invalid VIDEO DMA command. "
 			  "Attempt to access VGA registers.\n");
 		return 1;
@@ -790,10 +794,11 @@ verify_video_tail(uint32_t const **buffer, const uint32_t * buf_end,
 		return 1;
 	}
 	while (dwords--) {
-		if (*buf++) {
+		if (*buf && !is_dummy_cmd(*buf)) {
 			DRM_ERROR("Illegal video command tail.\n");
 			return 1;
 		}
+		buf++;
 	}
 	*buffer = buf;
 	return 0;

@@ -25,7 +25,7 @@
 
 #ifndef _VIA_VERIFIER_H_
 #define _VIA_VERIFIER_H_
-
+#include "via_3d_reg.h"
 typedef enum {
 	no_sequence = 0,
 	z_address,
@@ -58,5 +58,32 @@ extern int via_verify_command_stream(const uint32_t *buf, unsigned int size,
 				     struct drm_device *dev, int agp);
 extern int via_parse_command_stream(struct drm_device *dev, const uint32_t *buf,
 				    unsigned int size);
+
+static inline int is_agp_header(unsigned int data)
+{
+	if (data == HALCYON_HEADER2)
+		return 1;
+	else if ((data & VIA_VIDEOMASK) == VIA_VIDEO_HEADER5)
+		;
+	else if ((data & VIA_VIDEOMASK) == VIA_VIDEO_HEADER6)
+		;
+	else if ((data & HALCYON_HEADER_MASK) == HALCYON_HEADER1)
+		;
+	else
+		return 0;
+
+	return 1;
+}
+
+static inline int is_dummy_cmd(uint32_t cmd)
+{
+		if ((cmd & INV_DUMMY_MASK) == 0xCC000000 ||
+			(cmd & INV_DUMMY_MASK) == 0xCD000000 ||
+			(cmd & INV_DUMMY_MASK) == 0xCE000000 ||
+			(cmd & INV_DUMMY_MASK) == 0xCF000000 ||
+			(cmd & INV_DUMMY_MASK) == 0xDD000000)
+			return 1;
+		return 0;
+}
 
 #endif
