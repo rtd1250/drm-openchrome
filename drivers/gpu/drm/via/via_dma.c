@@ -42,7 +42,7 @@
 #define CMDBUF_ALIGNMENT_SIZE   (0x100)
 #define CMDBUF_ALIGNMENT_MASK   (0x0ff)
 
-#define SetReg2DAGP(nReg, nData) {				\
+#define VIA_OUT_RING_H1(nReg, nData) {				\
 	*((uint32_t *)(vb)) = ((nReg) >> 2) | HALCYON_HEADER1;	\
 	*((uint32_t *)(vb) + 1) = (nData);			\
 	vb = ((uint32_t *)vb) + 2;				\
@@ -70,8 +70,8 @@ static void via_pad_cache(struct drm_via_private *dev_priv, int qwords);
 
 static uint32_t via_cmdbuf_space(struct drm_via_private *dev_priv)
 {
-	uint32_t agp_base = dev_priv->dma_offset + (uint32_t) dev_priv->agpAddr;
-	uint32_t hw_addr = *(dev_priv->hw_addr_ptr) - agp_base;
+	uint32_t agp_base = dev_priv->dma_offset;
+	uint32_t hw_addr = ioread32(dev_priv->hw_addr_ptr) - agp_base;
 
 	return ((hw_addr <= dev_priv->dma_low) ?
 		(dev_priv->dma_high + hw_addr - dev_priv->dma_low) :
@@ -84,8 +84,8 @@ static uint32_t via_cmdbuf_space(struct drm_via_private *dev_priv)
 
 static uint32_t via_cmdbuf_lag(struct drm_via_private *dev_priv)
 {
-	uint32_t agp_base = dev_priv->dma_offset + (uint32_t) dev_priv->agpAddr;
-	uint32_t hw_addr = *(dev_priv->hw_addr_ptr) - agp_base;
+	uint32_t agp_base = dev_priv->dma_offset;
+	uint32_t hw_addr = ioread32(dev_priv->hw_addr_ptr) - agp_base;
 
 	return ((hw_addr <= dev_priv->dma_low) ?
 		(dev_priv->dma_low - hw_addr) :
@@ -99,7 +99,7 @@ static uint32_t via_cmdbuf_lag(struct drm_via_private *dev_priv)
 static inline int
 via_cmdbuf_wait(struct drm_via_private *dev_priv, unsigned int size)
 {
-	uint32_t agp_base = dev_priv->dma_offset + (uint32_t) dev_priv->agpAddr;
+	uint32_t agp_base = dev_priv->dma_offset;
 	uint32_t cur_addr, hw_addr, next_addr;
 	volatile uint32_t *hw_addr_ptr;
 	uint32_t count;
@@ -138,7 +138,7 @@ static inline uint32_t *via_check_dma(struct drm_via_private * dev_priv,
 	if (via_cmdbuf_wait(dev_priv, size) != 0)
 		return NULL;
 
-	return (uint32_t *) (dev_priv->dma_ptr + dev_priv->dma_low);
+	return (uint32_t *) (dev_priv->dmabuf.virtual + dev_priv->dma_low);
 }
 
 int via_dma_cleanup(struct drm_device *dev)
@@ -146,11 +146,14 @@ int via_dma_cleanup(struct drm_device *dev)
 	if (dev->dev_private) {
 		struct drm_via_private *dev_priv = dev->dev_private;
 
-		if (dev_priv->ring.virtual_start) {
+		if (dev_priv->dmabuf.virtual) {
+			struct ttm_buffer_object *bo = dev_priv->dmabuf.bo;
+
 			via_cmdbuf_reset(dev_priv);
 
-			drm_core_ioremapfree(&dev_priv->ring.map, dev);
-			dev_priv->ring.virtual_start = NULL;
+			ttm_bo_kunmap(&dev_priv->dmabuf);
+			ttm_bo_unref(&bo);
+			dev_priv->dmabuf.virtual = NULL;
 		}
 	}
 	return 0;
@@ -160,19 +163,22 @@ static int via_initialize(struct drm_device *dev,
 			  struct drm_via_private *dev_priv,
 			  drm_via_dma_init_t *init)
 {
-	if (!dev_priv || !dev_priv->mmio) {
+	struct ttm_buffer_object *bo;
+	int ret = -EFAULT;
+
+	if (!dev_priv) {
 		DRM_ERROR("via_dma_init called before via_map_init\n");
-		return -EFAULT;
+		return ret;
 	}
 
-	if (dev_priv->ring.virtual_start != NULL) {
+	if (dev_priv->dmabuf.virtual != NULL) {
 		DRM_ERROR("called again without calling cleanup\n");
-		return -EFAULT;
+		return ret;
 	}
 
 	if (!dev->agp || !dev->agp->base) {
 		DRM_ERROR("called with no agp memory available\n");
-		return -EFAULT;
+		return ret;
 	}
 
 	if (dev_priv->chipset == VIA_DX9_0) {
@@ -180,36 +186,33 @@ static int via_initialize(struct drm_device *dev,
 		return -EINVAL;
 	}
 
-	dev_priv->ring.map.offset = dev->agp->base + init->offset;
-	dev_priv->ring.map.size = init->size;
-	dev_priv->ring.map.type = 0;
-	dev_priv->ring.map.flags = 0;
-	dev_priv->ring.map.mtrr = 0;
-
-	drm_core_ioremap(&dev_priv->ring.map, dev);
-
-	if (dev_priv->ring.map.handle == NULL) {
-		via_dma_cleanup(dev);
-		DRM_ERROR("can not ioremap virtual address for"
-			  " ring buffer\n");
-		return -ENOMEM;
+	ret = ttm_bo_allocate(&dev_priv->bdev, init->size, ttm_bo_type_kernel,
+				TTM_PL_FLAG_TT, VIA_MM_ALIGN_SIZE, PAGE_SIZE,
+				init->offset, false, via_ttm_bo_destroy,
+				NULL, &bo);
+	if (!ret) {
+		ret = ttm_bo_reserve(bo, true, false, false, 0);
+		if (!ret) {
+			ret = ttm_bo_kmap(bo, 0, bo->num_pages, &dev_priv->dmabuf);
+			ttm_bo_unreserve(bo);
+			if (ret)
+				goto out_err;
+		}
 	}
 
-	dev_priv->ring.virtual_start = dev_priv->ring.map.handle;
-
-	dev_priv->dma_ptr = dev_priv->ring.virtual_start;
 	dev_priv->dma_low = 0;
-	dev_priv->dma_high = init->size;
-	dev_priv->dma_wrap = init->size;
-	dev_priv->dma_offset = init->offset;
+	dev_priv->dma_high = bo->num_pages << PAGE_SHIFT;
+	dev_priv->dma_wrap = dev_priv->dma_high;
+	dev_priv->dma_offset = bo->offset;
 	dev_priv->last_pause_ptr = NULL;
 	dev_priv->hw_addr_ptr =
-		(volatile uint32_t *)((char *)dev_priv->mmio->handle +
-		init->reg_pause_addr);
+		(void *)(dev_priv->mmio.virtual + init->reg_pause_addr);
 
 	via_cmdbuf_start(dev_priv);
-
-	return 0;
+out_err:
+	if (ret)
+		DRM_ERROR("can not ioremap TTM DMA ring buffer\n");
+	return ret;
 }
 
 int via_dma_init(struct drm_device *dev, void *data, struct drm_file *file_priv)
@@ -232,7 +235,7 @@ int via_dma_init(struct drm_device *dev, void *data, struct drm_file *file_priv)
 			retcode = via_dma_cleanup(dev);
 		break;
 	case VIA_DMA_INITIALIZED:
-		retcode = (dev_priv->ring.virtual_start != NULL) ?
+		retcode = (dev_priv->dmabuf.virtual != NULL) ?
 			0 : -EFAULT;
 		break;
 	default:
@@ -249,7 +252,7 @@ int via_dispatch_cmdbuffer(struct drm_device *dev, drm_via_cmdbuffer_t *cmd)
 	uint32_t *vb;
 	int ret;
 
-	if (dev_priv->ring.virtual_start == NULL) {
+	if (dev_priv->dmabuf.virtual == NULL) {
 		DRM_ERROR("called without initializing AGP ring buffer.\n");
 		return -EFAULT;
 	}
@@ -373,7 +376,7 @@ static inline uint32_t *via_align_buffer(struct drm_via_private *dev_priv,
  */
 static inline uint32_t *via_get_dma(struct drm_via_private *dev_priv)
 {
-	return (uint32_t *) (dev_priv->dma_ptr + dev_priv->dma_low);
+	return (uint32_t *) (dev_priv->dmabuf.virtual + dev_priv->dma_low);
 }
 
 /*
@@ -398,9 +401,9 @@ static int via_hook_segment(struct drm_via_private *dev_priv,
 	via_flush_write_combine();
 	(void) *paused_at;
 
-	reader = *(dev_priv->hw_addr_ptr);
-	ptr = ((volatile char *)paused_at - dev_priv->dma_ptr) +
-		dev_priv->dma_offset + (uint32_t) dev_priv->agpAddr + 4;
+	reader = ioread32(dev_priv->hw_addr_ptr);
+	ptr = ((volatile void *)paused_at - dev_priv->dmabuf.virtual) +
+		dev_priv->dma_offset + 4;
 
 	dev_priv->last_pause_ptr = via_get_dma(dev_priv) - 1;
 
@@ -413,18 +416,18 @@ static int via_hook_segment(struct drm_via_private *dev_priv,
 
 	diff = (uint32_t) (ptr - reader) - dev_priv->dma_diff;
 	count = 10000000;
-	while (diff == 0 && count--) {
+
+	while ((diff < CMDBUF_ALIGNMENT_SIZE) && count--) {
 		paused = (VIA_READ(0x41c) & 0x80000000);
 		if (paused)
 			break;
-		reader = *(dev_priv->hw_addr_ptr);
+		reader = ioread32(dev_priv->hw_addr_ptr);
 		diff = (uint32_t) (ptr - reader) - dev_priv->dma_diff;
 	}
 
 	paused = VIA_READ(0x41c) & 0x80000000;
-
 	if (paused && !no_pci_fire) {
-		reader = *(dev_priv->hw_addr_ptr);
+		reader = ioread32(dev_priv->hw_addr_ptr);
 		diff = (uint32_t) (ptr - reader) - dev_priv->dma_diff;
 		diff &= (dev_priv->dma_high - 1);
 		if (diff != 0 && diff < (dev_priv->dma_high >> 1)) {
@@ -476,7 +479,8 @@ static uint32_t *via_align_cmd(struct drm_via_private *dev_priv, uint32_t cmd_ty
 	vb = via_get_dma(dev_priv);
 	VIA_OUT_RING_QW(HC_HEADER2 | ((VIA_REG_TRANSET >> 2) << 12) |
 			(VIA_REG_TRANSPACE >> 2), HC_ParaType_PreCR << 16);
-	agp_base = dev_priv->dma_offset + (uint32_t) dev_priv->agpAddr;
+
+	agp_base = dev_priv->dma_offset;
 	qw_pad_count = (CMDBUF_ALIGNMENT_SIZE >> 3) -
 	    ((dev_priv->dma_low & CMDBUF_ALIGNMENT_MASK) >> 3);
 
@@ -504,7 +508,7 @@ static void via_cmdbuf_start(struct drm_via_private *dev_priv)
 
 	dev_priv->dma_low = 0;
 
-	agp_base = dev_priv->dma_offset + (uint32_t) dev_priv->agpAddr;
+	agp_base = dev_priv->dma_offset;
 	start_addr = agp_base;
 	end_addr = agp_base + dev_priv->dma_high;
 
@@ -518,7 +522,7 @@ static void via_cmdbuf_start(struct drm_via_private *dev_priv)
 			  &pause_addr_hi, &pause_addr_lo, 1) - 1;
 
 	via_flush_write_combine();
-	(void) *(volatile uint32_t *)dev_priv->last_pause_ptr;
+	(void) *(volatile uint32_t *) dev_priv->last_pause_ptr;
 
 	VIA_WRITE(VIA_REG_TRANSET, (HC_ParaType_PreCR << 16));
 	VIA_WRITE(VIA_REG_TRANSPACE, command);
@@ -536,9 +540,9 @@ static void via_cmdbuf_start(struct drm_via_private *dev_priv)
 	count = 10000000;
 	while (!(VIA_READ(0x41c) & 0x80000000) && count--);
 
-	reader = *(dev_priv->hw_addr_ptr);
-	ptr = ((volatile char *)dev_priv->last_pause_ptr - dev_priv->dma_ptr) +
-	    dev_priv->dma_offset + (uint32_t) dev_priv->agpAddr + 4;
+	reader = ioread32(dev_priv->hw_addr_ptr);
+	ptr = ((volatile void *)dev_priv->last_pause_ptr - dev_priv->dmabuf.virtual) +
+	    dev_priv->dma_offset + 4;
 
 	/*
 	 * This is the difference between where we tell the
@@ -563,9 +567,9 @@ static void via_pad_cache(struct drm_via_private *dev_priv, int qwords)
 static inline void via_dummy_bitblt(struct drm_via_private *dev_priv)
 {
 	uint32_t *vb = via_get_dma(dev_priv);
-	SetReg2DAGP(0x0C, (0 | (0 << 16)));
-	SetReg2DAGP(0x10, 0 | (0 << 16));
-	SetReg2DAGP(0x0, 0x1 | 0x2000 | 0xAA000000);
+	VIA_OUT_RING_H1(0x0C, (0 | (0 << 16)));
+	VIA_OUT_RING_H1(0x10, 0 | (0 << 16));
+	VIA_OUT_RING_H1(0x0, 0x1 | 0x2000 | 0xAA000000);
 }
 
 static void via_cmdbuf_rewind(struct drm_via_private *dev_priv)
@@ -576,7 +580,7 @@ static void via_cmdbuf_rewind(struct drm_via_private *dev_priv)
 	volatile uint32_t *last_pause_ptr;
 	uint32_t dma_low_save1, dma_low_save2;
 
-	agp_base = dev_priv->dma_offset + (uint32_t) dev_priv->agpAddr;
+	agp_base = dev_priv->dma_offset;
 	via_align_cmd(dev_priv, HC_HAGPBpID_JUMP, 0, &jump_addr_hi,
 		      &jump_addr_lo, 0);
 
@@ -652,13 +656,13 @@ int via_cmdbuf_size(struct drm_device *dev, void *data, struct drm_file *file_pr
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
 	drm_via_cmdbuf_size_t *d_siz = data;
-	uint32_t tmp_size, count;
 	int ret = 0;
+	uint32_t tmp_size, count;
 
 	DRM_DEBUG("\n");
 	LOCK_TEST_WITH_RETURN(dev, file_priv);
 
-	if (dev_priv->ring.virtual_start == NULL) {
+	if (dev_priv->dmabuf.virtual == NULL) {
 		DRM_ERROR("called without initializing AGP ring buffer.\n");
 		return -EFAULT;
 	}

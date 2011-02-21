@@ -51,11 +51,6 @@
 #define VIA_FIRE_BUF_SIZE  1024
 #define VIA_NUM_IRQS 4
 
-typedef struct drm_via_ring_buffer {
-	drm_local_map_t map;
-	char *virtual_start;
-} drm_via_ring_buffer_t;
-
 typedef uint32_t maskarray_t[5];
 
 typedef struct drm_via_irq {
@@ -72,20 +67,17 @@ struct drm_via_private {
 	struct drm_device *dev;
 	drm_via_sarea_t *sarea_priv;
 	drm_local_map_t *sarea;
-	drm_local_map_t *fb;
-	drm_local_map_t *mmio;
 	unsigned long vram_start;
 	u8 vram_type;
-	unsigned long agpAddr;
 	wait_queue_head_t decoder_queue[VIA_NR_XVMC_LOCKS];
-	char *dma_ptr;
+	struct ttm_bo_kmap_obj dmabuf;
+	struct ttm_bo_kmap_obj mmio;
 	unsigned int dma_low;
 	unsigned int dma_high;
 	unsigned int dma_offset;
 	uint32_t dma_wrap;
-	volatile uint32_t *last_pause_ptr;
-	volatile uint32_t *hw_addr_ptr;
-	drm_via_ring_buffer_t ring;
+	void __iomem *last_pause_ptr;
+	void __iomem *hw_addr_ptr;
 	struct timeval last_vblank;
 	int last_vblank_valid;
 	unsigned usec_per_vblank;
@@ -133,12 +125,12 @@ enum via_family {
 #define VIA_MEM_DDR3_1600	0x10
 
 /* VIA MMIO register access */
-#define VIA_BASE ((dev_priv->mmio))
+#define VIA_BASE ((dev_priv->mmio.virtual))
 
-#define VIA_READ(reg)		DRM_READ32(VIA_BASE, reg)
-#define VIA_WRITE(reg, val)	DRM_WRITE32(VIA_BASE, reg, val)
-#define VIA_READ8(reg)		DRM_READ8(VIA_BASE, reg)
-#define VIA_WRITE8(reg, val)	DRM_WRITE8(VIA_BASE, reg, val)
+#define VIA_READ(reg)		ioread32(VIA_BASE + reg)
+#define VIA_WRITE(reg, val)	iowrite32(val, VIA_BASE + reg)
+#define VIA_READ8(reg)		ioread8(VIA_BASE + reg)
+#define VIA_WRITE8(reg, val)	iowrite8(val, VIA_BASE + reg)
 
 extern struct drm_ioctl_desc via_ioctls[];
 extern int via_max_ioctl;

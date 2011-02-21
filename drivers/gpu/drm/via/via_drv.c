@@ -84,15 +84,60 @@ out_err0:
         return ret;
 }
 
+#define VIA_MMIO_REGSIZE 0x9000
+
+static int via_mmio_setup(struct drm_device *dev)
+{
+	struct drm_via_private *dev_priv = dev->dev_private;
+	int ret, len = pci_resource_len(dev->pdev, 1);
+	struct ttm_buffer_object *bo;
+
+	ret = ttm_bo_init_mm(&dev_priv->bdev, TTM_PL_PRIV0,
+				len >> PAGE_SHIFT);
+	if (ret)
+		return ret;
+
+	ret = ttm_bo_allocate(&dev_priv->bdev, VIA_MMIO_REGSIZE, ttm_bo_type_kernel,
+				TTM_PL_FLAG_PRIV0, 1, PAGE_SIZE,
+				0, false, via_ttm_bo_destroy,
+				NULL, &bo);
+	if (ret)
+		goto err;
+
+	ret = ttm_bo_reserve(bo, true, false, false, 0);
+	if (ret)
+		goto err;
+
+	ret = ttm_bo_kmap(bo, 0, bo->num_pages, &dev_priv->mmio);
+	ttm_bo_unreserve(bo);
+err:
+	if (!ret) {
+		DRM_INFO("Detected MMIO at physical address 0x%08llx.\n",
+			(unsigned long long) pci_resource_start(dev->pdev, 1));
+	} else
+		ttm_bo_clean_mm(&dev_priv->bdev, TTM_PL_PRIV0);
+	return ret;
+}
+
 static int via_driver_unload(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
+	struct ttm_buffer_object *bo = dev_priv->mmio.bo;
 	int ret = 0;
 
 	ret = via_dma_cleanup(dev);
 	if (ret)
 		return ret;
 
+	if (bo) {
+		ret = ttm_bo_reserve(bo, true, false, false, 0);
+		if (!ret)
+			ttm_bo_kunmap(&dev_priv->mmio);
+		ttm_bo_unreserve(bo);
+		ttm_bo_unref(&bo);
+	}
+
+	ttm_bo_clean_mm(&dev_priv->bdev, TTM_PL_PRIV0);
 	ttm_bo_clean_mm(&dev_priv->bdev, TTM_PL_VRAM);
 	ttm_bo_clean_mm(&dev_priv->bdev, TTM_PL_TT);
 
@@ -123,6 +168,12 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 	ret = via_ttm_init(dev_priv);
 	if (ret)
 		goto out_err;
+
+	ret = via_mmio_setup(dev);
+	if (ret) {
+		DRM_INFO("VIA MMIO region failed to map\n");
+		goto out_err;
+	}
 
 	ret = via_detect_vram(dev);
 	if (ret)

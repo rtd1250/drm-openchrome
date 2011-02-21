@@ -845,7 +845,8 @@ via_parse_header1(struct drm_via_private *dev_priv, uint32_t const **buffer,
 		cmd = *buf;
 		if ((cmd & HALCYON_HEADER1MASK) != HALCYON_HEADER1)
 			break;
-		VIA_WRITE((cmd & ~HALCYON_HEADER1MASK) << 2, *++buf);
+		cmd = (cmd & ~HALCYON_HEADER1MASK) << 2;
+		VIA_WRITE(cmd, *++buf);
 		buf++;
 	}
 	*buffer = buf;
