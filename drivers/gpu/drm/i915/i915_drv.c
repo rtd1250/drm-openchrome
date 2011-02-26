@@ -49,12 +49,18 @@ module_param_named(powersave, i915_powersave, int, 0600);
 unsigned int i915_lvds_downclock = 0;
 module_param_named(lvds_downclock, i915_lvds_downclock, int, 0400);
 
+unsigned int i915_panel_use_ssc = 1;
+module_param_named(lvds_use_ssc, i915_panel_use_ssc, int, 0600);
+
+bool i915_try_reset = true;
+module_param_named(reset, i915_try_reset, bool, 0600);
+
 static struct drm_driver driver;
 extern int intel_agp_enabled;
 
 #define INTEL_VGA_DEVICE(id, info) {		\
 	.class = PCI_CLASS_DISPLAY_VGA << 8,	\
-	.class_mask = 0xffff00,			\
+	.class_mask = 0xff0000,			\
 	.vendor = 0x8086,			\
 	.device = id,				\
 	.subvendor = PCI_ANY_ID,		\
@@ -348,10 +354,14 @@ static int i915_drm_thaw(struct drm_device *dev)
 		error = i915_gem_init_ringbuffer(dev);
 		mutex_unlock(&dev->struct_mutex);
 
+		drm_mode_config_reset(dev);
 		drm_irq_install(dev);
 
 		/* Resume the modeset for every activated CRTC */
 		drm_helper_resume_force_mode(dev);
+
+		if (dev_priv->renderctx && dev_priv->pwrctx)
+			ironlake_enable_rc6(dev);
 	}
 
 	intel_opregion_init(dev);
@@ -475,6 +485,9 @@ int i915_reset(struct drm_device *dev, u8 flags)
 	bool need_display = true;
 	int ret;
 
+	if (!i915_try_reset)
+		return 0;
+
 	if (!mutex_trylock(&dev->struct_mutex))
 		return -EBUSY;
 
@@ -530,6 +543,7 @@ int i915_reset(struct drm_device *dev, u8 flags)
 
 		mutex_unlock(&dev->struct_mutex);
 		drm_irq_uninstall(dev);
+		drm_mode_config_reset(dev);
 		drm_irq_install(dev);
 		mutex_lock(&dev->struct_mutex);
 	}
@@ -554,6 +568,14 @@ int i915_reset(struct drm_device *dev, u8 flags)
 static int __devinit
 i915_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 {
+	/* Only bind to function 0 of the device. Early generations
+	 * used function 1 as a placeholder for multi-head. This causes
+	 * us confusion instead, especially on the systems where both
+	 * functions have the same PCI-ID!
+	 */
+	if (PCI_FUNC(pdev->devfn))
+		return -ENODEV;
+
 	return drm_get_pci_dev(pdev, ent, &driver);
 }
 
@@ -678,6 +700,9 @@ static struct drm_driver driver = {
 	.gem_init_object = i915_gem_init_object,
 	.gem_free_object = i915_gem_free_object,
 	.gem_vm_ops = &i915_gem_vm_ops,
+	.dumb_create = i915_gem_dumb_create,
+	.dumb_map_offset = i915_gem_mmap_gtt,
+	.dumb_destroy = i915_gem_dumb_destroy,
 	.ioctls = i915_ioctls,
 	.fops = {
 		 .owner = THIS_MODULE,
@@ -694,20 +719,20 @@ static struct drm_driver driver = {
 		 .llseek = noop_llseek,
 	},
 
-	.pci_driver = {
-		 .name = DRIVER_NAME,
-		 .id_table = pciidlist,
-		 .probe = i915_pci_probe,
-		 .remove = i915_pci_remove,
-		 .driver.pm = &i915_pm_ops,
-	},
-
 	.name = DRIVER_NAME,
 	.desc = DRIVER_DESC,
 	.date = DRIVER_DATE,
 	.major = DRIVER_MAJOR,
 	.minor = DRIVER_MINOR,
 	.patchlevel = DRIVER_PATCHLEVEL,
+};
+
+static struct pci_driver i915_pci_driver = {
+	.name = DRIVER_NAME,
+	.id_table = pciidlist,
+	.probe = i915_pci_probe,
+	.remove = i915_pci_remove,
+	.driver.pm = &i915_pm_ops,
 };
 
 static int __init i915_init(void)
@@ -740,12 +765,15 @@ static int __init i915_init(void)
 		driver.driver_features &= ~DRIVER_MODESET;
 #endif
 
-	return drm_init(&driver);
+	if (!(driver.driver_features & DRIVER_MODESET))
+		driver.get_vblank_timestamp = NULL;
+
+	return drm_pci_init(&driver, &i915_pci_driver);
 }
 
 static void __exit i915_exit(void)
 {
-	drm_exit(&driver);
+	drm_pci_exit(&driver, &i915_pci_driver);
 }
 
 module_init(i915_init);

@@ -57,7 +57,7 @@ struct nouveau_fpriv {
 #include "nouveau_util.h"
 
 struct nouveau_grctx;
-struct nouveau_vram;
+struct nouveau_mem;
 #include "nouveau_vm.h"
 
 #define MAX_NUM_DCB_ENTRIES 16
@@ -65,13 +65,16 @@ struct nouveau_vram;
 #define NOUVEAU_MAX_CHANNEL_NR 128
 #define NOUVEAU_MAX_TILE_NR 15
 
-struct nouveau_vram {
+struct nouveau_mem {
 	struct drm_device *dev;
 
 	struct nouveau_vma bar_vma;
+	struct nouveau_vma tmp_vma;
 	u8  page_shift;
 
+	struct drm_mm_node *tag;
 	struct list_head regions;
+	dma_addr_t *pages;
 	u32 memtype;
 	u64 offset;
 	u64 size;
@@ -90,6 +93,7 @@ struct nouveau_tile_reg {
 struct nouveau_bo {
 	struct ttm_buffer_object bo;
 	struct ttm_placement placement;
+	u32 valid_domains;
 	u32 placements[3];
 	u32 busy_placements[3];
 	struct ttm_bo_kmap_obj kmap;
@@ -104,8 +108,6 @@ struct nouveau_bo {
 	struct nouveau_channel *channel;
 
 	struct nouveau_vma vma;
-	bool mappable;
-	bool no_vm;
 
 	uint32_t tile_mode;
 	uint32_t tile_flags;
@@ -160,6 +162,7 @@ enum nouveau_flags {
 #define NVOBJ_FLAG_ZERO_ALLOC		(1 << 1)
 #define NVOBJ_FLAG_ZERO_FREE		(1 << 2)
 #define NVOBJ_FLAG_VM			(1 << 3)
+#define NVOBJ_FLAG_VM_USER		(1 << 4)
 
 #define NVOBJ_CINST_GLOBAL	0xdeadbeef
 
@@ -386,6 +389,7 @@ struct nouveau_pgraph_engine {
 };
 
 struct nouveau_display_engine {
+	void *priv;
 	int (*early_init)(struct drm_device *);
 	void (*late_takedown)(struct drm_device *);
 	int (*create)(struct drm_device *);
@@ -508,8 +512,8 @@ struct nouveau_crypt_engine {
 struct nouveau_vram_engine {
 	int  (*init)(struct drm_device *);
 	int  (*get)(struct drm_device *, u64, u32 align, u32 size_nc,
-		    u32 type, struct nouveau_vram **);
-	void (*put)(struct drm_device *, struct nouveau_vram **);
+		    u32 type, struct nouveau_mem **);
+	void (*put)(struct drm_device *, struct nouveau_mem **);
 
 	bool (*flags_valid)(struct drm_device *, u32 tile_flags);
 };
@@ -651,8 +655,6 @@ struct drm_nouveau_private {
 	/* interrupt handling */
 	void (*irq_handler[32])(struct drm_device *);
 	bool msi_enabled;
-	struct workqueue_struct *wq;
-	struct work_struct irq_work;
 
 	struct list_head vbl_waiting;
 
@@ -690,15 +692,22 @@ struct drm_nouveau_private {
 	struct {
 		enum {
 			NOUVEAU_GART_NONE = 0,
-			NOUVEAU_GART_AGP,
-			NOUVEAU_GART_SGDMA
+			NOUVEAU_GART_AGP,	/* AGP */
+			NOUVEAU_GART_PDMA,	/* paged dma object */
+			NOUVEAU_GART_HW		/* on-chip gart/vm */
 		} type;
 		uint64_t aper_base;
 		uint64_t aper_size;
 		uint64_t aper_free;
 
+		struct ttm_backend_func *func;
+
+		struct {
+			struct page *page;
+			dma_addr_t   addr;
+		} dummy;
+
 		struct nouveau_gpuobj *sg_ctxdma;
-		struct nouveau_vma vma;
 	} gart_info;
 
 	/* nv10-nv40 tiling regions */
@@ -738,14 +747,6 @@ struct drm_nouveau_private {
 	} susres;
 
 	struct backlight_device *backlight;
-
-	struct nouveau_channel *evo;
-	u32 evo_alloc;
-	struct {
-		struct dcb_entry *dcb;
-		u16 script;
-		u32 pclk;
-	} evo_irq;
 
 	struct {
 		struct dentry *channel_root;
@@ -846,9 +847,7 @@ extern void nv10_mem_put_tile_region(struct drm_device *dev,
 				     struct nouveau_tile_reg *tile,
 				     struct nouveau_fence *fence);
 extern const struct ttm_mem_type_manager_func nouveau_vram_manager;
-
-/* nvc0_vram.c */
-extern const struct ttm_mem_type_manager_func nvc0_vram_manager;
+extern const struct ttm_mem_type_manager_func nouveau_gart_manager;
 
 /* nouveau_notifier.c */
 extern int  nouveau_notifier_init_channel(struct nouveau_channel *);
@@ -1296,7 +1295,7 @@ extern struct ttm_bo_driver nouveau_bo_driver;
 extern int nouveau_bo_new(struct drm_device *, struct nouveau_channel *,
 			  int size, int align, uint32_t flags,
 			  uint32_t tile_mode, uint32_t tile_flags,
-			  bool no_vm, bool mappable, struct nouveau_bo **);
+			  struct nouveau_bo **);
 extern int nouveau_bo_pin(struct nouveau_bo *, uint32_t flags);
 extern int nouveau_bo_unpin(struct nouveau_bo *);
 extern int nouveau_bo_map(struct nouveau_bo *);
@@ -1357,9 +1356,9 @@ static inline struct nouveau_fence *nouveau_fence_ref(struct nouveau_fence *obj)
 
 /* nouveau_gem.c */
 extern int nouveau_gem_new(struct drm_device *, struct nouveau_channel *,
-			   int size, int align, uint32_t flags,
+			   int size, int align, uint32_t domain,
 			   uint32_t tile_mode, uint32_t tile_flags,
-			   bool no_vm, bool mappable, struct nouveau_bo **);
+			   struct nouveau_bo **);
 extern int nouveau_gem_object_new(struct drm_gem_object *);
 extern void nouveau_gem_object_del(struct drm_gem_object *);
 extern int nouveau_gem_ioctl_new(struct drm_device *, void *,
@@ -1574,6 +1573,20 @@ nv_match_device(struct drm_device *dev, unsigned device,
 	return dev->pdev->device == device &&
 		dev->pdev->subsystem_vendor == sub_vendor &&
 		dev->pdev->subsystem_device == sub_device;
+}
+
+/* returns 1 if device is one of the nv4x using the 0x4497 object class,
+ * helpful to determine a number of other hardware features
+ */
+static inline int
+nv44_graph_class(struct drm_device *dev)
+{
+	struct drm_nouveau_private *dev_priv = dev->dev_private;
+
+	if ((dev_priv->chipset & 0xf0) == 0x60)
+		return 1;
+
+	return !(0x0baf & (1 << (dev_priv->chipset & 0x0f)));
 }
 
 /* memory type/access flags, do not match hardware values */

@@ -296,8 +296,8 @@ nouveau_fbcon_create(struct nouveau_fbdev *nfbdev,
 	size = mode_cmd.pitch * mode_cmd.height;
 	size = roundup(size, PAGE_SIZE);
 
-	ret = nouveau_gem_new(dev, dev_priv->channel, size, 0, TTM_PL_FLAG_VRAM,
-			      0, 0x0000, false, true, &nvbo);
+	ret = nouveau_gem_new(dev, dev_priv->channel, size, 0,
+			      NOUVEAU_GEM_DOMAIN_VRAM, 0, 0x0000, &nvbo);
 	if (ret) {
 		NV_ERROR(dev, "failed to allocate framebuffer\n");
 		goto out;
@@ -352,13 +352,14 @@ nouveau_fbcon_create(struct nouveau_fbdev *nfbdev,
 			      FBINFO_HWACCEL_IMAGEBLIT;
 	info->flags |= FBINFO_CAN_FORCE_OUTPUT;
 	info->fbops = &nouveau_fbcon_sw_ops;
-	info->fix.smem_start = dev->mode_config.fb_base +
-			       (nvbo->bo.mem.start << PAGE_SHIFT);
+	info->fix.smem_start = nvbo->bo.mem.bus.base +
+			       nvbo->bo.mem.bus.offset;
 	info->fix.smem_len = size;
 
 	info->screen_base = nvbo_kmap_obj_iovirtual(nouveau_fb->nvbo);
 	info->screen_size = size;
 
+	drm_fb_helper_fill_fix(info, fb->pitch, fb->depth);
 	drm_fb_helper_fill_var(info, &nfbdev->helper, sizes->fb_width, sizes->fb_height);
 
 	/* Set aperture base/size for vesafb takeover */

@@ -74,23 +74,13 @@ int drm_irq_by_busid(struct drm_device *dev, void *data,
 {
 	struct drm_irq_busid *p = data;
 
-	if (drm_core_check_feature(dev, DRIVER_USE_PLATFORM_DEVICE))
+	if (!dev->driver->bus->irq_by_busid)
 		return -EINVAL;
 
 	if (!drm_core_check_feature(dev, DRIVER_HAVE_IRQ))
 		return -EINVAL;
 
-	if ((p->busnum >> 8) != drm_get_pci_domain(dev) ||
-	    (p->busnum & 0xff) != dev->pdev->bus->number ||
-	    p->devnum != PCI_SLOT(dev->pdev->devfn) || p->funcnum != PCI_FUNC(dev->pdev->devfn))
-		return -EINVAL;
-
-	p->irq = dev->pdev->irq;
-
-	DRM_DEBUG("%d:%d:%d => IRQ %d\n", p->busnum, p->devnum, p->funcnum,
-		  p->irq);
-
-	return 0;
+	return dev->driver->bus->irq_by_busid(dev, p);
 }
 
 /*
@@ -1250,7 +1240,7 @@ void drm_handle_vblank_events(struct drm_device *dev, int crtc)
  * Drivers should call this routine in their vblank interrupt handlers to
  * update the vblank counter and send any signals that may be pending.
  */
-void drm_handle_vblank(struct drm_device *dev, int crtc)
+bool drm_handle_vblank(struct drm_device *dev, int crtc)
 {
 	u32 vblcount;
 	s64 diff_ns;
@@ -1258,7 +1248,7 @@ void drm_handle_vblank(struct drm_device *dev, int crtc)
 	unsigned long irqflags;
 
 	if (!dev->num_crtcs)
-		return;
+		return false;
 
 	/* Need timestamp lock to prevent concurrent execution with
 	 * vblank enable/disable, as this would cause inconsistent
@@ -1269,7 +1259,7 @@ void drm_handle_vblank(struct drm_device *dev, int crtc)
 	/* Vblank irq handling disabled. Nothing to do. */
 	if (!dev->vblank_enabled[crtc]) {
 		spin_unlock_irqrestore(&dev->vblank_time_lock, irqflags);
-		return;
+		return false;
 	}
 
 	/* Fetch corresponding timestamp for this vblank interval from
@@ -1311,5 +1301,6 @@ void drm_handle_vblank(struct drm_device *dev, int crtc)
 	drm_handle_vblank_events(dev, crtc);
 
 	spin_unlock_irqrestore(&dev->vblank_time_lock, irqflags);
+	return true;
 }
 EXPORT_SYMBOL(drm_handle_vblank);

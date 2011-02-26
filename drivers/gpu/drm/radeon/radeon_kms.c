@@ -58,9 +58,9 @@ int radeon_driver_load_kms(struct drm_device *dev, unsigned long flags)
 	dev->dev_private = (void *)rdev;
 
 	/* update BUS flag */
-	if (drm_device_is_agp(dev)) {
+	if (drm_pci_device_is_agp(dev)) {
 		flags |= RADEON_IS_AGP;
-	} else if (drm_device_is_pcie(dev)) {
+	} else if (drm_pci_device_is_pcie(dev)) {
 		flags |= RADEON_IS_PCIE;
 	} else {
 		flags |= RADEON_IS_PCI;
@@ -201,6 +201,10 @@ int radeon_info_ioctl(struct drm_device *dev, void *data, struct drm_file *filp)
 		}
 		radeon_set_filp_rights(dev, &rdev->cmask_filp, filp, &value);
 		break;
+	case RADEON_INFO_CLOCK_CRYSTAL_FREQ:
+		/* return clock value in KHz */
+		value = rdev->clock.spll.reference_freq * 10;
+		break;
 	default:
 		DRM_DEBUG_KMS("Invalid request %d\n", info->request);
 		return -EINVAL;
@@ -243,6 +247,8 @@ void radeon_driver_preclose_kms(struct drm_device *dev,
 	struct radeon_device *rdev = dev->dev_private;
 	if (rdev->hyperz_filp == file_priv)
 		rdev->hyperz_filp = NULL;
+	if (rdev->cmask_filp == file_priv)
+		rdev->cmask_filp = NULL;
 }
 
 /*

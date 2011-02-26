@@ -245,32 +245,6 @@ static void via_reclaim_buffers_locked(struct drm_device *dev,
 	return;
 }
 
-static int __devinit
-via_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
-{
-	return drm_get_pci_dev(pdev, ent, &via_driver);
-}
-
-static void __devexit
-via_pci_remove(struct pci_dev *pdev)
-{
-	struct drm_device *dev = pci_get_drvdata(pdev);
-
-	drm_put_dev(dev);
-}
-
-#ifdef CONFIG_PM
-int via_pci_suspend(struct pci_dev *pdev, pm_message_t state)
-{
-	return 0;
-}
-
-int via_pci_resume(struct pci_dev *pdev)
-{
-	return 0;
-}
-#endif
-
 static struct drm_driver via_driver = {
 	.driver_features =
 		DRIVER_USE_AGP | DRIVER_USE_MTRR | DRIVER_HAVE_IRQ |
@@ -301,16 +275,6 @@ static struct drm_driver via_driver = {
 		.poll = drm_poll,
 		.fasync = drm_fasync,
 		.llseek = noop_llseek,
-		},
-	.pci_driver = {
-		.name = DRIVER_NAME,
-		.id_table = via_pci_table,
-		.probe	= via_pci_probe,
-		.remove	= __devexit_p(via_pci_remove),
-#ifdef CONFIG_PM
-		.suspend = via_pci_suspend,
-		.resume = via_pci_resume,
-#endif
 	},
 
 	.name = DRIVER_NAME,
@@ -321,6 +285,43 @@ static struct drm_driver via_driver = {
 	.patchlevel = DRIVER_PATCHLEVEL,
 };
 
+static int __devinit
+via_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
+{
+	return drm_get_pci_dev(pdev, ent, &via_driver);
+}
+
+static void __devexit
+via_pci_remove(struct pci_dev *pdev)
+{
+	struct drm_device *dev = pci_get_drvdata(pdev);
+
+	drm_put_dev(dev);
+}
+
+#ifdef CONFIG_PM
+int via_pci_suspend(struct pci_dev *pdev, pm_message_t state)
+{
+	return 0;
+}
+
+int via_pci_resume(struct pci_dev *pdev)
+{
+	return 0;
+}
+#endif
+
+static struct pci_driver via_pci_driver = {
+	.name = DRIVER_NAME,
+	.id_table = pciidlist,
+	.probe	= via_pci_probe,
+	.remove	= __devexit_p(via_pci_remove),
+#ifdef CONFIG_PM
+	.suspend = via_pci_suspend,
+	.resume = via_pci_resume,
+#endif
+};
+
 static int __init via_init(void)
 {
 	via_driver.num_ioctls = via_max_ioctl;
@@ -328,12 +329,12 @@ static int __init via_init(void)
 
 	if (via_modeset)
 		via_driver.driver_features |= DRIVER_MODESET;
-	return drm_init(&via_driver);
+	return drm_pci_init(&via_driver, &via_pci_driver);
 }
 
 static void __exit via_exit(void)
 {
-	drm_exit(&via_driver);
+	drm_pci_exit(&via_driver, &via_pci_driver);
 }
 
 module_init(via_init);
