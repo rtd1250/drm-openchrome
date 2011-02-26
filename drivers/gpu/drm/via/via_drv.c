@@ -189,7 +189,7 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 	if (ret)
 		goto out_err;
 
-	if (dev->agp && drm_device_is_agp(dev)) {
+	if (dev->agp && drm_pci_device_is_agp(dev)) {
 		ret = via_detect_agp(dev);
 		if (ret)
 			goto out_err;
@@ -313,7 +313,7 @@ int via_pci_resume(struct pci_dev *pdev)
 
 static struct pci_driver via_pci_driver = {
 	.name = DRIVER_NAME,
-	.id_table = pciidlist,
+	.id_table = via_pci_table,
 	.probe	= via_pci_probe,
 	.remove	= __devexit_p(via_pci_remove),
 #ifdef CONFIG_PM

@@ -29,7 +29,7 @@ struct ttm_backend *via_create_ttm_backend_entry(struct ttm_bo_device *bdev)
 	struct drm_via_private *dev_priv =
 		container_of(bdev, struct drm_via_private, bdev);
 
-	if (drm_device_is_agp(dev_priv->dev))
+	if (drm_pci_device_is_agp(dev_priv->dev))
 		return ttm_agp_backend_init(bdev, dev_priv->dev->agp->bridge);
 	return 0;
 }
@@ -64,7 +64,7 @@ int via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
 		man->default_caching = TTM_PL_FLAG_WC;
 
 		/* In the future support PCI DMA */
-		if (drm_device_is_agp(dev)) {
+		if (drm_pci_device_is_agp(dev)) {
 			if (!(drm_core_has_AGP(dev) && dev->agp)) {
 				DRM_ERROR("AGP is possible but not enabled\n");	
 				return -EINVAL;
@@ -150,7 +150,7 @@ static int via_ttm_io_mem_reserve(struct ttm_bo_device *bdev, struct ttm_mem_reg
 	case TTM_PL_TT:
 		mem->bus.offset = mem->start << PAGE_SHIFT;
 		mem->bus.base = man->gpu_offset;
-		if (drm_device_is_agp(dev))
+		if (drm_pci_device_is_agp(dev))
 			mem->bus.is_iomem = !dev->agp->cant_use_aperture;
 		break;
 
