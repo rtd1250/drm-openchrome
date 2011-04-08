@@ -38,6 +38,8 @@ MODULE_DEVICE_TABLE(pci, via_pci_table);
 
 static struct drm_driver via_driver;
 
+#if defined(CONFIG_AGP) || defined(CONFIG_AGP_MODULE)
+
 #define VIA_AGP_MODE_MASK	0x17
 #define VIA_AGPV3_MODE		0x08
 #define VIA_AGPV3_8X_MODE	0x02
@@ -91,6 +93,7 @@ out_err0:
 	}
         return ret;
 }
+#endif
 
 #define VIA_MMIO_REGSIZE 0x9000
 
@@ -155,9 +158,10 @@ static int via_driver_unload(struct drm_device *dev)
 			&dev_priv->bo_global_ref,
 			&dev_priv->bdev);
 
+#if defined(CONFIG_AGP) || defined(CONFIG_AGP_MODULE)
 	if (dev->agp && dev->agp->acquired)
 		drm_agp_release(dev);
-
+#endif
 	kfree(dev_priv);
 	return ret;
 }
@@ -189,12 +193,13 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 	if (ret)
 		goto out_err;
 
+#if defined(CONFIG_AGP) || defined(CONFIG_AGP_MODULE)
 	if (dev->agp && drm_pci_device_is_agp(dev)) {
 		ret = via_detect_agp(dev);
 		if (ret)
 			goto out_err;
 	}
-
+#endif
 	if (dev->driver->driver_features & DRIVER_MODESET) {
 		ret = via_modeset_init(dev);
 		if (ret)
