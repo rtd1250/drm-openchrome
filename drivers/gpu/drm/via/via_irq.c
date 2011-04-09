@@ -93,15 +93,6 @@ static unsigned time_diff(struct timeval *now, struct timeval *then)
 		1000000 - (then->tv_usec - now->tv_usec);
 }
 
-u32 via_get_vblank_counter(struct drm_device *dev, int crtc)
-{
-	struct drm_via_private *dev_priv = dev->dev_private;
-
-	if (crtc != 0)
-		return 0;
-	return atomic_read(&dev_priv->vbl_received);
-}
-
 irqreturn_t via_driver_irq_handler(DRM_IRQ_ARGS)
 {
 	struct drm_device *dev = (struct drm_device *) arg;
@@ -114,8 +105,8 @@ irqreturn_t via_driver_irq_handler(DRM_IRQ_ARGS)
 
 	status = VIA_READ(VIA_REG_INTERRUPT);
 	if (status & VIA_IRQ_VBLANK_PENDING) {
-		atomic_inc(&dev_priv->vbl_received);
-		if (!(atomic_read(&dev_priv->vbl_received) & 0x0F)) {
+		atomic_inc(&dev->_vblank_count[0]);
+		if (!(atomic_read(&dev->_vblank_count[0]) & 0x0F)) {
 			do_gettimeofday(&cur_vblank);
 			if (dev_priv->last_vblank_valid) {
 				dev_priv->usec_per_vblank =
@@ -125,7 +116,7 @@ irqreturn_t via_driver_irq_handler(DRM_IRQ_ARGS)
 			dev_priv->last_vblank = cur_vblank;
 			dev_priv->last_vblank_valid = 1;
 		}
-		if (!(atomic_read(&dev_priv->vbl_received) & 0xFF)) {
+		if (!(atomic_read(&dev->_vblank_count[0]) & 0xFF)) {
 			DRM_DEBUG("US per vblank is: %u\n",
 				  dev_priv->usec_per_vblank);
 		}
