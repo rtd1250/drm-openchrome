@@ -200,7 +200,9 @@ km400_mem_type(struct drm_via_private *dev_priv, struct pci_dev *bridge)
 		}
 	} else {
 		/* KM400A */
-		pci_read_config_byte(bridge, 0x67, &rev);
+		ret = pci_read_config_byte(bridge, 0x67, &rev);
+		if (ret)
+			return ret;
 		if (rev & 0x80)
 			freq |= 0x04;
 
@@ -372,7 +374,9 @@ km8xx_mem_type(struct drm_via_private *dev_priv)
 				break;
 			}
 		} else {
-			pci_read_config_byte(dram, 0x96, &type);
+			ret = pci_read_config_byte(dram, 0x96, &type);
+			if (ret)
+				return ret; 
 			type >>= 4;
 			type &= 0x07;
 
@@ -628,8 +632,16 @@ int via_detect_vram(struct drm_device *dev)
 	bridge = pci_get_slot(bus, PCI_DEVFN(0, 0));
 	fn3 = pci_get_slot(bus, PCI_DEVFN(0, 3));
 
-	if (!bridge || !fn3) {
+	if (!bridge) {
 		ret = -EINVAL;
+		printk(KERN_ERR "No host bridge found...\n");
+		goto out_err;
+	}
+
+	if (!fn3 && dev->pci_device != PCI_DEVICE_ID_VIA_CLE266
+		&& dev->pci_device != PCI_DEVICE_ID_VIA_KM400) {
+		ret = -EINVAL;
+		printk(KERN_ERR "No function 3 on host bridge...\n");
 		goto out_err;
 	}
 
@@ -746,9 +758,13 @@ int via_detect_vram(struct drm_device *dev)
 		dev_priv->vram_start = size << 24;
 		dev_priv->vram_start -= vram_size;
 	} else {
-		int index = (fn3->device == 0x7122 ? 1 : 0);
+		if (fn3 != NULL) {
+			int index = (fn3->device == 0x7122 ? 1 : 0);
 
-		dev_priv->vram_start = pci_resource_start(dev->pdev, index);
+			dev_priv->vram_start = pci_resource_start(dev->pdev, index);
+		} else {
+			dev_priv->vram_start = pci_resource_start(dev->pdev, 0);
+		}
 	}
 
 	switch (dev_priv->vram_type) {
