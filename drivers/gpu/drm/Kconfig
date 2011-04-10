@@ -146,6 +146,9 @@ config DRM_SIS
 config DRM_VIA
 	tristate "Via unichrome video cards"
 	depends on DRM && PCI
+	select FB_CFB_FILLRECT
+	select FB_CFB_COPYAREA
+	select FB_CFB_IMAGEBLIT
 	select DRM_KMS_HELPER
 	select DRM_TTM
 	help
