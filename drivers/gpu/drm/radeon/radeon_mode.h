@@ -209,6 +209,7 @@ enum radeon_connector_table {
 	CT_EMAC,
 	CT_RN50_POWER,
 	CT_MAC_X800,
+	CT_MAC_G5_9600,
 };
 
 enum radeon_dvo_chip {
@@ -238,6 +239,7 @@ struct radeon_mode_info {
 	struct drm_property *underscan_vborder_property;
 	/* hardcoded DFP edid from BIOS */
 	struct edid *bios_hardcoded_edid;
+	int bios_hardcoded_edid_size;
 
 	/* pointer to fbdev info structure */
 	struct radeon_fbdev *rfbdev;

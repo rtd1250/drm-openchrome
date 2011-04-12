@@ -268,6 +268,28 @@ int drm_getstats(struct drm_device *dev, void *data,
 }
 
 /**
+ * Get device/driver capabilities
+ */
+int drm_getcap(struct drm_device *dev, void *data, struct drm_file *file_priv)
+{
+	struct drm_get_cap *req = data;
+
+	req->value = 0;
+	switch (req->capability) {
+	case DRM_CAP_DUMB_BUFFER:
+		if (dev->driver->dumb_create)
+			req->value = 1;
+		break;
+	case DRM_CAP_VBLANK_HIGH_CRTC:
+		req->value = 1;
+		break;
+	default:
+		return -EINVAL;
+	}
+	return 0;
+}
+
+/**
  * Setversion ioctl.
  *
  * \param inode device inode.

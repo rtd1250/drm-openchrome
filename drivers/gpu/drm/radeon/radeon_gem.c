@@ -151,9 +151,12 @@ int radeon_gem_info_ioctl(struct drm_device *dev, void *data,
 {
 	struct radeon_device *rdev = dev->dev_private;
 	struct drm_radeon_gem_info *args = data;
+	struct ttm_mem_type_manager *man;
+
+	man = &rdev->mman.bdev.man[TTM_PL_VRAM];
 
 	args->vram_size = rdev->mc.real_vram_size;
-	args->vram_visible = rdev->mc.real_vram_size;
+	args->vram_visible = (u64)man->size << PAGE_SHIFT;
 	if (rdev->stollen_vga_memory)
 		args->vram_visible -= radeon_bo_size(rdev->stollen_vga_memory);
 	args->vram_visible -= radeon_fbdev_total_size(rdev);
@@ -355,6 +358,7 @@ int radeon_mode_dumb_create(struct drm_file *file_priv,
 {
 	struct radeon_device *rdev = dev->dev_private;
 	struct drm_gem_object *gobj;
+	uint32_t handle;
 	int r;
 
 	args->pitch = radeon_align_pitch(rdev, args->width, args->bpp, 0) * ((args->bpp + 1) / 8);
@@ -368,12 +372,13 @@ int radeon_mode_dumb_create(struct drm_file *file_priv,
 	if (r)
 		return -ENOMEM;
 
-	r = drm_gem_handle_create(file_priv, gobj, &args->handle);
+	r = drm_gem_handle_create(file_priv, gobj, &handle);
+	/* drop reference from allocate - handle holds it now */
+	drm_gem_object_unreference_unlocked(gobj);
 	if (r) {
-		drm_gem_object_unreference_unlocked(gobj);
 		return r;
 	}
-	drm_gem_object_handle_unreference_unlocked(gobj);
+	args->handle = handle;
 	return 0;
 }
 

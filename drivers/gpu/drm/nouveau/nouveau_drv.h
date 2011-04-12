@@ -853,7 +853,8 @@ extern const struct ttm_mem_type_manager_func nouveau_gart_manager;
 extern int  nouveau_notifier_init_channel(struct nouveau_channel *);
 extern void nouveau_notifier_takedown_channel(struct nouveau_channel *);
 extern int  nouveau_notifier_alloc(struct nouveau_channel *, uint32_t handle,
-				   int cout, uint32_t *offset);
+				   int cout, uint32_t start, uint32_t end,
+				   uint32_t *offset);
 extern int  nouveau_notifier_offset(struct nouveau_gpuobj *, uint32_t *);
 extern int  nouveau_ioctl_notifier_alloc(struct drm_device *, void *data,
 					 struct drm_file *);
@@ -1076,7 +1077,7 @@ extern void nv40_fb_set_tile_region(struct drm_device *dev, int i);
 /* nv50_fb.c */
 extern int  nv50_fb_init(struct drm_device *);
 extern void nv50_fb_takedown(struct drm_device *);
-extern void nv50_fb_vm_trap(struct drm_device *, int display, const char *);
+extern void nv50_fb_vm_trap(struct drm_device *, int display);
 
 /* nvc0_fb.c */
 extern int  nvc0_fb_init(struct drm_device *);

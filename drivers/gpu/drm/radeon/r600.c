@@ -47,6 +47,7 @@
 #define EVERGREEN_PFP_UCODE_SIZE 1120
 #define EVERGREEN_PM4_UCODE_SIZE 1376
 #define EVERGREEN_RLC_UCODE_SIZE 768
+#define CAYMAN_RLC_UCODE_SIZE 1024
 
 /* Firmware Names */
 MODULE_FIRMWARE("radeon/R600_pfp.bin");
@@ -1255,7 +1256,6 @@ int r600_mc_init(struct radeon_device *rdev)
 	rdev->mc.mc_vram_size = RREG32(CONFIG_MEMSIZE);
 	rdev->mc.real_vram_size = RREG32(CONFIG_MEMSIZE);
 	rdev->mc.visible_vram_size = rdev->mc.aper_size;
-	rdev->mc.active_vram_size = rdev->mc.visible_vram_size;
 	r600_vram_gtt_location(rdev, &rdev->mc);
 
 	if (rdev->flags & RADEON_IS_IGP) {
@@ -1937,7 +1937,7 @@ void r600_pciep_wreg(struct radeon_device *rdev, u32 reg, u32 v)
  */
 void r600_cp_stop(struct radeon_device *rdev)
 {
-	rdev->mc.active_vram_size = rdev->mc.visible_vram_size;
+	radeon_ttm_set_active_vram_size(rdev, rdev->mc.visible_vram_size);
 	WREG32(R_0086D8_CP_ME_CNTL, S_0086D8_CP_ME_HALT(1));
 	WREG32(SCRATCH_UMSK, 0);
 }
@@ -2105,7 +2105,11 @@ static int r600_cp_load_microcode(struct radeon_device *rdev)
 
 	r600_cp_stop(rdev);
 
-	WREG32(CP_RB_CNTL, RB_NO_UPDATE | RB_BLKSZ(15) | RB_BUFSZ(3));
+	WREG32(CP_RB_CNTL,
+#ifdef __BIG_ENDIAN
+	       BUF_SWAP_32BIT |
+#endif
+	       RB_NO_UPDATE | RB_BLKSZ(15) | RB_BUFSZ(3));
 
 	/* Reset cp */
 	WREG32(GRBM_SOFT_RESET, SOFT_RESET_CP);
@@ -2192,7 +2196,11 @@ int r600_cp_resume(struct radeon_device *rdev)
 	WREG32(CP_RB_WPTR, 0);
 
 	/* set the wb address whether it's enabled or not */
-	WREG32(CP_RB_RPTR_ADDR, (rdev->wb.gpu_addr + RADEON_WB_CP_RPTR_OFFSET) & 0xFFFFFFFC);
+	WREG32(CP_RB_RPTR_ADDR,
+#ifdef __BIG_ENDIAN
+	       RB_RPTR_SWAP(2) |
+#endif
+	       ((rdev->wb.gpu_addr + RADEON_WB_CP_RPTR_OFFSET) & 0xFFFFFFFC));
 	WREG32(CP_RB_RPTR_ADDR_HI, upper_32_bits(rdev->wb.gpu_addr + RADEON_WB_CP_RPTR_OFFSET) & 0xFF);
 	WREG32(SCRATCH_ADDR, ((rdev->wb.gpu_addr + RADEON_WB_SCRATCH_OFFSET) >> 8) & 0xFFFFFFFF);
 
@@ -2628,7 +2636,11 @@ void r600_ring_ib_execute(struct radeon_device *rdev, struct radeon_ib *ib)
 {
 	/* FIXME: implement */
 	radeon_ring_write(rdev, PACKET3(PACKET3_INDIRECT_BUFFER, 2));
-	radeon_ring_write(rdev, ib->gpu_addr & 0xFFFFFFFC);
+	radeon_ring_write(rdev,
+#ifdef __BIG_ENDIAN
+			  (2 << 0) |
+#endif
+			  (ib->gpu_addr & 0xFFFFFFFC));
 	radeon_ring_write(rdev, upper_32_bits(ib->gpu_addr) & 0xFF);
 	radeon_ring_write(rdev, ib->length_dw);
 }
@@ -2809,13 +2821,20 @@ static int r600_rlc_init(struct radeon_device *rdev)
 	WREG32(RLC_HB_CNTL, 0);
 	WREG32(RLC_HB_RPTR, 0);
 	WREG32(RLC_HB_WPTR, 0);
-	WREG32(RLC_HB_WPTR_LSB_ADDR, 0);
-	WREG32(RLC_HB_WPTR_MSB_ADDR, 0);
+	if (rdev->family <= CHIP_CAICOS) {
+		WREG32(RLC_HB_WPTR_LSB_ADDR, 0);
+		WREG32(RLC_HB_WPTR_MSB_ADDR, 0);
+	}
 	WREG32(RLC_MC_CNTL, 0);
 	WREG32(RLC_UCODE_CNTL, 0);
 
 	fw_data = (const __be32 *)rdev->rlc_fw->data;
-	if (rdev->family >= CHIP_CEDAR) {
+	if (rdev->family >= CHIP_CAYMAN) {
+		for (i = 0; i < CAYMAN_RLC_UCODE_SIZE; i++) {
+			WREG32(RLC_UCODE_ADDR, i);
+			WREG32(RLC_UCODE_DATA, be32_to_cpup(fw_data++));
+		}
+	} else if (rdev->family >= CHIP_CEDAR) {
 		for (i = 0; i < EVERGREEN_RLC_UCODE_SIZE; i++) {
 			WREG32(RLC_UCODE_ADDR, i);
 			WREG32(RLC_UCODE_DATA, be32_to_cpup(fw_data++));
@@ -3297,8 +3316,8 @@ restart_ih:
 	while (rptr != wptr) {
 		/* wptr/rptr are in bytes! */
 		ring_index = rptr / 4;
-		src_id =  rdev->ih.ring[ring_index] & 0xff;
-		src_data = rdev->ih.ring[ring_index + 1] & 0xfffffff;
+		src_id = le32_to_cpu(rdev->ih.ring[ring_index]) & 0xff;
+		src_data = le32_to_cpu(rdev->ih.ring[ring_index + 1]) & 0xfffffff;
 
 		switch (src_id) {
 		case 1: /* D1 vblank/vline */
