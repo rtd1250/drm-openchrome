@@ -1134,7 +1134,7 @@ struct drm_device {
 	struct usb_device *usbdev;
 
 	struct drm_sg_mem *sg;	/**< Scatter gather memory */
-	int num_crtcs;                  /**< Number of CRTCs on this device */
+	unsigned int num_crtcs;                  /**< Number of CRTCs on this device */
 	void *dev_private;		/**< device private data */
 	void *mm_private;
 	struct address_space *dev_mapping;
@@ -1276,6 +1276,8 @@ extern int drm_getclient(struct drm_device *dev, void *data,
 			 struct drm_file *file_priv);
 extern int drm_getstats(struct drm_device *dev, void *data,
 			struct drm_file *file_priv);
+extern int drm_getcap(struct drm_device *dev, void *data,
+		      struct drm_file *file_priv);
 extern int drm_setversion(struct drm_device *dev, void *data,
 			  struct drm_file *file_priv);
 extern int drm_noop(struct drm_device *dev, void *data,

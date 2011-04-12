@@ -142,6 +142,10 @@ static int via_driver_unload(struct drm_device *dev)
 	if (ret)
 		return ret;
 
+	drm_vblank_cleanup(dev);
+
+	drm_irq_uninstall(dev);
+
 	if (bo) {
 		ret = ttm_bo_reserve(bo, true, false, false, 0);
 		if (!ret)
@@ -200,13 +204,17 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 			goto out_err;
 	}
 #endif
+	ret = drm_irq_install(dev);
+	if (ret)
+		goto out_err;
+
 	if (dev->driver->driver_features & DRIVER_MODESET) {
 		ret = via_modeset_init(dev);
 		if (ret)
 			goto out_err;
 	}
 
-	ret = drm_vblank_init(dev, 1);
+	ret = drm_vblank_init(dev, 2);
 out_err:
 	if (ret)
 		via_driver_unload(dev);
@@ -257,7 +265,7 @@ static struct drm_driver via_driver = {
 	.load = via_driver_load,
 	.unload = via_driver_unload,
 	.context_dtor = via_final_context,
-	.get_vblank_counter = via_get_vblank_counter,
+	.get_vblank_counter = drm_vblank_count,
 	.enable_vblank = via_enable_vblank,
 	.disable_vblank = via_disable_vblank,
 	.irq_preinstall = via_driver_irq_preinstall,

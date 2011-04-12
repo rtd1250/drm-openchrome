@@ -169,7 +169,9 @@ int radeon_info_ioctl(struct drm_device *dev, void *data, struct drm_file *filp)
 		value = rdev->accel_working;
 		break;
 	case RADEON_INFO_TILING_CONFIG:
-		if (rdev->family >= CHIP_CEDAR)
+		if (rdev->family >= CHIP_CAYMAN)
+			value = rdev->config.cayman.tile_config;
+		else if (rdev->family >= CHIP_CEDAR)
 			value = rdev->config.evergreen.tile_config;
 		else if (rdev->family >= CHIP_RV770)
 			value = rdev->config.rv770.tile_config;
@@ -204,6 +206,20 @@ int radeon_info_ioctl(struct drm_device *dev, void *data, struct drm_file *filp)
 	case RADEON_INFO_CLOCK_CRYSTAL_FREQ:
 		/* return clock value in KHz */
 		value = rdev->clock.spll.reference_freq * 10;
+		break;
+	case RADEON_INFO_NUM_BACKENDS:
+		if (rdev->family >= CHIP_CAYMAN)
+			value = rdev->config.cayman.max_backends_per_se *
+				rdev->config.cayman.max_shader_engines;
+		else if (rdev->family >= CHIP_CEDAR)
+			value = rdev->config.evergreen.max_backends;
+		else if (rdev->family >= CHIP_RV770)
+			value = rdev->config.rv770.max_backends;
+		else if (rdev->family >= CHIP_R600)
+			value = rdev->config.r600.max_backends;
+		else {
+			return -EINVAL;
+		}
 		break;
 	default:
 		DRM_DEBUG_KMS("Invalid request %d\n", info->request);

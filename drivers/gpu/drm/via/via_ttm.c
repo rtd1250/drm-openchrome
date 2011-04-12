@@ -33,7 +33,7 @@ struct ttm_backend *via_create_ttm_backend_entry(struct ttm_bo_device *bdev)
 	if (drm_pci_device_is_agp(dev_priv->dev))
 		return ttm_agp_backend_init(bdev, dev_priv->dev->agp->bridge);
 #endif
-	return 0;
+	return ttm_pci_backend_init(bdev, dev_priv->dev);
 }
 
 int via_invalidate_caches(struct ttm_bo_device *bdev, uint32_t flags)

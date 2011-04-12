@@ -88,7 +88,6 @@ struct drm_via_private {
 	struct timeval last_vblank;
 	int last_vblank_valid;
 	unsigned usec_per_vblank;
-	atomic_t vbl_received;
 	drm_via_state_t hc_state;
 	char pci_buf[VIA_PCI_BUF_SIZE];
 	const uint32_t *fire_offsets[VIA_FIRE_BUF_SIZE];
@@ -157,6 +156,8 @@ extern int via_detect_vram(struct drm_device *dev);
 
 extern int via_ttm_init(struct drm_via_private *dev_priv);
 extern void via_ttm_bo_destroy(struct ttm_buffer_object *bo);
+extern struct ttm_backend *ttm_pci_backend_init(struct ttm_bo_device *bdev,
+						struct drm_device *dev);
 
 extern int ttm_global_init(struct drm_global_reference *global_ref,
 				struct ttm_bo_global_ref *global_bo,
@@ -183,7 +184,6 @@ extern struct drm_gem_object *via_gem_create(struct drm_device *dev,
 						unsigned long start,
 						unsigned long size);
 
-extern u32 via_get_vblank_counter(struct drm_device *dev, int crtc);
 extern int via_enable_vblank(struct drm_device *dev, int crtc);
 extern void via_disable_vblank(struct drm_device *dev, int crtc);
 
