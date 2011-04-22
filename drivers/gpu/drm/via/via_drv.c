@@ -186,6 +186,8 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 	dev_priv->chipset = chipset;
 	dev_priv->dev = dev;
 
+	via_init_command_verifier();
+
 	ret = via_ttm_init(dev_priv);
 	if (ret)
 		goto out_err;
@@ -250,7 +252,7 @@ static void via_lastclose(struct drm_device *dev)
 }
 
 static void via_reclaim_buffers_locked(struct drm_device *dev,
-                                struct drm_file *file_priv)
+					struct drm_file *file_priv)
 {
 	mutex_lock(&dev->struct_mutex);
 
@@ -316,34 +318,35 @@ via_pci_remove(struct pci_dev *pdev)
 }
 
 #ifdef CONFIG_PM
-int via_pci_suspend(struct pci_dev *pdev, pm_message_t state)
+static int 
+via_pci_suspend(struct pci_dev *pdev, pm_message_t state)
 {
 	return 0;
 }
 
-int via_pci_resume(struct pci_dev *pdev)
+static int
+via_pci_resume(struct pci_dev *pdev)
 {
 	return 0;
 }
-#endif
+#endif /* CONFIG_PM */
 
 static struct pci_driver via_pci_driver = {
-	.name = DRIVER_NAME,
-	.id_table = via_pci_table,
-	.probe	= via_pci_probe,
-	.remove	= __devexit_p(via_pci_remove),
+	.name		= DRIVER_NAME,
+	.id_table	= via_pci_table,
+	.probe		= via_pci_probe,
+	.remove		= __devexit_p(via_pci_remove),
 #ifdef CONFIG_PM
-	.suspend = via_pci_suspend,
-	.resume = via_pci_resume,
+	.suspend	= via_pci_suspend,
+	.resume		= via_pci_resume,
 #endif
 };
 
 static int __init via_init(void)
 {
 	via_driver.num_ioctls = via_max_ioctl;
-	via_init_command_verifier();
 
-	//if (via_modeset)
+	if (via_modeset)
 		via_driver.driver_features |= DRIVER_MODESET;
 	return drm_pci_init(&via_driver, &via_pci_driver);
 }

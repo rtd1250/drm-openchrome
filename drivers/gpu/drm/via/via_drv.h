@@ -224,7 +224,5 @@ extern void via_modeset_fini(struct drm_device *dev);
 extern int via_modeset_init(struct drm_device *dev);
 extern int via_get_edid_modes(struct drm_connector *connector);
 extern void via_analog_init(struct drm_device *dev);
-extern int via_encoder_probe(struct drm_device *dev, int encoder,
-			void __iomem *iobase, unsigned int index);
 
 #endif
