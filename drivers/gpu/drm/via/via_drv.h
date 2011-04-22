@@ -40,6 +40,10 @@
 #include "ttm/ttm_memory.h"
 #include "ttm/ttm_module.h"
 
+#include <linux/i2c.h>
+#include <linux/i2c-algo-bit.h>
+#include <linux/via-core.h>
+
 #include "via_regs.h"
 #include "via_drm.h"
 #include "via_verifier.h"
@@ -60,6 +64,14 @@ typedef struct drm_via_irq {
 	wait_queue_head_t irq_queue;
 } drm_via_irq_t;
 
+struct via_i2c {
+	struct drm_via_private *dev_priv;
+	struct via_port_cfg *adap_cfg;
+	struct i2c_algo_bit_data algo;
+	struct i2c_adapter adapter;
+	u16 i2c_port;
+};
+
 struct via_crtc {
 	struct drm_gem_object *cursor_bo;
 	void __iomem *vga_regs;
@@ -71,14 +83,15 @@ struct drm_via_private {
 	struct ttm_bo_global_ref bo_global_ref;
 	struct ttm_bo_device bdev;
 	struct drm_device *dev;
+	int chipset;
 	drm_via_sarea_t *sarea_priv;
 	drm_local_map_t *sarea;
-	struct via_crtc iga[2];
 	unsigned long vram_start;
 	u8 vram_type;
 	wait_queue_head_t decoder_queue[VIA_NR_XVMC_LOCKS];
 	struct ttm_bo_kmap_obj dmabuf;
 	struct ttm_bo_kmap_obj mmio;
+	spinlock_t mmio_lock;
 	unsigned int dma_low;
 	unsigned int dma_high;
 	unsigned int dma_offset;
@@ -92,7 +105,6 @@ struct drm_via_private {
 	char pci_buf[VIA_PCI_BUF_SIZE];
 	const uint32_t *fire_offsets[VIA_FIRE_BUF_SIZE];
 	uint32_t num_fire_offsets;
-	int chipset;
 	drm_via_irq_t via_irqs[VIA_NUM_IRQS];
 	unsigned num_irqs;
 	maskarray_t *irq_masks;
@@ -104,6 +116,8 @@ struct drm_via_private {
 	unsigned long agp_offset;
 	drm_via_blitq_t blit_queues[VIA_NUM_BLIT_ENGINES];
 	uint32_t dma_diff;
+	struct via_crtc iga[2];
+	struct via_i2c *i2c_par;
 };
 
 enum via_family {
@@ -153,6 +167,7 @@ extern int via_dma_blit_sync(struct drm_device *dev, void *data, struct drm_file
 extern int via_dma_blit(struct drm_device *dev, void *data, struct drm_file *file_priv);
 
 extern int via_detect_vram(struct drm_device *dev);
+extern int via_fb_helper_init(struct drm_device *dev);
 
 extern int via_ttm_init(struct drm_via_private *dev_priv);
 extern void via_ttm_bo_destroy(struct ttm_buffer_object *bo);
@@ -202,8 +217,12 @@ extern void via_release_futex(struct drm_via_private *dev_priv, int context);
 extern void via_dmablit_handler(struct drm_device *dev, int engine, int from_irq);
 extern void via_init_dmablit(struct drm_device *dev);
 
+extern void via_i2c_exit(struct drm_device *dev);
+extern int via_i2c_init(struct drm_device *dev);
+
+extern void via_modeset_fini(struct drm_device *dev);
 extern int via_modeset_init(struct drm_device *dev);
-extern int via_get_modes(struct drm_connector *connector);
+extern int via_get_edid_modes(struct drm_connector *connector);
 extern void via_analog_init(struct drm_device *dev);
 extern int via_encoder_probe(struct drm_device *dev, int encoder,
 			void __iomem *iobase, unsigned int index);

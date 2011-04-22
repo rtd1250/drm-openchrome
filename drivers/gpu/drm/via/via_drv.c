@@ -144,6 +144,9 @@ static int via_driver_unload(struct drm_device *dev)
 
 	drm_vblank_cleanup(dev);
 
+	if (dev->driver->driver_features & DRIVER_MODESET)
+		via_modeset_fini(dev);
+
 	drm_irq_uninstall(dev);
 
 	if (bo) {
@@ -340,7 +343,7 @@ static int __init via_init(void)
 	via_driver.num_ioctls = via_max_ioctl;
 	via_init_command_verifier();
 
-	if (via_modeset)
+	//if (via_modeset)
 		via_driver.driver_features |= DRIVER_MODESET;
 	return drm_pci_init(&via_driver, &via_pci_driver);
 }

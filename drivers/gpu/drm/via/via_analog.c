@@ -118,10 +118,22 @@ static enum drm_connector_status
 via_analog_detect(struct drm_connector *connector, bool force)
 {
 	struct drm_device *dev = connector->dev;
+	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_i2c *i2c = dev_priv->i2c_par;
+	struct i2c_adapter *adapter = NULL;
+	struct edid *edid = NULL;
 
-	//if (drm_do_probe_ddc_edid(connector))
-		return connector_status_connected;
+	drm_mode_connector_update_edid_property(connector, edid);
 
+	adapter = &i2c->adapter;
+	if (adapter) {
+		edid = drm_get_edid(connector, adapter);
+		if (edid) {
+			drm_mode_connector_update_edid_property(connector, edid);
+			kfree(edid);
+			return connector_status_connected;
+		}
+	}
 	return connector_status_unknown;
 }
 
@@ -172,32 +184,32 @@ via_analog_mode_valid(struct drm_connector *connector,
 static struct drm_encoder* 
 via_best_encoder(struct drm_connector *connector)
 {
-	struct drm_device *dev = connector->dev;
-	struct drm_via_private *dev_priv = dev->dev_private;
+	int enc_id = connector->encoder_ids[0];
+	struct drm_encoder *encoder = NULL;
+	struct drm_mode_object *obj;
 
-	/* Only one encoder i.e DAC for connector */
-	return NULL; //dev_priv->best;
+	/* pick the encoder ids */
+	if (enc_id) {
+		obj = drm_mode_object_find(connector->dev, enc_id, DRM_MODE_OBJECT_ENCODER);
+		if (!obj)
+			return NULL;
+		encoder = obj_to_encoder(obj);
+	}
+	return encoder;	
 }
 
 static const struct drm_connector_helper_funcs via_analog_connector_helper_funcs = {
 	.mode_valid = via_analog_mode_valid,
-	.get_modes = via_get_modes,
+	.get_modes = via_get_edid_modes,
 	.best_encoder = via_best_encoder,
 };
 
 void via_analog_init(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
 	struct drm_connector *connector;
 	struct drm_encoder *enc;
 	void *par;
 	int size;
-
-	/* Set up the I2C bus. */
-	if (via_encoder_probe(dev, 0, dev_priv->iga[0].vga_regs+0x04, 0x26)) {
-		DRM_ERROR("I2C bus registration failed.\n");
-		return;
-	}
 
 	size = sizeof(struct drm_encoder) + sizeof(struct drm_connector);
 	par = kzalloc(size, GFP_KERNEL);
@@ -219,7 +231,6 @@ void via_analog_init(struct drm_device *dev)
 	/* Setup the encoders and attach them */
 	drm_encoder_init(dev, enc, &via_analog_enc_funcs, DRM_MODE_ENCODER_DAC);
 	drm_encoder_helper_add(enc, &via_analog_enc_helper_funcs);
-	//dev_priv->best = enc;
 	enc->possible_clones = 1; //clone_mask;
 	enc->possible_crtcs = 1; //crtc_mask;
 

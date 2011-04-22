@@ -26,6 +26,7 @@
 #include "via_drv.h"
 
 #include "drm_pciids.h"
+#include "drm_fb_helper.h"
 
 static int
 cle266_mem_type(struct drm_via_private *dev_priv, struct pci_dev *bridge)
@@ -819,5 +820,42 @@ out_err:
 		pci_dev_put(bridge);
 	if (fn3)
 		pci_dev_put(fn3);
+	return ret;
+}
+
+int via_fb_probe(struct drm_fb_helper *helper, struct drm_fb_helper_surface_size *sizes)
+{
+	return 0;
+}
+
+static struct drm_fb_helper_funcs via_fb_helper_funcs = {
+	//.gamma_set = via_fb_gamma_set,
+	//.gamma_get = via_fb_gamma_get,
+	.fb_probe = via_fb_probe,
+};
+
+int via_fb_helper_init(struct drm_device *dev)
+{
+	struct drm_fb_helper *helper;
+	struct fb_info *info;
+	int ret = -ENOMEM;
+
+	info = framebuffer_alloc(sizeof(struct drm_fb_helper), dev->dev);
+	if (!info)
+		return ret;
+
+	helper = info->par;
+	helper->fbdev = info;
+	helper->funcs = &via_fb_helper_funcs;
+
+	/* 2 CRTC and 2 Connectors ? */
+	ret = drm_fb_helper_init(dev, helper, 1, 1);
+	if (ret) {
+		kfree(info);
+		return ret;
+	}
+
+	drm_fb_helper_single_add_all_connectors(helper);
+	drm_fb_helper_initial_config(helper, 32);
 	return ret;
 }

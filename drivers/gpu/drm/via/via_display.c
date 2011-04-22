@@ -221,7 +221,7 @@ via_crtc_init(struct drm_device *dev, int index)
 
 int via_modeset_init(struct drm_device *dev)
 {
-	int ret = 0, i;
+	int i;
 
 	drm_mode_config_init(dev);
 
@@ -231,10 +231,22 @@ int via_modeset_init(struct drm_device *dev)
 	dev->mode_config.max_width = 2048;
 	dev->mode_config.max_height = 2048;
 
+	via_i2c_init(dev);
+
 	for (i = 0; i < 2; i++)
 		via_crtc_init(dev, i);
 
 	via_analog_init(dev);
 
-	return ret;
+	/*
+	 * Set up the framebuffer device
+	 */
+	return via_fb_helper_init(dev);
+}
+
+void via_modeset_fini(struct drm_device *dev)
+{
+	drm_mode_config_cleanup(dev);
+
+	via_i2c_exit(dev);
 }
