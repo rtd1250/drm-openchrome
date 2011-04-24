@@ -132,6 +132,57 @@ err:
 	return ret;
 }
 
+static int via_dumb_create(struct drm_file *filp, struct drm_device *dev,
+				struct drm_mode_create_dumb *args)
+{
+	struct drm_via_private *dev_priv = dev->dev_private;
+	struct drm_gem_object *obj;
+	uint32_t handle = 0;
+	int ret = -ENOMEM;
+
+	args->pitch = ((args->width * args->bpp >> 3) + 7) & ~7;
+	args->size = args->pitch * args->height;
+	obj = via_gem_create(dev, &dev_priv->bdev, TTM_PL_FLAG_VRAM,
+				PAGE_SIZE, 0, args->size);
+	if (!obj || !obj->driver_private)
+		return ret;
+
+	if (filp) {
+		ret = drm_gem_handle_create(filp, obj, &handle);
+		/* drop reference from allocate - handle holds it now */
+		drm_gem_object_unreference_unlocked(obj);
+	}
+
+	if (!ret) {
+		args->size = obj->size;
+		args->handle = handle;
+	} else
+		drm_gem_object_free((struct kref *)obj);
+	return ret;
+}
+
+static int via_dumb_mmap(struct drm_file *filp, struct drm_device *dev,
+			uint32_t handle, uint64_t *offset_p)
+{
+	struct ttm_buffer_object *bo;
+	struct drm_gem_object *obj;
+
+	obj = drm_gem_object_lookup(dev, filp, handle);
+	if (!obj || !obj->driver_private)
+		return -ENOENT;
+
+	bo = obj->driver_private;
+	*offset_p = bo->addr_space_offset;
+	drm_gem_object_unreference_unlocked(obj);
+	return 0;
+}
+
+static int gem_dumb_destroy(struct drm_file *filp, struct drm_device *dev,
+				uint32_t handle)
+{
+	return drm_gem_handle_delete(filp, handle);
+}
+
 static int via_driver_unload(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
@@ -252,7 +303,7 @@ static void via_lastclose(struct drm_device *dev)
 }
 
 static void via_reclaim_buffers_locked(struct drm_device *dev,
-					struct drm_file *file_priv)
+					struct drm_file *filp)
 {
 	mutex_lock(&dev->struct_mutex);
 
@@ -283,6 +334,10 @@ static struct drm_driver via_driver = {
 	.reclaim_buffers_idlelocked = via_reclaim_buffers_locked,
 	.lastclose = via_lastclose,
 	.gem_init_object = via_gem_init_object,
+	.gem_free_object = via_gem_free_object,
+	.dumb_create = via_dumb_create,
+	.dumb_map_offset = via_dumb_mmap,
+	.dumb_destroy = gem_dumb_destroy,
 	.ioctls = via_ioctls,
 	.fops = {
 		.owner = THIS_MODULE,

@@ -33,9 +33,10 @@ void via_gem_free_object(struct drm_gem_object *obj)
 {
 	struct ttm_buffer_object *bo = obj->driver_private;
 
-	ttm_bo_unref(&bo);
-
-	obj->driver_private = NULL;
+	if (bo) {
+		obj->driver_private = NULL;
+		ttm_bo_unref(&bo);
+	}
 	drm_gem_object_release(obj);
 	kfree(obj);
 }
