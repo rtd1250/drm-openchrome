@@ -113,7 +113,7 @@ via_crtc_destroy(struct drm_crtc *crtc)
 
 	/*bo_unmap(crtc->cursor.nvbo);
 	bo_ref(NULL, &crtc->cursor.nvbo);*/
-	kfree(crtc);
+	if (crtc) kfree(crtc);
 }
 
 static const struct drm_crtc_funcs via_crtc_funcs = {
