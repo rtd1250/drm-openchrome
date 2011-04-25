@@ -145,19 +145,20 @@ static int via_dumb_create(struct drm_file *filp, struct drm_device *dev,
 	obj = via_gem_create(dev, &dev_priv->bdev, TTM_PL_FLAG_VRAM,
 				PAGE_SIZE, 0, args->size);
 	if (!obj || !obj->driver_private)
-		return ret;
+		goto out_err;
 
 	if (filp) {
 		ret = drm_gem_handle_create(filp, obj, &handle);
 		/* drop reference from allocate - handle holds it now */
 		drm_gem_object_unreference_unlocked(obj);
 	}
-
+out_err:
 	if (!ret) {
 		args->size = obj->size;
 		args->handle = handle;
-	} else
-		drm_gem_object_free((struct kref *)obj);
+	} else {
+		if (obj) drm_gem_object_free((struct kref *)obj);
+	}
 	return ret;
 }
 

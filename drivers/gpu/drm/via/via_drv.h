@@ -167,7 +167,7 @@ extern int via_dma_blit_sync(struct drm_device *dev, void *data, struct drm_file
 extern int via_dma_blit(struct drm_device *dev, void *data, struct drm_file *file_priv);
 
 extern int via_detect_vram(struct drm_device *dev);
-extern int via_fb_helper_init(struct drm_device *dev);
+extern int via_framebuffer_init(struct drm_device *dev);
 
 extern int via_ttm_init(struct drm_via_private *dev_priv);
 extern void via_ttm_bo_destroy(struct ttm_buffer_object *bo);

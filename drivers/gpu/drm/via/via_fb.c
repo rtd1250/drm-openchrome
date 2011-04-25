@@ -635,14 +635,14 @@ int via_detect_vram(struct drm_device *dev)
 
 	if (!bridge) {
 		ret = -EINVAL;
-		printk(KERN_ERR "No host bridge found...\n");
+		DRM_ERROR("No host bridge found...\n");
 		goto out_err;
 	}
 
 	if (!fn3 && dev->pci_device != PCI_DEVICE_ID_VIA_CLE266
 		&& dev->pci_device != PCI_DEVICE_ID_VIA_KM400) {
 		ret = -EINVAL;
-		printk(KERN_ERR "No function 3 on host bridge...\n");
+		DRM_ERROR("No function 3 on host bridge...\n");
 		goto out_err;
 	}
 
@@ -823,7 +823,69 @@ out_err:
 	return ret;
 }
 
-int via_fb_probe(struct drm_fb_helper *helper, struct drm_fb_helper_surface_size *sizes)
+static int
+via_user_framebuffer_create_handle(struct drm_framebuffer *fb,
+					struct drm_file *file_priv,
+					unsigned int *handle)
+{
+	struct drm_gem_object *obj = fb->helper_private;
+
+	return drm_gem_handle_create(file_priv, obj, handle);
+}
+
+static void
+via_user_framebuffer_destroy(struct drm_framebuffer *fb)
+{
+	struct drm_gem_object *obj = fb->helper_private;
+
+	if (obj) {
+		drm_gem_object_unreference_unlocked(obj);
+		fb->dev->driver->gem_free_object(obj);
+	}
+	drm_framebuffer_cleanup(fb);
+}
+
+static const struct drm_framebuffer_funcs via_fb_funcs = {
+	.create_handle	= via_user_framebuffer_create_handle,
+	.destroy	= via_user_framebuffer_destroy,
+};
+
+static void
+via_output_poll_changed(struct drm_device *dev)
+{
+}
+
+static struct drm_framebuffer *
+via_user_framebuffer_create(struct drm_device *dev,
+				struct drm_file *file_priv,
+				struct drm_mode_fb_cmd *mode_cmd)
+{
+	struct drm_framebuffer *fb;
+	struct drm_gem_object *obj;
+
+	obj = drm_gem_object_lookup(dev, file_priv, mode_cmd->handle);
+	if (obj ==  NULL) {
+		DRM_ERROR("No GEM object available to create framebuffer\n");
+		return ERR_PTR(-ENOENT);
+	}
+
+	fb = kzalloc(sizeof(*fb), GFP_KERNEL);
+	if (fb == NULL)
+		return ERR_PTR(-ENOMEM);
+
+	fb->helper_private = obj;
+	drm_framebuffer_init(dev, fb, &via_fb_funcs);
+	return fb;
+}
+
+static const struct drm_mode_config_funcs via_mode_funcs = {
+	.fb_create		= via_user_framebuffer_create,
+	.output_poll_changed	= via_output_poll_changed
+};
+
+static int 
+via_fb_probe(struct drm_fb_helper *helper,
+		struct drm_fb_helper_surface_size *sizes)
 {
 	return 0;
 }
@@ -834,11 +896,13 @@ static struct drm_fb_helper_funcs via_fb_helper_funcs = {
 	.fb_probe = via_fb_probe,
 };
 
-int via_fb_helper_init(struct drm_device *dev)
+int via_framebuffer_init(struct drm_device *dev)
 {
 	struct drm_fb_helper *helper;
 	struct fb_info *info;
 	int ret = -ENOMEM;
+
+	dev->mode_config.funcs = (void *)&via_mode_funcs;
 
 	info = framebuffer_alloc(sizeof(struct drm_fb_helper), dev->dev);
 	if (!info)
