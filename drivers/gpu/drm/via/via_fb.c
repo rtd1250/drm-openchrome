@@ -759,13 +759,9 @@ int via_detect_vram(struct drm_device *dev)
 		dev_priv->vram_start = size << 24;
 		dev_priv->vram_start -= vram_size;
 	} else {
-		if (fn3 != NULL) {
-			int index = (fn3->device == 0x7122 ? 2 : 0);
+		int index = (bridge->device == PCI_DEVICE_ID_VIA_VT3410) ? 2 : 0;
 
-			dev_priv->vram_start = pci_resource_start(dev->pdev, index);
-		} else {
-			dev_priv->vram_start = pci_resource_start(dev->pdev, 0);
-		}
+		dev_priv->vram_start = pci_resource_start(dev->pdev, index);
 	}
 
 	switch (dev_priv->vram_type) {
