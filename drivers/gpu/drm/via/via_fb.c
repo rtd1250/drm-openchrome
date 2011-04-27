@@ -27,6 +27,7 @@
 
 #include "drm_pciids.h"
 #include "drm_fb_helper.h"
+#include "drm_crtc_helper.h"
 
 static int
 cle266_mem_type(struct drm_via_private *dev_priv, struct pci_dev *bridge)
@@ -858,6 +859,7 @@ via_user_framebuffer_create(struct drm_device *dev,
 {
 	struct drm_framebuffer *fb;
 	struct drm_gem_object *obj;
+	int ret;
 
 	obj = drm_gem_object_lookup(dev, file_priv, mode_cmd->handle);
 	if (obj ==  NULL) {
@@ -870,7 +872,11 @@ via_user_framebuffer_create(struct drm_device *dev,
 		return ERR_PTR(-ENOMEM);
 
 	fb->helper_private = obj;
-	drm_framebuffer_init(dev, fb, &via_fb_funcs);
+	ret = drm_framebuffer_init(dev, fb, &via_fb_funcs);
+	if (ret)
+		return ERR_PTR(ret);
+
+	drm_helper_mode_fill_fb_struct(fb, mode_cmd);
 	return fb;
 }
 
@@ -883,7 +889,68 @@ static int
 via_fb_probe(struct drm_fb_helper *helper,
 		struct drm_fb_helper_surface_size *sizes)
 {
-	return 0;
+	struct drm_via_private *dev_priv = helper->dev->dev_private;
+	struct fb_info *info = helper->fbdev;
+	struct ttm_bo_kmap_obj *kmap = NULL;
+	struct drm_framebuffer *fb = NULL;
+	struct drm_mode_fb_cmd mode_cmd;
+	int size, ret = 0;
+	void *ptr;
+
+	/* Already exist */
+	if (helper->fb)
+		return ret;
+
+	size = sizeof(*fb) + sizeof(*kmap);
+	ptr = kzalloc(size, GFP_KERNEL);
+	if (ptr == NULL)
+		return -ENOMEM;
+	fb = ptr;
+	kmap = ptr + sizeof(*fb);
+
+	mode_cmd.height = sizes->surface_height;
+	mode_cmd.width = sizes->surface_width;
+	mode_cmd.depth = sizes->surface_depth;
+	mode_cmd.bpp = sizes->surface_bpp;
+
+	mode_cmd.pitch = ((mode_cmd.width * mode_cmd.bpp >> 3) + 7) & ~7;
+	size = mode_cmd.pitch * mode_cmd.height;
+
+	ret = ttm_bo_allocate(&dev_priv->bdev, size, ttm_bo_type_kernel,
+				TTM_PL_FLAG_VRAM, 1, PAGE_SIZE, 0, false,
+				via_ttm_bo_destroy, NULL, &kmap->bo);
+	if (ret)
+		goto out_err;
+	ret = ttm_bo_reserve(kmap->bo, true, false, false, 0);
+	if (!ret) {
+		ret = ttm_bo_kmap(kmap->bo, 0, kmap->bo->num_pages, kmap);
+		ttm_bo_unreserve(kmap->bo);
+	}
+	if (ret)
+		goto out_err;
+
+	ret = drm_framebuffer_init(helper->dev, fb, &via_fb_funcs);
+	if (ret)
+		goto out_err;
+	drm_helper_mode_fill_fb_struct(fb, &mode_cmd);
+	helper->helper_private = kmap;
+	helper->fb = fb;
+
+	info->fix.smem_start = kmap->bo->mem.bus.base +
+				kmap->bo->mem.bus.offset;
+	info->fix.smem_len = kmap->bo->num_pages << PAGE_SHIFT;
+	info->screen_size = kmap->bo->num_pages << PAGE_SHIFT;
+	info->screen_base = kmap->virtual;
+
+	drm_fb_helper_fill_var(info, helper, fb->width, fb->height);	
+	drm_fb_helper_fill_fix(info, fb->pitch, fb->depth);
+	ret = 1;
+out_err:
+	if (ret < 0) {
+		kfree(kmap->bo);
+		kfree(ptr);
+	}
+	return ret;
 }
 
 static struct drm_fb_helper_funcs via_fb_helper_funcs = {
@@ -903,7 +970,19 @@ int via_framebuffer_init(struct drm_device *dev)
 	info = framebuffer_alloc(sizeof(struct drm_fb_helper), dev->dev);
 	if (!info)
 		return ret;
+	strcpy(info->fix.id, "viadrmfb");
+	info->flags = FBINFO_DEFAULT | FBINFO_CAN_FORCE_OUTPUT;
 
+	info->pixmap.size = 64*1024;
+	info->pixmap.buf_align = 8;
+	info->pixmap.access_align = 32;
+	info->pixmap.flags = FB_PIXMAP_SYSTEM;
+	info->pixmap.scan_align = 1;
+
+	/* Should be based on the crtc color map size */
+	ret = fb_alloc_cmap(&info->cmap, 256, 0);
+	if (ret)
+		goto out_err;
 	helper = info->par;
 	helper->fbdev = info;
 	helper->funcs = &via_fb_helper_funcs;
@@ -911,11 +990,14 @@ int via_framebuffer_init(struct drm_device *dev)
 	/* 2 CRTC and 2 Connectors ? */
 	ret = drm_fb_helper_init(dev, helper, 1, 1);
 	if (ret) {
-		kfree(info);
-		return ret;
+		fb_dealloc_cmap(&info->cmap);
+		goto out_err;
 	}
 
 	drm_fb_helper_single_add_all_connectors(helper);
 	drm_fb_helper_initial_config(helper, 32);
+out_err:
+	if (ret)
+		kfree(info);
 	return ret;
 }
