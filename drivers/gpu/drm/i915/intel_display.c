@@ -3497,11 +3497,11 @@ static unsigned long intel_calculate_wm(unsigned long clock_in_khz,
 		1000;
 	entries_required = DIV_ROUND_UP(entries_required, wm->cacheline_size);
 
-	DRM_DEBUG_KMS("FIFO entries required for mode: %d\n", entries_required);
+	DRM_DEBUG_KMS("FIFO entries required for mode: %ld\n", entries_required);
 
 	wm_size = fifo_size - (entries_required + wm->guard_size);
 
-	DRM_DEBUG_KMS("FIFO watermark level: %d\n", wm_size);
+	DRM_DEBUG_KMS("FIFO watermark level: %ld\n", wm_size);
 
 	/* Don't promote wm_size to unsigned... */
 	if (wm_size > (long)wm->max_wm)
@@ -3771,8 +3771,11 @@ static bool g4x_compute_wm0(struct drm_device *dev,
 	int entries, tlb_miss;
 
 	crtc = intel_get_crtc_for_plane(dev, plane);
-	if (crtc->fb == NULL || !crtc->enabled)
+	if (crtc->fb == NULL || !crtc->enabled) {
+		*cursor_wm = cursor->guard_size;
+		*plane_wm = display->guard_size;
 		return false;
+	}
 
 	htotal = crtc->mode.htotal;
 	hdisplay = crtc->mode.hdisplay;
@@ -3820,13 +3823,13 @@ static bool g4x_check_srwm(struct drm_device *dev,
 		      display_wm, cursor_wm);
 
 	if (display_wm > display->max_wm) {
-		DRM_DEBUG_KMS("display watermark is too large(%d), disabling\n",
+		DRM_DEBUG_KMS("display watermark is too large(%d/%ld), disabling\n",
 			      display_wm, display->max_wm);
 		return false;
 	}
 
 	if (cursor_wm > cursor->max_wm) {
-		DRM_DEBUG_KMS("cursor watermark is too large(%d), disabling\n",
+		DRM_DEBUG_KMS("cursor watermark is too large(%d/%ld), disabling\n",
 			      cursor_wm, cursor->max_wm);
 		return false;
 	}
@@ -6215,36 +6218,6 @@ cleanup_work:
 	return ret;
 }
 
-static void intel_crtc_reset(struct drm_crtc *crtc)
-{
-	struct intel_crtc *intel_crtc = to_intel_crtc(crtc);
-
-	/* Reset flags back to the 'unknown' status so that they
-	 * will be correctly set on the initial modeset.
-	 */
-	intel_crtc->dpms_mode = -1;
-}
-
-static struct drm_crtc_helper_funcs intel_helper_funcs = {
-	.dpms = intel_crtc_dpms,
-	.mode_fixup = intel_crtc_mode_fixup,
-	.mode_set = intel_crtc_mode_set,
-	.mode_set_base = intel_pipe_set_base,
-	.mode_set_base_atomic = intel_pipe_set_base_atomic,
-	.load_lut = intel_crtc_load_lut,
-	.disable = intel_crtc_disable,
-};
-
-static const struct drm_crtc_funcs intel_crtc_funcs = {
-	.reset = intel_crtc_reset,
-	.cursor_set = intel_crtc_cursor_set,
-	.cursor_move = intel_crtc_cursor_move,
-	.gamma_set = intel_crtc_gamma_set,
-	.set_config = drm_crtc_helper_set_config,
-	.destroy = intel_crtc_destroy,
-	.page_flip = intel_crtc_page_flip,
-};
-
 static void intel_sanitize_modesetting(struct drm_device *dev,
 				       int pipe, int plane)
 {
@@ -6280,6 +6253,42 @@ static void intel_sanitize_modesetting(struct drm_device *dev,
 	intel_disable_plane(dev_priv, plane, pipe);
 	intel_disable_pipe(dev_priv, pipe);
 }
+
+static void intel_crtc_reset(struct drm_crtc *crtc)
+{
+	struct drm_device *dev = crtc->dev;
+	struct intel_crtc *intel_crtc = to_intel_crtc(crtc);
+
+	/* Reset flags back to the 'unknown' status so that they
+	 * will be correctly set on the initial modeset.
+	 */
+	intel_crtc->dpms_mode = -1;
+
+	/* We need to fix up any BIOS configuration that conflicts with
+	 * our expectations.
+	 */
+	intel_sanitize_modesetting(dev, intel_crtc->pipe, intel_crtc->plane);
+}
+
+static struct drm_crtc_helper_funcs intel_helper_funcs = {
+	.dpms = intel_crtc_dpms,
+	.mode_fixup = intel_crtc_mode_fixup,
+	.mode_set = intel_crtc_mode_set,
+	.mode_set_base = intel_pipe_set_base,
+	.mode_set_base_atomic = intel_pipe_set_base_atomic,
+	.load_lut = intel_crtc_load_lut,
+	.disable = intel_crtc_disable,
+};
+
+static const struct drm_crtc_funcs intel_crtc_funcs = {
+	.reset = intel_crtc_reset,
+	.cursor_set = intel_crtc_cursor_set,
+	.cursor_move = intel_crtc_cursor_move,
+	.gamma_set = intel_crtc_gamma_set,
+	.set_config = drm_crtc_helper_set_config,
+	.destroy = intel_crtc_destroy,
+	.page_flip = intel_crtc_page_flip,
+};
 
 static void intel_crtc_init(struct drm_device *dev, int pipe)
 {
@@ -6330,8 +6339,6 @@ static void intel_crtc_init(struct drm_device *dev, int pipe)
 
 	setup_timer(&intel_crtc->idle_timer, intel_crtc_idle_timer,
 		    (unsigned long)intel_crtc);
-
-	intel_sanitize_modesetting(dev, intel_crtc->pipe, intel_crtc->plane);
 }
 
 int intel_get_pipe_from_crtc_id(struct drm_device *dev, void *data,

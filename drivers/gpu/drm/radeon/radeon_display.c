@@ -1087,8 +1087,9 @@ void radeon_compute_pll_legacy(struct radeon_pll *pll,
 	*frac_fb_div_p = best_frac_feedback_div;
 	*ref_div_p = best_ref_div;
 	*post_div_p = best_post_div;
-	DRM_DEBUG_KMS("%d %d, pll dividers - fb: %d.%d ref: %d, post %d\n",
-		      freq, best_freq / 1000, best_feedback_div, best_frac_feedback_div,
+	DRM_DEBUG_KMS("%lld %d, pll dividers - fb: %d.%d ref: %d, post %d\n",
+		      (long long)freq,
+		      best_freq / 1000, best_feedback_div, best_frac_feedback_div,
 		      best_ref_div, best_post_div);
 
 }
@@ -1492,7 +1493,7 @@ bool radeon_crtc_scaling_mode_fixup(struct drm_crtc *crtc,
  *
  * \return Flags, or'ed together as follows:
  *
- * DRM_SCANOUTPOS_VALID = Query successfull.
+ * DRM_SCANOUTPOS_VALID = Query successful.
  * DRM_SCANOUTPOS_INVBL = Inside vblank.
  * DRM_SCANOUTPOS_ACCURATE = Returned position is accurate. A lack of
  * this flag means that returned position may be offset by a constant but
