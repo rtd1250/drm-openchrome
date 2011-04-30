@@ -74,8 +74,8 @@ struct via_i2c {
 
 struct via_crtc {
 	struct drm_gem_object *cursor_bo;
-	void __iomem *vga_regs;
 	struct drm_crtc crtc;
+	bool iga1;
 };
 
 struct drm_via_private {

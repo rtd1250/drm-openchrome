@@ -30,10 +30,10 @@
 #include "crtc_hw.h"
 
 static int
-via_crtc_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
+via_iga1_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
 			uint32_t handle, uint32_t width, uint32_t height)
 {
-	struct drm_via_private *dev_priv = crtc->dev->dev_private;
+/*	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	int max_height = 64, max_width = 64, ret = 0;
 	struct via_crtc *iga = &dev_priv->iga[0];
 	struct drm_device *dev = crtc->dev;
@@ -47,7 +47,7 @@ via_crtc_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
 	}
 
 	if (!handle) {
-		/* turn off cursor */
+		* turn off cursor *
 		if (!primary) {
 			temp = VIA_READ(VIA_REG_HI_CONTROL1);
 			VIA_WRITE(VIA_REG_HI_CONTROL1, temp & 0xFFFFFFFA);
@@ -75,24 +75,38 @@ via_crtc_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
 		return -ENOENT;
 	}
 
-	/* set_cursor, show_cursor */
+	* set_cursor, show_cursor *
 unpin:
 	drm_gem_object_unreference_unlocked(iga->cursor_bo);
 	iga->cursor_bo = obj;
 fail:
 	if (ret)
-		drm_gem_object_unreference_unlocked(obj);
-        return ret;
+		drm_gem_object_unreference_unlocked(obj);*
+        return ret;*/
+	return 0;
 }
 
 static int
-via_crtc_cursor_move(struct drm_crtc *crtc, int x, int y)
+via_iga2_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
+			uint32_t handle, uint32_t width, uint32_t height)
+{
+	return 0;
+}
+
+static int
+via_iga1_cursor_move(struct drm_crtc *crtc, int x, int y)
+{
+	return 0;
+}
+
+static int
+via_iga2_cursor_move(struct drm_crtc *crtc, int x, int y)
 {
 	return 0;
 }
 
 static void
-via_crtc_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
+via_iga1_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
 			u16 *blue, uint32_t start, uint32_t size)
 {
 	//int end = (start + size > 256) ? 256 : start + size, i;
@@ -103,7 +117,13 @@ via_crtc_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
 		crtc->lut_g[i] = green[i] >> 6;
 		crtc->lut_b[i] = blue[i] >> 6;
 	}
-	via_crtc_load_lut(crtc);*/
+	via_iga1_load_lut(crtc);*/
+}
+
+static void
+via_iga2_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
+			u16 *blue, uint32_t start, uint32_t size)
+{
 }
 
 static void
@@ -116,39 +136,65 @@ via_crtc_destroy(struct drm_crtc *crtc)
 	if (crtc) kfree(crtc);
 }
 
-static const struct drm_crtc_funcs via_crtc_funcs = {
-	.cursor_set = via_crtc_cursor_set,
-	.cursor_move = via_crtc_cursor_move,
-	.gamma_set = via_crtc_gamma_set,
+static const struct drm_crtc_funcs via_iga1_funcs = {
+	.cursor_set = via_iga1_cursor_set,
+	.cursor_move = via_iga1_cursor_move,
+	.gamma_set = via_iga1_gamma_set,
+	.set_config = drm_crtc_helper_set_config,
+	.destroy = via_crtc_destroy,
+};
+
+static const struct drm_crtc_funcs via_iga2_funcs = {
+	.cursor_set = via_iga2_cursor_set,
+	.cursor_move = via_iga2_cursor_move,
+	.gamma_set = via_iga2_gamma_set,
 	.set_config = drm_crtc_helper_set_config,
 	.destroy = via_crtc_destroy,
 };
 
 static void
-via_crtc_dpms(struct drm_crtc *crtc, int mode)
+via_iga1_dpms(struct drm_crtc *crtc, int mode)
+{
+	struct drm_via_private *dev_priv = crtc->dev->dev_private;
+	void __iomem *regs = dev_priv->mmio.virtual + 0x83C0;
+
+	/* Setup IGA path */
+	switch (mode) {
+	case DRM_MODE_DPMS_SUSPEND:
+	case DRM_MODE_DPMS_STANDBY:
+	case DRM_MODE_DPMS_OFF:
+		seq_outb(regs, 0x01, BIT(5));
+		break;
+	case DRM_MODE_DPMS_ON:
+		seq_outb(regs, 0x01, BIT(5));
+		break;
+	}
+}
+
+static void
+via_iga2_dpms(struct drm_crtc *crtc, int mode)
 {
 	/* 3D5.36 Bits 5:4 control DPMS */
-
 }
 
 static void
 via_crtc_prepare(struct drm_crtc *crtc)
 {
-	struct drm_via_private *dev_priv = crtc->dev->dev_private;
+/*	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	struct via_crtc *iga = &dev_priv->iga[0];
 	u8 orig;
 
 	if (crtc != &iga->crtc)
 		iga = &dev_priv->iga[1];
 
-	/* unlock extended registers */
+	* unlock extended registers *
 	seq_outb(iga->vga_regs, 0x10, 0x01);	
 
-	/* unlock CRT registers */
+	* unlock CRT registers *
 	orig = crtc_inb(iga->vga_regs, 0x47);
 	crtc_outb(iga->vga_regs, 0x47, (orig & 0x01));
 
-	regs_init(iga->vga_regs);
+	regs_init(iga->vga_regs);*/
 }
 
 static void
@@ -168,55 +214,92 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 		struct drm_display_mode *adjusted_mode,
 		int x, int y, struct drm_framebuffer *old_fb)
 {
-	struct drm_via_private *dev_priv = crtc->dev->dev_private;
+	/*struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	struct via_crtc *iga = &dev_priv->iga[0];
 
 	if (crtc != &iga->crtc)
 		iga = &dev_priv->iga[1];
 
-	crtc_set_regs(mode, iga->vga_regs);
+	crtc_set_regs(mode, iga->vga_regs);*/
 	return 0;
 }
 
 static int
-via_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
+via_iga1_mode_set_base(struct drm_crtc *crtc, int x, int y,
 			struct drm_framebuffer *old_fb)
 {
 	return 0;
 }
 
 static int
-via_crtc_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
+via_iga2_mode_set_base(struct drm_crtc *crtc, int x, int y,
+			struct drm_framebuffer *old_fb)
+{
+	return 0;
+}
+
+static int
+via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
+				int x, int y, enum mode_set_atomic state)
+{
+	return 0;
+}
+
+static int
+via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 				int x, int y, enum mode_set_atomic state)
 {
 	return 0;
 }
 
 static void 
-via_crtc_load_lut(struct drm_crtc *crtc)
+via_iga1_load_lut(struct drm_crtc *crtc)
 {
 }
 
-static const struct drm_crtc_helper_funcs via_crtc_helper_funcs = {
-	.dpms = via_crtc_dpms,
+static void 
+via_iga2_load_lut(struct drm_crtc *crtc)
+{
+}
+
+static const struct drm_crtc_helper_funcs via_iga1_helper_funcs = {
+	.dpms = via_iga1_dpms,
 	.prepare = via_crtc_prepare,
 	.commit = via_crtc_commit,
 	.mode_fixup = via_crtc_mode_fixup,
 	.mode_set = via_crtc_mode_set,
-	.mode_set_base = via_crtc_mode_set_base,
-	.mode_set_base_atomic = via_crtc_mode_set_base_atomic,
-	.load_lut = via_crtc_load_lut,
+	.mode_set_base = via_iga1_mode_set_base,
+	.mode_set_base_atomic = via_iga1_mode_set_base_atomic,
+	.load_lut = via_iga1_load_lut,
+};
+
+static const struct drm_crtc_helper_funcs via_iga2_helper_funcs = {
+	.dpms = via_iga2_dpms,
+	.prepare = via_crtc_prepare,
+	.commit = via_crtc_commit,
+	.mode_fixup = via_crtc_mode_fixup,
+	.mode_set = via_crtc_mode_set,
+	.mode_set_base = via_iga2_mode_set_base,
+	.mode_set_base_atomic = via_iga2_mode_set_base_atomic,
+	.load_lut = via_iga2_load_lut,
 };
 
 static void 
 via_crtc_init(struct drm_device *dev, int index)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
-	struct drm_crtc *crtc = &dev_priv->iga[index].crtc;
+	struct via_crtc *iga = &dev_priv->iga[index];
+	struct drm_crtc *crtc = &iga->crtc;
 
-	drm_crtc_init(dev, crtc, &via_crtc_funcs);
+	if (index) {
+		drm_crtc_init(dev, crtc, &via_iga2_funcs);
+		drm_crtc_helper_add(crtc, &via_iga2_helper_funcs);
+	} else {
+		drm_crtc_init(dev, crtc, &via_iga1_funcs);
+		drm_crtc_helper_add(crtc, &via_iga1_helper_funcs);
+		iga->iga1 = true;
+	}
 	drm_mode_crtc_set_gamma_size(crtc, 256);
-	drm_crtc_helper_add(crtc, &via_crtc_helper_funcs);
 }
 
 int via_modeset_init(struct drm_device *dev)

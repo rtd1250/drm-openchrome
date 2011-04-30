@@ -91,7 +91,7 @@ static int via_detect_agp(struct drm_device *dev)
 out_err0:
 		drm_agp_release(dev);
 	}
-        return ret;
+	return ret;
 }
 #endif
 
@@ -122,12 +122,10 @@ static int via_mmio_setup(struct drm_device *dev)
 	ret = ttm_bo_kmap(bo, 0, bo->num_pages, &dev_priv->mmio);
 	ttm_bo_unreserve(bo);
 err:
-	if (!ret) {
+	if (!ret)
 		DRM_INFO("Detected MMIO at physical address 0x%08llx.\n",
 			(unsigned long long) pci_resource_start(dev->pdev, 1));
-		dev_priv->iga[0].vga_regs = (dev_priv->mmio.virtual + 0x83C0);
-		dev_priv->iga[1].vga_regs = (dev_priv->mmio.virtual + 0x83C0);
-	} else
+	else
 		ttm_bo_clean_mm(&dev_priv->bdev, TTM_PL_PRIV0);
 	return ret;
 }

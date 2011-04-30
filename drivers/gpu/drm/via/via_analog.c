@@ -39,38 +39,42 @@ static const struct drm_encoder_funcs via_analog_enc_funcs = {
 	.destroy = drm_encoder_cleanup,
 };
 
-/* Power down the DAC */
+/* Manage the power state of the DAC */
 static void
 via_analog_dpms(struct drm_encoder *encoder, int mode)
 {
 	struct drm_crtc *crtc = encoder->crtc;
+	u8 dacmode, mask = BIT(4) + BIT(5), path = BIT(6);
 	struct drm_via_private *dev_priv;
-	struct via_crtc *iga;
-	u8 dacmode;
+	struct via_crtc *iga;	
+	void __iomem *regs;
 
 	dev_priv = encoder->dev->dev_private;
-	iga = &dev_priv->iga[0];
-	if (crtc != &iga->crtc)
-		iga = &dev_priv->iga[1];
-	dacmode = crtc_inb(iga->vga_regs, 0x36);
+	regs = dev_priv->mmio.virtual + 0x83C0;
 
+	/* Select the proper IGA */
+	iga = container_of(crtc, struct via_crtc, crtc);
+	if (iga->iga1) path = 0;
+	seq_outb(regs, 0x16, path); 
+
+	dacmode = crtc_inb(regs, 0x36);
 	switch (mode) {
 	case DRM_MODE_DPMS_SUSPEND:
-		dacmode |= 0x20;	// VSync off  
+		dacmode |= BIT(5);	// VSync off  
 		break;
 	case DRM_MODE_DPMS_STANDBY:
-		dacmode |= 0x10;	// HSync off	
+		dacmode |= BIT(4);	// HSync off	
 		break;
 	case DRM_MODE_DPMS_OFF:
-		dacmode |= 0x30;	// HSync and VSync off
+		dacmode |= mask;	// HSync and VSync off
 		break;
 	case DRM_MODE_DPMS_ON:
 	default:
-		dacmode &= ~0x30;
+		dacmode &= ~mask;
 		break;
 	}
 
-	crtc_outb(iga->vga_regs, 0x36, (dacmode & 0x30));
+	crtc_outb(regs, 0x36, (dacmode & mask));
 }
 
 /* Pass our mode to the connectors and the CRTC to give them a chance to
@@ -82,21 +86,20 @@ via_analog_mode_fixup(struct drm_encoder *encoder,
 		 struct drm_display_mode *mode,
 		 struct drm_display_mode *adjusted_mode)
 {
-	/* Could sometimes be 8 */
-	adjusted_mode->hdisplay = (adjusted_mode->hdisplay + 15) & ~15;
-
 	drm_mode_set_crtcinfo(adjusted_mode, 0);
 	return true;
 }
 
 static void
-via_encoder_prepare(struct drm_encoder *encoder)
+via_analog_prepare(struct drm_encoder *encoder)
 {
+	via_analog_dpms(encoder, DRM_MODE_DPMS_OFF);
 }
 
 static void
-via_encoder_commit(struct drm_encoder *encoder)
+via_analog_commit(struct drm_encoder *encoder)
 {
+	via_analog_dpms(encoder, DRM_MODE_DPMS_ON);
 }
 
 static void
@@ -109,8 +112,8 @@ via_analog_mode_set(struct drm_encoder *encoder,
 static const struct drm_encoder_helper_funcs via_analog_enc_helper_funcs = {
 	.dpms = via_analog_dpms,
 	.mode_fixup = via_analog_mode_fixup,
-	.prepare = via_encoder_prepare,
-	.commit = via_encoder_commit,
+	.prepare = via_analog_prepare,
+	.commit = via_analog_commit,
 	.mode_set = via_analog_mode_set,
 };
 
@@ -140,7 +143,6 @@ via_analog_detect(struct drm_connector *connector, bool force)
 static void
 via_analog_destroy(struct drm_connector *connector)
 {
-	//via_i2c_destroy(connector->dev, DRM_MODE_CONNECTOR_VGA);
 	drm_sysfs_connector_remove(connector);
 	drm_connector_cleanup(connector);
 	kfree(connector);

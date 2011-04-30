@@ -953,9 +953,22 @@ out_err:
 	return ret;
 }
 
+/** Sets the color ramps on behalf of fbcon */
+static void
+via_fb_gamma_set(struct drm_crtc *crtc, u16 red, u16 green,
+		u16 blue, int regno)
+{
+}
+
+static void
+via_fb_gamma_get(struct drm_crtc *crtc, u16 *red, u16 *green,
+		u16 *blue, int regno)
+{
+}
+
 static struct drm_fb_helper_funcs via_fb_helper_funcs = {
-	//.gamma_set = via_fb_gamma_set,
-	//.gamma_get = via_fb_gamma_get,
+	.gamma_set = via_fb_gamma_set,
+	.gamma_get = via_fb_gamma_get,
 	.fb_probe = via_fb_probe,
 };
 
