@@ -142,13 +142,14 @@ static int via_ttm_io_mem_reserve(struct ttm_bo_device *bdev, struct ttm_mem_reg
 	mem->bus.offset = 0;
 	mem->bus.size = mem->num_pages << PAGE_SHIFT;
 	mem->bus.base = 0;
-	mem->bus.is_iomem = false;
+	mem->bus.is_iomem = true;
 	if (!(man->flags & TTM_MEMTYPE_FLAG_MAPPABLE))
 		return -EINVAL;
 
 	switch (mem->mem_type) {
 	case TTM_PL_SYSTEM:
 		/* system memory */
+		mem->bus.is_iomem = false;
 		return 0;
 
 	case TTM_PL_TT:
