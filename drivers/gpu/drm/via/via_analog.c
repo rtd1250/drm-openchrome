@@ -49,14 +49,16 @@ via_analog_dpms(struct drm_encoder *encoder, int mode)
 	void __iomem *regs;
 
 	dev_priv = encoder->dev->dev_private;
-	regs = dev_priv->mmio.virtual + 0x83C0;
+	//regs = dev_priv->mmio.virtual + 0x83C0;
+	regs = ioport_map(0x3c0, 100);
 
 	/* Select the proper IGA */
-	iga = container_of(crtc, struct via_crtc, crtc);
-	if (iga->iga1) path = 0;
-	seq_outb(regs, 0x16, path); 
+	//iga = container_of(crtc, struct via_crtc, base);
+	//if (iga->iga1) path = 0;
+	path = 0;
+	seq_iowrite8(regs, 0x16, path); 
 
-	dacmode = crtc_inb(regs, 0x36);
+	dacmode = crtc_ioread8(regs, 0x36);
 	switch (mode) {
 	case DRM_MODE_DPMS_SUSPEND:
 		dacmode |= BIT(5);	// VSync off  
@@ -73,7 +75,7 @@ via_analog_dpms(struct drm_encoder *encoder, int mode)
 		break;
 	}
 
-	crtc_outb(regs, 0x36, (dacmode & mask));
+	crtc_iowrite8(regs, 0x36, (dacmode & mask));
 }
 
 /* Pass our mode to the connectors and the CRTC to give them a chance to

@@ -47,13 +47,14 @@ static struct via_port_cfg adap_configs[] = {
 static void via_i2c_setscl(void *data, int state)
 {
 	struct via_i2c *i2c = data;
-	struct drm_via_private *dev_priv = i2c->dev_priv;
 	struct via_port_cfg *adap_data = i2c->adap_cfg;
+	struct drm_via_private *dev_priv = i2c->dev_priv;
+	void __iomem *regs = ioport_map(0x3c0, 100); 
 	unsigned long flags;
 	u8 val;
 
 	spin_lock_irqsave(&dev_priv->mmio_lock, flags);
-	val = via_read_reg(adap_data->io_port, adap_data->ioport_index) & 0xF0;
+	val = seq_ioread8(regs, adap_data->ioport_index) & 0xF0;
 	if (state)
 		val |= 0x20;
 	else
@@ -68,20 +69,21 @@ static void via_i2c_setscl(void *data, int state)
 	default:
 		printk(KERN_ERR "via_i2c: specify wrong i2c type.\n");
 	}
-	via_write_reg(adap_data->io_port, adap_data->ioport_index, val);
+	seq_iowrite8(regs, adap_data->ioport_index, val);
 	spin_unlock_irqrestore(&dev_priv->mmio_lock, flags);
 }
 
 static int via_i2c_getscl(void *data)
 {
 	struct via_i2c *i2c = data;
-	struct drm_via_private *dev_priv = i2c->dev_priv;
 	struct via_port_cfg *adap_data = i2c->adap_cfg;
+	struct drm_via_private *dev_priv = i2c->dev_priv;
+	void __iomem *regs = ioport_map(0x3c0, 100); 
 	unsigned long flags;
 	int ret = 0;
 
 	spin_lock_irqsave(&dev_priv->mmio_lock, flags);
-	if (via_read_reg(adap_data->io_port, adap_data->ioport_index) & 0x08)
+	if (seq_ioread8(regs, adap_data->ioport_index) & 0x08)
 		ret = 1;
 	spin_unlock_irqrestore(&dev_priv->mmio_lock, flags);
 	return ret;
@@ -90,13 +92,14 @@ static int via_i2c_getscl(void *data)
 static int via_i2c_getsda(void *data)
 {
 	struct via_i2c *i2c = data;
-	struct drm_via_private *dev_priv = i2c->dev_priv;
 	struct via_port_cfg *adap_data = i2c->adap_cfg;
+	struct drm_via_private *dev_priv = i2c->dev_priv;
+	void __iomem *regs = ioport_map(0x3c0, 100); 
 	unsigned long flags;
 	int ret = 0;
 
 	spin_lock_irqsave(&dev_priv->mmio_lock, flags);
-	if (via_read_reg(adap_data->io_port, adap_data->ioport_index) & 0x04)
+	if (seq_ioread8(regs, adap_data->ioport_index) & 0x04)
 		ret = 1;
 	spin_unlock_irqrestore(&dev_priv->mmio_lock, flags);
 	return ret;
@@ -105,13 +108,14 @@ static int via_i2c_getsda(void *data)
 static void via_i2c_setsda(void *data, int state)
 {
 	struct via_i2c *i2c = data;
-	struct drm_via_private *dev_priv = i2c->dev_priv;
 	struct via_port_cfg *adap_data = i2c->adap_cfg;
+	struct drm_via_private *dev_priv = i2c->dev_priv;
+	void __iomem *regs = ioport_map(0x3c0, 100); 
 	unsigned long flags;
 	u8 val;
 
 	spin_lock_irqsave(&dev_priv->mmio_lock, flags);
-	val = via_read_reg(adap_data->io_port, adap_data->ioport_index) & 0xF0;
+	val = seq_ioread8(regs, adap_data->ioport_index) & 0xF0;
 	if (state)
 		val |= 0x10;
 	else
@@ -126,7 +130,7 @@ static void via_i2c_setsda(void *data, int state)
 	default:
 		printk(KERN_ERR "via_i2c: specify wrong i2c type.\n");
 	}
-	via_write_reg(adap_data->io_port, adap_data->ioport_index, val);
+	seq_iowrite8(regs, adap_data->ioport_index, val);
 	spin_unlock_irqrestore(&dev_priv->mmio_lock, flags);
 }
 

@@ -37,7 +37,7 @@
 #define GRA_I           0x0e
 #define GRA_D           0x0f
 
-static inline void gra_outb(void __iomem *regs, u8 idx, u8 val)
+static inline void gra_iowrite8(void __iomem *regs, u8 idx, u8 val)
 {
 	iowrite8(idx, regs + GRA_I);
 	wmb();
@@ -45,22 +45,22 @@ static inline void gra_outb(void __iomem *regs, u8 idx, u8 val)
 	wmb();
 }
 
-static inline void seq_outb(void __iomem *regs, u8 idx, u8 val)
+static inline void seq_iowrite8(void __iomem *regs, u8 idx, u8 val)
 {
 	iowrite8(idx, regs + SEQ_I);
 	wmb();
-	iowrite8(idx, regs + SEQ_D);
+	iowrite8(val, regs + SEQ_D);
 	wmb();
 }
 
-static inline u8 seq_inb(void __iomem *regs, u8 idx)
+static inline u8 seq_ioread8(void __iomem *regs, u8 idx)
 {
 	iowrite8(idx, regs + SEQ_I);
 	mb();
 	return ioread8(regs + SEQ_D);
 }
 
-static inline void crtc_outb(void __iomem *regs, u8 idx, u8 val)
+static inline void crtc_iowrite8(void __iomem *regs, u8 idx, u8 val)
 {
 	iowrite8(idx, regs + CRT_I);
 	wmb();
@@ -68,14 +68,14 @@ static inline void crtc_outb(void __iomem *regs, u8 idx, u8 val)
 	wmb();
 }
 
-static inline u8 crtc_inb(void __iomem *regs, u8 idx)
+static inline u8 crtc_ioread8(void __iomem *regs, u8 idx)
 {
 	iowrite8(idx, regs + CRT_I);
 	mb();
 	return ioread8(regs + CRT_D);
 }
 
-static inline void att_outb(void __iomem *regs, u8 idx, u8 val)
+static inline void att_iowrite8(void __iomem *regs, u8 idx, u8 val)
 {
 	unsigned char tmp;
 

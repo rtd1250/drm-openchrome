@@ -33,21 +33,21 @@ regs_init(void __iomem *regs)
 	int i;
 
 	for (i = 0; i <= 4; i++)
-		gra_outb(regs, i, 0x00);	
+		gra_iowrite8(regs, i, 0x00);	
 
-	gra_outb(regs, 0x05, 0x40);
-	gra_outb(regs, 0x06, 0x05); 
-	gra_outb(regs, 0x07, 0x0f); 
-	gra_outb(regs, 0x08, 0xff); 
+	gra_iowrite8(regs, 0x05, 0x40);
+	gra_iowrite8(regs, 0x06, 0x05); 
+	gra_iowrite8(regs, 0x07, 0x0f); 
+	gra_iowrite8(regs, 0x08, 0xff); 
 
 	for (i = 0; i <= 0xf; i++)
-		att_outb(regs, i, i);
+		att_iowrite8(regs, i, i);
 
-	att_outb(regs, 0x10, 0x41);
-	att_outb(regs, 0x11, 0xff);
-	att_outb(regs, 0x12, 0x0f);
-	att_outb(regs, 0x13, 0x00);
-	att_outb(regs, 0x14, 0x00);
+	att_iowrite8(regs, 0x10, 0x41);
+	att_iowrite8(regs, 0x11, 0xff);
+	att_iowrite8(regs, 0x12, 0x0f);
+	att_iowrite8(regs, 0x13, 0x00);
+	att_iowrite8(regs, 0x14, 0x00);
 }
 
 void
@@ -102,45 +102,45 @@ crtc_set_regs(struct drm_display_mode *mode, void __iomem *regs)
 	iowrite8(miscReg, regs + MISC_W);
 
 	/* Sequence registers */
-	seq_outb(regs, 0x00, 0x03);	/* 0x03 or 0x00 */
+	seq_iowrite8(regs, 0x00, 0x03);	/* 0x03 or 0x00 */
 	if (mode->flags & DRM_MODE_FLAG_CLKDIV2)
-		seq_outb(regs, 0x01, 0x09);
+		seq_iowrite8(regs, 0x01, 0x09);
 	else
-		seq_outb(regs, 0x01, 0x01);
+		seq_iowrite8(regs, 0x01, 0x01);
 
-	seq_outb(regs, 0x02, 0x0f);
-	seq_outb(regs, 0x03, 0x00);
-	seq_outb(regs, 0x04, 0x0e);
+	seq_iowrite8(regs, 0x02, 0x0f);
+	seq_iowrite8(regs, 0x03, 0x00);
+	seq_iowrite8(regs, 0x04, 0x0e);
 
-	crtc_outb(regs, 0x00, horizTotal);
-	crtc_outb(regs, 0x01, horizDisplay);
-	crtc_outb(regs, 0x02, horizBlankStart);
-	crtc_outb(regs, 0x03, 0x80 | (horizBlankEnd & 0x1f));
-	crtc_outb(regs, 0x04, horizStart);
-	crtc_outb(regs, 0x05, ((horizBlankEnd & 0x20) << 2) |
+	crtc_iowrite8(regs, 0x00, horizTotal);
+	crtc_iowrite8(regs, 0x01, horizDisplay);
+	crtc_iowrite8(regs, 0x02, horizBlankStart);
+	crtc_iowrite8(regs, 0x03, 0x80 | (horizBlankEnd & 0x1f));
+	crtc_iowrite8(regs, 0x04, horizStart);
+	crtc_iowrite8(regs, 0x05, ((horizBlankEnd & 0x20) << 2) |
 	(horizEnd & 0x1f));
-	crtc_outb(regs, 0x06, vertTotal);
-	crtc_outb(regs, 0x07,((vertStart & 0x200) >> 2) |
+	crtc_iowrite8(regs, 0x06, vertTotal);
+	crtc_iowrite8(regs, 0x07,((vertStart & 0x200) >> 2) |
 					((vertDisplay & 0x200) >> 3) |
 					((vertTotal & 0x200) >> 4) | 0x10 |
 					((vertBlankStart & 0x100) >> 5) |
 					((vertStart & 0x100) >> 6) |
 					((vertDisplay & 0x100) >> 7) |
 					((vertTotal & 0x100) >> 8));
-	crtc_outb(regs, 0x08, 0x00);
+	crtc_iowrite8(regs, 0x08, 0x00);
 	// Handle double scan
-	crtc_outb(regs, 0x09, (0x40 | ((vertBlankStart & 0x200) >> 4)));
+	crtc_iowrite8(regs, 0x09, (0x40 | ((vertBlankStart & 0x200) >> 4)));
 
 	for (i = 0x0a; i < 0x10; i++)
-		crtc_outb(regs, i, 0x00);
+		crtc_iowrite8(regs, i, 0x00);
 
-	crtc_outb(regs, 0x10, vertStart);
-	crtc_outb(regs, 0x11, (vertEnd & 0x0f) | 0x20);
-	crtc_outb(regs, 0x12, vertDisplay);
-	crtc_outb(regs, 0x13, horizDisplay);	// fb->pitch >> 3);
-	crtc_outb(regs, 0x14, 0x00);
-	crtc_outb(regs, 0x15, vertBlankStart);
-	crtc_outb(regs, 0x16, vertBlankEnd + 1);
-	crtc_outb(regs, 0x17, 0xc3);
-	crtc_outb(regs, 0x18, 0xff);
+	crtc_iowrite8(regs, 0x10, vertStart);
+	crtc_iowrite8(regs, 0x11, (vertEnd & 0x0f) | 0x20);
+	crtc_iowrite8(regs, 0x12, vertDisplay);
+	crtc_iowrite8(regs, 0x13, horizDisplay);	// fb->pitch >> 3);
+	crtc_iowrite8(regs, 0x14, 0x00);
+	crtc_iowrite8(regs, 0x15, vertBlankStart);
+	crtc_iowrite8(regs, 0x16, vertBlankEnd + 1);
+	crtc_iowrite8(regs, 0x17, 0xc3);
+	crtc_iowrite8(regs, 0x18, 0xff);
 }

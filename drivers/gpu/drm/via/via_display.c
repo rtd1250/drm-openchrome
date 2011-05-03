@@ -155,17 +155,18 @@ static void
 via_iga1_dpms(struct drm_crtc *crtc, int mode)
 {
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
-	void __iomem *regs = dev_priv->mmio.virtual + 0x83C0;
+	//void __iomem *regs = dev_priv->mmio.virtual + 0x83C0;
+	void __iomem *regs = ioport_map(0x3C0, 100);
 
 	/* Setup IGA path */
 	switch (mode) {
 	case DRM_MODE_DPMS_SUSPEND:
 	case DRM_MODE_DPMS_STANDBY:
 	case DRM_MODE_DPMS_OFF:
-		seq_outb(regs, 0x01, BIT(5));
+		seq_iowrite8(regs, 0x01, BIT(5));
 		break;
 	case DRM_MODE_DPMS_ON:
-		seq_outb(regs, 0x01, BIT(5));
+		seq_iowrite8(regs, 0x01, BIT(5));
 		break;
 	}
 }
@@ -187,11 +188,11 @@ via_crtc_prepare(struct drm_crtc *crtc)
 		iga = &dev_priv->iga[1];
 
 	* unlock extended registers *
-	seq_outb(iga->vga_regs, 0x10, 0x01);	
+	seq_iowrite8(iga->vga_regs, 0x10, 0x01);	
 
 	* unlock CRT registers *
-	orig = crtc_inb(iga->vga_regs, 0x47);
-	crtc_outb(iga->vga_regs, 0x47, (orig & 0x01));
+	orig = crtc_ioread8(iga->vga_regs, 0x47);
+	crtc_iowrite8(iga->vga_regs, 0x47, (orig & 0x01));
 
 	regs_init(iga->vga_regs);*/
 }
