@@ -44,6 +44,7 @@
 #include <linux/i2c-algo-bit.h>
 #include <linux/via-core.h>
 
+#include "crtc_hw.h"
 #include "via_regs.h"
 #include "via_drm.h"
 #include "via_verifier.h"

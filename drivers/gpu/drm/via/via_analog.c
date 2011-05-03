@@ -29,7 +29,6 @@
 #include "drm_crtc.h"
 #include "drm_crtc_helper.h"
 
-#include "crtc_hw.h"
 #include "via_drv.h"
 
 /*

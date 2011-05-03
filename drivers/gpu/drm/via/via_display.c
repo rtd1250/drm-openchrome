@@ -27,7 +27,6 @@
 #include "drm_crtc_helper.h"
 
 #include "via_drv.h"
-#include "crtc_hw.h"
 
 static int
 via_iga1_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
