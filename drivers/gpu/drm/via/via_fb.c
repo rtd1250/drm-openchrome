@@ -639,6 +639,7 @@ int via_detect_vram(struct drm_device *dev)
 		DRM_ERROR("No host bridge found...\n");
 		goto out_err;
 	}
+	dev_priv->bridge_id = bridge->device;	
 
 	if (!fn3 && dev->pci_device != PCI_DEVICE_ID_VIA_CLE266
 		&& dev->pci_device != PCI_DEVICE_ID_VIA_KM400) {

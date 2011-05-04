@@ -37,7 +37,7 @@
 #define BIOS_BSIZE              1024
 #define BIOS_BASE               0xc0000
 
-#define VIA_MMIO_REGSIZE        0x9000
+#define VIA_MMIO_REGSIZE        0xD000		/* DisplayPort:0xC610~0xC7D4 */
 #define VIA_MMIO_REGBASE        0x0
 #define VIA_MMIO_VGABASE        0x8000
 #define VIA_MMIO_BLTBASE        0x200000
