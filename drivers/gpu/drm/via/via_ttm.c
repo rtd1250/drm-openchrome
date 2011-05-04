@@ -72,7 +72,6 @@ int via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
 				DRM_ERROR("AGP is possible but not enabled\n");	
 				return -EINVAL;
 			}
-			man->gpu_offset = dev->agp->base;
 		}
 #endif
 		break;
@@ -80,7 +79,6 @@ int via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
 	case TTM_PL_VRAM:
 		/* "On-card" video ram */
 		man->func = &ttm_bo_manager_func;
-		man->gpu_offset = dev_priv->vram_start;
 		man->flags = TTM_MEMTYPE_FLAG_FIXED | TTM_MEMTYPE_FLAG_MAPPABLE;
 		man->available_caching = TTM_PL_FLAG_UNCACHED | TTM_PL_FLAG_WC;
 		man->default_caching = TTM_PL_FLAG_WC;
@@ -89,7 +87,6 @@ int via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
 	case TTM_PL_PRIV0:
 		/* MMIO region */
 		man->func = &ttm_bo_manager_func;
-		man->gpu_offset = pci_resource_start(dev->pdev, 1);
 		man->flags = TTM_MEMTYPE_FLAG_FIXED | TTM_MEMTYPE_FLAG_MAPPABLE;
 		man->available_caching = TTM_PL_FLAG_UNCACHED;
 		man->default_caching = TTM_PL_FLAG_UNCACHED;
@@ -138,10 +135,10 @@ static int via_ttm_io_mem_reserve(struct ttm_bo_device *bdev, struct ttm_mem_reg
 	struct ttm_mem_type_manager *man = &bdev->man[mem->mem_type];
 	struct drm_device *dev = dev_priv->dev;
 
-	mem->bus.addr = NULL;
-	mem->bus.offset = 0;
-	mem->bus.size = mem->num_pages << PAGE_SHIFT;
 	mem->bus.base = 0;
+	mem->bus.addr = NULL;
+	mem->bus.offset = mem->start << PAGE_SHIFT;
+	mem->bus.size = mem->num_pages << PAGE_SHIFT;
 	mem->bus.is_iomem = true;
 	if (!(man->flags & TTM_MEMTYPE_FLAG_MAPPABLE))
 		return -EINVAL;
@@ -150,22 +147,25 @@ static int via_ttm_io_mem_reserve(struct ttm_bo_device *bdev, struct ttm_mem_reg
 	case TTM_PL_SYSTEM:
 		/* system memory */
 		mem->bus.is_iomem = false;
+		mem->bus.offset = 0;
 		return 0;
 
 	case TTM_PL_TT:
 		mem->bus.offset = mem->start << PAGE_SHIFT;
-		mem->bus.base = man->gpu_offset;
 #if defined(CONFIG_AGP) || defined(CONFIG_AGP_MODULE)
-		if (drm_pci_device_is_agp(dev))
+		if (drm_pci_device_is_agp(dev)) {
 			mem->bus.is_iomem = !dev->agp->cant_use_aperture;
+			mem->bus.base = dev->agp->base;
+		}
 #endif
 		break;
 
 	case TTM_PL_PRIV0:
+		mem->bus.base = pci_resource_start(dev->pdev, 1);
+		break;
+
 	case TTM_PL_VRAM:
-		mem->bus.offset = mem->start << PAGE_SHIFT;
-		mem->bus.base = man->gpu_offset;
-		mem->bus.is_iomem = true;
+		mem->bus.base = dev_priv->vram_start;
 		break;
 
 	default:
