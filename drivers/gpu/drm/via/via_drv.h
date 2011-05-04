@@ -84,6 +84,7 @@ struct drm_via_private {
 	struct ttm_bo_global_ref bo_global_ref;
 	struct ttm_bo_device bdev;
 	struct drm_device *dev;
+	int bridge_id;
 	int chipset;
 	drm_via_sarea_t *sarea_priv;
 	drm_local_map_t *sarea;
@@ -152,6 +153,8 @@ enum via_family {
 #define VIA_WRITE(reg, val)	iowrite32(val, VIA_BASE + reg)
 #define VIA_READ8(reg)		ioread8(VIA_BASE + reg)
 #define VIA_WRITE8(reg, val)	iowrite8(val, VIA_BASE + reg)
+
+#define VGABASE (VIA_BASE+VIA_MMIO_VGABASE+0x3C0)
 
 extern struct drm_ioctl_desc via_ioctls[];
 extern int via_max_ioctl;

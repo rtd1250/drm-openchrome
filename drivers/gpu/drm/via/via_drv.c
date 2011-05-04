@@ -95,13 +95,41 @@ out_err0:
 }
 #endif
 
-#define VIA_MMIO_REGSIZE 0x9000
-
 static int via_mmio_setup(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
 	int ret, len = pci_resource_len(dev->pdev, 1);
+	void __iomem *regs = ioport_map(0x3c0, 100);
 	struct ttm_buffer_object *bo;
+	u8 val;
+
+	val = ioread8(regs + 0x03);
+	iowrite8(val | 0x1, regs + 0x03);
+	val = ioread8(regs + 0x0C);
+	iowrite8(val | 0x1, regs + 0x02);
+
+	/* Unlock Extended IO Space */
+	iowrite8(0x10, regs + 0x04);
+	iowrite8(0x01, regs + 0x05);
+	/* Unlock CRTC register protect */
+	iowrite8(0x47, regs + 0x14);
+
+	val = ioread8(regs + 0x15);
+	switch (dev_priv->bridge_id) {
+	case PCI_DEVICE_ID_VIA_VT3353:
+	case PCI_DEVICE_ID_VIA_VT3409:
+		val &= ~0x10;
+		break;
+	default:
+		val &= ~0x01;
+		break;
+	}
+	iowrite8(val, regs + 0x15);
+
+	/* Enable MMIO */
+	iowrite8(0x1a, regs + 0x04);
+	val = ioread8(regs + 0x05);
+	iowrite8(val | 0x38, regs + 0x05);
 
 	ret = ttm_bo_init_mm(&dev_priv->bdev, TTM_PL_PRIV0,
 				len >> PAGE_SHIFT);
@@ -121,6 +149,9 @@ static int via_mmio_setup(struct drm_device *dev)
 
 	ret = ttm_bo_kmap(bo, 0, bo->num_pages, &dev_priv->mmio);
 	ttm_bo_unreserve(bo);
+
+	/* Something is wrong with the TTM layer so we map it manually */
+	dev_priv->mmio.virtual = ioremap_nocache(pci_resource_start(dev->pdev, 1), len);
 err:
 	if (!ret)
 		DRM_INFO("Detected MMIO at physical address 0x%08llx.\n",
@@ -242,15 +273,15 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 	if (ret)
 		goto out_err;
 
+	ret = via_detect_vram(dev);
+	if (ret)
+		goto out_err;
+
 	ret = via_mmio_setup(dev);
 	if (ret) {
 		DRM_INFO("VIA MMIO region failed to map\n");
 		goto out_err;
 	}
-
-	ret = via_detect_vram(dev);
-	if (ret)
-		goto out_err;
 
 #if defined(CONFIG_AGP) || defined(CONFIG_AGP_MODULE)
 	if (dev->agp && drm_pci_device_is_agp(dev)) {
