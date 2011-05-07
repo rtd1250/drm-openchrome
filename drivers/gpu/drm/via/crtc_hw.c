@@ -25,8 +25,6 @@
 #include "drmP.h"
 #include "crtc_hw.h"
 
-//regs = devm_ioport_map(&dev->pdev->dev, 0x300, 0x100);
-
 void
 regs_init(void __iomem *regs)
 {
