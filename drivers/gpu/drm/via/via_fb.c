@@ -995,12 +995,17 @@ int via_framebuffer_init(struct drm_device *dev)
 
 	dev->mode_config.funcs = (void *)&via_mode_funcs;
 
-	info = framebuffer_alloc(sizeof(struct drm_fb_helper), dev->dev);
+	info = framebuffer_alloc(sizeof(*helper), dev->dev);
 	if (!info)
 		return ret;
+
+	helper = info->par;
+	helper->fbdev = info;
+	helper->funcs = &via_fb_helper_funcs;
+
 	strcpy(info->fix.id, "viadrmfb");
 	info->flags = FBINFO_DEFAULT | FBINFO_CAN_FORCE_OUTPUT;
-	//info->fbops = &viafb_ops; 
+	info->fbops = &viafb_ops; 
 
 	info->pixmap.size = 64*1024;
 	info->pixmap.buf_align = 8;
@@ -1012,9 +1017,6 @@ int via_framebuffer_init(struct drm_device *dev)
 	ret = fb_alloc_cmap(&info->cmap, 256, 0);
 	if (ret)
 		goto out_err;
-	helper = info->par;
-	helper->fbdev = info;
-	helper->funcs = &via_fb_helper_funcs;
 
 	/* 2 CRTC and 2 Connectors ? */
 	ret = drm_fb_helper_init(dev, helper, 1, 1);
