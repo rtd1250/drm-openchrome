@@ -431,8 +431,11 @@ static int __init via_init(void)
 {
 	via_driver.num_ioctls = via_max_ioctl;
 
-	if (via_modeset)
+	if (via_modeset) {
 		via_driver.driver_features |= DRIVER_MODESET;
+		via_driver.minor = 0; 
+		via_driver.major = 3;
+	}
 	return drm_pci_init(&via_driver, &via_pci_driver);
 }
 

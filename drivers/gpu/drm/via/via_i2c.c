@@ -53,7 +53,7 @@ static void via_i2c_setscl(void *data, int state)
 	u8 val;
 
 	spin_lock_irqsave(&dev_priv->mmio_lock, flags);
-	val = seq_ioread8(VGABASE, adap_data->ioport_index) & 0xF0;
+	val = vga_rseq(VGABASE, adap_data->ioport_index) & 0xF0;
 	if (state)
 		val |= 0x20;
 	else
@@ -68,7 +68,7 @@ static void via_i2c_setscl(void *data, int state)
 	default:
 		printk(KERN_ERR "via_i2c: specify wrong i2c type.\n");
 	}
-	seq_iowrite8(VGABASE, adap_data->ioport_index, val);
+	vga_wseq(VGABASE, adap_data->ioport_index, val);
 	spin_unlock_irqrestore(&dev_priv->mmio_lock, flags);
 }
 
@@ -81,7 +81,7 @@ static int via_i2c_getscl(void *data)
 	int ret = 0;
 
 	spin_lock_irqsave(&dev_priv->mmio_lock, flags);
-	if (seq_ioread8(VGABASE, adap_data->ioport_index) & 0x08)
+	if (vga_rseq(VGABASE, adap_data->ioport_index) & 0x08)
 		ret = 1;
 	spin_unlock_irqrestore(&dev_priv->mmio_lock, flags);
 	return ret;
@@ -96,7 +96,7 @@ static int via_i2c_getsda(void *data)
 	int ret = 0;
 
 	spin_lock_irqsave(&dev_priv->mmio_lock, flags);
-	if (seq_ioread8(VGABASE, adap_data->ioport_index) & 0x04)
+	if (vga_rseq(VGABASE, adap_data->ioport_index) & 0x04)
 		ret = 1;
 	spin_unlock_irqrestore(&dev_priv->mmio_lock, flags);
 	return ret;
@@ -111,7 +111,7 @@ static void via_i2c_setsda(void *data, int state)
 	u8 val;
 
 	spin_lock_irqsave(&dev_priv->mmio_lock, flags);
-	val = seq_ioread8(VGABASE, adap_data->ioport_index) & 0xF0;
+	val = vga_rseq(VGABASE, adap_data->ioport_index) & 0xF0;
 	if (state)
 		val |= 0x10;
 	else
@@ -126,7 +126,7 @@ static void via_i2c_setsda(void *data, int state)
 	default:
 		printk(KERN_ERR "via_i2c: specify wrong i2c type.\n");
 	}
-	seq_iowrite8(VGABASE, adap_data->ioport_index, val);
+	vga_wseq(VGABASE, adap_data->ioport_index, val);
 	spin_unlock_irqrestore(&dev_priv->mmio_lock, flags);
 }
 

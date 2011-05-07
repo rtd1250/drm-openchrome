@@ -973,6 +973,20 @@ static struct drm_fb_helper_funcs via_fb_helper_funcs = {
 	.fb_probe = via_fb_probe,
 };
 
+static struct fb_ops viafb_ops = {
+	.owner = THIS_MODULE,
+	.fb_check_var = drm_fb_helper_check_var,
+	.fb_set_par = drm_fb_helper_set_par,
+	.fb_fillrect = cfb_fillrect,
+	.fb_copyarea = cfb_copyarea,
+	.fb_imageblit = cfb_imageblit,
+	.fb_pan_display = drm_fb_helper_pan_display,
+	.fb_blank = drm_fb_helper_blank,
+	.fb_setcmap = drm_fb_helper_setcmap,
+	.fb_debug_enter = drm_fb_helper_debug_enter,
+	.fb_debug_leave = drm_fb_helper_debug_leave,
+};
+
 int via_framebuffer_init(struct drm_device *dev)
 {
 	struct drm_fb_helper *helper;
@@ -986,6 +1000,7 @@ int via_framebuffer_init(struct drm_device *dev)
 		return ret;
 	strcpy(info->fix.id, "viadrmfb");
 	info->flags = FBINFO_DEFAULT | FBINFO_CAN_FORCE_OUTPUT;
+	//info->fbops = &viafb_ops; 
 
 	info->pixmap.size = 64*1024;
 	info->pixmap.buf_align = 8;

@@ -40,11 +40,11 @@
 #include "ttm/ttm_memory.h"
 #include "ttm/ttm_module.h"
 
+#include <video/vga.h>
 #include <linux/i2c.h>
 #include <linux/i2c-algo-bit.h>
 #include <linux/via-core.h>
 
-#include "crtc_hw.h"
 #include "via_regs.h"
 #include "via_drm.h"
 #include "via_verifier.h"
@@ -154,7 +154,7 @@ enum via_family {
 #define VIA_READ8(reg)		ioread8(VIA_BASE + reg)
 #define VIA_WRITE8(reg, val)	iowrite8(val, VIA_BASE + reg)
 
-#define VGABASE (VIA_BASE+VIA_MMIO_VGABASE+0x3C0)
+#define VGABASE (VIA_BASE+VIA_MMIO_VGABASE)
 
 extern struct drm_ioctl_desc via_ioctls[];
 extern int via_max_ioctl;
