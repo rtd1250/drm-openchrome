@@ -161,10 +161,10 @@ via_iga1_dpms(struct drm_crtc *crtc, int mode)
 	case DRM_MODE_DPMS_SUSPEND:
 	case DRM_MODE_DPMS_STANDBY:
 	case DRM_MODE_DPMS_OFF:
-		seq_iowrite8(VGABASE, 0x01, BIT(5));
+		vga_wseq(VGABASE, 0x01, BIT(5));
 		break;
 	case DRM_MODE_DPMS_ON:
-		seq_iowrite8(VGABASE, 0x01, BIT(5));
+		vga_wseq(VGABASE, 0x01, BIT(5));
 		break;
 	}
 }
@@ -186,11 +186,11 @@ via_crtc_prepare(struct drm_crtc *crtc)
 		iga = &dev_priv->iga[1];
 
 	* unlock extended registers *
-	seq_iowrite8(VGABASE, 0x10, 0x01);	
+	vga_wseq(VGABASE, 0x10, 0x01);	
 
 	* unlock CRT registers *
-	orig = crtc_ioread8(VGABASE, 0x47);
-	crtc_iowrite8(VGABASE, 0x47, (orig & 0x01));
+	orig = vga_rcrt(VGABASE, 0x47);
+	vga_wcrt(VGABASE, 0x47, (orig & 0x01));
 
 	regs_init(VGABASE);*/
 }

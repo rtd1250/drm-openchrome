@@ -53,9 +53,9 @@ via_analog_dpms(struct drm_encoder *encoder, int mode)
 	//iga = container_of(crtc, struct via_crtc, base);
 	//if (iga->iga1) path = 0;
 	path = 0;
-	seq_iowrite8(VGABASE, 0x16, path); 
+	vga_wseq(VGABASE, 0x16, path); 
 
-	dacmode = crtc_ioread8(VGABASE, 0x36);
+	dacmode = vga_rcrt(VGABASE, 0x36);
 	switch (mode) {
 	case DRM_MODE_DPMS_SUSPEND:
 		dacmode |= BIT(5);	// VSync off  
@@ -72,7 +72,7 @@ via_analog_dpms(struct drm_encoder *encoder, int mode)
 		break;
 	}
 
-	crtc_iowrite8(VGABASE, 0x36, (dacmode & mask));
+	vga_wcrt(VGABASE, 0x36, (dacmode & mask));
 }
 
 /* Pass our mode to the connectors and the CRTC to give them a chance to

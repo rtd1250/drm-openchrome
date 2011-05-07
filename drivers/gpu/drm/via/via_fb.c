@@ -1000,7 +1000,7 @@ int via_framebuffer_init(struct drm_device *dev)
 		return ret;
 	strcpy(info->fix.id, "viadrmfb");
 	info->flags = FBINFO_DEFAULT | FBINFO_CAN_FORCE_OUTPUT;
-	info->fbops = &viafb_ops; 
+	//info->fbops = &viafb_ops; 
 
 	info->pixmap.size = 64*1024;
 	info->pixmap.buf_align = 8;
