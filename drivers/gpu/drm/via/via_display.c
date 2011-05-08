@@ -302,6 +302,7 @@ via_crtc_init(struct drm_device *dev, int index)
 
 int via_modeset_init(struct drm_device *dev)
 {
+	struct drm_via_private *dev_priv = dev->dev_private;
 	int i;
 
 	drm_mode_config_init(dev);
@@ -322,11 +323,15 @@ int via_modeset_init(struct drm_device *dev)
 	/*
 	 * Set up the framebuffer device
 	 */
-	return via_framebuffer_init(dev);
+	return via_framebuffer_init(dev, &dev_priv->helper);
 }
 
 void via_modeset_fini(struct drm_device *dev)
 {
+	struct drm_via_private *dev_priv = dev->dev_private;
+
+	via_framebuffer_fini(dev_priv->helper);
+	
 	drm_mode_config_cleanup(dev);
 
 	via_i2c_exit(dev);

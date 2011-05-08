@@ -88,6 +88,7 @@ struct drm_via_private {
 	int chipset;
 	drm_via_sarea_t *sarea_priv;
 	drm_local_map_t *sarea;
+	struct drm_fb_helper *helper;
 	unsigned long vram_start;
 	u8 vram_type;
 	wait_queue_head_t decoder_queue[VIA_NR_XVMC_LOCKS];
@@ -171,7 +172,8 @@ extern int via_dma_blit_sync(struct drm_device *dev, void *data, struct drm_file
 extern int via_dma_blit(struct drm_device *dev, void *data, struct drm_file *file_priv);
 
 extern int via_detect_vram(struct drm_device *dev);
-extern int via_framebuffer_init(struct drm_device *dev);
+extern int via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **ptr);
+extern void via_framebuffer_fini(struct drm_fb_helper *helper);
 
 extern int via_ttm_init(struct drm_via_private *dev_priv);
 extern void via_ttm_bo_destroy(struct ttm_buffer_object *bo);
