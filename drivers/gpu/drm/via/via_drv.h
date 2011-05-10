@@ -76,7 +76,7 @@ struct via_i2c {
 struct via_crtc {
 	struct drm_gem_object *cursor_bo;
 	struct drm_crtc crtc;
-	bool iga1;
+	uint32_t iga1;
 };
 
 struct drm_via_private {
@@ -226,6 +226,8 @@ extern void via_init_dmablit(struct drm_device *dev);
 extern void via_i2c_exit(struct drm_device *dev);
 extern int via_i2c_init(struct drm_device *dev);
 
+extern void regs_init(void __iomem *regs);
+extern void crtc_set_regs(struct drm_display_mode *mode, void __iomem *regs); 
 extern void via_modeset_fini(struct drm_device *dev);
 extern int via_modeset_init(struct drm_device *dev);
 extern int via_get_edid_modes(struct drm_connector *connector);
