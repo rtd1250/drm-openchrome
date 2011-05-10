@@ -987,7 +987,7 @@ static struct fb_ops viafb_ops = {
 	.fb_debug_leave = drm_fb_helper_debug_leave,
 };
 
-int via_framebuffer_init(struct drm_device *dev)
+int via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **ptr)
 {
 	struct drm_fb_helper *helper;
 	struct fb_info *info;
@@ -1027,8 +1027,31 @@ int via_framebuffer_init(struct drm_device *dev)
 
 	drm_fb_helper_single_add_all_connectors(helper);
 	drm_fb_helper_initial_config(helper, 32);
+	*ptr = helper;
 out_err:
 	if (ret)
 		kfree(info);
 	return ret;
+}
+
+void via_framebuffer_fini(struct drm_fb_helper *helper)
+{
+	struct ttm_bo_kmap_obj *kmap = helper->helper_private;
+	struct fb_info *info = helper->fbdev;
+
+	drm_fb_helper_fini(helper);
+
+	unregister_framebuffer(info);
+	if (info->cmap.len)
+		fb_dealloc_cmap(&info->cmap);
+
+	if (kmap) {
+		if (!ttm_bo_reserve(kmap->bo, true, false, false, 0))
+			ttm_bo_kunmap(kmap);
+		ttm_bo_unreserve(kmap->bo);
+		ttm_bo_unref(&kmap->bo);
+	}
+	drm_framebuffer_cleanup(helper->fb);
+
+	framebuffer_release(info);
 }
