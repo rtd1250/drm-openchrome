@@ -164,12 +164,14 @@ via_crtc_destroy(struct drm_crtc *crtc)
 	struct via_crtc *iga = NULL;
 	int index = 0;
 
-	if (iga->iga1 != crtc->base.id)
+	if (dev_priv->iga[0].iga1 != crtc->base.id)
 		index = 1;
 	iga = &dev_priv->iga[index];
 
 	drm_crtc_cleanup(crtc);
-	crtc->dev->driver->gem_free_object(iga->cursor_bo);
+
+	if (iga->cursor_bo)
+		crtc->dev->driver->gem_free_object(iga->cursor_bo);
 	if (crtc) kfree(crtc);
 }
 
@@ -269,18 +271,65 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 		int x, int y, struct drm_framebuffer *old_fb)
 {
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
-	u8 orig;
+	u8 val;
+
+	/*
+	 * Switching AR00[5](PAS) to 0 will allow the CPU to change
+	 * the palette registers.Meanwhile, the monitor will be blank.
+	 */
+	val = vga_r(VGABASE, VGA_IS1_RC);
+	vga_w(VGABASE, VGA_ATT_W, 0x00);
+
+	/* Write Misc Register */
+	vga_w(VGABASE, VGA_MIS_W, 0xCF);
+
+	regs_init(VGABASE);
+
+	/*
+	 * Switching AR00[5](PAS) to 1 will NOT allow the CPU to change the
+	 * palette registers. Meanwhile, the monitor will display normally.
+	 */
+	val = vga_r(VGABASE, VGA_IS1_RC);
+	vga_w(VGABASE, VGA_ATT_W, 0x20);
 
 	/* unlock extended registers */
 	vga_wseq(VGABASE, 0x10, 0x01);	
 
 	/* unlock CRT registers */
-	orig = vga_rcrt(VGABASE, 0x47);
-	vga_wcrt(VGABASE, 0x47, (orig & 0x01));
+	val = vga_rcrt(VGABASE, 0x47);
+	vga_wcrt(VGABASE, 0x47, (val & 0x01));
 
-	regs_init(VGABASE);
+	/* Reset IGA1 */
+	vga_wcrt(VGABASE, 0x09, 0x00);
+	vga_wcrt(VGABASE, 0x11, BIT(4) | BIT(5) | BIT(6));
+	vga_wcrt(VGABASE, 0x17, BIT(7)); 
 
 	crtc_set_regs(mode, VGABASE);
+
+	/* Set PlusVCK */
+	if (dev_priv->iga[0].iga1 == crtc->base.id) {
+		switch (adjusted_mode->htotal % 8) {
+		case 0:
+		default:
+			vga_wcrt(VGABASE, 0x47, 0x0);
+			break;
+		case 2:
+			vga_wcrt(VGABASE, 0x47, BIT(7));
+			break;
+		case 4:
+			vga_wcrt(VGABASE, 0x47, BIT(6));
+			break;
+		case 6:
+			vga_wcrt(VGABASE, 0x47, BIT(3));
+			break;
+		}
+	}
+
+	/* Lock CRT again */
+	vga_wcrt(VGABASE, 0x11, BIT(7));
+	/* and do a HW reset */
+	vga_wcrt(VGABASE, 0x17, BIT(7));	
+
 	return 0;
 }
 
