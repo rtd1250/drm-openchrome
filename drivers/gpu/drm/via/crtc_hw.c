@@ -30,7 +30,12 @@ regs_init(void __iomem *regs)
 {
 	int i;
 
-	for (i = 0; i <= 4; i++)
+	vga_wseq(regs, 0x1, 0x01);
+	vga_wseq(regs, 0x2, 0x0f);
+	vga_wseq(regs, 0x3, 0x00);
+	vga_wseq(regs, 0x4, 0x0e);
+
+	for (i = 0; i < 0x5; i++)
 		vga_wgfx(regs, i, 0x00);	
 
 	vga_wgfx(regs, 0x05, 0x40);
@@ -38,7 +43,7 @@ regs_init(void __iomem *regs)
 	vga_wgfx(regs, 0x07, 0x0f); 
 	vga_wgfx(regs, 0x08, 0xff); 
 
-	for (i = 0; i <= 0xf; i++)
+	for (i = 0; i < 0x10; i++)
 		vga_wattr(regs, i, i);
 
 	vga_wattr(regs, 0x10, 0x41);
@@ -116,7 +121,7 @@ crtc_set_regs(struct drm_display_mode *mode, void __iomem *regs)
 	vga_wcrt(regs, 0x03, 0x80 | (horizBlankEnd & 0x1f));
 	vga_wcrt(regs, 0x04, horizStart);
 	vga_wcrt(regs, 0x05, ((horizBlankEnd & 0x20) << 2) |
-	(horizEnd & 0x1f));
+				(horizEnd & 0x1f));
 	vga_wcrt(regs, 0x06, vertTotal);
 	vga_wcrt(regs, 0x07,((vertStart & 0x200) >> 2) |
 					((vertDisplay & 0x200) >> 3) |
