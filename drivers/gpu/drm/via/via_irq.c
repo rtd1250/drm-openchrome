@@ -116,10 +116,10 @@ irqreturn_t via_driver_irq_handler(DRM_IRQ_ARGS)
 			dev_priv->last_vblank = cur_vblank;
 			dev_priv->last_vblank_valid = 1;
 		}
-		if (!(atomic_read(&dev->_vblank_count[0]) & 0xFF)) {
+		/*if (!(atomic_read(&dev->_vblank_count[0]) & 0xFF)) {
 			DRM_DEBUG("US per vblank is: %u\n",
 				  dev_priv->usec_per_vblank);
-		}
+		}*/
 		drm_handle_vblank(dev, 0);
 		handled = 1;
 	}
