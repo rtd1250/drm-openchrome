@@ -155,9 +155,11 @@ ttm_bo_allocate(struct ttm_bo_device *bdev,
 				page_align >> PAGE_SHIFT, buffer_start,
 				interruptible, persistant_swap_storage,
 				size, destroy);
-	if (ret)
-		kfree(p);
-	else 
+	if (!ret) {
+		if (persistant_swap_storage)
+			persistant_swap_storage->private_data = placement;	
 		*p_bo = bo;
+	} else
+		kfree(p);
 	return ret;
 }

@@ -894,6 +894,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 	struct fb_info *info = helper->fbdev;
 	struct ttm_bo_kmap_obj *kmap = NULL;
 	struct drm_framebuffer *fb = NULL;
+	struct drm_gem_object *obj = NULL; 
 	struct drm_mode_fb_cmd mode_cmd;
 	int size, ret = 0;
 	void *ptr;
@@ -917,11 +918,14 @@ via_fb_probe(struct drm_fb_helper *helper,
 	mode_cmd.pitch = ((mode_cmd.width * mode_cmd.bpp >> 3) + 7) & ~7;
 	size = mode_cmd.pitch * mode_cmd.height;
 
+	obj = drm_gem_object_alloc(helper->dev, size);
 	ret = ttm_bo_allocate(&dev_priv->bdev, size, ttm_bo_type_kernel,
 				TTM_PL_FLAG_VRAM, 1, PAGE_SIZE, 0, false,
-				via_ttm_bo_destroy, NULL, &kmap->bo);
+				via_ttm_bo_destroy, obj->filp, &kmap->bo);
 	if (ret)
 		goto out_err;
+	obj->driver_private = kmap->bo;
+
 	ret = ttm_bo_reserve(kmap->bo, true, false, false, 0);
 	if (!ret) {
 		ret = ttm_bo_kmap(kmap->bo, 0, kmap->bo->num_pages, kmap);
@@ -933,6 +937,8 @@ via_fb_probe(struct drm_fb_helper *helper,
 	ret = drm_framebuffer_init(helper->dev, fb, &via_fb_funcs);
 	if (ret)
 		goto out_err;
+	fb->helper_private = obj;
+
 	drm_helper_mode_fill_fb_struct(fb, &mode_cmd);
 	helper->helper_private = kmap;
 	helper->fb = fb;
@@ -948,8 +954,10 @@ via_fb_probe(struct drm_fb_helper *helper,
 	ret = 1;
 out_err:
 	if (ret < 0) {
-		kfree(kmap->bo);
-		kfree(ptr);
+		if (obj)
+			fb->dev->driver->gem_free_object(obj);
+		if (ptr)
+			kfree(ptr);
 	}
 	return ret;
 }
@@ -1038,6 +1046,7 @@ void via_framebuffer_fini(struct drm_fb_helper *helper)
 {
 	struct ttm_bo_kmap_obj *kmap = helper->helper_private;
 	struct fb_info *info = helper->fbdev;
+	struct drm_gem_object *obj;
 
 	drm_fb_helper_fini(helper);
 
@@ -1051,6 +1060,9 @@ void via_framebuffer_fini(struct drm_fb_helper *helper)
 		ttm_bo_unreserve(kmap->bo);
 		ttm_bo_unref(&kmap->bo);
 	}
+
+	obj = helper->fb->helper_private;
+	helper->fb->dev->driver->gem_free_object(obj);
 	drm_framebuffer_cleanup(helper->fb);
 
 	framebuffer_release(info);
