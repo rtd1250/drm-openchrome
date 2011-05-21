@@ -334,25 +334,96 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 }
 
 static int
-via_iga1_mode_set_base(struct drm_crtc *crtc, int x, int y,
+via_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 			struct drm_framebuffer *old_fb)
 {
-	if (!crtc->fb)
-		return 0;
-	return 0;
-}
+	struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
+	struct drm_framebuffer *new_fb = crtc->fb;
+	struct ttm_placement *placement;
+	struct ttm_buffer_object *bo;
+	struct drm_gem_object *obj;
+	int ret = 0, i;
+	uint32_t *ptr;
 
-static int
-via_iga2_mode_set_base(struct drm_crtc *crtc, int x, int y,
-			struct drm_framebuffer *old_fb)
-{
-	return 0;
+	/* no fb bound */
+	if (!new_fb) {
+		DRM_DEBUG_KMS("No FB bound\n");
+		return ret;
+	}
+
+	obj = new_fb->helper_private;
+	placement = obj->filp->private_data;	
+	bo = obj->driver_private;
+
+	ptr = (uint32_t *) placement->placement;
+	for (i = 0; i < placement->num_placement; i++)
+		*ptr++ |= TTM_PL_FLAG_NO_EVICT;
+	ret = ttm_bo_validate(bo, placement, false, false, false);
+	if (likely(ret == 0)) {
+		ret = crtc_funcs->mode_set_base_atomic(crtc, new_fb, x, y,
+							LEAVE_ATOMIC_MODE_SET);
+	}
+
+	/* Free the framebuffer */
+	ptr = (uint32_t *) placement->placement;
+	for (i = 0; i < placement->num_placement; i++)
+		*ptr++ &= ~TTM_PL_FLAG_NO_EVICT;
+	if (ttm_bo_validate(bo, placement, false, false, false))
+		DRM_ERROR("framebuffer still locked\n");
+	return ret;
 }
 
 static int
 via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 				int x, int y, enum mode_set_atomic state)
 {
+	u32 addr = y * fb->pitch + x * (fb->bits_per_pixel >> 3), pitch;
+	struct drm_via_private *dev_priv = crtc->dev->dev_private;
+	struct drm_gem_object *obj = fb->helper_private;
+	struct ttm_buffer_object *bo = obj->driver_private;
+	u8 value;
+
+	/*if (state == ENTER_ATOMIC_MODE_SET)
+		disable_accel(dev);
+	else
+		restore_accel(dev);*/
+
+	/* Set the framebuffer offset */
+	addr += bo->offset;
+
+	vga_wcrt(VGABASE, 0x0D, addr & 0xFF);
+	vga_wcrt(VGABASE, 0x0C, (addr >> 8) & 0xFF);
+	vga_wcrt(VGABASE, 0x34, (addr >> 16) & 0xFF);
+	vga_wcrt(VGABASE, 0x48, (addr >> 24) & 0x1F);
+
+	/* spec does not say that first adapter skips 3 bits but old
+	 * code did it and seems to be reasonable in analogy to 2nd adapter
+	 */
+	pitch = fb->pitch >> 3;
+	vga_wcrt(VGABASE, 0x13, pitch & 0xFF);
+	vga_wcrt(VGABASE, 0x35, (pitch >> (8 - 5)) & 0xE0);
+
+	switch (fb->depth) {
+	case 8:
+		value = 0x00;
+		break;
+	case 15:
+		value = 0x04;
+		break;
+	case 16:
+		value = 0x14;
+		break;
+	case 24:
+		value = 0x0C;
+		break;
+	case 30:
+		value = 0x08;
+		break;
+	default:
+		DRM_ERROR("Unsupported depth: %d\n", fb->depth);
+		return -EINVAL;
+	}
+	vga_wseq(VGABASE, 0x15, (value & 0x1C));
 	return 0;
 }
 
@@ -360,6 +431,44 @@ static int
 via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 				int x, int y, enum mode_set_atomic state)
 {
+	u32 addr = y * fb->pitch + x * (fb->bits_per_pixel >> 3), pitch;
+	struct drm_via_private *dev_priv = crtc->dev->dev_private;
+	struct drm_gem_object *obj = fb->helper_private;
+	struct ttm_buffer_object *bo = obj->driver_private;
+	u8 value;
+
+	/* Set the framebuffer offset */
+	addr += bo->offset;
+
+	/* secondary display supports only quadword aligned memory */
+	vga_wcrt(VGABASE, 0x62, (addr >> 2) & 0xfe);
+	vga_wcrt(VGABASE, 0x63, (addr >> 10) & 0xff);
+	vga_wcrt(VGABASE, 0x64, (addr >> 18) & 0xff);
+	vga_wcrt(VGABASE, 0xA3, (addr >> 26) & 0x07);
+
+	pitch = fb->pitch >> 3;
+	vga_wcrt(VGABASE, 0x66, pitch & 0xff);
+	vga_wcrt(VGABASE, 0x67, (pitch >> 8) & 0x03);
+	vga_wcrt(VGABASE, 0x71, (pitch >> (10 - 7)) & 0x80);
+
+	switch (fb->depth) {
+	case 8:
+		value = 0x00;
+		break;
+	case 16:
+		value = 0x40;
+		break;
+	case 24:
+		value = 0xC0;
+		break;
+	case 30:
+		value = 0x80;
+		break;
+	default:
+		DRM_ERROR("Unsupported depth: %d\n", fb->depth);
+		return -EINVAL;
+	}
+	vga_wseq(VGABASE, 0x67, (value & 0xC0));
 	return 0;
 }
 
@@ -384,7 +493,7 @@ static const struct drm_crtc_helper_funcs via_iga1_helper_funcs = {
 	.commit = via_crtc_commit,
 	.mode_fixup = via_crtc_mode_fixup,
 	.mode_set = via_crtc_mode_set,
-	.mode_set_base = via_iga1_mode_set_base,
+	.mode_set_base = via_crtc_mode_set_base,
 	.mode_set_base_atomic = via_iga1_mode_set_base_atomic,
 	.load_lut = drm_mode_crtc_load_lut,
 };
@@ -395,7 +504,7 @@ static const struct drm_crtc_helper_funcs via_iga2_helper_funcs = {
 	.commit = via_crtc_commit,
 	.mode_fixup = via_crtc_mode_fixup,
 	.mode_set = via_crtc_mode_set,
-	.mode_set_base = via_iga2_mode_set_base,
+	.mode_set_base = via_crtc_mode_set_base,
 	.mode_set_base_atomic = via_iga2_mode_set_base_atomic,
 	.load_lut = drm_mode_crtc_load_lut,
 };
