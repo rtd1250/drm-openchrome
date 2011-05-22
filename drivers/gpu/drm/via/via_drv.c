@@ -149,9 +149,6 @@ static int via_mmio_setup(struct drm_device *dev)
 
 	ret = ttm_bo_kmap(bo, 0, bo->num_pages, &dev_priv->mmio);
 	ttm_bo_unreserve(bo);
-
-	/* Something is wrong with the TTM layer so we map it manually */
-	dev_priv->mmio.virtual = ioremap_nocache(pci_resource_start(dev->pdev, 1), len);
 err:
 	if (!ret)
 		DRM_INFO("Detected MMIO at physical address 0x%08llx.\n",

@@ -177,7 +177,7 @@ extern void via_framebuffer_fini(struct drm_fb_helper *helper);
 
 extern int via_ttm_init(struct drm_via_private *dev_priv);
 extern void via_ttm_bo_destroy(struct ttm_buffer_object *bo);
-extern struct ttm_backend *ttm_pci_backend_init(struct ttm_bo_device *bdev,
+extern struct ttm_backend *ttm_dma_backend_init(struct ttm_bo_device *bdev,
 						struct drm_device *dev);
 
 extern int ttm_global_init(struct drm_global_reference *global_ref,

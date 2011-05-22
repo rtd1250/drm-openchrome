@@ -33,60 +33,60 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 
-struct ttm_pci_backend {
+struct ttm_dma_backend {
 	struct ttm_backend backend;
 	struct drm_device *dev;
 };
 
-static int ttm_pci_populate(struct ttm_backend *backend,
+static int ttm_dma_populate(struct ttm_backend *backend,
 			    unsigned long num_pages, struct page **pages,
 			    struct page *dummy_read_page,
 			    dma_addr_t *dma_addrs)
-{	DRM_INFO("ttm_pci_populate\n");
+{	DRM_INFO("ttm_dma_populate\n");
 	return 0;
 }
 
-static int ttm_pci_bind(struct ttm_backend *backend, struct ttm_mem_reg *bo_mem)
+static int ttm_dma_bind(struct ttm_backend *backend, struct ttm_mem_reg *bo_mem)
 {
-	DRM_INFO("ttm_pci_bind\n");
+	DRM_INFO("ttm_dma_bind\n");
 	return 1;
 }
 
-static int ttm_pci_unbind(struct ttm_backend *backend)
+static int ttm_dma_unbind(struct ttm_backend *backend)
 {
-	DRM_INFO("ttm_pci_unbind\n");
+	DRM_INFO("ttm_dma_unbind\n");
 	return 1;
 }
 
-static void ttm_pci_clear(struct ttm_backend *backend)
+static void ttm_dma_clear(struct ttm_backend *backend)
 {
-	DRM_INFO("ttm_pci_clear\n");
+	DRM_INFO("ttm_dma_clear\n");
 }
 
-static void ttm_pci_destroy(struct ttm_backend *backend)
+static void ttm_dma_destroy(struct ttm_backend *backend)
 {
-	DRM_INFO("ttm_pci_destroy\n");
+	DRM_INFO("ttm_dma_destroy\n");
 }
 
-static struct ttm_backend_func ttm_pci_func = {
-	.populate = ttm_pci_populate,
-	.clear = ttm_pci_clear,
-	.bind = ttm_pci_bind,
-	.unbind = ttm_pci_unbind,
-	.destroy = ttm_pci_destroy,
+static struct ttm_backend_func ttm_dma_func = {
+	.populate = ttm_dma_populate,
+	.clear = ttm_dma_clear,
+	.bind = ttm_dma_bind,
+	.unbind = ttm_dma_unbind,
+	.destroy = ttm_dma_destroy,
 };
 
-struct ttm_backend *ttm_pci_backend_init(struct ttm_bo_device *bdev, struct drm_device *dev)
+struct ttm_backend *ttm_dma_backend_init(struct ttm_bo_device *bdev, struct drm_device *dev)
 {
-	struct ttm_pci_backend *pci_be;
+	struct ttm_dma_backend *dma_be;
 
-	pci_be = kmalloc(sizeof(*pci_be), GFP_KERNEL);
-	if (!pci_be)
+	dma_be = kmalloc(sizeof(*dma_be), GFP_KERNEL);
+	if (!dma_be)
 		return NULL;
 
-	pci_be->backend.func = &ttm_pci_func;
-	pci_be->backend.bdev = bdev;
-	pci_be->dev = dev;
-	return &pci_be->backend;
+	dma_be->backend.func = &ttm_dma_func;
+	dma_be->backend.bdev = bdev;
+	dma_be->dev = dev;
+	return &dma_be->backend;
 }
-EXPORT_SYMBOL(ttm_pci_backend_init);
+EXPORT_SYMBOL(ttm_dma_backend_init);
