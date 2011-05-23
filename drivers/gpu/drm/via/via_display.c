@@ -396,6 +396,11 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	vga_wcrt(VGABASE, 0x34, (addr >> 16) & 0xFF);
 	vga_wcrt(VGABASE, 0x48, (addr >> 24) & 0x1F);
 
+	/* Fetch register handling */
+	pitch = ((fb->pitch * (fb->bits_per_pixel >> 3)) >> 4) + 4;
+	vga_wseq(VGABASE, 0x1C, (pitch & 7));
+	vga_wseq(VGABASE, 0x1D, ((pitch >> 3) & 0x02));
+
 	/* spec does not say that first adapter skips 3 bits but old
 	 * code did it and seems to be reasonable in analogy to 2nd adapter
 	 */
