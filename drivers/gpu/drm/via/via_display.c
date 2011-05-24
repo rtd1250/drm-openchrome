@@ -161,12 +161,10 @@ static void
 via_crtc_destroy(struct drm_crtc *crtc)
 {
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
-	struct via_crtc *iga = NULL;
-	int index = 0;
+	struct via_crtc *iga = &dev_priv->iga[0];
 
-	if (dev_priv->iga[0].iga1 != crtc->base.id)
-		index = 1;
-	iga = &dev_priv->iga[index];
+	if (iga->iga1 != crtc->base.id)
+		iga = &dev_priv->iga[1];
 
 	drm_crtc_cleanup(crtc);
 
@@ -271,7 +269,11 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 		int x, int y, struct drm_framebuffer *old_fb)
 {
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
+	struct via_crtc *iga = &dev_priv->iga[0];
 	u8 val;
+
+	if (iga->iga1 != crtc->base.id)
+		iga = &dev_priv->iga[1];
 
 	/*
 	 * Switching AR00[5](PAS) to 0 will allow the CPU to change
@@ -307,7 +309,7 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 	crtc_set_regs(mode, VGABASE);
 
 	/* Set PlusVCK */
-	if (dev_priv->iga[0].iga1 == crtc->base.id) {
+	if (iga->iga1 == crtc->base.id) {
 		switch (adjusted_mode->htotal % 8) {
 		case 0:
 		default:
@@ -399,7 +401,7 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	/* Fetch register handling */
 	pitch = ((fb->pitch * (fb->bits_per_pixel >> 3)) >> 4) + 4;
 	vga_wseq(VGABASE, 0x1C, (pitch & 7));
-	vga_wseq(VGABASE, 0x1D, ((pitch >> 3) & 0x02));
+	vga_wseq(VGABASE, 0x1D, ((pitch >> 3) & 0x03));
 
 	/* spec does not say that first adapter skips 3 bits but old
 	 * code did it and seems to be reasonable in analogy to 2nd adapter
