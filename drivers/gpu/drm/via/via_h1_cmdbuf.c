@@ -1,4 +1,4 @@
-/* via_dma.c -- DMA support for the VIA Unichrome/Pro
+/* via_h1_cmdbuf.c -- DMA support for the VIA Unichrome/Pro
  *
  * Copyright 2003 Tungsten Graphics, Inc., Cedar Park, Texas.
  * All Rights Reserved.

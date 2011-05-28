@@ -1,4 +1,4 @@
-/* via_dmablit.h -- PCI DMA BitBlt support for the VIA Unichrome/Pro
+/* via_dmabuffer.h -- PCI DMA BitBlt support for the VIA Unichrome/Pro
  *
  * Copyright 2005 Thomas Hellstrom.
  * All Rights Reserved.
