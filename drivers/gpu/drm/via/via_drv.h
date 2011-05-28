@@ -76,6 +76,10 @@ struct via_i2c {
 struct via_crtc {
 	struct drm_gem_object *cursor_bo;
 	struct drm_crtc crtc;
+	unsigned int display_queue_expire_num;
+	unsigned int fifo_high_threshold;
+	unsigned int fifo_threshold;
+	unsigned int fifo_max_depth;
 	uint32_t iga1;
 };
 

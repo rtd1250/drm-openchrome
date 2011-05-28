@@ -26,6 +26,7 @@
 #include "drm_mode.h"
 #include "drm_crtc_helper.h"
 
+#include "via_pll.h"
 #include "via_drv.h"
 
 static int
@@ -526,10 +527,136 @@ via_crtc_init(struct drm_device *dev, int index)
 	if (index) {
 		drm_crtc_init(dev, crtc, &via_iga2_funcs);
 		drm_crtc_helper_add(crtc, &via_iga2_helper_funcs);
+
+		switch (dev->pdev->device) {
+		// P4M800PRO
+		case PCI_DEVICE_ID_VIA_CN700:
+			iga->display_queue_expire_num = 128;
+			iga->fifo_high_threshold = 32;
+			iga->fifo_threshold = 80;
+			iga->fifo_max_depth = 96;
+			break;
+
+		// CX700
+		case PCI_DEVICE_ID_VIA_VT3157:
+			iga->display_queue_expire_num = 128;
+			iga->fifo_high_threshold = 32;
+			iga->fifo_threshold = 64;
+			iga->fifo_max_depth = 96;
+			break;
+
+		// K8M890
+		case PCI_DEVICE_ID_VIA_K8M890:
+			iga->display_queue_expire_num = 124;
+			iga->fifo_high_threshold = 296;
+			iga->fifo_threshold = 328;
+			iga->fifo_max_depth = 360;
+			break;
+
+		// P4M890
+		case PCI_DEVICE_ID_VIA_VT3343:
+			iga->display_queue_expire_num = 32;
+			iga->fifo_high_threshold = 64;
+			iga->fifo_threshold = 76;
+			iga->fifo_max_depth = 96;
+			break;
+
+		// P4M900
+		case PCI_DEVICE_ID_VIA_P4M900:
+			iga->fifo_high_threshold = iga->fifo_threshold = 76;
+			iga->display_queue_expire_num = 32;
+			iga->fifo_max_depth = 96;
+			break;
+
+		// VX800
+		case PCI_DEVICE_ID_VIA_VT1122:
+			iga->display_queue_expire_num = 128;
+			iga->fifo_high_threshold = 32; 
+			iga->fifo_threshold = 64;
+			iga->fifo_max_depth = 96;
+			break;
+
+		// VX855
+		case PCI_DEVICE_ID_VIA_VX875:
+			iga->fifo_high_threshold = iga->fifo_threshold = 320;
+			iga->display_queue_expire_num = 160;
+			iga->fifo_max_depth = 200;
+			break;
+
+		// VX900
+		case PCI_DEVICE_ID_VIA_VX900:
+			iga->fifo_high_threshold = iga->fifo_threshold = 160;
+			iga->display_queue_expire_num = 320;
+			iga->fifo_max_depth = 192;
+			break;
+
+		default:
+			break;	
+		}
+
 	} else {
 		drm_crtc_init(dev, crtc, &via_iga1_funcs);
 		drm_crtc_helper_add(crtc, &via_iga1_helper_funcs);
 		iga->iga1 = crtc->base.id;
+
+		switch (dev->pdev->device) {
+		// P4M800PRO
+		case PCI_DEVICE_ID_VIA_CN700:
+			iga->display_queue_expire_num = 0;
+			iga->fifo_high_threshold = 64;
+			iga->fifo_threshold = 80;
+			iga->fifo_max_depth = 96;
+			break;
+
+		// CX700
+		case PCI_DEVICE_ID_VIA_VT3157:
+			iga->fifo_high_threshold = iga->fifo_threshold = 128;
+			iga->display_queue_expire_num = 124;
+			iga->fifo_max_depth = 192;
+			break;
+
+		// K8M890
+		case PCI_DEVICE_ID_VIA_K8M890:
+			iga->display_queue_expire_num = 124;
+			iga->fifo_high_threshold = 296;
+			iga->fifo_threshold = 328;
+			iga->fifo_max_depth = 360;
+			break;
+
+		// P4M890
+		case PCI_DEVICE_ID_VIA_VT3343:
+			iga->display_queue_expire_num = 32;
+			iga->fifo_high_threshold = 64;
+			iga->fifo_threshold = 76;
+			iga->fifo_max_depth = 96;
+			break;
+
+		// P4M900
+		case PCI_DEVICE_ID_VIA_P4M900:
+			iga->fifo_high_threshold = iga->fifo_threshold = 76;
+			iga->display_queue_expire_num = 32;
+			iga->fifo_max_depth = 96;
+			break;
+
+		// VX800
+		case PCI_DEVICE_ID_VIA_VT1122:
+			iga->fifo_high_threshold = iga->fifo_threshold = 152;
+			iga->display_queue_expire_num = 64;
+			iga->fifo_max_depth = 192;
+			break;
+
+		// VX855
+		case PCI_DEVICE_ID_VIA_VX875:
+		// VX900
+		case PCI_DEVICE_ID_VIA_VX900:
+			iga->fifo_high_threshold = iga->fifo_threshold = 320;
+			iga->display_queue_expire_num = 160;
+			iga->fifo_max_depth = 400;
+			break;
+
+		default:
+			break;	
+		}
 	}
 	drm_mode_crtc_set_gamma_size(crtc, 256);
 }
