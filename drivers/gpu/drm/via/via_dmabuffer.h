@@ -35,12 +35,32 @@
 #define VIA_NUM_BLIT_ENGINES 2
 #define VIA_NUM_BLIT_SLOTS 8
 
-struct _drm_via_descriptor;
+#define VIA_OUT_RING_H1(nReg, nData) {				\
+	*((uint32_t *)(vb)) = ((nReg) >> 2) | HALCYON_HEADER1;	\
+	*((uint32_t *)(vb) + 1) = (nData);			\
+        vb = ((uint32_t *)vb) + 2;				\
+        dev_priv->dma_low += 8;					\
+}
+
+/* For H5/6 2D cmd load(Two value :cmd with address)***/
+#define VIA_OUT_RING_QW(w1, w2) do {		\
+        *vb++ = (w1);				\
+        *vb++ = (w2);				\
+	dev_priv->dma_low += 8;			\
+} while (0)
+
+struct via_h1_header {
+	uint32_t mem_addr;
+	uint32_t dev_addr;
+	uint32_t size;
+	uint32_t next;
+};
 
 typedef struct _drm_via_sg_info {
+	struct sg_table *table;
 	struct page **pages;
 	unsigned long num_pages;
-	struct _drm_via_descriptor **desc_pages;
+	struct via_h1_header **desc_pages;
 	int num_desc_pages;
 	int num_desc;
 	enum dma_data_direction direction;
@@ -134,7 +154,5 @@ typedef struct _drm_via_blitq {
 #define VIA_DMA_CSR_TD		(1<<3)	/* transfer done */
 #define VIA_DMA_CSR_DD		(1<<4)	/* descriptor done */
 #define VIA_DMA_DPR_EC          (1<<1)  /* end of chain */
-
-
 
 #endif

@@ -42,20 +42,7 @@
 #define CMDBUF_ALIGNMENT_SIZE   (0x100)
 #define CMDBUF_ALIGNMENT_MASK   (0x0ff)
 
-#define VIA_OUT_RING_H1(nReg, nData) {				\
-	*((uint32_t *)(vb)) = ((nReg) >> 2) | HALCYON_HEADER1;	\
-	*((uint32_t *)(vb) + 1) = (nData);			\
-	vb = ((uint32_t *)vb) + 2;				\
-	dev_priv->dma_low += 8;					\
-}
-
 #define via_flush_write_combine() DRM_MEMORYBARRIER()
-
-#define VIA_OUT_RING_QW(w1, w2)	do {		\
-	*vb++ = (w1);				\
-	*vb++ = (w2);				\
-	dev_priv->dma_low += 8;			\
-} while (0)
 
 static void via_cmdbuf_start(struct drm_via_private *dev_priv);
 static void via_cmdbuf_pause(struct drm_via_private *dev_priv);
