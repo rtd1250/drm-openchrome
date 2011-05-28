@@ -388,6 +388,20 @@ static struct drm_driver via_driver = {
 static int __devinit
 via_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 {
+	if (via_driver.driver_features & DRIVER_MODESET) {
+		struct apertures_struct *ap;
+		bool primary = false;
+
+		ap = alloc_apertures(1);
+		ap->ranges[0].base = pci_resource_start(pdev, 0);
+		ap->ranges[0].size = pci_resource_len(pdev, 0);
+
+		/* Need to make this more portable. */
+#ifdef CONFIG_X86
+		primary = pdev->resource[PCI_ROM_RESOURCE].flags & IORESOURCE_ROM_SHADOW;
+#endif
+		remove_conflicting_framebuffers(ap, "viadrmfb", primary);
+	}
 	return drm_get_pci_dev(pdev, ent, &via_driver);
 }
 
@@ -416,12 +430,6 @@ via_pci_resume(struct pci_dev *pdev)
 static struct pci_driver via_pci_driver = {
 	.name		= DRIVER_NAME,
 	.id_table	= via_pci_table,
-	.probe		= via_pci_probe,
-	.remove		= __devexit_p(via_pci_remove),
-#ifdef CONFIG_PM
-	.suspend	= via_pci_suspend,
-	.resume		= via_pci_resume,
-#endif
 };
 
 static int __init via_init(void)
@@ -429,9 +437,16 @@ static int __init via_init(void)
 	via_driver.num_ioctls = via_max_ioctl;
 
 	if (via_modeset) {
+		via_pci_driver.probe	= via_pci_probe;
+		via_pci_driver.remove	= __devexit_p(via_pci_remove);
+#ifdef CONFIG_PM
+		via_pci_driver.suspend	= via_pci_suspend;
+		via_pci_driver.resume	= via_pci_resume;
+#endif
+
 		via_driver.driver_features |= DRIVER_MODESET;
-		via_driver.minor = 0; 
 		via_driver.major = 3;
+		via_driver.minor = 0; 
 	}
 	return drm_pci_init(&via_driver, &via_pci_driver);
 }
