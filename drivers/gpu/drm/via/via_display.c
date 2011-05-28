@@ -116,14 +116,12 @@ via_iga1_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green, u16 *blue,
 
 		/* Fill in IGA1's LUT. */
 		for (i = start; i < end; i++) {
-			u16 r = *red++, g = *green++, b = *blue++;
-
 			/* Bit mask of palette */
 			vga_w(VGABASE, VGA_PEL_MSK, 0xff);
 			vga_w(VGABASE, VGA_PEL_IW, i);
-			vga_w(VGABASE, VGA_PEL_D, r >> 8);
-			vga_w(VGABASE, VGA_PEL_D, g >> 8);
-			vga_w(VGABASE, VGA_PEL_D, b >> 8);
+			vga_w(VGABASE, VGA_PEL_D, red[i] >> 8);
+			vga_w(VGABASE, VGA_PEL_D, green[i] >> 8);
+			vga_w(VGABASE, VGA_PEL_D, blue[i] >> 8);
 		}
 		/* enable LUT */
 		vga_wseq(VGABASE, 0x1b, BIT(0));
@@ -137,16 +135,15 @@ via_iga1_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green, u16 *blue,
 		/* Enable Gamma */
 		vga_wcrt(VGABASE, 0x80, BIT(7));
 		vga_wseq(VGABASE, 0x00, BIT(0));
+
 		/* Fill in IGA1's gamma. */
 		for (i = start; i < end; i++) {
-			u16 r = *red++, g = *green++, b = *blue++;
-
 			/* bit mask of palette */
 			vga_w(VGABASE, VGA_PEL_MSK, 0xff);
 			vga_w(VGABASE, VGA_PEL_IW, i);
-			vga_w(VGABASE, VGA_PEL_D, r >> 8);
-			vga_w(VGABASE, VGA_PEL_D, g >> 8);
-			vga_w(VGABASE, VGA_PEL_D, b >> 8);
+			vga_w(VGABASE, VGA_PEL_D, red[i] >> 8);
+			vga_w(VGABASE, VGA_PEL_D, green[i] >> 8);
+			vga_w(VGABASE, VGA_PEL_D, blue[i] >> 8);
 		}
 		vga_wseq(VGABASE, 0x1a, val);
 	}
