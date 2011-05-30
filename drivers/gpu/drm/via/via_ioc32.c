@@ -118,7 +118,7 @@ static int via_mem_alloc(struct drm_device *dev, void *data,
 	struct drm_via_private *dev_priv = dev->dev_private;
 	int type = TTM_PL_FLAG_VRAM, start = dev_priv->vram_offset, ret = -EINVAL;
 	struct ttm_buffer_object *bo = NULL;
-	struct drm_gem_object *gem;
+	struct drm_gem_object *obj;
 	drm_via_mem_t *mem = data;
 	u32 handle = 0;
 
@@ -132,27 +132,35 @@ static int via_mem_alloc(struct drm_device *dev, void *data,
 		type = TTM_PL_FLAG_TT;
 	}
 
-	gem = via_gem_create(dev, &dev_priv->bdev, type, PAGE_SIZE, start,
-				mem->size);
-	if (!gem)
+	/*
+         * VIA hardware access is 128 bits boundries. Modify size 
+         * to be in unites of 128 bit access. For the TTM/GEM layer 
+         * the size needs to rounded to the nearest page. The user
+         * might ask for a offset that is not aligned. In that case
+         * we find the start of the page for this offset and allocate
+         * from there.
+         */
+	obj = via_gem_create(dev, &dev_priv->bdev, type, VIA_MM_ALIGN_SIZE,
+				PAGE_SIZE, start, mem->size);
+	if (!obj)
 		return ret;
 
-	bo = gem->driver_private;
+	bo = obj->driver_private;
 	if (bo) {
-		ret = drm_gem_handle_create(file_priv, gem, &handle);
-		drm_gem_object_unreference_unlocked(gem);
+		ret = drm_gem_handle_create(file_priv, obj, &handle);
+		drm_gem_object_unreference_unlocked(obj);
 	}
 
 	if (!ret) {
-		mem->size = gem->size;
+		mem->size = obj->size;
 		mem->offset = bo->mem.start << PAGE_SHIFT;
 		mem->index = (unsigned long) handle;
 		ret = 0;
 	} else {
 		mem->offset = 0;
 		mem->size = 0;
-		if (gem)
-			kfree(gem);
+		if (obj)
+			kfree(obj);
 		DRM_DEBUG("Video memory allocation failed\n");
 	}
 	mem->index = (unsigned long) handle;
@@ -202,8 +210,8 @@ via_gem_alloc(struct drm_device *dev, void *data,
 	if (!domain)
 		domain = args->write_domains;
 
-	gem = via_gem_create(dev, &dev_priv->bdev, domain, PAGE_SIZE,
-				0, args->size);
+	gem = via_gem_create(dev, &dev_priv->bdev, domain, 16, 
+				PAGE_SIZE, 0, args->size);
 	if (!gem)
 		return ret;
  

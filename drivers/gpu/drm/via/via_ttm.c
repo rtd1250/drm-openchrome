@@ -302,19 +302,23 @@ static void via_ttm_io_mem_free(struct ttm_bo_device *bdev, struct ttm_mem_reg *
 {
 }
 
+static int via_verify_access(struct ttm_buffer_object *bo, struct file *filp)
+{
+	return 0;
+}
+
 static struct ttm_bo_driver via_bo_driver = {
 	.create_ttm_backend_entry 	= via_create_ttm_backend_entry,
 	.invalidate_caches 		= via_invalidate_caches,
 	.init_mem_type			= via_init_mem_type,
 	.evict_flags			= via_evict_flags,
 	.move				= via_bo_move,
-	/*.verify_access		= via_verify_access,
-	.sync_obj_signaled		= via_fence_signalled,
+	.verify_access			= via_verify_access,
+	/*.sync_obj_signaled		= via_fence_signalled,
 	.sync_obj_wait			= via_fence_wait,
 	.sync_obj_flush			= via_fence_flush,
 	.sync_obj_unref			= via_fence_unref,
 	.sync_obj_ref			= via_fence_ref,*/
-	/*.fault_reserve_notify 	= &via_ttm_fault_reserve_notify,*/
 	.io_mem_reserve			= &via_ttm_io_mem_reserve,
 	.io_mem_free			= &via_ttm_io_mem_free,
 };

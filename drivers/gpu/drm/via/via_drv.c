@@ -169,7 +169,7 @@ static int via_dumb_create(struct drm_file *filp, struct drm_device *dev,
 	args->pitch = ((args->width * args->bpp >> 3) + 7) & ~7;
 	args->size = args->pitch * args->height;
 	obj = via_gem_create(dev, &dev_priv->bdev, TTM_PL_FLAG_VRAM,
-				PAGE_SIZE, 0, args->size);
+				16, PAGE_SIZE, 0, args->size);
 	if (!obj || !obj->driver_private)
 		goto out_err;
 
@@ -341,6 +341,12 @@ static void via_reclaim_buffers_locked(struct drm_device *dev,
 	return;
 }
 
+static struct vm_operations_struct ttm_gem_vm_ops = {
+	.fault = ttm_gem_fault,
+	.open = ttm_gem_vm_open,
+	.close = ttm_gem_vm_close,
+};
+
 static struct drm_driver via_driver = {
 	.driver_features =
 		DRIVER_USE_AGP | DRIVER_USE_MTRR | DRIVER_HAVE_IRQ |
@@ -360,8 +366,9 @@ static struct drm_driver via_driver = {
 	.reclaim_buffers_locked = NULL,
 	.reclaim_buffers_idlelocked = via_reclaim_buffers_locked,
 	.lastclose = via_lastclose,
-	.gem_init_object = via_gem_init_object,
-	.gem_free_object = via_gem_free_object,
+	.gem_init_object = ttm_gem_init_object,
+	.gem_free_object = ttm_gem_free_object,
+	.gem_vm_ops = &ttm_gem_vm_ops,
 	.dumb_create = via_dumb_create,
 	.dumb_map_offset = via_dumb_mmap,
 	.dumb_destroy = gem_dumb_destroy,

@@ -24,12 +24,12 @@
 #include "drmP.h"
 #include "via_drv.h"
 
-int via_gem_init_object(struct drm_gem_object *obj)
+int ttm_gem_init_object(struct drm_gem_object *obj)
 {
 	return 0;
 }
 
-void via_gem_free_object(struct drm_gem_object *obj)
+void ttm_gem_free_object(struct drm_gem_object *obj)
 {
 	struct ttm_buffer_object *bo = obj->driver_private;
 
@@ -41,12 +41,71 @@ void via_gem_free_object(struct drm_gem_object *obj)
 	kfree(obj);
 }
 
+void ttm_gem_vm_open(struct vm_area_struct *vma)
+{
+	struct drm_gem_object *obj = vma->vm_private_data;	
+	struct ttm_buffer_object *bo = obj->driver_private;
+
+	if (bo)
+		(void)ttm_bo_reference(bo);
+	drm_gem_vm_open(vma);
+}
+
+void ttm_gem_vm_close(struct vm_area_struct *vma)
+{
+	struct drm_gem_object *obj = vma->vm_private_data;	
+	struct ttm_buffer_object *bo = obj->driver_private;
+
+	if (bo)
+		ttm_bo_unref(&bo);
+	drm_gem_vm_close(vma);
+	vma->vm_private_data = NULL;
+}
+
+static const struct vm_operations_struct *ttm_vm_ops = NULL;
+
+int ttm_gem_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
+{
+	struct drm_gem_object *obj = vma->vm_private_data;	
+	struct ttm_bo_object *bo = obj->driver_private;
+	int ret;
+
+	vma->vm_private_data = bo;
+	ret =  ttm_vm_ops->fault(vma, vmf);
+	vma->vm_private_data = obj;
+	return ret;
+}
+
+int via_mmap(struct file *filp, struct vm_area_struct *vma)
+{
+	struct drm_via_private *dev_priv;
+	struct drm_file *file_priv;
+	int ret = -EINVAL;
+
+	if (unlikely(vma->vm_pgoff < DRM_FILE_PAGE_OFFSET))
+		return drm_mmap(filp, vma);
+
+	file_priv = filp->private_data;
+	dev_priv = file_priv->minor->dev->dev_private;
+	if (!dev_priv)
+		return ret;
+
+	ret = ttm_bo_mmap(filp, vma, &dev_priv->bdev);
+	if (unlikely(ret != 0))
+		return ret;
+
+	if (unlikely(ttm_vm_ops == NULL))
+		ttm_vm_ops = vma->vm_ops;
+	return drm_gem_mmap(filp, vma);
+}
+
 struct drm_gem_object *
 via_gem_create(struct drm_device *dev, struct ttm_bo_device *bdev, int types,
-		int page_align, unsigned long start, unsigned long size)
+		int byte_align, int page_align, unsigned long start,
+		unsigned long size)
 {
 	struct ttm_buffer_object *bo = NULL;
-	struct drm_gem_object *gem;
+	struct drm_gem_object *obj;
 	int ret;
 
 	/*
@@ -60,18 +119,18 @@ via_gem_create(struct drm_device *dev, struct ttm_bo_device *bdev, int types,
 	size = roundup(size, VIA_MM_ALIGN_SIZE);
 	size = ALIGN(size, PAGE_SIZE);
 
-	gem = drm_gem_object_alloc(dev, size);
-	if (!gem)
+	obj = drm_gem_object_alloc(dev, size);
+	if (!obj)
 		return NULL;
 
 	ret = ttm_bo_allocate(bdev, size, ttm_bo_type_device, types,
-				VIA_MM_ALIGN_SIZE, PAGE_SIZE, start,
-				false, via_ttm_bo_destroy, gem->filp, &bo);
+				byte_align, page_align, start,
+				false, via_ttm_bo_destroy, obj->filp, &bo);
 	if (ret) {
 		DRM_ERROR("Failed to create buffer object\n");
-		kfree(gem);
+		kfree(obj);
 		return NULL;
 	}
-	gem->driver_private = bo;
-	return gem;
+	obj->driver_private = bo;
+	return obj;
 }

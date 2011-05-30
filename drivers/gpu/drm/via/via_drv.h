@@ -56,6 +56,8 @@
 #define VIA_FIRE_BUF_SIZE  1024
 #define VIA_NUM_IRQS 4
 
+#define DRM_FILE_PAGE_OFFSET (0x100000000ULL >> PAGE_SHIFT)
+
 typedef uint32_t maskarray_t[5];
 
 typedef struct drm_via_irq {
@@ -201,11 +203,15 @@ extern int ttm_bo_allocate(struct ttm_bo_device *bdev, unsigned long size,
 				struct file *persistant_swap_storage,
 				struct ttm_buffer_object **p_bo);
 
-extern int via_gem_init_object(struct drm_gem_object *obj);
-extern void via_gem_free_object(struct drm_gem_object *obj);
+extern int ttm_gem_init_object(struct drm_gem_object *obj);
+extern void ttm_gem_free_object(struct drm_gem_object *obj);
+extern void ttm_gem_vm_open(struct vm_area_struct *vma);
+extern void ttm_gem_vm_close(struct vm_area_struct *vma);
+extern int ttm_gem_fault(struct vm_area_struct *vma, struct vm_fault *vmf);
 extern struct drm_gem_object *via_gem_create(struct drm_device *dev,
 						struct ttm_bo_device *bdev,
-						int type, int alignment,
+						int type, int byte_align,
+						int page_align,
 						unsigned long start,
 						unsigned long size);
 
