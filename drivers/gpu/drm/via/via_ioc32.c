@@ -140,8 +140,9 @@ static int via_mem_alloc(struct drm_device *dev, void *data,
          * we find the start of the page for this offset and allocate
          * from there.
          */
-	obj = via_gem_create(dev, &dev_priv->bdev, type, VIA_MM_ALIGN_SIZE,
-				PAGE_SIZE, start, mem->size);
+	obj = ttm_gem_create(dev, &dev_priv->bdev, type, false, 
+				VIA_MM_ALIGN_SIZE, PAGE_SIZE, 
+				start, mem->size, via_ttm_bo_destroy);
 	if (!obj)
 		return ret;
 
@@ -210,8 +211,9 @@ via_gem_alloc(struct drm_device *dev, void *data,
 	if (!domain)
 		domain = args->write_domains;
 
-	gem = via_gem_create(dev, &dev_priv->bdev, domain, 16, 
-				PAGE_SIZE, 0, args->size);
+	gem = ttm_gem_create(dev, &dev_priv->bdev, domain, false, 
+				VIA_MM_ALIGN_SIZE, PAGE_SIZE, 0,
+				args->size, via_ttm_bo_destroy);
 	if (!gem)
 		return ret;
  

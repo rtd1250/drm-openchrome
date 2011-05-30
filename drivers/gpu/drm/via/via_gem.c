@@ -76,7 +76,7 @@ int ttm_gem_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 	return ret;
 }
 
-int via_mmap(struct file *filp, struct vm_area_struct *vma)
+int ttm_gem_mmap(struct file *filp, struct vm_area_struct *vma)
 {
 	struct drm_via_private *dev_priv;
 	struct drm_file *file_priv;
@@ -100,32 +100,25 @@ int via_mmap(struct file *filp, struct vm_area_struct *vma)
 }
 
 struct drm_gem_object *
-via_gem_create(struct drm_device *dev, struct ttm_bo_device *bdev, int types,
-		int byte_align, int page_align, unsigned long start,
-		unsigned long size)
+ttm_gem_create(struct drm_device *dev, struct ttm_bo_device *bdev, int types,
+		bool interruptible, int byte_align, int page_align,
+		unsigned long start, unsigned long size,
+                void (*destroy) (struct ttm_buffer_object *))
 {
 	struct ttm_buffer_object *bo = NULL;
 	struct drm_gem_object *obj;
 	int ret;
 
-	/*
-	 * VIA hardware access is 128 bits boundries. Modify size 
-	 * to be in unites of 128 bit access. For the TTM/GEM layer 
-	 * the size needs to rounded to the nearest page. The user
-	 * might ask for a offset that is not aligned. In that case
-	 * we find the start of the page for this offset and allocate
-	 * from there.
-	 */
-	size = roundup(size, VIA_MM_ALIGN_SIZE);
-	size = ALIGN(size, PAGE_SIZE);
+	size = roundup(size, byte_align);
+	size = ALIGN(size, page_align);
 
 	obj = drm_gem_object_alloc(dev, size);
 	if (!obj)
 		return NULL;
 
 	ret = ttm_bo_allocate(bdev, size, ttm_bo_type_device, types,
-				byte_align, page_align, start,
-				false, via_ttm_bo_destroy, obj->filp, &bo);
+				byte_align, page_align, start, interruptible,
+				destroy, obj->filp, &bo);
 	if (ret) {
 		DRM_ERROR("Failed to create buffer object\n");
 		kfree(obj);

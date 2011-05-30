@@ -168,8 +168,9 @@ static int via_dumb_create(struct drm_file *filp, struct drm_device *dev,
 
 	args->pitch = ((args->width * args->bpp >> 3) + 7) & ~7;
 	args->size = args->pitch * args->height;
-	obj = via_gem_create(dev, &dev_priv->bdev, TTM_PL_FLAG_VRAM,
-				16, PAGE_SIZE, 0, args->size);
+	obj = ttm_gem_create(dev, &dev_priv->bdev, TTM_PL_FLAG_VRAM,
+				false, VIA_MM_ALIGN_SIZE, PAGE_SIZE,
+				0, args->size, via_ttm_bo_destroy);
 	if (!obj || !obj->driver_private)
 		goto out_err;
 
@@ -378,7 +379,7 @@ static struct drm_driver via_driver = {
 		.open = drm_open,
 		.release = drm_release,
 		.unlocked_ioctl = drm_ioctl,
-		.mmap = drm_gem_mmap,
+		.mmap = ttm_gem_mmap,
 		.poll = drm_poll,
 		.fasync = drm_fasync,
 		.llseek = noop_llseek,
