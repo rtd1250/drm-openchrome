@@ -30,9 +30,9 @@
 #define DRIVER_DESC		"VIA Unichrome / Pro"
 #define DRIVER_DATE		"20070202"
 
-#define DRIVER_MAJOR		2
-#define DRIVER_MINOR		11
-#define DRIVER_PATCHLEVEL	1
+#define DRIVER_MAJOR		3
+#define DRIVER_MINOR		0
+#define DRIVER_PATCHLEVEL	0
 
 #include "ttm/ttm_bo_api.h"
 #include "ttm/ttm_bo_driver.h"
