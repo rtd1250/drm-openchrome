@@ -191,16 +191,24 @@ static void
 via_iga1_dpms(struct drm_crtc *crtc, int mode)
 {
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
+	int crtc_id = 1;
+
+	if (dev_priv->iga[0].iga1 != crtc->base.id)
+		crtc_id = 0;
 
 	/* Setup IGA path */
 	switch (mode) {
+
 	case DRM_MODE_DPMS_SUSPEND:
 	case DRM_MODE_DPMS_STANDBY:
 	case DRM_MODE_DPMS_OFF:
 		vga_wseq(VGABASE, 0x01, BIT(5));
+		drm_vblank_pre_modeset(crtc->dev, crtc_id);
 		break;
+
 	case DRM_MODE_DPMS_ON:
 		vga_wseq(VGABASE, 0x00, BIT(5));
+		drm_vblank_post_modeset(crtc->dev, crtc_id);
 		break;
 	}
 }
