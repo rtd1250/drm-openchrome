@@ -28,7 +28,7 @@
 
 #define DRIVER_NAME		"via"
 #define DRIVER_DESC		"VIA Unichrome / Pro"
-#define DRIVER_DATE		"20070202"
+#define DRIVER_DATE		"20110221"
 
 #define DRIVER_MAJOR		3
 #define DRIVER_MINOR		0
