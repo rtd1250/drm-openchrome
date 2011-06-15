@@ -338,13 +338,14 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 	/* and do a HW reset */
 	vga_wcrt(VGABASE, 0x17, BIT(7));	
 
-	return 0;
+	return crtc_funcs->mode_set_base(crtc, crtc->x, crtc->y, old_fb);
 }
 
 static int
 via_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 			struct drm_framebuffer *old_fb)
 {
+	enum mode_set_atomic state = old_fb ? LEAVE_ATOMIC_MODE_SET : ENTER_ATOMIC_MODE_SET;
 	struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
 	struct drm_framebuffer *new_fb = crtc->fb;
 	struct ttm_placement *placement;
@@ -360,7 +361,7 @@ via_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 	}
 
 	obj = new_fb->helper_private;
-	placement = obj->filp->private_data;	
+	placement = obj->filp->private_data;
 	bo = obj->driver_private;
 
 	ptr = (uint32_t *) placement->placement;
@@ -368,8 +369,7 @@ via_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 		*ptr++ |= TTM_PL_FLAG_NO_EVICT;
 	ret = ttm_bo_validate(bo, placement, false, false, false);
 	if (likely(ret == 0)) {
-		ret = crtc_funcs->mode_set_base_atomic(crtc, new_fb, x, y,
-							LEAVE_ATOMIC_MODE_SET);
+		ret = crtc_funcs->mode_set_base_atomic(crtc, new_fb, x, y, state);
 	}
 
 	/* Free the framebuffer */
@@ -389,9 +389,9 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	struct drm_gem_object *obj = fb->helper_private;
 	struct ttm_buffer_object *bo = obj->driver_private;
-	u8 value;
+	u8 value, orig;
 
-	/*if (state == ENTER_ATOMIC_MODE_SET)
+	/*if ((state == ENTER_ATOMIC_MODE_SET) && (fb != crtc->fb))
 		disable_accel(dev);
 	else
 		restore_accel(dev);*/
@@ -402,41 +402,48 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	vga_wcrt(VGABASE, 0x0D, addr & 0xFF);
 	vga_wcrt(VGABASE, 0x0C, (addr >> 8) & 0xFF);
 	vga_wcrt(VGABASE, 0x34, (addr >> 16) & 0xFF);
-	vga_wcrt(VGABASE, 0x48, (addr >> 24) & 0x1F);
+	orig = (vga_rcrt(VGABASE, 0x48) & ~0x1F);
+	vga_wcrt(VGABASE, 0x48, ((addr >> 24) & 0x1F) | orig);
 
-	/* Fetch register handling */
+	/* Fetch register handling *
 	pitch = ((fb->pitch * (fb->bits_per_pixel >> 3)) >> 4) + 4;
 	vga_wseq(VGABASE, 0x1C, (pitch & 7));
-	vga_wseq(VGABASE, 0x1D, ((pitch >> 3) & 0x03));
+	vga_wseq(VGABASE, 0x1D, ((pitch >> 3) & 0x03));*/
 
-	/* spec does not say that first adapter skips 3 bits but old
-	 * code did it and seems to be reasonable in analogy to 2nd adapter
-	 */
-	pitch = fb->pitch >> 3;
-	vga_wcrt(VGABASE, 0x13, pitch & 0xFF);
-	vga_wcrt(VGABASE, 0x35, (pitch >> (8 - 5)) & 0xE0);
-
-	switch (fb->depth) {
-	case 8:
-		value = 0x00;
-		break;
-	case 15:
-		value = 0x04;
-		break;
-	case 16:
-		value = 0x14;
-		break;
-	case 24:
-		value = 0x0C;
-		break;
-	case 30:
-		value = 0x08;
-		break;
-	default:
-		DRM_ERROR("Unsupported depth: %d\n", fb->depth);
-		return -EINVAL;
+	if ((state == ENTER_ATOMIC_MODE_SET) || crtc->fb->pitch != fb->pitch) {
+		/* Spec does not say that first adapter skips 3 bits but old
+		 * code did it and seems to be reasonable in analogy to
+		 * second adapter */
+		pitch = fb->pitch >> 3;
+		vga_wcrt(VGABASE, 0x13, pitch & 0xFF);
+		orig = (vga_rcrt(VGABASE, 0x35) & ~0xE0);
+		vga_wcrt(VGABASE, 0x35, ((pitch >> 3) & 0xE0) | orig);
 	}
-	vga_wseq(VGABASE, 0x15, (value & 0x1C));
+
+	if ((state == ENTER_ATOMIC_MODE_SET) || crtc->fb->depth != fb->depth) {
+		switch (fb->depth) {
+		case 8:
+			value = 0x00;
+			break;
+		case 15:
+			value = 0x04;
+			break;
+		case 16:
+			value = 0x14;
+			break;
+		case 24:
+			value = 0x0C;
+			break;
+		case 32:
+			value = 0x08;
+			break;
+		default:
+			DRM_ERROR("Unsupported depth: %d\n", fb->depth);
+			return -EINVAL;
+		}
+		orig = (vga_rseq(VGABASE, 0x15) & ~0x1C);
+		vga_wseq(VGABASE, 0x15, (value & 0x1C) | orig);
+	}
 	return 0;
 }
 
@@ -448,40 +455,49 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	struct drm_gem_object *obj = fb->helper_private;
 	struct ttm_buffer_object *bo = obj->driver_private;
-	u8 value;
+	u8 value, orig;
 
 	/* Set the framebuffer offset */
 	addr += bo->offset;
 
-	/* secondary display supports only quadword aligned memory */
+	/* Secondary display supports only quadword aligned memory */
 	vga_wcrt(VGABASE, 0x62, (addr >> 2) & 0xfe);
 	vga_wcrt(VGABASE, 0x63, (addr >> 10) & 0xff);
 	vga_wcrt(VGABASE, 0x64, (addr >> 18) & 0xff);
-	vga_wcrt(VGABASE, 0xA3, (addr >> 26) & 0x07);
+	orig = (vga_rcrt(VGABASE, 0xA3) & ~0x07);
+	vga_wcrt(VGABASE, 0xA3, ((addr >> 26) & 0x07) | orig);
 
-	pitch = fb->pitch >> 3;
-	vga_wcrt(VGABASE, 0x66, pitch & 0xff);
-	vga_wcrt(VGABASE, 0x67, (pitch >> 8) & 0x03);
-	vga_wcrt(VGABASE, 0x71, (pitch >> (10 - 7)) & 0x80);
-
-	switch (fb->depth) {
-	case 8:
-		value = 0x00;
-		break;
-	case 16:
-		value = 0x40;
-		break;
-	case 24:
-		value = 0xC0;
-		break;
-	case 30:
-		value = 0x80;
-		break;
-	default:
-		DRM_ERROR("Unsupported depth: %d\n", fb->depth);
-		return -EINVAL;
+	if ((state == ENTER_ATOMIC_MODE_SET) || crtc->fb->pitch != fb->pitch) {
+		/* Set secondary pitch */	
+		pitch = fb->pitch >> 3;
+		vga_wcrt(VGABASE, 0x66, pitch & 0xFF);
+		orig = (vga_rcrt(VGABASE, 0x67) & ~0x03);
+		vga_wcrt(VGABASE, 0x67, ((pitch >> 8) & 0x03) | orig);
+		orig = (vga_rcrt(VGABASE, 0x71) & ~0x80);
+		vga_wcrt(VGABASE, 0x71, ((pitch >> 3) & 0x80) | orig);
 	}
-	vga_wseq(VGABASE, 0x67, (value & 0xC0));
+
+	if ((state == ENTER_ATOMIC_MODE_SET) || crtc->fb->depth != fb->depth) {
+		switch (fb->depth) {
+		case 8:
+			value = 0x00;
+			break;
+		case 16:
+			value = 0x40;
+			break;
+		case 24:
+			value = 0xC0;
+			break;
+		case 32:
+			value = 0x80;
+			break;
+		default:
+			DRM_ERROR("Unsupported depth: %d\n", fb->depth);
+			return -EINVAL;
+		}
+		orig = (vga_rseq(VGABASE, 0x67) & ~0xC0);
+		vga_wseq(VGABASE, 0x67, (value & 0xC0) | orig);
+	}
 	return 0;
 }
 
