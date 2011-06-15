@@ -42,39 +42,38 @@ static const struct drm_encoder_funcs via_analog_enc_funcs = {
 static void
 via_analog_dpms(struct drm_encoder *encoder, int mode)
 {
-	u8 dacmode, mask = BIT(4) + BIT(5), path = BIT(6);
+	struct drm_via_private *dev_priv = encoder->dev->dev_private;
+	u8 mask = BIT(5) + BIT(4), val = 0, orig;
 	struct drm_crtc *crtc = encoder->crtc;
-	struct drm_via_private *dev_priv;
 
 	/* Not attached to any crtc */
 	if (!crtc)
 		return;
 
-	dev_priv = encoder->dev->dev_private;
-
 	/* Select the proper IGA */
-	if (dev_priv->iga[0].iga1 == crtc->base.id)
-		path = 0;
-	vga_wseq(VGABASE, 0x16, path);
+	orig = (vga_rseq(VGABASE, 0x16) & ~0x40);
+	if (dev_priv->iga[0].iga1 != crtc->base.id)
+		val = BIT(6);
+	vga_wseq(VGABASE, 0x16, ((val & 0x40) | orig));
 
-	dacmode = vga_rcrt(VGABASE, 0x36);
+	orig = (vga_rcrt(VGABASE, 0x36) & ~0x30);
 	switch (mode) {
 	case DRM_MODE_DPMS_SUSPEND:
-		dacmode |= BIT(5);	// VSync off  
+		val |= BIT(5);		// VSync off
 		break;
 	case DRM_MODE_DPMS_STANDBY:
-		dacmode |= BIT(4);	// HSync off	
+		val |= BIT(4);		// HSync off
 		break;
 	case DRM_MODE_DPMS_OFF:
-		dacmode |= mask;	// HSync and VSync off
+		val |= mask;		// HSync and VSync off
 		break;
 	case DRM_MODE_DPMS_ON:
 	default:
-		dacmode &= ~mask;
+		val = 0;
 		break;
 	}
 
-	vga_wcrt(VGABASE, 0x36, (dacmode & mask));
+	vga_wcrt(VGABASE, 0x36, ((val & mask) | orig));
 }
 
 /* Pass our mode to the connectors and the CRTC to give them a chance to
@@ -93,13 +92,30 @@ via_analog_mode_fixup(struct drm_encoder *encoder,
 static void
 via_analog_prepare(struct drm_encoder *encoder)
 {
-	via_analog_dpms(encoder, DRM_MODE_DPMS_OFF);
+	struct drm_encoder_helper_funcs *encoder_funcs = encoder->helper_private;
+ 
+	encoder_funcs->dpms(encoder, DRM_MODE_DPMS_OFF);
 }
 
 static void
 via_analog_commit(struct drm_encoder *encoder)
 {
-	via_analog_dpms(encoder, DRM_MODE_DPMS_ON);
+	struct drm_encoder_helper_funcs *encoder_funcs = encoder->helper_private;
+	struct drm_via_private *dev_priv = encoder->dev->dev_private;
+	struct drm_crtc *crtc = encoder->crtc;
+	u8 val, orig;
+
+	/* Not attached to any crtc */
+	if (!crtc)
+		return;
+
+	/* Select the proper IGA */
+	orig = (vga_rseq(VGABASE, 0x16) & ~0x40);
+	if (dev_priv->iga[0].iga1 != crtc->base.id)
+		val = BIT(6);
+	vga_wseq(VGABASE, 0x16, ((val & BIT(6)) | orig));
+
+	encoder_funcs->dpms(encoder, DRM_MODE_DPMS_ON);
 }
 
 static void
@@ -107,6 +123,16 @@ via_analog_mode_set(struct drm_encoder *encoder,
 		       struct drm_display_mode *mode,
 		       struct drm_display_mode *adjusted_mode)
 {
+	struct drm_via_private *dev_priv = encoder->dev->dev_private;
+	u8 polarity = 0, orig;
+
+	if (adjusted_mode->flags & DRM_MODE_FLAG_NHSYNC)
+		polarity |= BIT(6);
+	if (adjusted_mode->flags & DRM_MODE_FLAG_NVSYNC)
+		polarity |= BIT(7);
+
+	orig = (vga_r(VGABASE, VGA_MIS_R) & ~0xC0);
+	vga_w(VGABASE, VGA_MIS_W, ((polarity & 0xC0) | orig));
 }
 
 static const struct drm_encoder_helper_funcs via_analog_enc_helper_funcs = {
