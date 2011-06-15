@@ -348,7 +348,7 @@ p4m800_mem_type(struct drm_via_private *dev_priv, struct pci_bus *bus,
 static int
 km8xx_mem_type(struct drm_via_private *dev_priv)
 {
-	struct pci_dev *dram, *misc;
+	struct pci_dev *dram, *misc = NULL;
 	int ret = -ENXIO;
 	u8 type, tmp;
 
@@ -620,10 +620,10 @@ int via_detect_vram(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
 	struct pci_dev *bridge = NULL, *fn3 = NULL;
-	u8 type = VIA_MEM_NONE, size;
 	int vram_size = 0, ret = 0;
 	char *name = "Unknown";
 	struct pci_bus *bus;
+	u8 size;
 
 	bus = pci_find_bus(0, 0);
 	if (bus == NULL) {
@@ -674,7 +674,7 @@ int via_detect_vram(struct drm_device *dev)
 
 	/* P4M800 */
 	case PCI_DEVICE_ID_VIA_3296_0:
-		type = p4m800_mem_type(dev_priv, bus, fn3);		
+		ret = p4m800_mem_type(dev_priv, bus, fn3);		
 
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
 		if (ret)
