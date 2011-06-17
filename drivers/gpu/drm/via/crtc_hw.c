@@ -46,11 +46,11 @@ regs_init(void __iomem *regs)
 	for (i = 0; i < 0x10; i++)
 		vga_wattr(regs, i, i);
 
+	vga_r(regs, VGA_IS1_RC);
 	vga_wattr(regs, 0x10, 0x41);
 	vga_wattr(regs, 0x11, 0xff);
 	vga_wattr(regs, 0x12, 0x0f);
 	vga_wattr(regs, 0x13, 0x00);
-	vga_wattr(regs, 0x14, 0x00);
 }
 
 void
