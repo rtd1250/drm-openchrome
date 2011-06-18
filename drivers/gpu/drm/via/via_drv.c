@@ -221,10 +221,10 @@ static int via_driver_unload(struct drm_device *dev)
 	if (ret)
 		return ret;
 
-	drm_vblank_cleanup(dev);
-
 	if (dev->driver->driver_features & DRIVER_MODESET)
 		via_modeset_fini(dev);
+
+	drm_vblank_cleanup(dev);
 
 	drm_irq_uninstall(dev);
 
@@ -293,13 +293,12 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 	if (ret)
 		goto out_err;
 
-	if (dev->driver->driver_features & DRIVER_MODESET) {
-		ret = via_modeset_init(dev);
-		if (ret)
-			goto out_err;
-	}
-
 	ret = drm_vblank_init(dev, 2);
+	if (ret)
+		goto out_err;
+
+	if (dev->driver->driver_features & DRIVER_MODESET)
+		ret = via_modeset_init(dev);
 out_err:
 	if (ret)
 		via_driver_unload(dev);

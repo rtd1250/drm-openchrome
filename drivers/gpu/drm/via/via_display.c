@@ -26,7 +26,6 @@
 #include "drm_mode.h"
 #include "drm_crtc_helper.h"
 
-#include "via_pll.h"
 #include "via_drv.h"
 
 static int
@@ -188,27 +187,50 @@ static const struct drm_crtc_funcs via_iga2_funcs = {
 };
 
 static void
+enable_second_display_channel(struct drm_via_private *dev_priv)
+{
+	u8 orig = vga_rcrt(VGABASE, 0x6A) & ~BIT(6);
+
+	vga_wcrt(VGABASE, 0x6A, orig);
+	vga_wcrt(VGABASE, 0x6A, (orig | BIT(7)));
+	orig |= (BIT(7) | BIT(6));
+	vga_wcrt(VGABASE, 0x6A, orig);
+	orig = ~0x3F;
+	vga_wcrt(VGABASE, 0x6A, orig);
+}
+
+static void
+disable_second_display_channel(struct drm_via_private *dev_priv)
+{
+	u8 orig = vga_rcrt(VGABASE, 0x6A) & ~BIT(6);
+
+	vga_wcrt(VGABASE, 0x6A, orig);
+	orig &= ~BIT(7);
+	vga_wcrt(VGABASE, 0x6A, orig);
+	vga_wcrt(VGABASE, 0x6A, (orig | BIT(6)));
+}
+
+static void
 via_iga1_dpms(struct drm_crtc *crtc, int mode)
 {
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
-	int crtc_id = 1;
+	u8 orig = (vga_rseq(VGABASE, 0x01) & ~BIT(5));
 
-	if (dev_priv->iga[0].iga1 != crtc->base.id)
-		crtc_id = 0;
-
-	/* Setup IGA path */
 	switch (mode) {
-
 	case DRM_MODE_DPMS_SUSPEND:
 	case DRM_MODE_DPMS_STANDBY:
 	case DRM_MODE_DPMS_OFF:
-		vga_wseq(VGABASE, 0x01, BIT(5));
-		drm_vblank_pre_modeset(crtc->dev, crtc_id);
+		/* turn off CRT screen (IGA1) */
+
+		vga_wseq(VGABASE, 0x01, (BIT(5) | orig));
+		drm_vblank_pre_modeset(crtc->dev, 0);
 		break;
 
 	case DRM_MODE_DPMS_ON:
-		vga_wseq(VGABASE, 0x00, BIT(5));
-		drm_vblank_post_modeset(crtc->dev, crtc_id);
+		/* turn on CRT screen (IGA1) */
+
+		drm_vblank_post_modeset(crtc->dev, 0);
+		vga_wseq(VGABASE, 0x00, orig);
 		break;
 	}
 }
@@ -217,16 +239,24 @@ static void
 via_iga2_dpms(struct drm_crtc *crtc, int mode)
 {
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
+	u8 orig = (vga_rseq(VGABASE, 0x6b) & ~BIT(2));
 
-	/* Setup IGA path */
 	switch (mode) {
 	case DRM_MODE_DPMS_SUSPEND:
 	case DRM_MODE_DPMS_STANDBY:
 	case DRM_MODE_DPMS_OFF:
-		vga_wseq(VGABASE, 0x00, BIT(2));
+		/* turn off CRT screen (IGA2) */
+
+		vga_wcrt(VGABASE, 0x6b, (BIT(2) | orig));
+		disable_second_display_channel(dev_priv);	
+		drm_vblank_pre_modeset(crtc->dev, 1);
 		break;
 	case DRM_MODE_DPMS_ON:
-		vga_wseq(VGABASE, 0x6b, BIT(2));
+		/* turn on CRT screen (IGA2) */
+
+		drm_vblank_post_modeset(crtc->dev, 0);
+		enable_second_display_channel(dev_priv);
+		vga_wcrt(VGABASE, 0x6b, orig);
 		break;
 	}
 }
@@ -274,6 +304,7 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 		struct drm_display_mode *adjusted_mode,
 		int x, int y, struct drm_framebuffer *old_fb)
 {
+	struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	struct via_crtc *iga = &dev_priv->iga[0];
 	u8 val;
@@ -468,7 +499,7 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	vga_wcrt(VGABASE, 0xA3, ((addr >> 26) & 0x07) | orig);
 
 	if ((state == ENTER_ATOMIC_MODE_SET) || crtc->fb->pitch != fb->pitch) {
-		/* Set secondary pitch */	
+		/* Set secondary pitch */
 		pitch = fb->pitch >> 3;
 		vga_wcrt(VGABASE, 0x66, pitch & 0xFF);
 		orig = (vga_rcrt(VGABASE, 0x67) & ~0x03);
