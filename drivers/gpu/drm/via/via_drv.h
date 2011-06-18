@@ -67,6 +67,14 @@ typedef struct drm_via_irq {
 	wait_queue_head_t irq_queue;
 } drm_via_irq_t;
 
+enum via_engine {
+	VIA_ENG_H1 = 0,
+	VIA_ENG_H2,
+	VIA_ENG_H5S1,
+	VIA_ENG_H5S2VP1,
+	VIA_ENG_H6S2
+};
+
 struct via_i2c {
 	struct drm_via_private *dev_priv;
 	struct via_port_cfg *adap_cfg;
@@ -91,7 +99,6 @@ struct drm_via_private {
 	struct ttm_bo_device bdev;
 	struct drm_device *dev;
 	int bridge_id;
-	int chipset;
 	drm_via_sarea_t *sarea_priv;
 	drm_local_map_t *sarea;
 	struct drm_fb_helper *helper;
@@ -100,6 +107,7 @@ struct drm_via_private {
 	wait_queue_head_t decoder_queue[VIA_NR_XVMC_LOCKS];
 	struct ttm_bo_kmap_obj dmabuf;
 	struct ttm_bo_kmap_obj mmio;
+	enum via_engine engine_type;
 	spinlock_t mmio_lock;
 	unsigned int dma_low;
 	unsigned int dma_high;
@@ -127,12 +135,6 @@ struct drm_via_private {
 	uint32_t dma_diff;
 	struct via_crtc iga[2];
 	struct via_i2c *i2c_par;
-};
-
-enum via_family {
-  VIA_OTHER = 0,     /* Baseline */
-  VIA_PRO_GROUP_A,   /* Another video engine and DMA commands */
-  VIA_DX9_0          /* Same video as pro_group_a, but 3D is unsupported */
 };
 
 #define VIA_MEM_NONE		0x00

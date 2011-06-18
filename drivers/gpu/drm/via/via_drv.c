@@ -262,7 +262,7 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 		return -ENOMEM;
 
 	dev->dev_private = (void *)dev_priv;
-	dev_priv->chipset = chipset;
+	dev_priv->engine_type = chipset;
 	dev_priv->dev = dev;
 
 	via_init_command_verifier();
@@ -282,7 +282,8 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 	}
 
 #if defined(CONFIG_AGP) || defined(CONFIG_AGP_MODULE)
-	if (dev->agp && drm_pci_device_is_agp(dev)) {
+	if ((dev_priv->engine_type > VIA_ENG_H2) ||
+	    (dev->agp && drm_pci_device_is_agp(dev))) {
 		ret = via_detect_agp(dev);
 		if (ret)
 			goto out_err;

@@ -168,7 +168,7 @@ static int via_initialize(struct drm_device *dev,
 		return ret;
 	}
 
-	if (dev_priv->chipset == VIA_DX9_0) {
+	if (dev_priv->engine_type > VIA_ENG_H2) {
 		DRM_ERROR("AGP DMA is not supported on this chip\n");
 		return -EINVAL;
 	}
@@ -561,13 +561,11 @@ static inline void via_dummy_bitblt(struct drm_via_private *dev_priv)
 
 static void via_cmdbuf_rewind(struct drm_via_private *dev_priv)
 {
-	uint32_t agp_base;
 	uint32_t pause_addr_lo, pause_addr_hi;
 	uint32_t jump_addr_lo, jump_addr_hi;
 	volatile uint32_t *last_pause_ptr;
 	uint32_t dma_low_save1, dma_low_save2;
 
-	agp_base = dev_priv->dma_offset;
 	via_align_cmd(dev_priv, HC_HAGPBpID_JUMP, 0, &jump_addr_hi,
 		      &jump_addr_lo, 0);
 

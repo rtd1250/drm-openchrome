@@ -976,10 +976,8 @@ via_verify_command_stream(const uint32_t * buf, unsigned int size,
 	int cme_video;
 	int supported_3d;
 
-	cme_video = (dev_priv->chipset == VIA_PRO_GROUP_A ||
-		     dev_priv->chipset == VIA_DX9_0);
-
-	supported_3d = dev_priv->chipset != VIA_DX9_0;
+	cme_video = (dev_priv->engine_type != VIA_ENG_H1);
+	supported_3d = (dev_priv->engine_type < VIA_ENG_H5S1);
 
 	hc_state->dev = dev;
 	hc_state->unfinished = no_sequence;

@@ -56,7 +56,6 @@
 #define VIA_IRQ_DMA1_DD_PENDING (1 << 6)
 #define VIA_IRQ_DMA1_TD_PENDING (1 << 7)
 
-
 /*
  * Device-specific IRQs go here. This type might need to be extended with
  * the register if there are multiple IRQ control registers.
@@ -261,8 +260,7 @@ void via_driver_irq_preinstall(struct drm_device *dev)
 		dev_priv->irq_enable_mask = VIA_IRQ_VBLANK_ENABLE;
 		dev_priv->irq_pending_mask = VIA_IRQ_VBLANK_PENDING;
 
-		if (dev_priv->chipset == VIA_PRO_GROUP_A ||
-		    dev_priv->chipset == VIA_DX9_0) {
+		if (dev_priv->engine_type != VIA_ENG_H1) {
 			dev_priv->irq_masks = via_pro_group_a_irqs;
 			dev_priv->num_irqs = via_num_pro_group_a;
 			dev_priv->irq_map = via_irqmap_pro_group_a;
