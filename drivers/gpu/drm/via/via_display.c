@@ -248,13 +248,13 @@ via_iga2_dpms(struct drm_crtc *crtc, int mode)
 		/* turn off CRT screen (IGA2) */
 
 		vga_wcrt(VGABASE, 0x6b, (BIT(2) | orig));
-		disable_second_display_channel(dev_priv);	
+		disable_second_display_channel(dev_priv);
 		drm_vblank_pre_modeset(crtc->dev, 1);
 		break;
 	case DRM_MODE_DPMS_ON:
 		/* turn on CRT screen (IGA2) */
 
-		drm_vblank_post_modeset(crtc->dev, 0);
+		drm_vblank_post_modeset(crtc->dev, 1);
 		enable_second_display_channel(dev_priv);
 		vga_wcrt(VGABASE, 0x6b, orig);
 		break;
@@ -579,6 +579,10 @@ via_crtc_init(struct drm_device *dev, int index)
 	if (index) {
 		drm_crtc_init(dev, crtc, &via_iga2_funcs);
 		drm_crtc_helper_add(crtc, &via_iga2_helper_funcs);
+
+		/* Always start off IGA2 disabled until we detected something
+		   attached to it */
+		disable_second_display_channel(dev_priv);
 
 		switch (dev->pdev->device) {
 		// P4M800PRO
