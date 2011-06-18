@@ -364,6 +364,8 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 		}
 	}
 
+	via_set_pll(crtc, adjusted_mode);
+
 	/* Lock CRT again */
 	vga_wcrt(VGABASE, 0x11, BIT(7));
 	/* and do a HW reset */

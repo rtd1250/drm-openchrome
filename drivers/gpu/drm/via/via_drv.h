@@ -235,13 +235,16 @@ extern void via_release_futex(struct drm_via_private *dev_priv, int context);
 extern void via_dmablit_handler(struct drm_device *dev, int engine, int from_irq);
 extern void via_init_dmablit(struct drm_device *dev);
 
+extern void via_modeset_fini(struct drm_device *dev);
+extern int via_modeset_init(struct drm_device *dev);
+
 extern void via_i2c_exit(struct drm_device *dev);
 extern int via_i2c_init(struct drm_device *dev);
 
 extern void regs_init(void __iomem *regs);
 extern void crtc_set_regs(struct drm_display_mode *mode, void __iomem *regs); 
-extern void via_modeset_fini(struct drm_device *dev);
-extern int via_modeset_init(struct drm_device *dev);
+extern void via_set_pll(struct drm_crtc *crtc, struct drm_display_mode *mode);
+
 extern int via_get_edid_modes(struct drm_connector *connector);
 extern void via_analog_init(struct drm_device *dev);
 

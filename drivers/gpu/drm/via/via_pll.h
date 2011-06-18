@@ -411,13 +411,24 @@
 #define VX855_339_500M	0x00770005
 #define VX855_340_772M	0x00770005
 
-struct pll_map {
-	u32	clk;
-	u32	k800_pll;
-	u32	cx700_pll;
-	u32	vx855_pll;
+struct pll_config {
+	u16 multiplier;
+	u8 divisor;
+	u8 rshift;
 };
 
+struct pll_map {
+	u32	clk;
+/*	u32	k800_pll;
+	u32	cx700_pll;
+	u32	vx855_pll;*/
+	struct pll_config cle266_pll;
+	struct pll_config k800_pll;
+	struct pll_config cx700_pll;
+	struct pll_config vx855_pll;
+};
+
+/*
 static struct pll_map pll_value[] = {
     {CLK_22_000M,  K800_PLL_22_000M,  CX700_22_000M,  VX855_22_000M},
     {CLK_25_175M,  K800_PLL_25_175M,  CX700_25_175M,  VX855_25_175M},
@@ -514,6 +525,6 @@ static struct pll_map pll_value[] = {
 };
 
 #define NUM_TOTAL_PLL_TABLE ARRAY_SIZE(pll_value)
-
+*/
 
 #endif
