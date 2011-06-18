@@ -114,18 +114,6 @@ static int via_mmio_setup(struct drm_device *dev)
 	/* Unlock CRTC register protect */
 	iowrite8(0x47, regs + 0x14);
 
-	val = ioread8(regs + 0x15);
-	switch (dev_priv->bridge_id) {
-	case PCI_DEVICE_ID_VIA_VT3353:
-	case PCI_DEVICE_ID_VIA_VT3409:
-		val &= ~0x10;
-		break;
-	default:
-		val &= ~0x01;
-		break;
-	}
-	iowrite8(val, regs + 0x15);
-
 	/* Enable MMIO */
 	iowrite8(0x1a, regs + 0x04);
 	val = ioread8(regs + 0x05);

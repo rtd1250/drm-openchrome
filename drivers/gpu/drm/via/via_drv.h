@@ -98,7 +98,6 @@ struct drm_via_private {
 	struct ttm_bo_global_ref bo_global_ref;
 	struct ttm_bo_device bdev;
 	struct drm_device *dev;
-	int bridge_id;
 	drm_via_sarea_t *sarea_priv;
 	drm_local_map_t *sarea;
 	struct drm_fb_helper *helper;
