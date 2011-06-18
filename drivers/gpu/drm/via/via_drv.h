@@ -58,6 +58,12 @@
 
 #define DRM_FILE_PAGE_OFFSET (0x100000000ULL >> PAGE_SHIFT)
 
+#define CLE266_REVISION_AX	0x0A
+#define CLE266_REVISION_CX	0x0C
+#define CX700_REVISION_700	0x0
+#define CX700_REVISION_700M	0x1
+#define CX700_REVISION_700M2	0x2
+
 typedef uint32_t maskarray_t[5];
 
 typedef struct drm_via_irq {
@@ -98,6 +104,7 @@ struct drm_via_private {
 	struct ttm_bo_global_ref bo_global_ref;
 	struct ttm_bo_device bdev;
 	struct drm_device *dev;
+	int revision;
 	drm_via_sarea_t *sarea_priv;
 	drm_local_map_t *sarea;
 	struct drm_fb_helper *helper;

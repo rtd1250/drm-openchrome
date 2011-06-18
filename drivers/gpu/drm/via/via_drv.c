@@ -146,6 +146,37 @@ err:
 	return ret;
 }
 
+static void __devinit
+chip_revision_info(struct drm_device *dev)
+{
+	struct drm_via_private *dev_priv = dev->dev_private;
+	u8 tmp;
+
+	/* Check revision of CLE266 Chip */
+	if (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) {
+		/* CR4F only define in CLE266.CX chip */
+		tmp = vga_rcrt(VGABASE, 0x4F);
+		vga_wcrt(VGABASE, 0x4F, 0x55);
+		if (vga_rcrt(VGABASE, 0x4F) != 0x55)
+			dev_priv->revision = CLE266_REVISION_AX;
+		else
+			dev_priv->revision = CLE266_REVISION_CX;
+		/* restore orignal CR4F value */
+		vga_wcrt(VGABASE, 0x4F, tmp);
+	}
+
+	if (dev->pdev->device == PCI_DEVICE_ID_VIA_VT3157) {
+		tmp = vga_rseq(VGABASE, 0x43);
+		if (tmp & 0x02) {
+			dev_priv->revision = CX700_REVISION_700M2;
+		} else if (tmp & 0x40) {
+			dev_priv->revision = CX700_REVISION_700M;
+		} else {
+			dev_priv->revision = CX700_REVISION_700;
+		}
+	}
+}
+
 static int via_dumb_create(struct drm_file *filp, struct drm_device *dev,
 				struct drm_mode_create_dumb *args)
 {
@@ -268,6 +299,7 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 		DRM_INFO("VIA MMIO region failed to map\n");
 		goto out_err;
 	}
+	chip_revision_info(dev);
 
 #if defined(CONFIG_AGP) || defined(CONFIG_AGP_MODULE)
 	if ((dev_priv->engine_type > VIA_ENG_H2) ||
