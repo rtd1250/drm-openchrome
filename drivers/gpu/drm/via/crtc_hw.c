@@ -22,8 +22,8 @@
  *	James Simmons <jsimmons@infradead.org>
  */
 
-#include "drmP.h"
 #include <video/vga.h>
+#include "crtc_hw.h"
 
 void
 regs_init(void __iomem *regs)
@@ -54,96 +54,33 @@ regs_init(void __iomem *regs)
 }
 
 void
-crtc_set_regs(struct drm_display_mode *mode, void __iomem *regs)
+load_value_to_registers(void __iomem *regbase, struct registers *regs,
+			int value)
 {
-	/* Calculate our timings */
-	int horizDisplay= (mode->crtc_hdisplay >> 3)	- 1;
-	int horizStart= (mode->crtc_hsync_start >> 3)	+ 1;
-	int horizEnd= (mode->crtc_hsync_end >> 3)	+ 1;
-	int horizTotal= (mode->crtc_htotal >> 3)	- 5;
-	int horizBlankStart= (mode->crtc_hdisplay >> 3)	- 1;
-	int horizBlankEnd= (mode->crtc_htotal >> 3)	- 1;
-	int vertDisplay= mode->crtc_vdisplay		- 1;
-	int vertStart= mode->crtc_vsync_start		- 1;
-	int vertEnd= mode->crtc_vsync_end		- 1;
-	int vertTotal= mode->crtc_vtotal		- 2;
-	int vertBlankStart= mode->crtc_vdisplay		- 1;
-	int vertBlankEnd= mode->crtc_vtotal		- 1;
-	int miscReg, i;
+	int bit_num = 0, shift_next_reg, reg_mask;
+	int start_index, end_index, cr_index;
+	u16 get_bit, port;
+	int data, i, j;
+	u8 orig;
 
-	if (mode->flags & DRM_MODE_FLAG_INTERLACE)
-		vertTotal |= 1;
+	for (i = 0; i < regs->count; i++) {
+		start_index = regs->regs[i].start_bit;
+		end_index = regs->regs[i].end_bit;
+		cr_index = regs->regs[i].io_addr;
+		port = regs->regs[i].ioport;
+		reg_mask = data = 0;
 
-	/*
-	 * compute correct Hsync & Vsync polarity
-	 */
-	if ((mode->flags & (DRM_MODE_FLAG_PHSYNC | DRM_MODE_FLAG_NHSYNC))
-	     && (mode->flags & (DRM_MODE_FLAG_PVSYNC | DRM_MODE_FLAG_NVSYNC))) {
-		miscReg = 0x23;
+		shift_next_reg = bit_num;
+		for (j = start_index; j <= end_index; j++) {
+			/*if (bit_num==8) value = value >>8; */
+			reg_mask = reg_mask | (BIT(0) << j);
+			get_bit = (value & (BIT(0) << bit_num));
+			data |= ((get_bit >> shift_next_reg) << start_index);
+			bit_num++;
+		}
 
-	if (mode->flags & DRM_MODE_FLAG_NHSYNC)
-		miscReg |= 0x40;
-	if (mode->flags & DRM_MODE_FLAG_NVSYNC)
-		miscReg |= 0x80;
-	} else {
-		int vdisplay = mode->vdisplay;
-
-		if (mode->flags & DRM_MODE_FLAG_DBLSCAN)
-			vdisplay *= 2;
-		if (mode->vscan > 1)
-			vdisplay *= mode->vscan;
-		if (vdisplay < 400)
-			miscReg = 0xA3; /* +hsync -vsync */
-		else if (vdisplay < 480)
-			miscReg = 0x63; /* -hsync +vsync */
-		else if (vdisplay < 768)
-			miscReg = 0xE3; /* -hsync -vsync */
-		else
-			miscReg = 0x23; /* +hsync +vsync */
+		vga_w(regbase, port, cr_index);
+		orig = (vga_r(regbase, port + 1) & ~reg_mask);
+		vga_w(regbase, port + 1, ((data & reg_mask) | orig));
 	}
-	miscReg |= (mode->clock_index & 0x03) << 2;
-	iowrite8(miscReg, regs + VGA_MIS_W);
-
-	/* Sequence registers */
-	vga_wseq(regs, 0x00, 0x03);	/* 0x03 or 0x00 */
-	if (mode->flags & DRM_MODE_FLAG_CLKDIV2)
-		vga_wseq(regs, 0x01, 0x09);
-	else
-		vga_wseq(regs, 0x01, 0x01);
-
-	vga_wseq(regs, 0x02, 0x0f);
-	vga_wseq(regs, 0x03, 0x00);
-	vga_wseq(regs, 0x04, 0x0e);
-
-	vga_wcrt(regs, 0x00, horizTotal);
-	vga_wcrt(regs, 0x01, horizDisplay);
-	vga_wcrt(regs, 0x02, horizBlankStart);
-	vga_wcrt(regs, 0x03, 0x80 | (horizBlankEnd & 0x1f));
-	vga_wcrt(regs, 0x04, horizStart);
-	vga_wcrt(regs, 0x05, ((horizBlankEnd & 0x20) << 2) |
-				(horizEnd & 0x1f));
-	vga_wcrt(regs, 0x06, vertTotal);
-	vga_wcrt(regs, 0x07,((vertStart & 0x200) >> 2) |
-					((vertDisplay & 0x200) >> 3) |
-					((vertTotal & 0x200) >> 4) | 0x10 |
-					((vertBlankStart & 0x100) >> 5) |
-					((vertStart & 0x100) >> 6) |
-					((vertDisplay & 0x100) >> 7) |
-					((vertTotal & 0x100) >> 8));
-	vga_wcrt(regs, 0x08, 0x00);
-	// Handle double scan
-	vga_wcrt(regs, 0x09, (0x40 | ((vertBlankStart & 0x200) >> 4)));
-
-	for (i = 0x0a; i < 0x10; i++)
-		vga_wcrt(regs, i, 0x00);
-
-	vga_wcrt(regs, 0x10, vertStart);
-	vga_wcrt(regs, 0x11, (vertEnd & 0x0f) | 0x20);
-	vga_wcrt(regs, 0x12, vertDisplay);
-	vga_wcrt(regs, 0x13, horizDisplay);	// fb->pitch >> 3);
-	vga_wcrt(regs, 0x14, 0x00);
-	vga_wcrt(regs, 0x15, vertBlankStart);
-	vga_wcrt(regs, 0x16, vertBlankEnd + 1);
-	vga_wcrt(regs, 0x17, 0xc3);
-	vga_wcrt(regs, 0x18, 0xff);
 }
