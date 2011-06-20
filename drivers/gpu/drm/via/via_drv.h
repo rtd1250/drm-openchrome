@@ -41,6 +41,7 @@
 #include "ttm/ttm_module.h"
 
 #include <video/vga.h>
+#include "crtc_hw.h"
 #include <linux/i2c.h>
 #include <linux/i2c-algo-bit.h>
 #include <linux/via-core.h>
@@ -92,10 +93,16 @@ struct via_i2c {
 struct via_crtc {
 	struct drm_gem_object *cursor_bo;
 	struct drm_crtc crtc;
+	struct crtc_timings timings;
+	struct registers fetch;
 	unsigned int display_queue_expire_num;
 	unsigned int fifo_high_threshold;
 	unsigned int fifo_threshold;
 	unsigned int fifo_max_depth;
+	struct registers display_queue;
+	struct registers high_threshold;
+	struct registers threshold;
+	struct registers fifo_depth;
 	uint32_t iga1;
 };
 
@@ -248,8 +255,8 @@ extern int via_modeset_init(struct drm_device *dev);
 extern void via_i2c_exit(struct drm_device *dev);
 extern int via_i2c_init(struct drm_device *dev);
 
-extern void regs_init(void __iomem *regs);
-extern void crtc_set_regs(struct drm_display_mode *mode, void __iomem *regs); 
+extern void via_lock_crt(void __iomem *regs);
+extern void via_unlock_crt(void __iomem *regs);
 extern void via_set_pll(struct drm_crtc *crtc, struct drm_display_mode *mode);
 
 extern int via_get_edid_modes(struct drm_connector *connector);

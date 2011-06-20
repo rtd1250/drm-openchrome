@@ -27,6 +27,7 @@
 #include "drm_crtc_helper.h"
 
 #include "via_drv.h"
+#include "via_disp_reg.h"
 
 static int
 via_iga1_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
@@ -186,6 +187,22 @@ static const struct drm_crtc_funcs via_iga2_funcs = {
 	.destroy = via_crtc_destroy,
 };
 
+void via_lock_crt(void __iomem *regs)
+{
+	u8 orig = (vga_rcrt(regs, 0x11) & ~0x80);
+
+	vga_wcrt(regs, 0x11, (orig | 0x80));
+}
+
+void via_unlock_crt(void __iomem *regs)
+{
+	u8 orig = (vga_rcrt(regs, 0x11) & ~0x80);
+
+	vga_wcrt(regs, 0x11, orig);
+	orig = (vga_rcrt(regs, 0x47) & ~0x01);
+	vga_wcrt(regs, 0x47, orig);
+}
+
 static void
 enable_second_display_channel(struct drm_via_private *dev_priv)
 {
@@ -208,6 +225,134 @@ disable_second_display_channel(struct drm_via_private *dev_priv)
 	orig &= ~BIT(7);
 	vga_wcrt(VGABASE, 0x6A, orig);
 	vga_wcrt(VGABASE, 0x6A, (orig | BIT(6)));
+}
+
+static void 
+via_load_FIFO_reg(struct via_crtc *iga, struct drm_display_mode *mode)
+{
+	struct drm_device *dev = iga->crtc.dev;
+	int hor_active = mode->hdisplay, ver_active = mode->vdisplay;
+	struct drm_via_private *dev_priv = dev->dev_private;
+	struct drm_crtc *crtc = &iga->crtc;
+	int queue_expire_num, reg_value;
+
+	/* If resolution > 1280x1024, expire length = 64, else
+ 	   expire length = 128 */
+	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_K8M800 ||
+	     dev->pdev->device == PCI_DEVICE_ID_VIA_CN700) &&
+	    ((hor_active > 1280) && (ver_active > 1024)))
+		queue_expire_num = 16;
+	else
+		queue_expire_num = iga->display_queue_expire_num;
+
+        if (iga->iga1 == crtc->base.id) {
+		/* Set Display FIFO Depth Select */
+		reg_value = IGA1_FIFO_DEPTH_SELECT_FORMULA(iga->fifo_max_depth);
+		load_value_to_registers(VGABASE, &iga->fifo_depth, reg_value);
+        } else {
+		/* Set Display FIFO Depth Select */
+		reg_value = IGA2_FIFO_DEPTH_SELECT_FORMULA(iga->fifo_max_depth);
+		if (dev->pdev->device == PCI_DEVICE_ID_VIA_K8M800) 
+			reg_value--;
+		load_value_to_registers(VGABASE, &iga->fifo_depth, reg_value);
+	}
+
+	/* Set Display FIFO Threshold Select */
+	reg_value = iga->fifo_threshold / 4;
+	load_value_to_registers(VGABASE, &iga->threshold, reg_value);
+
+	/* Set FIFO High Threshold Select */
+	reg_value = iga->fifo_high_threshold / 4;
+	load_value_to_registers(VGABASE, &iga->high_threshold, reg_value);
+
+	/* Set Display Queue Expire Num */
+	reg_value = queue_expire_num / 4;
+	load_value_to_registers(VGABASE, &iga->display_queue, reg_value);
+}
+
+void via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
+{
+	struct drm_crtc *crtc = &iga->crtc;
+	struct drm_device *dev = iga->crtc.dev;
+	struct drm_via_private *dev_priv = dev->dev_private;
+	int reg_value = 0;
+
+	via_unlock_crt(VGABASE);
+
+	if (iga->iga1 == crtc->base.id) {
+		reg_value = IGA1_HOR_TOTAL_FORMULA(mode->crtc_htotal);
+		load_value_to_registers(VGABASE, &iga->timings.htotal, reg_value);
+
+		reg_value = IGA1_HOR_ADDR_FORMULA(mode->crtc_hdisplay);
+		load_value_to_registers(VGABASE, &iga->timings.hdisplay, reg_value);
+
+		reg_value = IGA1_HOR_BLANK_START_FORMULA(mode->crtc_hblank_start);
+		load_value_to_registers(VGABASE, &iga->timings.hblank_start, reg_value);
+
+		reg_value = IGA1_HOR_BLANK_END_FORMULA(mode->crtc_hblank_end);
+		load_value_to_registers(VGABASE, &iga->timings.hblank_end, reg_value);
+	
+		reg_value = IGA1_HOR_SYNC_START_FORMULA(mode->crtc_hsync_start);
+		load_value_to_registers(VGABASE, &iga->timings.hsync_start, reg_value);
+
+		reg_value = IGA1_HOR_SYNC_END_FORMULA(mode->crtc_hsync_end);
+		load_value_to_registers(VGABASE, &iga->timings.hsync_end, reg_value);
+
+		reg_value = IGA1_VER_TOTAL_FORMULA(mode->crtc_vtotal);
+		load_value_to_registers(VGABASE, &iga->timings.vtotal, reg_value);
+
+		reg_value = IGA1_VER_ADDR_FORMULA(mode->crtc_vdisplay);
+		load_value_to_registers(VGABASE, &iga->timings.vdisplay, reg_value);
+
+		reg_value = IGA1_VER_BLANK_START_FORMULA(mode->crtc_vblank_start);
+		load_value_to_registers(VGABASE, &iga->timings.vblank_start, reg_value);
+
+		reg_value = IGA1_VER_BLANK_END_FORMULA(mode->crtc_vblank_end);
+		load_value_to_registers(VGABASE, &iga->timings.vblank_end, reg_value);
+
+		reg_value = IGA1_VER_SYNC_START_FORMULA(mode->crtc_vsync_start);
+		load_value_to_registers(VGABASE, &iga->timings.vsync_start, reg_value);
+
+		reg_value = IGA1_VER_SYNC_END_FORMULA(mode->crtc_vsync_end);
+		load_value_to_registers(VGABASE, &iga->timings.vsync_end, reg_value);
+	} else {
+		reg_value = IGA2_HOR_TOTAL_FORMULA(mode->crtc_htotal);
+		load_value_to_registers(VGABASE, &iga->timings.htotal, reg_value);
+
+		reg_value = IGA2_HOR_ADDR_FORMULA(mode->crtc_hdisplay);
+		load_value_to_registers(VGABASE, &iga->timings.hdisplay, reg_value);
+
+		reg_value = IGA2_HOR_BLANK_START_FORMULA(mode->crtc_hblank_start);
+		load_value_to_registers(VGABASE, &iga->timings.hblank_start, reg_value);
+	
+		reg_value = IGA2_HOR_BLANK_END_FORMULA(mode->crtc_hblank_end);
+		load_value_to_registers(VGABASE, &iga->timings.hblank_end, reg_value);
+
+		reg_value = IGA2_HOR_SYNC_START_FORMULA(mode->crtc_hsync_start);
+		load_value_to_registers(VGABASE, &iga->timings.hsync_start, reg_value);
+
+		reg_value = IGA2_HOR_SYNC_END_FORMULA(mode->crtc_hsync_end);
+		load_value_to_registers(VGABASE, &iga->timings.hsync_end, reg_value);
+
+		reg_value = IGA2_VER_TOTAL_FORMULA(mode->crtc_vtotal);
+		load_value_to_registers(VGABASE, &iga->timings.vtotal, reg_value);
+
+		reg_value = IGA2_VER_ADDR_FORMULA(mode->crtc_vdisplay);
+		load_value_to_registers(VGABASE, &iga->timings.vdisplay, reg_value);
+
+		reg_value = IGA2_VER_BLANK_START_FORMULA(mode->crtc_vblank_start);
+		load_value_to_registers(VGABASE, &iga->timings.vblank_start, reg_value);
+
+		reg_value = IGA2_VER_BLANK_END_FORMULA(mode->crtc_vblank_end);
+		load_value_to_registers(VGABASE, &iga->timings.vblank_end, reg_value);
+
+		reg_value = IGA2_VER_SYNC_START_FORMULA(mode->crtc_vsync_start);
+		load_value_to_registers(VGABASE, &iga->timings.vsync_start, reg_value);
+
+		reg_value = IGA2_VER_SYNC_END_FORMULA(mode->crtc_vsync_end);
+		load_value_to_registers(VGABASE, &iga->timings.vsync_end, reg_value);
+	}
+	via_lock_crt(VGABASE);
 }
 
 static void
@@ -307,69 +452,105 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 	struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	struct via_crtc *iga = &dev_priv->iga[0];
-	u8 val;
+	struct drm_framebuffer *fb = crtc->fb;
+	struct drm_device *dev = crtc->dev;
+	int value;
+	u8 orig;
+
+	if (!fb)
+		fb = old_fb;
 
 	if (iga->iga1 != crtc->base.id)
 		iga = &dev_priv->iga[1];
 
-	/*
-	 * Switching AR00[5](PAS) to 0 will allow the CPU to change
-	 * the palette registers.Meanwhile, the monitor will be blank.
-	 */
-	val = vga_r(VGABASE, VGA_IS1_RC);
-	vga_w(VGABASE, VGA_ATT_W, 0x00);
+	vga_r(VGABASE, VGA_IS1_RC);
+	vga_w(VGABASE, VGA_ATT_IW, 0x00);
 
 	/* Write Misc Register */
-	vga_w(VGABASE, VGA_MIS_W, 0xCF);
+	vga_w(VGABASE, VGA_MIS_W, 0xC7);
+
+	orig = (vga_rseq(VGABASE, 0x15) & ~0xA2);
+	vga_wseq(VGABASE, 0x15, (orig | 0xA2));
 
 	regs_init(VGABASE);
 
-	/*
-	 * Switching AR00[5](PAS) to 1 will NOT allow the CPU to change the
-	 * palette registers. Meanwhile, the monitor will display normally.
-	 */
-	val = vga_r(VGABASE, VGA_IS1_RC);
-	vga_w(VGABASE, VGA_ATT_W, 0x20);
+        if (iga->iga1 == crtc->base.id) {
+		via_unlock_crt(VGABASE);
+		vga_wcrt(VGABASE, 0x09, 0x00);	/*initial CR09=0 */
+		orig = (vga_rcrt(VGABASE, 0x11) & ~0x70);	
+		vga_wcrt(VGABASE, 0x11, orig);
+		orig = (vga_rcrt(VGABASE, 0x17) & ~BIT(7));
+		vga_wcrt(VGABASE, 0x17, orig);
+        }
 
-	/* unlock extended registers */
-	vga_wseq(VGABASE, 0x10, 0x01);	
+	/* Write CRTC */
+	via_load_crtc_timing(iga, mode);
 
-	/* unlock CRT registers */
-	val = vga_rcrt(VGABASE, 0x47);
-	vga_wcrt(VGABASE, 0x47, (val & 0x01));
+	/* always set to 1 */
+	orig = (vga_rcrt(VGABASE, 0x03) & ~0x80);	
+	vga_wcrt(VGABASE, 0x03, (orig | 0x80));	
+	/* line compare should set all bits = 1 (extend modes) */
+	vga_wcrt(VGABASE, 0x18, 0xFF);
+	/* line compare should set all bits = 1 (extend modes) */
+	orig = (vga_rcrt(VGABASE, 0x07) & ~0x10);
+	vga_wcrt(VGABASE, 0x07, (orig | 0x10));
+	/* line compare should set all bits = 1 (extend modes) */
+	orig = (vga_rcrt(VGABASE, 0x09) & ~0x40);
+	vga_wcrt(VGABASE, 0x09, (orig | 0x40));
+	/* line compare should set all bits = 1 (extend modes) */
+	orig = (vga_rcrt(VGABASE, 0x35) & ~0x10);
+	vga_wcrt(VGABASE, 0x35, (orig | 0x10));
+	/* line compare should set all bits = 1 (extend modes) */
+	orig = (vga_rcrt(VGABASE, 0x33) & ~0x06);
+	vga_wcrt(VGABASE, 0x33, (orig | 0x06));
+	/* extend mode always set to e3h */
+	vga_wcrt(VGABASE, 0x17, 0xE3);
+	/* extend mode always set to 0h */
+	vga_wcrt(VGABASE, 0x08, 0x00);
+	/* extend mode always set to 0h */
+	vga_wcrt(VGABASE, 0x14, 0x00);
 
-	/* Reset IGA1 */
-	vga_wcrt(VGABASE, 0x09, 0x00);
-	vga_wcrt(VGABASE, 0x11, BIT(4) | BIT(5) | BIT(6));
-	vga_wcrt(VGABASE, 0x17, BIT(7)); 
-
-	crtc_set_regs(mode, VGABASE);
-
-	/* Set PlusVCK */
-	if (iga->iga1 == crtc->base.id) {
-		switch (adjusted_mode->htotal % 8) {
-		case 0:
-		default:
-			vga_wcrt(VGABASE, 0x47, 0x0);
-			break;
-		case 2:
-			vga_wcrt(VGABASE, 0x47, BIT(7));
-			break;
-		case 4:
-			vga_wcrt(VGABASE, 0x47, BIT(6));
-			break;
-		case 6:
-			vga_wcrt(VGABASE, 0x47, BIT(3));
-			break;
-		}
+	/* If K8M800, enable Prefetch Mode. */
+	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_K8M800) || 
+	    (dev->pdev->device == PCI_DEVICE_ID_VIA_K8M890)) {
+		orig = (vga_rcrt(VGABASE, 0x33) & ~0x08);
+		vga_wcrt(VGABASE, 0x33, (orig | 0x08));
 	}
 
-	via_set_pll(crtc, adjusted_mode);
+	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) &&
+	    (dev_priv->revision == CLE266_REVISION_AX)) {
+		orig = (vga_rcrt(VGABASE, 0x1A) & ~0x02);
+		vga_wcrt(VGABASE, 0x1A, (orig | 0x02));
+	}
 
-	/* Lock CRT again */
-	vga_wcrt(VGABASE, 0x11, BIT(7));
-	/* and do a HW reset */
-	vga_wcrt(VGABASE, 0x17, BIT(7));	
+	via_lock_crt(VGABASE);
+	orig = (vga_rcrt(VGABASE, 0x17) | BIT(7));
+	vga_wcrt(VGABASE, 0x17, orig);
+
+	/* Load Fetch registers */
+        if (iga->iga1 == crtc->base.id)
+		value = IGA1_FETCH_COUNT_FORMULA(mode->hdisplay,
+						fb->bits_per_pixel / 8);
+	else
+		value = IGA2_FETCH_COUNT_FORMULA(mode->hdisplay,
+						fb->bits_per_pixel / 8);
+	load_value_to_registers(VGABASE, &iga->fetch, value);
+
+	/* Load FIFO */
+	if ((dev->pdev->device != PCI_DEVICE_ID_VIA_CLE266) &&
+	    (dev->pdev->device != PCI_DEVICE_ID_VIA_KM400)) {
+		via_load_FIFO_reg(iga, mode);
+	} else if (adjusted_mode->hdisplay == 1024 &&
+		   adjusted_mode->vdisplay == 768) { 
+		/* Update Patch Register */
+		orig = (vga_rseq(VGABASE, 0x16) & ~0xBF);
+		vga_wseq(VGABASE, 0x16, (orig | 0x0C));
+		vga_wseq(VGABASE, 0x18, 0x4C);
+	}
+	vga_r(VGABASE, VGA_IS1_RC);
+	vga_w(VGABASE, VGA_ATT_IW, 0x20);
+
+	via_set_pll(crtc, mode);
 
 	return crtc_funcs->mode_set_base(crtc, crtc->x, crtc->y, old_fb);
 }
@@ -400,7 +581,7 @@ via_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 	ptr = (uint32_t *) placement->placement;
 	for (i = 0; i < placement->num_placement; i++)
 		*ptr++ |= TTM_PL_FLAG_NO_EVICT;
-	ret = ttm_bo_validate(bo, placement, false, false, false);
+//	ret = ttm_bo_validate(bo, placement, false, false, false);
 	if (likely(ret == 0)) {
 		ret = crtc_funcs->mode_set_base_atomic(crtc, new_fb, x, y, state);
 	}
@@ -409,8 +590,8 @@ via_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 	ptr = (uint32_t *) placement->placement;
 	for (i = 0; i < placement->num_placement; i++)
 		*ptr++ &= ~TTM_PL_FLAG_NO_EVICT;
-	if (ttm_bo_validate(bo, placement, false, false, false))
-		DRM_ERROR("framebuffer still locked\n");
+	/*if (ttm_bo_validate(bo, placement, false, false, false))
+		DRM_ERROR("framebuffer still locked\n");*/
 	return ret;
 }
 
@@ -586,79 +767,76 @@ via_crtc_init(struct drm_device *dev, int index)
 		   attached to it */
 		disable_second_display_channel(dev_priv);
 
+		iga->timings.htotal.count = ARRAY_SIZE(iga2_hor_total);
+		iga->timings.htotal.regs = iga2_hor_total;
+
+		iga->timings.hdisplay.count = ARRAY_SIZE(iga2_hor_addr);
+		iga->timings.hdisplay.regs = iga2_hor_addr;
+
+		iga->timings.hblank_start.count = ARRAY_SIZE(iga2_hor_blank_start);
+		iga->timings.hblank_start.regs = iga2_hor_blank_start;
+
+		iga->timings.hblank_end.count = ARRAY_SIZE(iga2_hor_blank_end);
+		iga->timings.hblank_end.regs = iga2_hor_blank_end;
+	
+		if (PCI_DEVICE_ID_VIA_CN700 <= dev->pdev->device)
+			iga->timings.hsync_start.count = ARRAY_SIZE(iga2_hor_sync_start);
+		else
+			iga->timings.hsync_start.count = 3;
+		iga->timings.hsync_start.regs = iga2_hor_sync_start;
+
+		iga->timings.hsync_end.count = ARRAY_SIZE(iga2_hor_sync_end);
+		iga->timings.hsync_end.regs = iga2_hor_sync_end;
+
+		iga->timings.vtotal.count = ARRAY_SIZE(iga2_ver_total);
+		iga->timings.vtotal.regs = iga2_ver_total;
+
+		iga->timings.vdisplay.count = ARRAY_SIZE(iga2_ver_addr);
+		iga->timings.vdisplay.regs = iga2_ver_addr;
+
+		iga->timings.vblank_start.count = ARRAY_SIZE(iga2_ver_blank_start);
+		iga->timings.vblank_start.regs = iga2_ver_blank_start;
+
+		iga->timings.vblank_end.count = ARRAY_SIZE(iga2_ver_blank_end);
+		iga->timings.vblank_end.regs = iga2_ver_blank_end;
+
+		iga->timings.vsync_start.count = ARRAY_SIZE(iga2_ver_sync_start);
+		iga->timings.vsync_start.regs = iga2_ver_sync_start;
+
+		iga->timings.vsync_end.count = ARRAY_SIZE(iga2_ver_sync_end);
+		iga->timings.vsync_end.regs = iga2_ver_sync_end;
+
+
+		iga->high_threshold.count = ARRAY_SIZE(iga2_fifo_high_threshold_select);
+		iga->high_threshold.regs = iga2_fifo_high_threshold_select;
+		
+		iga->threshold.count = ARRAY_SIZE(iga2_fifo_threshold_select);	
+		iga->threshold.regs = iga2_fifo_threshold_select;
+
+		iga->display_queue.count = ARRAY_SIZE(iga2_display_queue_expire_num);
+		iga->display_queue.regs = iga2_display_queue_expire_num;
+		
+		iga->fifo_depth.count = ARRAY_SIZE(iga2_fifo_depth_select);
+		iga->fifo_depth.regs = iga2_fifo_depth_select;
+
+		iga->fetch.count = ARRAY_SIZE(iga2_fetch_count);
+		iga->fetch.regs = iga2_fetch_count;
+
 		switch (dev->pdev->device) {
-		// P4M800PRO
-		case PCI_DEVICE_ID_VIA_CN700:
-			iga->display_queue_expire_num = 128;
-			iga->fifo_high_threshold = 32;
-			iga->fifo_threshold = 80;
-			iga->fifo_max_depth = 96;
-			break;
-
-		// CX700
-		case PCI_DEVICE_ID_VIA_VT3157:
-			iga->display_queue_expire_num = 128;
-			iga->fifo_high_threshold = 32;
-			iga->fifo_threshold = 64;
-			iga->fifo_max_depth = 96;
-			break;
-
-		// K8M890
-		case PCI_DEVICE_ID_VIA_K8M890:
-			iga->display_queue_expire_num = 124;
+		case PCI_DEVICE_ID_VIA_K8M800:
+			iga->display_queue_expire_num = 0;
 			iga->fifo_high_threshold = 296;
 			iga->fifo_threshold = 328;
-			iga->fifo_max_depth = 360;
+			iga->fifo_max_depth = 384;
 			break;
 
-		// P4M890
-		case PCI_DEVICE_ID_VIA_VT3343:
-			iga->display_queue_expire_num = 32;
+		case PCI_DEVICE_ID_VIA_PM800:
+			iga->display_queue_expire_num = 0;
 			iga->fifo_high_threshold = 64;
-			iga->fifo_threshold = 76;
-			iga->fifo_max_depth = 96;
-			break;
-
-		// P4M900
-		case PCI_DEVICE_ID_VIA_P4M900:
-			iga->fifo_high_threshold = iga->fifo_threshold = 76;
-			iga->display_queue_expire_num = 32;
-			iga->fifo_max_depth = 96;
-			break;
-
-		// VX800
-		case PCI_DEVICE_ID_VIA_VT1122:
-			iga->display_queue_expire_num = 128;
-			iga->fifo_high_threshold = 32; 
-			iga->fifo_threshold = 64;
-			iga->fifo_max_depth = 96;
-			break;
-
-		// VX855
-		case PCI_DEVICE_ID_VIA_VX875:
-			iga->fifo_high_threshold = iga->fifo_threshold = 320;
-			iga->display_queue_expire_num = 160;
-			iga->fifo_max_depth = 200;
-			break;
-
-		// VX900
-		case PCI_DEVICE_ID_VIA_VX900:
-			iga->fifo_high_threshold = iga->fifo_threshold = 160;
-			iga->display_queue_expire_num = 320;
+			iga->fifo_threshold = 128;
 			iga->fifo_max_depth = 192;
 			break;
 
-		default:
-			break;	
-		}
-
-	} else {
-		drm_crtc_init(dev, crtc, &via_iga1_funcs);
-		drm_crtc_helper_add(crtc, &via_iga1_helper_funcs);
-		iga->iga1 = crtc->base.id;
-
-		switch (dev->pdev->device) {
-		// P4M800PRO
 		case PCI_DEVICE_ID_VIA_CN700:
 			iga->display_queue_expire_num = 0;
 			iga->fifo_high_threshold = 64;
@@ -710,10 +888,142 @@ via_crtc_init(struct drm_device *dev, int index)
 			iga->fifo_high_threshold = iga->fifo_threshold = 320;
 			iga->display_queue_expire_num = 160;
 			iga->fifo_max_depth = 400;
+		default:
+			break;
+		}
+
+	} else {
+		drm_crtc_init(dev, crtc, &via_iga1_funcs);
+		drm_crtc_helper_add(crtc, &via_iga1_helper_funcs);
+		iga->iga1 = crtc->base.id;
+
+		iga->timings.htotal.count = ARRAY_SIZE(iga1_hor_total);
+		iga->timings.htotal.regs = iga1_hor_total;
+
+		iga->timings.hdisplay.count = ARRAY_SIZE(iga1_hor_addr);
+		iga->timings.hdisplay.regs = iga1_hor_addr;
+
+		iga->timings.hblank_start.count = ARRAY_SIZE(iga1_hor_blank_start);
+		iga->timings.hblank_start.regs = iga1_hor_blank_start;
+
+		iga->timings.hblank_end.count = ARRAY_SIZE(iga1_hor_blank_end);
+		iga->timings.hblank_end.regs = iga1_hor_blank_end;
+	
+		iga->timings.hsync_start.count = ARRAY_SIZE(iga1_hor_sync_start);
+		iga->timings.hsync_start.regs = iga1_hor_sync_start;
+
+		iga->timings.hsync_end.count = ARRAY_SIZE(iga1_hor_sync_end);
+		iga->timings.hsync_end.regs = iga1_hor_sync_end;
+
+		iga->timings.vtotal.count = ARRAY_SIZE(iga1_ver_total);
+		iga->timings.vtotal.regs = iga1_ver_total;
+
+		iga->timings.vdisplay.count = ARRAY_SIZE(iga1_ver_addr);
+		iga->timings.vdisplay.regs = iga1_ver_addr;
+
+		iga->timings.vblank_start.count = ARRAY_SIZE(iga1_ver_blank_start);
+		iga->timings.vblank_start.regs = iga1_ver_blank_start;
+
+		iga->timings.vblank_end.count = ARRAY_SIZE(iga1_ver_blank_end);
+		iga->timings.vblank_end.regs = iga1_ver_blank_end;
+
+		iga->timings.vsync_start.count = ARRAY_SIZE(iga1_ver_sync_start);
+		iga->timings.vsync_start.regs = iga1_ver_sync_start;
+
+		iga->timings.vsync_end.count = ARRAY_SIZE(iga1_ver_sync_end);
+		iga->timings.vsync_end.regs = iga1_ver_sync_end;
+
+
+		iga->high_threshold.count = ARRAY_SIZE(iga1_fifo_high_threshold_select);
+		iga->high_threshold.regs = iga1_fifo_high_threshold_select;
+
+		iga->threshold.count = ARRAY_SIZE(iga1_fifo_threshold_select);	
+		iga->threshold.regs = iga1_fifo_threshold_select;
+
+		iga->display_queue.count = ARRAY_SIZE(iga1_display_queue_expire_num);
+		iga->display_queue.regs = iga1_display_queue_expire_num;
+		
+		iga->fifo_depth.count = ARRAY_SIZE(iga1_fifo_depth_select);
+		iga->fifo_depth.regs = iga1_fifo_depth_select;
+
+		iga->fetch.count = ARRAY_SIZE(iga1_fetch_count);
+		iga->fetch.regs = iga1_fetch_count;
+
+		switch (dev->pdev->device) {
+		case PCI_DEVICE_ID_VIA_K8M800:
+			iga->display_queue_expire_num = 128;
+			iga->fifo_high_threshold = 296;
+			iga->fifo_threshold = 328;
+			iga->fifo_max_depth = 384;
 			break;
 
+		case PCI_DEVICE_ID_VIA_PM800:
+			iga->display_queue_expire_num = 128;
+			iga->fifo_high_threshold = 32;
+			iga->fifo_threshold = 64;
+			iga->fifo_max_depth = 96;
+			break;
+
+		case PCI_DEVICE_ID_VIA_CN700:
+			iga->display_queue_expire_num = 128;
+			iga->fifo_high_threshold = 32;
+			iga->fifo_threshold = 80;
+			iga->fifo_max_depth = 96;
+			break;
+
+		// CX700
+		case PCI_DEVICE_ID_VIA_VT3157:
+			iga->display_queue_expire_num = 128;
+			iga->fifo_high_threshold = 32;
+			iga->fifo_threshold = 64;
+			iga->fifo_max_depth = 96;
+			break;
+
+		// K8M890
+		case PCI_DEVICE_ID_VIA_K8M890:
+			iga->display_queue_expire_num = 124;
+			iga->fifo_high_threshold = 296;
+			iga->fifo_threshold = 328;
+			iga->fifo_max_depth = 360;
+			break;
+
+		// P4M890
+		case PCI_DEVICE_ID_VIA_VT3343:
+			iga->display_queue_expire_num = 32;
+			iga->fifo_high_threshold = 64;
+			iga->fifo_threshold = 76;
+			iga->fifo_max_depth = 96;
+			break;
+
+		// P4M900
+		case PCI_DEVICE_ID_VIA_P4M900:
+			iga->fifo_high_threshold = iga->fifo_threshold = 76;
+			iga->display_queue_expire_num = 32;
+			iga->fifo_max_depth = 96;
+			break;
+
+		// VX800
+		case PCI_DEVICE_ID_VIA_VT1122:
+			iga->display_queue_expire_num = 128;
+			iga->fifo_high_threshold = 32;
+			iga->fifo_threshold = 64;
+			iga->fifo_max_depth = 96;
+			break;
+
+		// VX855
+		case PCI_DEVICE_ID_VIA_VX875:
+			iga->fifo_high_threshold = iga->fifo_threshold = 160;
+			iga->display_queue_expire_num = 320;
+			iga->fifo_max_depth = 200;
+			break;
+
+		// VX900
+		case PCI_DEVICE_ID_VIA_VX900:
+			iga->fifo_high_threshold = iga->fifo_threshold = 160;
+			iga->display_queue_expire_num = 320;
+			iga->fifo_max_depth = 192;
 		default:
-			break;	
+			break;
 		}
 	}
 	drm_mode_crtc_set_gamma_size(crtc, 256);
