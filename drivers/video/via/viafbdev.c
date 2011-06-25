@@ -24,7 +24,7 @@
 #include <linux/slab.h>
 #include <linux/stat.h>
 #include <linux/via-core.h>
-#include<asm/olpc.h>
+#include <asm/olpc.h>
 
 #define _MASTER_FILE
 #include "global.h"
