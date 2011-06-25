@@ -250,6 +250,7 @@ enum no_fbc_reason {
 	FBC_BAD_PLANE, /* fbc not supported on plane */
 	FBC_NOT_TILED, /* buffer not tiled */
 	FBC_MULTIPLE_PIPES, /* more than one pipe active */
+	FBC_MODULE_PARAM,
 };
 
 enum intel_pch {
@@ -715,6 +716,7 @@ typedef struct drm_i915_private {
 	struct intel_fbdev *fbdev;
 
 	struct drm_property *broadcast_rgb_property;
+	struct drm_property *force_audio_property;
 
 	atomic_t forcewake_count;
 } drm_i915_private_t;
@@ -908,13 +910,6 @@ struct drm_i915_file_private {
 	} mm;
 };
 
-enum intel_chip_family {
-	CHIP_I8XX = 0x01,
-	CHIP_I9XX = 0x02,
-	CHIP_I915 = 0x04,
-	CHIP_I965 = 0x08,
-};
-
 #define INTEL_INFO(dev)	(((struct drm_i915_private *) (dev)->dev_private)->info)
 
 #define IS_I830(dev)		((dev)->pci_device == 0x3577)
@@ -995,6 +990,7 @@ extern unsigned int i915_lvds_downclock;
 extern unsigned int i915_panel_use_ssc;
 extern int i915_vbt_sdvo_panel_type;
 extern unsigned int i915_enable_rc6;
+extern unsigned int i915_enable_fbc;
 
 extern int i915_suspend(struct drm_device *dev, pm_message_t state);
 extern int i915_resume(struct drm_device *dev);

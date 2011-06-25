@@ -776,7 +776,7 @@ static int i915_error_state(struct seq_file *m, void *unused)
 	seq_printf(m, "  INSTPM: 0x%08x\n", error->instpm);
 	seq_printf(m, "  seqno: 0x%08x\n", error->seqno);
 
-	for (i = 0; i < 16; i++)
+	for (i = 0; i < dev_priv->num_fence_regs; i++)
 		seq_printf(m, "  fence[%d] = %08llx\n", i, error->fence[i]);
 
 	if (error->active_bo)
@@ -1064,6 +1064,9 @@ static int i915_fbc_status(struct seq_file *m, void *unused)
 			break;
 		case FBC_MULTIPLE_PIPES:
 			seq_printf(m, "multiple pipes are enabled");
+			break;
+		case FBC_MODULE_PARAM:
+			seq_printf(m, "disabled per module param (default off)");
 			break;
 		default:
 			seq_printf(m, "unknown reason");

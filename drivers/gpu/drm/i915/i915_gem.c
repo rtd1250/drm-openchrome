@@ -56,9 +56,7 @@ static int i915_gem_phys_pwrite(struct drm_device *dev,
 static void i915_gem_free_object_tail(struct drm_i915_gem_object *obj);
 
 static int i915_gem_inactive_shrink(struct shrinker *shrinker,
-				    int nr_to_scan,
-				    gfp_t gfp_mask);
-
+				    struct shrink_control *sc);
 
 /* some bookkeeping */
 static void i915_gem_info_add_obj(struct drm_i915_private *dev_priv,
@@ -356,7 +354,7 @@ i915_gem_shmem_pread_fast(struct drm_device *dev,
 		 * page_offset = offset within page
 		 * page_length = bytes to copy for this page
 		 */
-		page_offset = offset & (PAGE_SIZE-1);
+		page_offset = offset_in_page(offset);
 		page_length = remain;
 		if ((page_offset + remain) > PAGE_SIZE)
 			page_length = PAGE_SIZE - page_offset;
@@ -455,9 +453,9 @@ i915_gem_shmem_pread_slow(struct drm_device *dev,
 		 * data_page_offset = offset with data_page_index page.
 		 * page_length = bytes to copy for this page
 		 */
-		shmem_page_offset = offset & ~PAGE_MASK;
+		shmem_page_offset = offset_in_page(offset);
 		data_page_index = data_ptr / PAGE_SIZE - first_data_page;
-		data_page_offset = data_ptr & ~PAGE_MASK;
+		data_page_offset = offset_in_page(data_ptr);
 
 		page_length = remain;
 		if ((shmem_page_offset + page_length) > PAGE_SIZE)
@@ -467,8 +465,10 @@ i915_gem_shmem_pread_slow(struct drm_device *dev,
 
 		page = read_cache_page_gfp(mapping, offset >> PAGE_SHIFT,
 					   GFP_HIGHUSER | __GFP_RECLAIMABLE);
-		if (IS_ERR(page))
-			return PTR_ERR(page);
+		if (IS_ERR(page)) {
+			ret = PTR_ERR(page);
+			goto out;
+		}
 
 		if (do_bit17_swizzling) {
 			slow_shmem_bit17_copy(page,
@@ -640,8 +640,8 @@ i915_gem_gtt_pwrite_fast(struct drm_device *dev,
 		 * page_offset = offset within page
 		 * page_length = bytes to copy for this page
 		 */
-		page_base = (offset & ~(PAGE_SIZE-1));
-		page_offset = offset & (PAGE_SIZE-1);
+		page_base = offset & PAGE_MASK;
+		page_offset = offset_in_page(offset);
 		page_length = remain;
 		if ((page_offset + remain) > PAGE_SIZE)
 			page_length = PAGE_SIZE - page_offset;
@@ -652,7 +652,6 @@ i915_gem_gtt_pwrite_fast(struct drm_device *dev,
 		 */
 		if (fast_user_write(dev_priv->mm.gtt_mapping, page_base,
 				    page_offset, user_data, page_length))
-
 			return -EFAULT;
 
 		remain -= page_length;
@@ -732,9 +731,9 @@ i915_gem_gtt_pwrite_slow(struct drm_device *dev,
 		 * page_length = bytes to copy for this page
 		 */
 		gtt_page_base = offset & PAGE_MASK;
-		gtt_page_offset = offset & ~PAGE_MASK;
+		gtt_page_offset = offset_in_page(offset);
 		data_page_index = data_ptr / PAGE_SIZE - first_data_page;
-		data_page_offset = data_ptr & ~PAGE_MASK;
+		data_page_offset = offset_in_page(data_ptr);
 
 		page_length = remain;
 		if ((gtt_page_offset + page_length) > PAGE_SIZE)
@@ -793,7 +792,7 @@ i915_gem_shmem_pwrite_fast(struct drm_device *dev,
 		 * page_offset = offset within page
 		 * page_length = bytes to copy for this page
 		 */
-		page_offset = offset & (PAGE_SIZE-1);
+		page_offset = offset_in_page(offset);
 		page_length = remain;
 		if ((page_offset + remain) > PAGE_SIZE)
 			page_length = PAGE_SIZE - page_offset;
@@ -898,9 +897,9 @@ i915_gem_shmem_pwrite_slow(struct drm_device *dev,
 		 * data_page_offset = offset with data_page_index page.
 		 * page_length = bytes to copy for this page
 		 */
-		shmem_page_offset = offset & ~PAGE_MASK;
+		shmem_page_offset = offset_in_page(offset);
 		data_page_index = data_ptr / PAGE_SIZE - first_data_page;
-		data_page_offset = data_ptr & ~PAGE_MASK;
+		data_page_offset = offset_in_page(data_ptr);
 
 		page_length = remain;
 		if ((shmem_page_offset + page_length) > PAGE_SIZE)
@@ -1452,8 +1451,9 @@ i915_gem_get_unfenced_gtt_alignment(struct drm_i915_gem_object *obj)
 	 * edge of an even tile row (where tile rows are counted as if the bo is
 	 * placed in a fenced gtt region).
 	 */
-	if (IS_GEN2(dev) ||
-	    (obj->tiling_mode == I915_TILING_Y && HAS_128_BYTE_Y_TILING(dev)))
+	if (IS_GEN2(dev))
+		tile_height = 16;
+	else if (obj->tiling_mode == I915_TILING_Y && HAS_128_BYTE_Y_TILING(dev))
 		tile_height = 32;
 	else
 		tile_height = 8;
@@ -4092,9 +4092,7 @@ i915_gpu_is_active(struct drm_device *dev)
 }
 
 static int
-i915_gem_inactive_shrink(struct shrinker *shrinker,
-			 int nr_to_scan,
-			 gfp_t gfp_mask)
+i915_gem_inactive_shrink(struct shrinker *shrinker, struct shrink_control *sc)
 {
 	struct drm_i915_private *dev_priv =
 		container_of(shrinker,
@@ -4102,6 +4100,7 @@ i915_gem_inactive_shrink(struct shrinker *shrinker,
 			     mm.inactive_shrinker);
 	struct drm_device *dev = dev_priv->dev;
 	struct drm_i915_gem_object *obj, *next;
+	int nr_to_scan = sc->nr_to_scan;
 	int cnt;
 
 	if (!mutex_trylock(&dev->struct_mutex))

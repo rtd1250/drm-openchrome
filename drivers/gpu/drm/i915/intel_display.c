@@ -1731,6 +1731,11 @@ static void intel_update_fbc(struct drm_device *dev)
 	intel_fb = to_intel_framebuffer(fb);
 	obj = intel_fb->obj;
 
+	if (!i915_enable_fbc) {
+		DRM_DEBUG_KMS("fbc disabled per module param (default off)\n");
+		dev_priv->no_fbc_reason = FBC_MODULE_PARAM;
+		goto out_disable;
+	}
 	if (intel_fb->obj->base.size > dev_priv->cfb_size) {
 		DRM_DEBUG_KMS("framebuffer too large, disabling "
 			      "compression\n");
@@ -2051,12 +2056,12 @@ static void intel_fdi_normal_train(struct drm_crtc *crtc)
 	/* enable normal train */
 	reg = FDI_TX_CTL(pipe);
 	temp = I915_READ(reg);
-	if (IS_GEN6(dev)) {
-		temp &= ~FDI_LINK_TRAIN_NONE;
-		temp |= FDI_LINK_TRAIN_NONE | FDI_TX_ENHANCE_FRAME_ENABLE;
-	} else if (IS_IVYBRIDGE(dev)) {
+	if (IS_IVYBRIDGE(dev)) {
 		temp &= ~FDI_LINK_TRAIN_NONE_IVB;
 		temp |= FDI_LINK_TRAIN_NONE_IVB | FDI_TX_ENHANCE_FRAME_ENABLE;
+	} else {
+		temp &= ~FDI_LINK_TRAIN_NONE;
+		temp |= FDI_LINK_TRAIN_NONE | FDI_TX_ENHANCE_FRAME_ENABLE;
 	}
 	I915_WRITE(reg, temp);
 
@@ -3978,54 +3983,6 @@ static void i830_update_wm(struct drm_device *dev)
 #define ILK_LP0_PLANE_LATENCY		700
 #define ILK_LP0_CURSOR_LATENCY		1300
 
-static bool ironlake_compute_wm0(struct drm_device *dev,
-				 int pipe,
-				 const struct intel_watermark_params *display,
-				 int display_latency_ns,
-				 const struct intel_watermark_params *cursor,
-				 int cursor_latency_ns,
-				 int *plane_wm,
-				 int *cursor_wm)
-{
-	struct drm_crtc *crtc;
-	int htotal, hdisplay, clock, pixel_size;
-	int line_time_us, line_count;
-	int entries, tlb_miss;
-
-	crtc = intel_get_crtc_for_pipe(dev, pipe);
-	if (crtc->fb == NULL || !crtc->enabled)
-		return false;
-
-	htotal = crtc->mode.htotal;
-	hdisplay = crtc->mode.hdisplay;
-	clock = crtc->mode.clock;
-	pixel_size = crtc->fb->bits_per_pixel / 8;
-
-	/* Use the small buffer method to calculate plane watermark */
-	entries = ((clock * pixel_size / 1000) * display_latency_ns) / 1000;
-	tlb_miss = display->fifo_size*display->cacheline_size - hdisplay * 8;
-	if (tlb_miss > 0)
-		entries += tlb_miss;
-	entries = DIV_ROUND_UP(entries, display->cacheline_size);
-	*plane_wm = entries + display->guard_size;
-	if (*plane_wm > (int)display->max_wm)
-		*plane_wm = display->max_wm;
-
-	/* Use the large buffer method to calculate cursor watermark */
-	line_time_us = ((htotal * 1000) / clock);
-	line_count = (cursor_latency_ns / line_time_us + 1000) / 1000;
-	entries = line_count * 64 * pixel_size;
-	tlb_miss = cursor->fifo_size*cursor->cacheline_size - hdisplay * 8;
-	if (tlb_miss > 0)
-		entries += tlb_miss;
-	entries = DIV_ROUND_UP(entries, cursor->cacheline_size);
-	*cursor_wm = entries + cursor->guard_size;
-	if (*cursor_wm > (int)cursor->max_wm)
-		*cursor_wm = (int)cursor->max_wm;
-
-	return true;
-}
-
 /*
  * Check the wm result.
  *
@@ -4134,12 +4091,12 @@ static void ironlake_update_wm(struct drm_device *dev)
 	unsigned int enabled;
 
 	enabled = 0;
-	if (ironlake_compute_wm0(dev, 0,
-				 &ironlake_display_wm_info,
-				 ILK_LP0_PLANE_LATENCY,
-				 &ironlake_cursor_wm_info,
-				 ILK_LP0_CURSOR_LATENCY,
-				 &plane_wm, &cursor_wm)) {
+	if (g4x_compute_wm0(dev, 0,
+			    &ironlake_display_wm_info,
+			    ILK_LP0_PLANE_LATENCY,
+			    &ironlake_cursor_wm_info,
+			    ILK_LP0_CURSOR_LATENCY,
+			    &plane_wm, &cursor_wm)) {
 		I915_WRITE(WM0_PIPEA_ILK,
 			   (plane_wm << WM0_PIPE_PLANE_SHIFT) | cursor_wm);
 		DRM_DEBUG_KMS("FIFO watermarks For pipe A -"
@@ -4148,12 +4105,12 @@ static void ironlake_update_wm(struct drm_device *dev)
 		enabled |= 1;
 	}
 
-	if (ironlake_compute_wm0(dev, 1,
-				 &ironlake_display_wm_info,
-				 ILK_LP0_PLANE_LATENCY,
-				 &ironlake_cursor_wm_info,
-				 ILK_LP0_CURSOR_LATENCY,
-				 &plane_wm, &cursor_wm)) {
+	if (g4x_compute_wm0(dev, 1,
+			    &ironlake_display_wm_info,
+			    ILK_LP0_PLANE_LATENCY,
+			    &ironlake_cursor_wm_info,
+			    ILK_LP0_CURSOR_LATENCY,
+			    &plane_wm, &cursor_wm)) {
 		I915_WRITE(WM0_PIPEB_ILK,
 			   (plane_wm << WM0_PIPE_PLANE_SHIFT) | cursor_wm);
 		DRM_DEBUG_KMS("FIFO watermarks For pipe B -"
@@ -4218,10 +4175,10 @@ static void sandybridge_update_wm(struct drm_device *dev)
 	unsigned int enabled;
 
 	enabled = 0;
-	if (ironlake_compute_wm0(dev, 0,
-				 &sandybridge_display_wm_info, latency,
-				 &sandybridge_cursor_wm_info, latency,
-				 &plane_wm, &cursor_wm)) {
+	if (g4x_compute_wm0(dev, 0,
+			    &sandybridge_display_wm_info, latency,
+			    &sandybridge_cursor_wm_info, latency,
+			    &plane_wm, &cursor_wm)) {
 		I915_WRITE(WM0_PIPEA_ILK,
 			   (plane_wm << WM0_PIPE_PLANE_SHIFT) | cursor_wm);
 		DRM_DEBUG_KMS("FIFO watermarks For pipe A -"
@@ -4230,10 +4187,10 @@ static void sandybridge_update_wm(struct drm_device *dev)
 		enabled |= 1;
 	}
 
-	if (ironlake_compute_wm0(dev, 1,
-				 &sandybridge_display_wm_info, latency,
-				 &sandybridge_cursor_wm_info, latency,
-				 &plane_wm, &cursor_wm)) {
+	if (g4x_compute_wm0(dev, 1,
+			    &sandybridge_display_wm_info, latency,
+			    &sandybridge_cursor_wm_info, latency,
+			    &plane_wm, &cursor_wm)) {
 		I915_WRITE(WM0_PIPEB_ILK,
 			   (plane_wm << WM0_PIPE_PLANE_SHIFT) | cursor_wm);
 		DRM_DEBUG_KMS("FIFO watermarks For pipe B -"
@@ -5260,6 +5217,8 @@ static int ironlake_crtc_mode_set(struct drm_crtc *crtc,
 
 	I915_WRITE(DSPCNTR(plane), dspcntr);
 	POSTING_READ(DSPCNTR(plane));
+	if (!HAS_PCH_SPLIT(dev))
+		intel_enable_plane(dev_priv, plane, pipe);
 
 	ret = intel_pipe_set_base(crtc, x, y, old_fb);
 
@@ -7668,6 +7627,7 @@ static void intel_init_display(struct drm_device *dev)
 			dev_priv->display.update_wm = NULL;
 		} else
 			dev_priv->display.update_wm = pineview_update_wm;
+		dev_priv->display.init_clock_gating = gen3_init_clock_gating;
 	} else if (IS_G4X(dev)) {
 		dev_priv->display.update_wm = g4x_update_wm;
 		dev_priv->display.init_clock_gating = g4x_init_clock_gating;
