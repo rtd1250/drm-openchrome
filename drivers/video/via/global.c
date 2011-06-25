@@ -22,7 +22,7 @@
 int viafb_platform_epia_dvi = STATE_OFF;
 int viafb_device_lcd_dualedge = STATE_OFF;
 int viafb_bus_width = 12;
-int viafb_display_hardware_layout = HW_LAYOUT_LCD_ONLY;
+int viafb_display_hardware_layout = HW_LAYOUT_LCD_DVI;
 int viafb_DeviceStatus = CRT_Device;
 int viafb_hotplug;
 int viafb_refresh = 60;
