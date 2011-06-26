@@ -204,11 +204,19 @@ static int
 via_analog_mode_valid(struct drm_connector *connector,
 			struct drm_display_mode *mode)
 {
-	//struct drm_device *dev = connector->dev;
-
 	if ((mode->flags & DRM_MODE_FLAG_INTERLACE) &&
 	    !connector->interlace_allowed)
 		return MODE_NO_INTERLACE;
+
+	if ((mode->flags & DRM_MODE_FLAG_DBLSCAN) &&
+	    !connector->doublescan_allowed)
+		return MODE_NO_DBLESCAN;
+
+	/* Check Clock Range */
+	if (mode->clock > 400000)
+		return MODE_CLOCK_HIGH;
+	if (mode->clock < 25000)
+		return MODE_CLOCK_LOW;
 
 	return MODE_OK;
 }
@@ -258,13 +266,13 @@ void via_analog_init(struct drm_device *dev)
 	drm_connector_helper_add(connector, &via_analog_connector_helper_funcs);
 
 	connector->interlace_allowed = true;
-	connector->doublescan_allowed = true;
+	connector->doublescan_allowed = false;
 
 	/* Setup the encoders and attach them */
 	drm_encoder_init(dev, enc, &via_analog_enc_funcs, DRM_MODE_ENCODER_DAC);
 	drm_encoder_helper_add(enc, &via_analog_enc_helper_funcs);
-	enc->possible_clones = 1; //clone_mask;
-	enc->possible_crtcs = 1; //crtc_mask;
+	enc->possible_clones = 0;
+	enc->possible_crtcs = BIT(1) | BIT(0);
 
 	drm_mode_connector_attach_encoder(connector, enc);
 
