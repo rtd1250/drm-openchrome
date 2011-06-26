@@ -915,7 +915,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 	mode_cmd.bpp = sizes->surface_bpp;
 
 	mode_cmd.pitch = ((mode_cmd.width * mode_cmd.bpp >> 3) + 7) & ~7;
-	size = mode_cmd.pitch * mode_cmd.height;
+	size = ALIGN(mode_cmd.pitch * mode_cmd.height, PAGE_SIZE);
 
 	obj = drm_gem_object_alloc(helper->dev, size);
 	ret = ttm_bo_allocate(&dev_priv->bdev, size, ttm_bo_type_kernel,
