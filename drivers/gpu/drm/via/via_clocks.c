@@ -382,19 +382,16 @@ via_get_clk_value(struct drm_device *dev, int clk)
 static void 
 via_set_vclock(struct drm_crtc *crtc, u32 clk)
 {
+	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	struct drm_device *dev = crtc->dev;
-	bool first_iga = true;
 	u8 orig;
-
-	if (dev_priv->iga[0].iga1 != crtc->base.id)
-		first_iga = false;
 
 	/* H.W. Reset : ON */
 	orig = (vga_rcrt(VGABASE, 0x17) & ~0x80);
 	vga_wcrt(VGABASE, 0x17, orig);
 
-	if (first_iga) {
+	if (!iga->index) {
 		/* Change D,N FOR VCLK */
 		switch (dev->pdev->device) {
 		case PCI_DEVICE_ID_VIA_CLE266:
@@ -451,7 +448,7 @@ via_set_vclock(struct drm_crtc *crtc, u32 clk)
 	vga_wcrt(VGABASE, 0x17, (orig | BIT(7)));
 
 	/* Reset PLL */
-	if (first_iga) {
+	if (!iga->index) {
 		orig = (vga_rseq(VGABASE, 0x40) & ~0x02);
 		vga_wseq(VGABASE, 0x40, (orig | 0x02));
 		vga_wseq(VGABASE, 0x40, orig);
@@ -461,7 +458,7 @@ via_set_vclock(struct drm_crtc *crtc, u32 clk)
 		vga_wseq(VGABASE, 0x40, (orig | 0x01));
 	}
 
-	/* The clock is finally ready!! */
+	/* The clock is finally ready !! */
 	orig = (vga_r(VGABASE, VGA_MIS_R) & ~0x0C);
 	vga_w(VGABASE, VGA_MIS_W, orig | 0x0C);
 }

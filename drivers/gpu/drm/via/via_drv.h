@@ -92,7 +92,7 @@ struct via_i2c {
 
 struct via_crtc {
 	struct drm_gem_object *cursor_bo;
-	struct drm_crtc crtc;
+	struct drm_crtc base;
 	struct crtc_timings timings;
 	struct registers fetch;
 	unsigned int display_queue_expire_num;
@@ -103,7 +103,7 @@ struct via_crtc {
 	struct registers high_threshold;
 	struct registers threshold;
 	struct registers fifo_depth;
-	uint32_t iga1;
+	uint32_t index;
 };
 
 struct drm_via_private {

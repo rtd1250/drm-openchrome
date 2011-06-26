@@ -33,9 +33,9 @@ static int
 via_iga1_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
 			uint32_t handle, uint32_t width, uint32_t height)
 {
+	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	int max_height = 64, max_width = 64, ret = 0;
-	struct via_crtc *iga = &dev_priv->iga[0];
 	struct drm_device *dev = crtc->dev;
 	struct drm_gem_object *obj = NULL;
 	uint32_t temp;
@@ -158,17 +158,12 @@ via_iga2_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
 static void
 via_crtc_destroy(struct drm_crtc *crtc)
 {
-	struct drm_via_private *dev_priv = crtc->dev->dev_private;
-	struct via_crtc *iga = &dev_priv->iga[0];
-
-	if (iga->iga1 != crtc->base.id)
-		iga = &dev_priv->iga[1];
+	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 
 	drm_crtc_cleanup(crtc);
 
 	if (iga->cursor_bo)
 		crtc->dev->driver->gem_free_object(iga->cursor_bo);
-	if (crtc) kfree(crtc);
 }
 
 static const struct drm_crtc_funcs via_iga1_funcs = {
@@ -230,10 +225,9 @@ disable_second_display_channel(struct drm_via_private *dev_priv)
 static void 
 via_load_FIFO_reg(struct via_crtc *iga, struct drm_display_mode *mode)
 {
-	struct drm_device *dev = iga->crtc.dev;
+	struct drm_device *dev = iga->base.dev;
 	int hor_active = mode->hdisplay, ver_active = mode->vdisplay;
 	struct drm_via_private *dev_priv = dev->dev_private;
-	struct drm_crtc *crtc = &iga->crtc;
 	int queue_expire_num, reg_value;
 
 	/* If resolution > 1280x1024, expire length = 64, else
@@ -245,7 +239,7 @@ via_load_FIFO_reg(struct via_crtc *iga, struct drm_display_mode *mode)
 	else
 		queue_expire_num = iga->display_queue_expire_num;
 
-        if (iga->iga1 == crtc->base.id) {
+        if (!iga->index) {
 		/* Set Display FIFO Depth Select */
 		reg_value = IGA1_FIFO_DEPTH_SELECT_FORMULA(iga->fifo_max_depth);
 		load_value_to_registers(VGABASE, &iga->fifo_depth, reg_value);
@@ -272,14 +266,13 @@ via_load_FIFO_reg(struct via_crtc *iga, struct drm_display_mode *mode)
 
 void via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 {
-	struct drm_crtc *crtc = &iga->crtc;
-	struct drm_device *dev = iga->crtc.dev;
+	struct drm_device *dev = iga->base.dev;
 	struct drm_via_private *dev_priv = dev->dev_private;
 	int reg_value = 0;
 
 	via_unlock_crt(VGABASE);
 
-	if (iga->iga1 == crtc->base.id) {
+	if (!iga->index) {
 		reg_value = IGA1_HOR_TOTAL_FORMULA(mode->crtc_htotal);
 		load_value_to_registers(VGABASE, &iga->timings.htotal, reg_value);
 
@@ -449,9 +442,9 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 		struct drm_display_mode *adjusted_mode,
 		int x, int y, struct drm_framebuffer *old_fb)
 {
+	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
-	struct via_crtc *iga = &dev_priv->iga[0];
 	struct drm_framebuffer *fb = crtc->fb;
 	struct drm_device *dev = crtc->dev;
 	int value;
@@ -459,9 +452,6 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 
 	if (!fb)
 		fb = old_fb;
-
-	if (iga->iga1 != crtc->base.id)
-		iga = &dev_priv->iga[1];
 
 	vga_r(VGABASE, VGA_IS1_RC);
 	vga_w(VGABASE, VGA_ATT_IW, 0x00);
@@ -474,7 +464,7 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 
 	regs_init(VGABASE);
 
-        if (iga->iga1 == crtc->base.id) {
+        if (!iga->index) {
 		via_unlock_crt(VGABASE);
 		vga_wcrt(VGABASE, 0x09, 0x00);	/*initial CR09=0 */
 		orig = (vga_rcrt(VGABASE, 0x11) & ~0x70);	
@@ -528,7 +518,7 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 	vga_wcrt(VGABASE, 0x17, orig);
 
 	/* Load Fetch registers */
-        if (iga->iga1 == crtc->base.id)
+        if (!iga->index)
 		value = IGA1_FETCH_COUNT_FORMULA(mode->hdisplay,
 						fb->bits_per_pixel / 8);
 	else
@@ -757,8 +747,9 @@ via_crtc_init(struct drm_device *dev, int index)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
 	struct via_crtc *iga = &dev_priv->iga[index];
-	struct drm_crtc *crtc = &iga->crtc;
+	struct drm_crtc *crtc = &iga->base;
 
+	iga->index = index;
 	if (index) {
 		drm_crtc_init(dev, crtc, &via_iga2_funcs);
 		drm_crtc_helper_add(crtc, &via_iga2_helper_funcs);
@@ -895,7 +886,6 @@ via_crtc_init(struct drm_device *dev, int index)
 	} else {
 		drm_crtc_init(dev, crtc, &via_iga1_funcs);
 		drm_crtc_helper_add(crtc, &via_iga1_helper_funcs);
-		iga->iga1 = crtc->base.id;
 
 		iga->timings.htotal.count = ARRAY_SIZE(iga1_hor_total);
 		iga->timings.htotal.regs = iga1_hor_total;
