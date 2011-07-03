@@ -254,12 +254,12 @@ extern int via_modeset_init(struct drm_device *dev);
 
 extern void via_i2c_exit(struct drm_device *dev);
 extern int via_i2c_init(struct drm_device *dev);
+extern int via_get_edid_modes(struct drm_connector *connector);
 
 extern void via_lock_crt(void __iomem *regs);
 extern void via_unlock_crt(void __iomem *regs);
 extern void via_set_pll(struct drm_crtc *crtc, struct drm_display_mode *mode);
 
-extern int via_get_edid_modes(struct drm_connector *connector);
 extern void via_analog_init(struct drm_device *dev);
 
 #endif

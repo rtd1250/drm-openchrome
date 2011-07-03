@@ -849,7 +849,7 @@ via_crtc_init(struct drm_device *dev, int index)
 		iga->timings.vsync_end.count = ARRAY_SIZE(iga2_ver_sync_end);
 		iga->timings.vsync_end.regs = iga2_ver_sync_end;
 
-
+		/* Secondary FIFO setup */
 		iga->high_threshold.count = ARRAY_SIZE(iga2_fifo_high_threshold_select);
 		iga->high_threshold.regs = iga2_fifo_high_threshold_select;
 		
@@ -878,132 +878,6 @@ via_crtc_init(struct drm_device *dev, int index)
 			iga->fifo_high_threshold = 64;
 			iga->fifo_threshold = 128;
 			iga->fifo_max_depth = 192;
-			break;
-
-		case PCI_DEVICE_ID_VIA_CN700:
-			iga->display_queue_expire_num = 0;
-			iga->fifo_high_threshold = 64;
-			iga->fifo_threshold = 80;
-			iga->fifo_max_depth = 96;
-			break;
-
-		// CX700
-		case PCI_DEVICE_ID_VIA_VT3157:
-			iga->fifo_high_threshold = iga->fifo_threshold = 128;
-			iga->display_queue_expire_num = 124;
-			iga->fifo_max_depth = 192;
-			break;
-
-		// K8M890
-		case PCI_DEVICE_ID_VIA_K8M890:
-			iga->display_queue_expire_num = 124;
-			iga->fifo_high_threshold = 296;
-			iga->fifo_threshold = 328;
-			iga->fifo_max_depth = 360;
-			break;
-
-		// P4M890
-		case PCI_DEVICE_ID_VIA_VT3343:
-			iga->display_queue_expire_num = 32;
-			iga->fifo_high_threshold = 64;
-			iga->fifo_threshold = 76;
-			iga->fifo_max_depth = 96;
-			break;
-
-		// P4M900
-		case PCI_DEVICE_ID_VIA_P4M900:
-			iga->fifo_high_threshold = iga->fifo_threshold = 76;
-			iga->display_queue_expire_num = 32;
-			iga->fifo_max_depth = 96;
-			break;
-
-		// VX800
-		case PCI_DEVICE_ID_VIA_VT1122:
-			iga->fifo_high_threshold = iga->fifo_threshold = 152;
-			iga->display_queue_expire_num = 64;
-			iga->fifo_max_depth = 192;
-			break;
-
-		// VX855
-		case PCI_DEVICE_ID_VIA_VX875:
-		// VX900
-		case PCI_DEVICE_ID_VIA_VX900:
-			iga->fifo_high_threshold = iga->fifo_threshold = 320;
-			iga->display_queue_expire_num = 160;
-			iga->fifo_max_depth = 400;
-		default:
-			break;
-		}
-
-	} else {
-		drm_crtc_init(dev, crtc, &via_iga1_funcs);
-		drm_crtc_helper_add(crtc, &via_iga1_helper_funcs);
-
-		iga->timings.htotal.count = ARRAY_SIZE(iga1_hor_total);
-		iga->timings.htotal.regs = iga1_hor_total;
-
-		iga->timings.hdisplay.count = ARRAY_SIZE(iga1_hor_addr);
-		iga->timings.hdisplay.regs = iga1_hor_addr;
-
-		iga->timings.hblank_start.count = ARRAY_SIZE(iga1_hor_blank_start);
-		iga->timings.hblank_start.regs = iga1_hor_blank_start;
-
-		iga->timings.hblank_end.count = ARRAY_SIZE(iga1_hor_blank_end);
-		iga->timings.hblank_end.regs = iga1_hor_blank_end;
-	
-		iga->timings.hsync_start.count = ARRAY_SIZE(iga1_hor_sync_start);
-		iga->timings.hsync_start.regs = iga1_hor_sync_start;
-
-		iga->timings.hsync_end.count = ARRAY_SIZE(iga1_hor_sync_end);
-		iga->timings.hsync_end.regs = iga1_hor_sync_end;
-
-		iga->timings.vtotal.count = ARRAY_SIZE(iga1_ver_total);
-		iga->timings.vtotal.regs = iga1_ver_total;
-
-		iga->timings.vdisplay.count = ARRAY_SIZE(iga1_ver_addr);
-		iga->timings.vdisplay.regs = iga1_ver_addr;
-
-		iga->timings.vblank_start.count = ARRAY_SIZE(iga1_ver_blank_start);
-		iga->timings.vblank_start.regs = iga1_ver_blank_start;
-
-		iga->timings.vblank_end.count = ARRAY_SIZE(iga1_ver_blank_end);
-		iga->timings.vblank_end.regs = iga1_ver_blank_end;
-
-		iga->timings.vsync_start.count = ARRAY_SIZE(iga1_ver_sync_start);
-		iga->timings.vsync_start.regs = iga1_ver_sync_start;
-
-		iga->timings.vsync_end.count = ARRAY_SIZE(iga1_ver_sync_end);
-		iga->timings.vsync_end.regs = iga1_ver_sync_end;
-
-
-		iga->high_threshold.count = ARRAY_SIZE(iga1_fifo_high_threshold_select);
-		iga->high_threshold.regs = iga1_fifo_high_threshold_select;
-
-		iga->threshold.count = ARRAY_SIZE(iga1_fifo_threshold_select);	
-		iga->threshold.regs = iga1_fifo_threshold_select;
-
-		iga->display_queue.count = ARRAY_SIZE(iga1_display_queue_expire_num);
-		iga->display_queue.regs = iga1_display_queue_expire_num;
-		
-		iga->fifo_depth.count = ARRAY_SIZE(iga1_fifo_depth_select);
-		iga->fifo_depth.regs = iga1_fifo_depth_select;
-
-		iga->fetch.count = ARRAY_SIZE(iga1_fetch_count);
-		iga->fetch.regs = iga1_fetch_count;
-
-		switch (dev->pdev->device) {
-		case PCI_DEVICE_ID_VIA_K8M800:
-			iga->display_queue_expire_num = 128;
-			iga->fifo_high_threshold = 296;
-			iga->fifo_threshold = 328;
-			iga->fifo_max_depth = 384;
-			break;
-
-		case PCI_DEVICE_ID_VIA_PM800:
-			iga->display_queue_expire_num = 128;
-			iga->fifo_high_threshold = 32;
-			iga->fifo_threshold = 64;
-			iga->fifo_max_depth = 96;
 			break;
 
 		case PCI_DEVICE_ID_VIA_CN700:
@@ -1064,6 +938,131 @@ via_crtc_init(struct drm_device *dev, int index)
 			iga->fifo_high_threshold = iga->fifo_threshold = 160;
 			iga->display_queue_expire_num = 320;
 			iga->fifo_max_depth = 192;
+		default:
+			break;
+		}
+	} else {
+		drm_crtc_init(dev, crtc, &via_iga1_funcs);
+		drm_crtc_helper_add(crtc, &via_iga1_helper_funcs);
+
+		iga->timings.htotal.count = ARRAY_SIZE(iga1_hor_total);
+		iga->timings.htotal.regs = iga1_hor_total;
+
+		iga->timings.hdisplay.count = ARRAY_SIZE(iga1_hor_addr);
+		iga->timings.hdisplay.regs = iga1_hor_addr;
+
+		iga->timings.hblank_start.count = ARRAY_SIZE(iga1_hor_blank_start);
+		iga->timings.hblank_start.regs = iga1_hor_blank_start;
+
+		iga->timings.hblank_end.count = ARRAY_SIZE(iga1_hor_blank_end);
+		iga->timings.hblank_end.regs = iga1_hor_blank_end;
+	
+		iga->timings.hsync_start.count = ARRAY_SIZE(iga1_hor_sync_start);
+		iga->timings.hsync_start.regs = iga1_hor_sync_start;
+
+		iga->timings.hsync_end.count = ARRAY_SIZE(iga1_hor_sync_end);
+		iga->timings.hsync_end.regs = iga1_hor_sync_end;
+
+		iga->timings.vtotal.count = ARRAY_SIZE(iga1_ver_total);
+		iga->timings.vtotal.regs = iga1_ver_total;
+
+		iga->timings.vdisplay.count = ARRAY_SIZE(iga1_ver_addr);
+		iga->timings.vdisplay.regs = iga1_ver_addr;
+
+		iga->timings.vblank_start.count = ARRAY_SIZE(iga1_ver_blank_start);
+		iga->timings.vblank_start.regs = iga1_ver_blank_start;
+
+		iga->timings.vblank_end.count = ARRAY_SIZE(iga1_ver_blank_end);
+		iga->timings.vblank_end.regs = iga1_ver_blank_end;
+
+		iga->timings.vsync_start.count = ARRAY_SIZE(iga1_ver_sync_start);
+		iga->timings.vsync_start.regs = iga1_ver_sync_start;
+
+		iga->timings.vsync_end.count = ARRAY_SIZE(iga1_ver_sync_end);
+		iga->timings.vsync_end.regs = iga1_ver_sync_end;
+
+		/* Primary FIFO setup */
+		iga->high_threshold.count = ARRAY_SIZE(iga1_fifo_high_threshold_select);
+		iga->high_threshold.regs = iga1_fifo_high_threshold_select;
+
+		iga->threshold.count = ARRAY_SIZE(iga1_fifo_threshold_select);	
+		iga->threshold.regs = iga1_fifo_threshold_select;
+
+		iga->display_queue.count = ARRAY_SIZE(iga1_display_queue_expire_num);
+		iga->display_queue.regs = iga1_display_queue_expire_num;
+		
+		iga->fifo_depth.count = ARRAY_SIZE(iga1_fifo_depth_select);
+		iga->fifo_depth.regs = iga1_fifo_depth_select;
+
+		iga->fetch.count = ARRAY_SIZE(iga1_fetch_count);
+		iga->fetch.regs = iga1_fetch_count;
+
+		switch (dev->pdev->device) {
+		case PCI_DEVICE_ID_VIA_K8M800:
+			iga->display_queue_expire_num = 128;
+			iga->fifo_high_threshold = 296;
+			iga->fifo_threshold = 328;
+			iga->fifo_max_depth = 384;
+			break;
+
+		case PCI_DEVICE_ID_VIA_PM800:
+			iga->display_queue_expire_num = 128;
+			iga->fifo_high_threshold = 32;
+			iga->fifo_threshold = 64;
+			iga->fifo_max_depth = 96;
+			break;
+
+		case PCI_DEVICE_ID_VIA_CN700:
+			iga->display_queue_expire_num = 0;
+			iga->fifo_high_threshold = 64;
+			iga->fifo_threshold = 80;
+			iga->fifo_max_depth = 96;
+			break;
+
+		// CX700
+		case PCI_DEVICE_ID_VIA_VT3157:
+			iga->fifo_high_threshold = iga->fifo_threshold = 128;
+			iga->display_queue_expire_num = 124;
+			iga->fifo_max_depth = 192;
+			break;
+
+		// K8M890
+		case PCI_DEVICE_ID_VIA_K8M890:
+			iga->display_queue_expire_num = 124;
+			iga->fifo_high_threshold = 296;
+			iga->fifo_threshold = 328;
+			iga->fifo_max_depth = 360;
+			break;
+
+		// P4M890
+		case PCI_DEVICE_ID_VIA_VT3343:
+			iga->display_queue_expire_num = 32;
+			iga->fifo_high_threshold = 64;
+			iga->fifo_threshold = 76;
+			iga->fifo_max_depth = 96;
+			break;
+
+		// P4M900
+		case PCI_DEVICE_ID_VIA_P4M900:
+			iga->fifo_high_threshold = iga->fifo_threshold = 76;
+			iga->display_queue_expire_num = 32;
+			iga->fifo_max_depth = 96;
+			break;
+
+		// VX800
+		case PCI_DEVICE_ID_VIA_VT1122:
+			iga->fifo_high_threshold = iga->fifo_threshold = 152;
+			iga->display_queue_expire_num = 64;
+			iga->fifo_max_depth = 192;
+			break;
+
+		// VX855
+		case PCI_DEVICE_ID_VIA_VX875:
+		// VX900
+		case PCI_DEVICE_ID_VIA_VX900:
+			iga->fifo_high_threshold = iga->fifo_threshold = 320;
+			iga->display_queue_expire_num = 160;
+			iga->fifo_max_depth = 400;
 		default:
 			break;
 		}
