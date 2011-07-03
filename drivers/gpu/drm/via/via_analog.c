@@ -43,8 +43,8 @@ static void
 via_analog_dpms(struct drm_encoder *encoder, int mode)
 {
 	struct drm_via_private *dev_priv = encoder->dev->dev_private;
-	u8 mask = BIT(5) + BIT(4), val = 0, orig;
 	struct drm_crtc *crtc = encoder->crtc;
+	u8 mask = BIT(5) + BIT(4), orig;
 	struct via_crtc *iga;
 
 	/* Not attached to any crtc */
@@ -52,30 +52,28 @@ via_analog_dpms(struct drm_encoder *encoder, int mode)
 		return;
 
 	/* Select the proper IGA */
-	iga = container_of(encoder->crtc, struct via_crtc, base);
-	orig = (vga_rseq(VGABASE, 0x16) & ~0x40);
+	orig = (vga_rseq(VGABASE, 0x16) & ~BIT(6));
+	iga = container_of(crtc, struct via_crtc, base);
 	if (iga->index)
-		val = BIT(6);
-	vga_wseq(VGABASE, 0x16, ((val & 0x40) | orig));
+		orig |= BIT(6);
+	vga_wseq(VGABASE, 0x16, orig);
 
-	orig = (vga_rcrt(VGABASE, 0x36) & ~0x30);
+	orig = (vga_rcrt(VGABASE, 0x36) & ~mask);
 	switch (mode) {
 	case DRM_MODE_DPMS_SUSPEND:
-		val |= BIT(5);		// VSync off
+		orig |= BIT(5);		// VSync off
 		break;
 	case DRM_MODE_DPMS_STANDBY:
-		val |= BIT(4);		// HSync off
+		orig |= BIT(4);		// HSync off
 		break;
 	case DRM_MODE_DPMS_OFF:
-		val |= mask;		// HSync and VSync off
+		orig |= mask;		// HSync and VSync off
 		break;
 	case DRM_MODE_DPMS_ON:
 	default:
-		val = 0;
 		break;
 	}
-
-	vga_wcrt(VGABASE, 0x36, ((val & mask) | orig));
+	vga_wcrt(VGABASE, 0x36, orig);
 }
 
 /* Pass our mode to the connectors and the CRTC to give them a chance to
@@ -103,21 +101,6 @@ static void
 via_analog_commit(struct drm_encoder *encoder)
 {
 	struct drm_encoder_helper_funcs *encoder_funcs = encoder->helper_private;
-	struct drm_via_private *dev_priv = encoder->dev->dev_private;
-	struct drm_crtc *crtc = encoder->crtc;
-	struct via_crtc *iga;
-	u8 val, orig;
-
-	/* Not attached to any crtc */
-	if (!crtc)
-		return;
-
-	/* Select the proper IGA */
-	iga = container_of(encoder->crtc, struct via_crtc, base);
-	orig = (vga_rseq(VGABASE, 0x16) & ~0x40);
-	if (iga->index)
-		val = BIT(6);
-	vga_wseq(VGABASE, 0x16, ((val & BIT(6)) | orig));
 
 	encoder_funcs->dpms(encoder, DRM_MODE_DPMS_ON);
 }

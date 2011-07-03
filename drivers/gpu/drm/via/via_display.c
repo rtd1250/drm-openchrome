@@ -29,6 +29,47 @@
 #include "via_drv.h"
 #include "via_disp_reg.h"
 
+
+void via_lock_crt(void __iomem *regs)
+{
+	u8 orig = (vga_rcrt(regs, 0x11) & ~0x80);
+
+	vga_wcrt(regs, 0x11, (orig | 0x80));
+}
+
+void via_unlock_crt(void __iomem *regs)
+{
+	u8 orig = (vga_rcrt(regs, 0x11) & ~0x80);
+
+	vga_wcrt(regs, 0x11, orig);
+	orig = (vga_rcrt(regs, 0x47) & ~0x01);
+	vga_wcrt(regs, 0x47, orig);
+}
+
+static void
+enable_second_display_channel(struct drm_via_private *dev_priv)
+{
+	u8 orig = vga_rcrt(VGABASE, 0x6A) & ~BIT(6);
+
+	vga_wcrt(VGABASE, 0x6A, orig);
+	vga_wcrt(VGABASE, 0x6A, (orig | BIT(7)));
+	orig |= (BIT(7) | BIT(6));
+	vga_wcrt(VGABASE, 0x6A, orig);
+	orig = ~0x3F;
+	vga_wcrt(VGABASE, 0x6A, orig);
+}
+
+static void
+disable_second_display_channel(struct drm_via_private *dev_priv)
+{
+	u8 orig = vga_rcrt(VGABASE, 0x6A) & ~BIT(6);
+
+	vga_wcrt(VGABASE, 0x6A, orig);
+	orig &= ~BIT(7);
+	vga_wcrt(VGABASE, 0x6A, orig);
+	vga_wcrt(VGABASE, 0x6A, (orig | BIT(6)));
+}
+
 static int
 via_iga1_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
 			uint32_t handle, uint32_t width, uint32_t height)
@@ -98,40 +139,36 @@ via_iga1_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green, u16 *blue,
 {
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	int end = (start + size > 256) ? 256 : start + size, i;
-	u8 val;
+	u8 val, sr1a = vga_rseq(VGABASE, 0x1A);
 
 	if (!crtc->enabled || !crtc->fb)
 		return;
 
 	if (crtc->fb->bits_per_pixel == 8) {
-		u8 sr1a = vga_rseq(VGABASE, 0x1a);
-
 		/* Prepare for initialize IGA1's LUT: */
-		vga_wseq(VGABASE, 0x1a, sr1a & 0xfe);
+		vga_wseq(VGABASE, 0x1A, sr1a & 0xFE);
 		/* Change to Primary Display's LUT. */
-		val = vga_rseq(VGABASE, 0x1b);
-		vga_wseq(VGABASE, 0x1b, val);
+		val = vga_rseq(VGABASE, 0x1B);
+		vga_wseq(VGABASE, 0x1B, val);
 		val = vga_rcrt(VGABASE, 0x67);
 		vga_wcrt(VGABASE, 0x67, val);
 
 		/* Fill in IGA1's LUT. */
 		for (i = start; i < end; i++) {
 			/* Bit mask of palette */
-			vga_w(VGABASE, VGA_PEL_MSK, 0xff);
+			vga_w(VGABASE, VGA_PEL_MSK, 0xFF);
 			vga_w(VGABASE, VGA_PEL_IW, i);
 			vga_w(VGABASE, VGA_PEL_D, red[i] >> 8);
 			vga_w(VGABASE, VGA_PEL_D, green[i] >> 8);
 			vga_w(VGABASE, VGA_PEL_D, blue[i] >> 8);
 		}
 		/* enable LUT */
-		vga_wseq(VGABASE, 0x1b, BIT(0));
+		vga_wseq(VGABASE, 0x1B, BIT(0));
 		/*  Disable gamma in case it was enabled previously */
 		vga_wcrt(VGABASE, 0x33, BIT(7));	
 		/* access Primary Display's LUT. */
-		vga_wseq(VGABASE, 0x1a, sr1a & 0xfe);
+		vga_wseq(VGABASE, 0x1A, sr1a & 0xFE);
 	} else {
-		val = vga_rseq(VGABASE, 0x1a);
-
 		/* Enable Gamma */
 		vga_wcrt(VGABASE, 0x80, BIT(7));
 		vga_wseq(VGABASE, 0x00, BIT(0));
@@ -139,13 +176,13 @@ via_iga1_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green, u16 *blue,
 		/* Fill in IGA1's gamma. */
 		for (i = start; i < end; i++) {
 			/* bit mask of palette */
-			vga_w(VGABASE, VGA_PEL_MSK, 0xff);
+			vga_w(VGABASE, VGA_PEL_MSK, 0xFF);
 			vga_w(VGABASE, VGA_PEL_IW, i);
 			vga_w(VGABASE, VGA_PEL_D, red[i] >> 8);
 			vga_w(VGABASE, VGA_PEL_D, green[i] >> 8);
 			vga_w(VGABASE, VGA_PEL_D, blue[i] >> 8);
 		}
-		vga_wseq(VGABASE, 0x1a, val);
+		vga_wseq(VGABASE, 0x1A, sr1a);
 	}
 }
 
@@ -153,6 +190,61 @@ static void
 via_iga2_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
 			u16 *blue, uint32_t start, uint32_t size)
 {
+	struct drm_via_private *dev_priv = crtc->dev->dev_private;
+	int end = (start + size > 256) ? 256 : start + size, i;
+	u8 val, sr1a = vga_rseq(VGABASE, 0x1A);
+
+	if (!crtc->enabled || !crtc->fb)
+		return;
+
+	if (crtc->fb->bits_per_pixel == 8) {
+		/* Change Shadow to Secondary Display's LUT */
+		vga_wseq(VGABASE, 0x1A, sr1a | 0x01);
+
+		/* Enable Secondary Display Engine */
+		val = (vga_rseq(VGABASE, 0x1B) | 0x80);
+		vga_wseq(VGABASE, 0x1B, val);
+
+		/* Second Display Color Depth, 8bpp */
+		val = (vga_rcrt(VGABASE, 0x67) & 0x3F);
+		vga_wcrt(VGABASE, 0x67, val);
+
+		/* Fill in IGA2's LUT */
+		for (i = start; i < end; i++) {
+			/* Bit mask of palette */
+			vga_w(VGABASE, VGA_PEL_MSK, 0xFF);
+			vga_w(VGABASE, VGA_PEL_IW, i);
+			vga_w(VGABASE, VGA_PEL_D, red[i] >> 8);
+			vga_w(VGABASE, VGA_PEL_D, green[i] >> 8);
+			vga_w(VGABASE, VGA_PEL_D, blue[i] >> 8);
+		}
+		/*  Disable gamma in case it was enabled previously */
+		val = (vga_rcrt(VGABASE, 0x6A) & ~BIT(1));
+		vga_wcrt(VGABASE, 0x6A, val);
+
+		/* access Primary Display's LUT. */
+		vga_wseq(VGABASE, 0x1A, sr1a & 0xFE);
+	} else {
+		/* Enable Gamma */
+		vga_wseq(VGABASE, 0x1A, sr1a | BIT(0));
+		val = (vga_rcrt(VGABASE, 0x6A) | BIT(1)); 
+		vga_wcrt(VGABASE, 0x6A, val);
+
+		if (!(val & BIT(7)))
+			enable_second_display_channel(dev_priv);
+
+		/* Fill in IGA1's gamma. */
+		for (i = start; i < end; i++) {
+			/* bit mask of palette */
+			vga_w(VGABASE, VGA_PEL_MSK, 0xFF);
+			vga_w(VGABASE, VGA_PEL_IW, i);
+			vga_w(VGABASE, VGA_PEL_D, red[i] >> 8);
+			vga_w(VGABASE, VGA_PEL_D, green[i] >> 8);
+			vga_w(VGABASE, VGA_PEL_D, blue[i] >> 8);
+		}
+	}
+	/* access Primary Display's LUT. */
+	vga_wseq(VGABASE, 0x1A, sr1a);
 }
 
 static void
@@ -181,46 +273,6 @@ static const struct drm_crtc_funcs via_iga2_funcs = {
 	.set_config = drm_crtc_helper_set_config,
 	.destroy = via_crtc_destroy,
 };
-
-void via_lock_crt(void __iomem *regs)
-{
-	u8 orig = (vga_rcrt(regs, 0x11) & ~0x80);
-
-	vga_wcrt(regs, 0x11, (orig | 0x80));
-}
-
-void via_unlock_crt(void __iomem *regs)
-{
-	u8 orig = (vga_rcrt(regs, 0x11) & ~0x80);
-
-	vga_wcrt(regs, 0x11, orig);
-	orig = (vga_rcrt(regs, 0x47) & ~0x01);
-	vga_wcrt(regs, 0x47, orig);
-}
-
-static void
-enable_second_display_channel(struct drm_via_private *dev_priv)
-{
-	u8 orig = vga_rcrt(VGABASE, 0x6A) & ~BIT(6);
-
-	vga_wcrt(VGABASE, 0x6A, orig);
-	vga_wcrt(VGABASE, 0x6A, (orig | BIT(7)));
-	orig |= (BIT(7) | BIT(6));
-	vga_wcrt(VGABASE, 0x6A, orig);
-	orig = ~0x3F;
-	vga_wcrt(VGABASE, 0x6A, orig);
-}
-
-static void
-disable_second_display_channel(struct drm_via_private *dev_priv)
-{
-	u8 orig = vga_rcrt(VGABASE, 0x6A) & ~BIT(6);
-
-	vga_wcrt(VGABASE, 0x6A, orig);
-	orig &= ~BIT(7);
-	vga_wcrt(VGABASE, 0x6A, orig);
-	vga_wcrt(VGABASE, 0x6A, (orig | BIT(6)));
-}
 
 static void 
 via_load_FIFO_reg(struct via_crtc *iga, struct drm_display_mode *mode)
