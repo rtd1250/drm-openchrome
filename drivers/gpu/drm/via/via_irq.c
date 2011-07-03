@@ -163,7 +163,7 @@ int via_enable_vblank(struct drm_device *dev, int crtc)
 	struct drm_via_private *dev_priv = dev->dev_private;
 	u32 status;
 
-	if (crtc != 0) {
+	if (crtc > dev->num_crtcs) {
 		DRM_ERROR("%s:  bad crtc %d\n", __func__, crtc);
 		return -EINVAL;
 	}
@@ -188,7 +188,7 @@ void via_disable_vblank(struct drm_device *dev, int crtc)
 	VIA_WRITE8(0x83d4, 0x11);
 	VIA_WRITE8(0x83d5, VIA_READ8(0x83d5) & ~0x30);
 
-	if (crtc != 0)
+	if (crtc > dev->num_crtcs)
 		DRM_ERROR("%s:  bad crtc %d\n", __func__, crtc);
 }
 
