@@ -1010,7 +1010,8 @@ int via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **ptr)
 	helper->fbdev = info;
 	helper->funcs = &via_fb_helper_funcs;
 
-	strcpy(info->fix.id, "viadrmfb");
+	strcpy(info->fix.id, dev->driver->name);
+	strcat(info->fix.id, "drmfb");
 	info->flags = FBINFO_DEFAULT | FBINFO_CAN_FORCE_OUTPUT;
 	info->fbops = &viafb_ops; 
 
@@ -1025,8 +1026,8 @@ int via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **ptr)
 	if (ret)
 		goto out_err;
 
-	/* 2 CRTC and 2 Connectors ? */
-	ret = drm_fb_helper_init(dev, helper, 1, 1);
+	ret = drm_fb_helper_init(dev, helper, dev->num_crtcs,
+				dev->mode_config.num_connector);
 	if (ret) {
 		fb_dealloc_cmap(&info->cmap);
 		goto out_err;
