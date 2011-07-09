@@ -391,6 +391,15 @@ via_set_vclock(struct drm_crtc *crtc, u32 clk)
 	orig = (vga_rcrt(VGABASE, 0x17) & ~0x80);
 	vga_wcrt(VGABASE, 0x17, orig);
 
+	/* Enable reset */
+	if (!iga->index) {
+		orig = (vga_rseq(VGABASE, 0x40) | 0x02);
+		vga_wseq(VGABASE, 0x40, orig);
+	} else {
+		orig = (vga_rseq(VGABASE, 0x40) | 0x04);
+		vga_wseq(VGABASE, 0x40, orig);
+	}
+
 	if (!iga->index) {
 		/* Change D,N FOR VCLK */
 		switch (dev->pdev->device) {
@@ -443,20 +452,18 @@ via_set_vclock(struct drm_crtc *crtc, u32 clk)
 		}
 	}
 
-	/* H.W. Reset : OFF */
-	orig = (vga_rcrt(VGABASE, 0x17) & ~0x80);
-	vga_wcrt(VGABASE, 0x17, (orig | BIT(7)));
-
-	/* Reset PLL */
+	/* disable reset */
 	if (!iga->index) {
 		orig = (vga_rseq(VGABASE, 0x40) & ~0x02);
-		vga_wseq(VGABASE, 0x40, (orig | 0x02));
 		vga_wseq(VGABASE, 0x40, orig);
 	} else {
 		orig = (vga_rseq(VGABASE, 0x40) & ~0x04);
-		vga_wseq(VGABASE, 0x40, (orig | 0x04));
-		vga_wseq(VGABASE, 0x40, (orig | 0x01));
+		vga_wseq(VGABASE, 0x40, orig);
 	}
+
+	/* H.W. Reset : OFF */
+	orig = (vga_rcrt(VGABASE, 0x17) & ~0x80);
+	vga_wcrt(VGABASE, 0x17, (orig | BIT(7)));
 
 	/* The clock is finally ready !! */
 	orig = (vga_r(VGABASE, VGA_MIS_R) & ~0x0C);
