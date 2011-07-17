@@ -29,7 +29,6 @@
 #include "via_drv.h"
 #include "via_disp_reg.h"
 
-
 void via_lock_crt(void __iomem *regs)
 {
 	u8 orig = (vga_rcrt(regs, 0x11) & ~0x80);
@@ -273,6 +272,46 @@ static const struct drm_crtc_funcs via_iga2_funcs = {
 	.set_config = drm_crtc_helper_set_config,
 	.destroy = via_crtc_destroy,
 };
+
+void
+viaDIPortPadOn(struct drm_via_private *dev_priv, int diPort, bool on)
+{
+	u8 orig, mask = 0, index = 0x2A;
+
+	switch (diPort) {
+	case VIA_DI_DVP0:
+		mask = (BIT(6) | BIT(7));
+		index = 0x1E;
+		break;
+
+	case VIA_DI_DVP1:
+		mask = (BIT(4) | BIT(5));
+		index = 0x1E;
+		break;
+
+	case VIA_DI_DFPHIGH:
+		mask = (BIT(2) | BIT(3));
+		break;
+
+	case VIA_DI_DFPLOW:
+		mask = (BIT(1) | BIT(0));
+		break;
+
+	case VIA_DI_DFPHIGHLOW:
+		mask = (BIT(3) | BIT(2) | BIT(1) | BIT(0));
+		break;
+
+	case VIA_DI_NONE:
+		return;
+	}
+
+	orig = (vga_rseq(VGABASE, index) & ~mask);
+
+	/* If turning it off then set mask to zero */
+	if (!on)
+		mask = 0;
+	vga_wseq(VGABASE, index, (orig | mask));
+}
 
 static void 
 via_load_FIFO_reg(struct via_crtc *iga, struct drm_display_mode *mode)
@@ -661,10 +700,10 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	orig = (vga_rcrt(VGABASE, 0x48) & ~0x1F);
 	vga_wcrt(VGABASE, 0x48, ((addr >> 24) & 0x1F) | orig);
 
-	/* Fetch register handling *
+	/* Fetch register handling */
 	pitch = ((fb->pitch * (fb->bits_per_pixel >> 3)) >> 4) + 4;
 	vga_wseq(VGABASE, 0x1C, (pitch & 7));
-	vga_wseq(VGABASE, 0x1D, ((pitch >> 3) & 0x03));*/
+	vga_wseq(VGABASE, 0x1D, ((pitch >> 3) & 0x03));
 
 	if ((state == ENTER_ATOMIC_MODE_SET) || crtc->fb->pitch != fb->pitch) {
 		/* Spec does not say that first adapter skips 3 bits but old
@@ -808,7 +847,7 @@ via_crtc_init(struct drm_device *dev, int index)
 
 		/* Always start off IGA2 disabled until we detected something
 		   attached to it */
-		disable_second_display_channel(dev_priv);
+		//disable_second_display_channel(dev_priv);
 
 		iga->timings.htotal.count = ARRAY_SIZE(iga2_hor_total);
 		iga->timings.htotal.regs = iga2_hor_total;
@@ -1094,10 +1133,14 @@ int via_modeset_init(struct drm_device *dev)
 	    (dev_priv->revision == CX700_REVISION_700M))
 		via_analog_init(dev);
 
+	via_lvds_init(dev);
+
 	/*
 	 * Set up the framebuffer device
 	 */
-	return via_framebuffer_init(dev, &dev_priv->helper);
+	i = via_framebuffer_init(dev, &dev_priv->helper);
+	ssleep(15);
+	return i;
 }
 
 void via_modeset_fini(struct drm_device *dev)
@@ -1105,7 +1148,7 @@ void via_modeset_fini(struct drm_device *dev)
 	struct drm_via_private *dev_priv = dev->dev_private;
 
 	via_framebuffer_fini(dev_priv->helper);
-	
+
 	drm_mode_config_cleanup(dev);
 
 	via_i2c_exit(dev);
