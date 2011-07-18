@@ -153,7 +153,7 @@ static int create_i2c_bus(struct drm_device *dev, struct via_i2c *i2c_par)
 	algo->timeout = 2;
 	algo->data = i2c_par;
 
-	sprintf(adapter->name, "VIA i2c bit bus 0x%02x",
+	sprintf(adapter->name, "via i2c io_port idx 0x%02x",
 		i2c_par->adap_cfg->ioport_index);
 	adapter->owner = THIS_MODULE;
 	adapter->class = I2C_CLASS_DDC;
@@ -167,23 +167,6 @@ static int create_i2c_bus(struct drm_device *dev, struct via_i2c *i2c_par)
 	udelay(20);
 
 	return i2c_bit_add_bus(adapter);
-}
-
-struct drm_encoder*
-via_best_encoder(struct drm_connector *connector)
-{
-	int enc_id = connector->encoder_ids[0];
-	struct drm_encoder *encoder = NULL;
-	struct drm_mode_object *obj;
-
-	/* pick the encoder ids */
-	if (enc_id) {
-		obj = drm_mode_object_find(connector->dev, enc_id, DRM_MODE_OBJECT_ENCODER);
-		if (!obj)
-			return NULL;
-		encoder = obj_to_encoder(obj);
-	}
-	return encoder;
 }
 
 int via_i2c_init(struct drm_device *dev)
