@@ -377,7 +377,6 @@ static int nouveau_init_engine_ptrs(struct drm_device *dev)
 		engine->vram.flags_valid	= nv50_vram_flags_valid;
 		break;
 	case 0xC0:
-	case 0xD0:
 		engine->instmem.init		= nvc0_instmem_init;
 		engine->instmem.takedown	= nvc0_instmem_takedown;
 		engine->instmem.suspend		= nvc0_instmem_suspend;
@@ -986,7 +985,6 @@ int nouveau_load(struct drm_device *dev, unsigned long flags)
 		dev_priv->card_type = NV_50;
 		break;
 	case 0xc0:
-	case 0xd0:
 		dev_priv->card_type = NV_C0;
 		break;
 	default:
@@ -1111,7 +1109,7 @@ int nouveau_ioctl_getparam(struct drm_device *dev, void *data,
 	case NOUVEAU_GETPARAM_BUS_TYPE:
 		if (drm_pci_device_is_agp(dev))
 			getparam->value = NV_AGP;
-		else if (drm_pci_device_is_pcie(dev))
+		else if (pci_is_pcie(dev->pdev))
 			getparam->value = NV_PCIE;
 		else
 			getparam->value = NV_PCI;
