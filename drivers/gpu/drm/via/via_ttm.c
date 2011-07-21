@@ -32,7 +32,7 @@ struct ttm_backend *via_create_ttm_backend_entry(struct ttm_bo_device *bdev)
 	if (drm_pci_device_is_agp(dev_priv->dev))
 		return ttm_agp_backend_init(bdev, dev_priv->dev->agp->bridge);
 #endif
-	return ttm_dma_backend_init(bdev, dev_priv->dev);
+	return via_sgdma_backend_init(bdev, dev_priv->dev);
 }
 
 int via_invalidate_caches(struct ttm_bo_device *bdev, uint32_t flags)
@@ -46,10 +46,6 @@ int via_invalidate_caches(struct ttm_bo_device *bdev, uint32_t flags)
 int via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
                       struct ttm_mem_type_manager *man)
 {
-	struct drm_via_private *dev_priv = 
-		container_of(bdev, struct drm_via_private, bdev);
-	struct drm_device *dev = dev_priv->dev;
-
 	switch (type) {
 	case TTM_PL_SYSTEM:
 		/* System memory */
@@ -60,17 +56,21 @@ int via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
 
 	case TTM_PL_TT:
 		man->func = &ttm_bo_manager_func;
-		man->flags = TTM_MEMTYPE_FLAG_MAPPABLE;
-		man->available_caching = TTM_PL_FLAG_UNCACHED | TTM_PL_FLAG_WC;
-		man->default_caching = TTM_PL_FLAG_WC;
+
+		/* By default we handle PCI/PCIe DMA. If AGP is avaliable
+		 * then we use that instead */
+		man->flags = TTM_MEMTYPE_FLAG_MAPPABLE | TTM_MEMTYPE_FLAG_CMA;
+		man->available_caching = TTM_PL_MASK_CACHING;
+		man->default_caching = TTM_PL_FLAG_CACHED;
 
 #if defined(CONFIG_AGP) || defined(CONFIG_AGP_MODULE)
-		/* In the future support PCI DMA */
 		if (drm_pci_device_is_agp(dev)) {
-			if (!(drm_core_has_AGP(dev) && dev->agp)) {
+			if (drm_core_has_AGP(dev) && dev->agp) {
+				man->flags = TTM_MEMTYPE_FLAG_MAPPABLE;
+				man->available_caching = TTM_PL_FLAG_UNCACHED | TTM_PL_FLAG_WC;
+				man->default_caching = TTM_PL_FLAG_WC;
+			} else
 				DRM_ERROR("AGP is possible but not enabled\n");	
-				return -EINVAL;
-			}
 		}
 #endif
 		break;
@@ -121,12 +121,22 @@ static void via_evict_flags(struct ttm_buffer_object *bo,
 
 /* Move between GART and VRAM */
 static int
-via_move_blit(struct ttm_buffer_object *bo, bool interruptible,
+via_move_blit(struct ttm_buffer_object *bo, bool evict,
 		bool no_wait_reserve, bool no_wait_gpu,
 		struct ttm_mem_reg *new_mem,
 		struct ttm_mem_reg *old_mem)
 {
-	return 1; 
+	unsigned long old_start, new_start;
+	void *fence = NULL;
+
+	/* Real CPU physical address */
+	old_start = (old_mem->start << PAGE_SHIFT) + old_mem->bus.base;
+	new_start = (new_mem->start << PAGE_SHIFT) + new_mem->bus.base;
+
+	//ret = via_copy(rdev, old_start, new_start, new_mem->num_pages, fence);
+
+	return ttm_bo_move_accel_cleanup(bo, fence, NULL, evict,
+					no_wait_reserve, no_wait_gpu, new_mem);
 }
 
 static int

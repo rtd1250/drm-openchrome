@@ -4,7 +4,7 @@
 
 ccflags-y := -Iinclude/drm
 via-y    := via_drv.o via_ioc32.o via_i2c.o via_irq.o via_verifier.o \
-		init_ttm.o ttm_gem.o ttm_dma_backend.o via_ttm.o via_fb.o \
+		init_ttm.o ttm_gem.o via_ttm.o via_fb.o via_sgdma.o \
 		via_h1_dma.o via_h1_cmdbuf.o via_video.o \
 		via_display.o crtc_hw.o via_clocks.o via_analog.o
 

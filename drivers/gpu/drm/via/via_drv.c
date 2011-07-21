@@ -49,7 +49,8 @@ static struct drm_driver via_driver;
 #define VIA_AGP_1X_MODE		0x01
 #define VIA_AGP_FW_MODE		0x10
 
-static int via_detect_agp(struct drm_device *dev)
+static int __devinit
+via_detect_agp(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
 	struct drm_agp_info agp_info;
@@ -94,6 +95,60 @@ out_err0:
 	return ret;
 }
 #endif
+
+#define SGDMA_MEMORY (256*1024*1024UL)
+
+static int __devinit
+via_allocate_pcie_gart_table(struct drm_via_private *dev_priv)
+{
+	int size = SGDMA_MEMORY >> 10, ret;
+	struct ttm_buffer_object *bo;
+	u8 orig;
+
+	ret = ttm_bo_allocate(&dev_priv->bdev, size, ttm_bo_type_kernel,
+				TTM_PL_FLAG_VRAM | TTM_PL_FLAG_NO_EVICT,
+				1, PAGE_SIZE, 0, false, via_ttm_bo_destroy,
+				NULL, &bo);
+	if (unlikely(ret))	
+		goto err;
+
+	ret = ttm_bo_reserve(bo, true, false, false, 0);
+	if (ret)
+		goto err;
+
+	/* kmap the gart table */
+	ret = ttm_bo_kmap(bo, 0, bo->num_pages, &dev_priv->gart);
+	ttm_bo_unreserve(bo);
+	if (ret)
+		goto err;
+
+	/* enable gti write */
+	orig = (vga_rseq(VGABASE, 0x6C) & 0x7F);
+	vga_wseq(VGABASE, 0x6C, orig);
+
+	/* set the base address of gart table */
+	orig = (bo->offset & 0xff000) >> 12;
+	vga_wseq(VGABASE, 0x6A, orig);
+
+	orig = (bo->offset & 0xff000) >> 20;
+	vga_wseq(VGABASE, 0x6B, orig);
+
+	orig = vga_rseq(VGABASE, 0x6C);
+	orig |= ((bo->offset >> 28) & 0x01);
+	vga_wseq(VGABASE, 0x6C, orig);
+
+	/* flush the gti cache */
+	orig = (vga_rseq(VGABASE, 0x6F) | 0x80);
+	vga_wseq(VGABASE, 0x6F, orig);
+
+	/* disable the gti write */
+	orig = (vga_rseq(VGABASE, 0x6C) | 0x80);
+	vga_wseq(VGABASE, 0x6C, orig);
+err:
+	if (!ret)
+		DRM_INFO("Allocated %d MB of DMA memory\n", size >> 10);
+	return ret;
+}
 
 static int via_mmio_setup(struct drm_device *dev)
 {
@@ -233,7 +288,7 @@ static int gem_dumb_destroy(struct drm_file *filp, struct drm_device *dev,
 static int via_driver_unload(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
-	struct ttm_buffer_object *bo = dev_priv->mmio.bo;
+	struct ttm_buffer_object *bo = dev_priv->gart.bo;
 	int ret = 0;
 
 	ret = via_dma_cleanup(dev);
@@ -247,6 +302,21 @@ static int via_driver_unload(struct drm_device *dev)
 
 	drm_irq_uninstall(dev);
 
+	if (bo) {
+		/* enable gti write */
+		if (pci_is_pcie(dev->pdev)) {
+			u8 orig = (vga_rseq(VGABASE, 0x6C) & 0x7F);
+
+			vga_wseq(VGABASE, 0x6C, orig);
+		}
+		ret = ttm_bo_reserve(bo, true, false, false, 0);
+		if (!ret)
+			ttm_bo_kunmap(&dev_priv->gart);
+		ttm_bo_unreserve(bo);
+		ttm_bo_unref(&bo);
+	}
+
+	bo = dev_priv->mmio.bo;
 	if (bo) {
 		ret = ttm_bo_reserve(bo, true, false, false, 0);
 		if (!ret)
@@ -309,6 +379,12 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 			goto out_err;
 	}
 #endif
+	if (pci_is_pcie(dev->pdev)) {
+		ret = via_allocate_pcie_gart_table(dev_priv);
+		if (ret)
+			goto out_err;
+	}
+
 	ret = drm_irq_install(dev);
 	if (ret)
 		goto out_err;

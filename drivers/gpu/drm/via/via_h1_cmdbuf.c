@@ -57,8 +57,8 @@ static void via_pad_cache(struct drm_via_private *dev_priv, int qwords);
 
 static uint32_t via_cmdbuf_space(struct drm_via_private *dev_priv)
 {
-	uint32_t agp_base = dev_priv->dma_offset;
-	uint32_t hw_addr = ioread32(dev_priv->hw_addr_ptr) - agp_base;
+	uint32_t gart_base = dev_priv->dma_offset;
+	uint32_t hw_addr = ioread32(dev_priv->hw_addr_ptr) - gart_base;
 
 	return ((hw_addr <= dev_priv->dma_low) ?
 		(dev_priv->dma_high + hw_addr - dev_priv->dma_low) :
@@ -71,8 +71,8 @@ static uint32_t via_cmdbuf_space(struct drm_via_private *dev_priv)
 
 static uint32_t via_cmdbuf_lag(struct drm_via_private *dev_priv)
 {
-	uint32_t agp_base = dev_priv->dma_offset;
-	uint32_t hw_addr = ioread32(dev_priv->hw_addr_ptr) - agp_base;
+	uint32_t gart_base = dev_priv->dma_offset;
+	uint32_t hw_addr = ioread32(dev_priv->hw_addr_ptr) - gart_base;
 
 	return ((hw_addr <= dev_priv->dma_low) ?
 		(dev_priv->dma_low - hw_addr) :
@@ -86,7 +86,7 @@ static uint32_t via_cmdbuf_lag(struct drm_via_private *dev_priv)
 static inline int
 via_cmdbuf_wait(struct drm_via_private *dev_priv, unsigned int size)
 {
-	uint32_t agp_base = dev_priv->dma_offset;
+	uint32_t gart_base = dev_priv->dma_offset;
 	uint32_t cur_addr, hw_addr, next_addr;
 	volatile uint32_t *hw_addr_ptr;
 	uint32_t count;
@@ -95,7 +95,7 @@ via_cmdbuf_wait(struct drm_via_private *dev_priv, unsigned int size)
 	next_addr = cur_addr + size + 512 * 1024;
 	count = 1000000;
 	do {
-		hw_addr = *hw_addr_ptr - agp_base;
+		hw_addr = *hw_addr_ptr - gart_base;
 		if (count-- == 0) {
 			DRM_ERROR
 			    ("via_cmdbuf_wait timed out hw %x cur_addr %x next_addr %x\n",
@@ -161,16 +161,6 @@ static int via_initialize(struct drm_device *dev,
 	if (dev_priv->dmabuf.virtual != NULL) {
 		DRM_ERROR("called again without calling cleanup\n");
 		return ret;
-	}
-
-	if (!dev->agp || !dev->agp->base) {
-		DRM_ERROR("called with no agp memory available\n");
-		return ret;
-	}
-
-	if (dev_priv->engine_type > VIA_ENG_H2) {
-		DRM_ERROR("AGP DMA is not supported on this chip\n");
-		return -EINVAL;
 	}
 
 	ret = ttm_bo_allocate(&dev_priv->bdev, init->size, ttm_bo_type_kernel,
@@ -455,7 +445,7 @@ static uint32_t *via_align_cmd(struct drm_via_private *dev_priv, uint32_t cmd_ty
 			       uint32_t addr, uint32_t *cmd_addr_hi,
 			       uint32_t *cmd_addr_lo, int skip_wait)
 {
-	uint32_t agp_base;
+	uint32_t gart_base;
 	uint32_t cmd_addr, addr_lo, addr_hi;
 	uint32_t *vb;
 	uint32_t qw_pad_count;
@@ -467,12 +457,12 @@ static uint32_t *via_align_cmd(struct drm_via_private *dev_priv, uint32_t cmd_ty
 	VIA_OUT_RING_QW(HC_HEADER2 | ((VIA_REG_TRANSET >> 2) << 12) |
 			(VIA_REG_TRANSPACE >> 2), HC_ParaType_PreCR << 16);
 
-	agp_base = dev_priv->dma_offset;
+	gart_base = dev_priv->dma_offset;
 	qw_pad_count = (CMDBUF_ALIGNMENT_SIZE >> 3) -
 	    ((dev_priv->dma_low & CMDBUF_ALIGNMENT_MASK) >> 3);
 
 	cmd_addr = (addr) ? addr :
-	    agp_base + dev_priv->dma_low - 8 + (qw_pad_count << 3);
+	    gart_base + dev_priv->dma_low - 8 + (qw_pad_count << 3);
 	addr_lo = ((HC_SubA_HAGPBpL << 24) | (cmd_type & HC_HAGPBpID_MASK) |
 		   (cmd_addr & HC_HAGPBpL_MASK));
 	addr_hi = ((HC_SubA_HAGPBpH << 24) | (cmd_addr >> 24));
@@ -488,16 +478,16 @@ static void via_cmdbuf_start(struct drm_via_private *dev_priv)
 	uint32_t start_addr, start_addr_lo;
 	uint32_t end_addr, end_addr_lo;
 	uint32_t command;
-	uint32_t agp_base;
+	uint32_t gart_base;
 	uint32_t ptr;
 	uint32_t reader;
 	int count;
 
 	dev_priv->dma_low = 0;
 
-	agp_base = dev_priv->dma_offset;
-	start_addr = agp_base;
-	end_addr = agp_base + dev_priv->dma_high;
+	gart_base = dev_priv->dma_offset;
+	start_addr = gart_base;
+	end_addr = gart_base + dev_priv->dma_high;
 
 	start_addr_lo = ((HC_SubA_HAGPBstL << 24) | (start_addr & 0xFFFFFF));
 	end_addr_lo = ((HC_SubA_HAGPBendL << 24) | (end_addr & 0xFFFFFF));
