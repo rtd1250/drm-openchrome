@@ -46,6 +46,12 @@ int via_invalidate_caches(struct ttm_bo_device *bdev, uint32_t flags)
 int via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
                       struct ttm_mem_type_manager *man)
 {
+#if defined(CONFIG_AGP) || defined(CONFIG_AGP_MODULE)
+	struct drm_via_private *dev_priv =
+		container_of(bdev, struct drm_via_private, bdev);
+	struct drm_device *dev = dev_priv->dev;
+#endif
+
 	switch (type) {
 	case TTM_PL_SYSTEM:
 		/* System memory */

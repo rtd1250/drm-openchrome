@@ -81,7 +81,7 @@ static int via_pcie_sgdma_bind(struct ttm_backend *be, struct ttm_mem_reg *mem)
 	dma_be->offset = mem->start << PAGE_SHIFT;
 	for (i = 0; i < entry->pages; i++) {
 		writel(page_to_pfn(entry->pagelist[i]) & 0x3FFFFFFF,
-			entry->virtual + dma_be->offset + i);
+			dev_priv->gart.virtual + dma_be->offset + i);
 	}
 
 	/* Invalided GTI cache */
@@ -110,7 +110,7 @@ static int via_pcie_sgdma_unbind(struct ttm_backend *be)
 
 	/* Update the relevant entries */	
 	for (i = 0; i < entry->pages; i++)
-		writel(0x80000000, entry->virtual + dma_be->offset + i);
+		writel(0x80000000, dev_priv->gart.virtual + dma_be->offset + i);
 	dma_be->offset = 0;
 
 	/* Invalided GTI cache */
