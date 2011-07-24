@@ -28,7 +28,7 @@ struct ttm_backend *via_create_ttm_backend_entry(struct ttm_bo_device *bdev)
 	struct drm_via_private *dev_priv =
 		container_of(bdev, struct drm_via_private, bdev);
 
-#if defined(CONFIG_AGP) || defined(CONFIG_AGP_MODULE)
+#if __OS_HAS_AGP
 	if (drm_pci_device_is_agp(dev_priv->dev))
 		return ttm_agp_backend_init(bdev, dev_priv->dev->agp->bridge);
 #endif
@@ -46,7 +46,7 @@ int via_invalidate_caches(struct ttm_bo_device *bdev, uint32_t flags)
 int via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
                       struct ttm_mem_type_manager *man)
 {
-#if defined(CONFIG_AGP) || defined(CONFIG_AGP_MODULE)
+#if __OS_HAS_AGP
 	struct drm_via_private *dev_priv =
 		container_of(bdev, struct drm_via_private, bdev);
 	struct drm_device *dev = dev_priv->dev;
@@ -69,7 +69,7 @@ int via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
 		man->available_caching = TTM_PL_MASK_CACHING;
 		man->default_caching = TTM_PL_FLAG_CACHED;
 
-#if defined(CONFIG_AGP) || defined(CONFIG_AGP_MODULE)
+#if __OS_HAS_AGP
 		if (drm_pci_device_is_agp(dev)) {
 			if (drm_core_has_AGP(dev) && dev->agp) {
 				man->flags = TTM_MEMTYPE_FLAG_MAPPABLE;
@@ -292,7 +292,7 @@ static int via_ttm_io_mem_reserve(struct ttm_bo_device *bdev, struct ttm_mem_reg
 
 	case TTM_PL_TT:
 		mem->bus.offset = mem->start << PAGE_SHIFT;
-#if defined(CONFIG_AGP) || defined(CONFIG_AGP_MODULE)
+#if __OS_HAS_AGP
 		if (drm_pci_device_is_agp(dev)) {
 			mem->bus.is_iomem = !dev->agp->cant_use_aperture;
 			mem->bus.base = dev->agp->base;

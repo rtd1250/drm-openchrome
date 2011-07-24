@@ -38,7 +38,7 @@ MODULE_DEVICE_TABLE(pci, via_pci_table);
 
 static struct drm_driver via_driver;
 
-#if defined(CONFIG_AGP) || defined(CONFIG_AGP_MODULE)
+#if __OS_HAS_AGP
 
 #define VIA_AGP_MODE_MASK	0x17
 #define VIA_AGPV3_MODE		0x08
@@ -333,7 +333,7 @@ static int via_driver_unload(struct drm_device *dev)
 			&dev_priv->bo_global_ref,
 			&dev_priv->bdev);
 
-#if defined(CONFIG_AGP) || defined(CONFIG_AGP_MODULE)
+#if __OS_HAS_AGP
 	if (dev->agp && dev->agp->acquired)
 		drm_agp_release(dev);
 #endif
@@ -371,18 +371,18 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 	}
 	chip_revision_info(dev);
 
-#if defined(CONFIG_AGP) || defined(CONFIG_AGP_MODULE)
+#if __OS_HAS_AGP
 	if ((dev_priv->engine_type > VIA_ENG_H2) ||
 	    (dev->agp && drm_pci_device_is_agp(dev))) {
 		ret = via_detect_agp(dev);
 		if (ret)
-			goto out_err;
+			DRM_ERROR("Failed to allocate AGP\n");
 	}
 #endif
 	if (pci_is_pcie(dev->pdev)) {
 		ret = via_allocate_pcie_gart_table(dev_priv);
 		if (ret)
-			goto out_err;
+			DRM_ERROR("Failed to allocate DMA memory\n");
 	}
 
 	ret = drm_irq_install(dev);

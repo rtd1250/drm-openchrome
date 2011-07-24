@@ -1103,7 +1103,8 @@ void via_modeset_fini(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
 
-	via_framebuffer_fini(dev_priv->helper);
+	if (dev->mode_config.funcs)
+		via_framebuffer_fini(dev_priv->helper);
 
 	drm_mode_config_cleanup(dev);
 
