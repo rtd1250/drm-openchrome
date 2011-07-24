@@ -49,10 +49,8 @@ static void via_i2c_setscl(void *data, int state)
 	struct via_i2c *i2c = data;
 	struct via_port_cfg *adap_data = i2c->adap_cfg;
 	struct drm_via_private *dev_priv = i2c->dev_priv;
-	unsigned long flags;
 	u8 val;
 
-	spin_lock_irqsave(&dev_priv->mmio_lock, flags);
 	val = vga_rseq(VGABASE, adap_data->ioport_index) & 0xF0;
 	if (state)
 		val |= 0x20;
@@ -69,7 +67,6 @@ static void via_i2c_setscl(void *data, int state)
 		printk(KERN_ERR "via_i2c: specify wrong i2c type.\n");
 	}
 	vga_wseq(VGABASE, adap_data->ioport_index, val);
-	spin_unlock_irqrestore(&dev_priv->mmio_lock, flags);
 }
 
 static int via_i2c_getscl(void *data)
@@ -77,13 +74,10 @@ static int via_i2c_getscl(void *data)
 	struct via_i2c *i2c = data;
 	struct via_port_cfg *adap_data = i2c->adap_cfg;
 	struct drm_via_private *dev_priv = i2c->dev_priv;
-	unsigned long flags;
 	int ret = 0;
 
-	spin_lock_irqsave(&dev_priv->mmio_lock, flags);
 	if (vga_rseq(VGABASE, adap_data->ioport_index) & 0x08)
 		ret = 1;
-	spin_unlock_irqrestore(&dev_priv->mmio_lock, flags);
 	return ret;
 }
 
@@ -92,13 +86,10 @@ static int via_i2c_getsda(void *data)
 	struct via_i2c *i2c = data;
 	struct via_port_cfg *adap_data = i2c->adap_cfg;
 	struct drm_via_private *dev_priv = i2c->dev_priv;
-	unsigned long flags;
 	int ret = 0;
 
-	spin_lock_irqsave(&dev_priv->mmio_lock, flags);
 	if (vga_rseq(VGABASE, adap_data->ioport_index) & 0x04)
 		ret = 1;
-	spin_unlock_irqrestore(&dev_priv->mmio_lock, flags);
 	return ret;
 }
 
@@ -107,10 +98,8 @@ static void via_i2c_setsda(void *data, int state)
 	struct via_i2c *i2c = data;
 	struct via_port_cfg *adap_data = i2c->adap_cfg;
 	struct drm_via_private *dev_priv = i2c->dev_priv;
-	unsigned long flags;
 	u8 val;
 
-	spin_lock_irqsave(&dev_priv->mmio_lock, flags);
 	val = vga_rseq(VGABASE, adap_data->ioport_index) & 0xF0;
 	if (state)
 		val |= 0x10;
@@ -127,7 +116,6 @@ static void via_i2c_setsda(void *data, int state)
 		printk(KERN_ERR "via_i2c: specify wrong i2c type.\n");
 	}
 	vga_wseq(VGABASE, adap_data->ioport_index, val);
-	spin_unlock_irqrestore(&dev_priv->mmio_lock, flags);
 }
 
 int via_get_edid_modes(struct drm_connector *connector)
@@ -153,7 +141,7 @@ static int create_i2c_bus(struct drm_device *dev, struct via_i2c *i2c_par)
 	algo->timeout = 2;
 	algo->data = i2c_par;
 
-	sprintf(adapter->name, "via i2c io_port idx 0x%02x",
+	sprintf(adapter->name, "VIA i2c bit bus 0x%02x",
 		i2c_par->adap_cfg->ioport_index);
 	adapter->owner = THIS_MODULE;
 	adapter->class = I2C_CLASS_DDC;
@@ -169,22 +157,30 @@ static int create_i2c_bus(struct drm_device *dev, struct via_i2c *i2c_par)
 	return i2c_bit_add_bus(adapter);
 }
 
+struct drm_encoder*
+via_best_encoder(struct drm_connector *connector)
+{
+	int enc_id = connector->encoder_ids[0];
+	struct drm_encoder *encoder = NULL;
+	struct drm_mode_object *obj;
+
+	/* pick the encoder ids */
+	if (enc_id) {
+		obj = drm_mode_object_find(connector->dev, enc_id, DRM_MODE_OBJECT_ENCODER);
+		if (!obj)
+			return NULL;
+		encoder = obj_to_encoder(obj);
+	}
+	return encoder;
+}
+
 int via_i2c_init(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
 	int count = ARRAY_SIZE(adap_configs), ret, i;
 	struct via_port_cfg *configs = adap_configs;
-	int size = sizeof(struct via_i2c);
-	struct via_i2c *i2c = NULL;
+	struct via_i2c *i2c = dev_priv->i2c_par;
 
-	dev_priv->i2c_par = kzalloc(count * size, GFP_KERNEL);
-	if (!dev_priv->i2c_par) {
-		DRM_ERROR("Failed to allocate VIA i2c data\n");
-		return -ENOMEM;
-	}
-	i2c = dev_priv->i2c_par;
-
-	spin_lock_init(&dev_priv->mmio_lock);
 	/*
 	 * The OLPC XO-1.5 puts the camera power and reset lines onto
 	 * GPIO 2C.

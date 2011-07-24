@@ -29,7 +29,6 @@
 #include "via_drv.h"
 #include "via_disp_reg.h"
 
-
 void via_lock_crt(void __iomem *regs)
 {
 	u8 orig = (vga_rcrt(regs, 0x11) & ~0x80);
@@ -570,7 +569,7 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 	vga_wcrt(VGABASE, 0x17, orig);
 
 	/* Load Fetch registers */
-        if (!iga->index)
+	if (!iga->index)
 		value = IGA1_FETCH_COUNT_FORMULA(mode->hdisplay,
 						fb->bits_per_pixel / 8);
 	else
@@ -1105,7 +1104,7 @@ void via_modeset_fini(struct drm_device *dev)
 	struct drm_via_private *dev_priv = dev->dev_private;
 
 	via_framebuffer_fini(dev_priv->helper);
-	
+
 	drm_mode_config_cleanup(dev);
 
 	via_i2c_exit(dev);

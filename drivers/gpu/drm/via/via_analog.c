@@ -204,23 +204,6 @@ via_analog_mode_valid(struct drm_connector *connector,
 	return MODE_OK;
 }
 
-static struct drm_encoder* 
-via_best_encoder(struct drm_connector *connector)
-{
-	int enc_id = connector->encoder_ids[0];
-	struct drm_encoder *encoder = NULL;
-	struct drm_mode_object *obj;
-
-	/* pick the encoder ids */
-	if (enc_id) {
-		obj = drm_mode_object_find(connector->dev, enc_id, DRM_MODE_OBJECT_ENCODER);
-		if (!obj)
-			return NULL;
-		encoder = obj_to_encoder(obj);
-	}
-	return encoder;	
-}
-
 static const struct drm_connector_helper_funcs via_analog_connector_helper_funcs = {
 	.mode_valid = via_analog_mode_valid,
 	.get_modes = via_get_edid_modes,

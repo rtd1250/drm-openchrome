@@ -122,7 +122,6 @@ struct drm_via_private {
 	struct ttm_bo_kmap_obj mmio;
 	struct ttm_bo_kmap_obj gart;
 	enum via_engine engine_type;
-	spinlock_t mmio_lock;
 	unsigned int dma_low;
 	unsigned int dma_high;
 	unsigned int dma_offset;
@@ -148,7 +147,7 @@ struct drm_via_private {
 	drm_via_blitq_t blit_queues[VIA_NUM_BLIT_ENGINES];
 	uint32_t dma_diff;
 	struct via_crtc iga[2];
-	struct via_i2c *i2c_par;
+	struct via_i2c i2c_par[5];
 };
 
 #define VIA_MEM_NONE		0x00
@@ -261,6 +260,7 @@ extern void via_lock_crt(void __iomem *regs);
 extern void via_unlock_crt(void __iomem *regs);
 extern void via_set_pll(struct drm_crtc *crtc, struct drm_display_mode *mode);
 
+extern struct drm_encoder* via_best_encoder(struct drm_connector *connector);
 extern void via_analog_init(struct drm_device *dev);
 
 #endif
