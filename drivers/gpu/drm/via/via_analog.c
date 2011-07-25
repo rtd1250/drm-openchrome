@@ -135,7 +135,7 @@ via_analog_detect(struct drm_connector *connector, bool force)
 {
 	struct drm_device *dev = connector->dev;
 	struct drm_via_private *dev_priv = dev->dev_private;
-	struct via_i2c *i2c = dev_priv->i2c_par;
+	struct via_i2c *i2c = &dev_priv->i2c_par[0];
 	struct i2c_adapter *adapter = NULL;
 	struct edid *edid = NULL;
 
