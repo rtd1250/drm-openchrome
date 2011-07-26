@@ -163,10 +163,12 @@ struct drm_via_private {
 #define VIA_MEM_DDR2_667	0x0A
 #define VIA_MEM_DDR2_800	0x0B
 #define VIA_MEM_DDR2_1066	0x0C
-#define VIA_MEM_DDR3_800	0x0D
-#define VIA_MEM_DDR3_1066	0x0E
-#define VIA_MEM_DDR3_1333	0x0F
-#define VIA_MEM_DDR3_1600	0x10
+#define VIA_MEM_DDR3_533	0x0D
+#define VIA_MEM_DDR3_667	0x0E
+#define VIA_MEM_DDR3_800	0x0F
+#define VIA_MEM_DDR3_1066	0x10
+#define VIA_MEM_DDR3_1333	0x11
+#define VIA_MEM_DDR3_1600	0x12
 
 /* VIA MMIO register access */
 #define VIA_BASE ((dev_priv->mmio.virtual))

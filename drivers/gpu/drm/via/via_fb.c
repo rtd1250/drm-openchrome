@@ -583,7 +583,7 @@ cx700_mem_type(struct drm_via_private *dev_priv, struct pci_dev *fn3)
 
 	switch (type) {
 	case 0:
-		switch (clock) {
+		switch (clock & 0x07) {
 		case 0:
 			dev_priv->vram_type = VIA_MEM_DDR_200;
 			break;
@@ -601,17 +601,92 @@ cx700_mem_type(struct drm_via_private *dev_priv, struct pci_dev *fn3)
 		break;
 
 	case 1:
-		switch (clock) {
+		switch (clock & 0x07) {
 		case 3:
 			dev_priv->vram_type = VIA_MEM_DDR2_400;
 			break;
 		case 4:
 			dev_priv->vram_type = VIA_MEM_DDR2_533;
+			break;
+		case 5:
+			dev_priv->vram_type = VIA_MEM_DDR2_667;
+			break;
+		case 6:
+			dev_priv->vram_type = VIA_MEM_DDR2_800;
 		default:
 			break;
 		}
 	default:
 		break;
+	}
+	return ret;
+}
+
+static int
+vx900_mem_type(struct drm_via_private *dev_priv, struct pci_dev *fn3)
+{
+	int ret;
+	u8 clock, type, volt;
+
+	ret = pci_read_config_byte(fn3, 0x90, &clock);
+	if (ret)
+		return ret;
+	ret = pci_read_config_byte(fn3, 0x6C, &type);
+	if (ret)
+		return ret;
+ 	volt = type;
+	type &= 0xC0;
+	type >>= 6;
+	volt &= 0x20;
+	volt >>=5;
+
+	switch (type) {
+	case 1:
+		switch (clock & 0x0F) {
+		case 0:
+			if (volt)
+				dev_priv->vram_type = VIA_MEM_DDR2_800;
+			else
+				dev_priv->vram_type = VIA_MEM_DDR2_533;
+			break;
+		case 4:
+			dev_priv->vram_type = VIA_MEM_DDR2_533;
+			break;
+		case 5:
+			dev_priv->vram_type = VIA_MEM_DDR2_667;
+			break;
+		case 6:
+			dev_priv->vram_type = VIA_MEM_DDR2_800;
+			break;
+		case 7:
+			dev_priv->vram_type = VIA_MEM_DDR2_1066;
+		default:
+			break;
+		}
+		break;
+	case 2:
+		switch (clock & 0x0F) {
+		case 0:
+			if (volt)
+				dev_priv->vram_type = VIA_MEM_DDR3_800;
+			else
+				dev_priv->vram_type = VIA_MEM_DDR3_533;
+			break;
+		case 4:
+			dev_priv->vram_type = VIA_MEM_DDR3_533;
+			break;
+		case 5:
+			dev_priv->vram_type = VIA_MEM_DDR3_667;
+			break;
+		case 6:
+			dev_priv->vram_type = VIA_MEM_DDR3_800;
+			break;
+		case 7:
+			dev_priv->vram_type = VIA_MEM_DDR3_1066;
+		default:
+			break;
+		}
+	break;
 	}
 	return ret;
 }
@@ -714,12 +789,6 @@ int via_detect_vram(struct drm_device *dev)
 	case PCI_DEVICE_ID_VIA_P4M800CE:
 	/* P4M900/VN896/CN896 */
 	case PCI_DEVICE_ID_VIA_VT3364:
-	/* VX800 */
-	case PCI_DEVICE_ID_VIA_VT3353:
-	/* VX855 */
-	case PCI_DEVICE_ID_VIA_VT3409:
-	/* VX900 */
-	case PCI_DEVICE_ID_VIA_VT3410:
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
 		if (ret)
 			goto out_err;
@@ -737,6 +806,10 @@ int via_detect_vram(struct drm_device *dev)
 	case PCI_DEVICE_ID_VIA_VT3324:
 	/* P4M890 */
 	case PCI_DEVICE_ID_VIA_P4M890:
+	/* VX800 */
+	case PCI_DEVICE_ID_VIA_VT3353:
+	/* VX855 */
+	case PCI_DEVICE_ID_VIA_VT3409:
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
 		if (ret)
 			goto out_err;
@@ -744,6 +817,18 @@ int via_detect_vram(struct drm_device *dev)
 
 		ret = cx700_mem_type(dev_priv, fn3);
 		if (ret)
+			goto out_err;
+		break;
+
+	/* VX900 */
+	case PCI_DEVICE_ID_VIA_VT3410:
+		ret = pci_read_config_byte(fn3, 0xA1, &size);
+		if (ret)
+			goto out_err;
+		vram_size = (1 << ((size & 0x70) >> 4)) << 22;
+
+		ret = vx900_mem_type(dev_priv, fn3);
+		if  (ret)
 			goto out_err;
 		break;
 
@@ -801,6 +886,24 @@ int via_detect_vram(struct drm_device *dev)
 		break;
 	case VIA_MEM_DDR2_1066:
 		name = "DDR2 1066";
+		break;
+	case VIA_MEM_DDR3_533:
+		name = "DDR3 533";
+		break;
+	case VIA_MEM_DDR3_667:
+		name = "DDR3 667";
+		break;
+	case VIA_MEM_DDR3_800:
+		name = "DDR3 800";
+		break;
+	case VIA_MEM_DDR3_1066:
+		name = "DDR3 1066";
+		break;
+	case VIA_MEM_DDR3_1333:
+		name = "DDR3 1333";
+		break;
+	case VIA_MEM_DDR3_1600:
+		name = "DDR3 1600";
 		break;
 	default:
 		break;
