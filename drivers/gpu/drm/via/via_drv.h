@@ -131,7 +131,7 @@ struct drm_via_private {
 	struct timeval last_vblank;
 	int last_vblank_valid;
 	unsigned usec_per_vblank;
-	drm_via_state_t hc_state;
+	struct drm_via_state hc_state;
 	char pci_buf[VIA_PCI_BUF_SIZE];
 	const uint32_t *fire_offsets[VIA_FIRE_BUF_SIZE];
 	uint32_t num_fire_offsets;
@@ -193,6 +193,7 @@ extern int via_decoder_futex(struct drm_device *dev, void *data, struct drm_file
 extern int via_wait_irq(struct drm_device *dev, void *data, struct drm_file *file_priv);
 extern int via_dma_blit_sync(struct drm_device *dev, void *data, struct drm_file *file_priv);
 extern int via_dma_blit(struct drm_device *dev, void *data, struct drm_file *file_priv);
+extern int via_wait_idle(struct drm_via_private *dev_priv);
 
 extern int via_detect_vram(struct drm_device *dev);
 extern int via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **ptr);

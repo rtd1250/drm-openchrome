@@ -25,15 +25,17 @@
 
 #ifndef _VIA_VERIFIER_H_
 #define _VIA_VERIFIER_H_
+
 #include "via_3d_reg.h"
-typedef enum {
+
+enum drm_via_sequence {
 	no_sequence = 0,
 	z_address,
 	dest_address,
 	tex_address
-} drm_via_sequence_t;
+};
 
-typedef struct {
+struct drm_via_state {
 	unsigned texture;
 	uint32_t z_addr;
 	uint32_t d_addr;
@@ -44,7 +46,7 @@ typedef struct {
 	uint32_t tex_level_hi[2];
 	uint32_t tex_palette_size[2];
 	uint32_t tex_npot[2];
-	drm_via_sequence_t unfinished;
+	enum drm_via_sequence unfinished;
 	int agp_texture;
 	int multitex;
 	struct drm_device *dev;
@@ -52,38 +54,10 @@ typedef struct {
 	uint32_t vertex_count;
 	int agp;
 	const uint32_t *buf_start;
-} drm_via_state_t;
+};
 
 extern int via_verify_command_stream(const uint32_t *buf, unsigned int size,
 				     struct drm_device *dev, int agp);
 extern int via_parse_command_stream(struct drm_device *dev, const uint32_t *buf,
 				    unsigned int size);
-
-static inline int is_agp_header(unsigned int data)
-{
-	if (data == HALCYON_HEADER2)
-		return 1;
-	else if ((data & VIA_VIDEOMASK) == VIA_VIDEO_HEADER5)
-		;
-	else if ((data & VIA_VIDEOMASK) == VIA_VIDEO_HEADER6)
-		;
-	else if ((data & HALCYON_HEADER_MASK) == HALCYON_HEADER1)
-		;
-	else
-		return 0;
-
-	return 1;
-}
-
-static inline int is_dummy_cmd(uint32_t cmd)
-{
-		if ((cmd & INV_DUMMY_MASK) == 0xCC000000 ||
-			(cmd & INV_DUMMY_MASK) == 0xCD000000 ||
-			(cmd & INV_DUMMY_MASK) == 0xCE000000 ||
-			(cmd & INV_DUMMY_MASK) == 0xCF000000 ||
-			(cmd & INV_DUMMY_MASK) == 0xDD000000)
-			return 1;
-		return 0;
-}
-
 #endif

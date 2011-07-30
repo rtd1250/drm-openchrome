@@ -33,16 +33,16 @@
 #include "drm.h"
 #include "via_drv.h"
 
-typedef enum {
+enum verifier_state {
 	state_command,
 	state_header2,
 	state_header1,
 	state_vheader5,
 	state_vheader6,
 	state_error
-} verifier_state_t;
+};
 
-typedef enum {
+enum hazard {
 	no_check = 0,
 	check_for_header2,
 	check_for_header1,
@@ -70,7 +70,7 @@ typedef enum {
 	check_for_vertex_count,
 	check_number_texunits,
 	forbidden_command
-} hazard_t;
+};
 
 /*
  * Associates each hazard above with a possible multi-command
@@ -79,7 +79,7 @@ typedef enum {
  * that does not include any part of the address.
  */
 
-static drm_via_sequence_t seqs[] = {
+static enum drm_via_sequence seqs[] = {
 	no_sequence,
 	no_sequence,
 	no_sequence,
@@ -107,12 +107,13 @@ static drm_via_sequence_t seqs[] = {
 	no_sequence
 };
 
-typedef struct {
+struct hz_init {
 	unsigned int code;
-	hazard_t hz;
-} hz_init_t;
+	enum hazard hz;
+};
 
-static hz_init_t init_table1[] = {
+/* for atrribute other than context hazard detect */
+static struct hz_init init_table1[] = {
 	{0xf2, check_for_header2_err},
 	{0xf0, check_for_header1_err},
 	{0xee, check_for_fire},
@@ -163,7 +164,8 @@ static hz_init_t init_table1[] = {
 	{0x7D, check_for_vertex_count}
 };
 
-static hz_init_t init_table2[] = {
+/* for texture stage's hazard detect */
+static struct hz_init init_table2[] = {
 	{0xf2, check_for_header2_err},
 	{0xf0, check_for_header1_err},
 	{0xee, check_for_fire},
@@ -178,6 +180,8 @@ static hz_init_t init_table2[] = {
 	{0x07, check_texture_addr0},
 	{0x08, check_texture_addr0},
 	{0x09, check_texture_addr0},
+	{0x0A, check_texture_addr0},
+	{0x0B, check_texture_addr0},
 	{0x20, check_texture_addr1},
 	{0x21, check_texture_addr1},
 	{0x22, check_texture_addr1},
@@ -192,6 +196,8 @@ static hz_init_t init_table2[] = {
 	{0x32, check_texture_addr3},
 	{0x33, check_texture_addr3},
 	{0x34, check_texture_addr3},
+	{0x35, check_texture_addr3},
+	{0x36, check_texture_addr3},
 	{0x4B, check_texture_addr5},
 	{0x4C, check_texture_addr6},
 	{0x51, check_texture_addr7},
@@ -221,7 +227,8 @@ static hz_init_t init_table2[] = {
 	{0x93, no_check}
 };
 
-static hz_init_t init_table3[] = {
+/* Check for flexible vertex format */
+static struct hz_init init_table3[] = {
 	{0xf2, check_for_header2_err},
 	{0xf0, check_for_header1_err},
 	{0xcc, check_for_dummy},
@@ -231,9 +238,9 @@ static hz_init_t init_table3[] = {
 	{0x03, no_check}
 };
 
-static hazard_t table1[256];
-static hazard_t table2[256];
-static hazard_t table3[256];
+static enum hazard table1[256];
+static enum hazard table2[256];
+static enum hazard table3[256];
 
 static __inline__ int
 eat_words(const uint32_t **buf, const uint32_t *buf_end, unsigned num_words)
@@ -250,7 +257,7 @@ eat_words(const uint32_t **buf, const uint32_t *buf_end, unsigned num_words)
  * Partially stolen from drm_memory.h
  */
 
-static __inline__ drm_local_map_t *via_drm_lookup_agp_map(drm_via_state_t *seq,
+static __inline__ drm_local_map_t *via_drm_lookup_agp_map(struct drm_via_state *seq,
 						    unsigned long offset,
 						    unsigned long size,
 						    struct drm_device *dev)
@@ -287,7 +294,7 @@ static __inline__ drm_local_map_t *via_drm_lookup_agp_map(drm_via_state_t *seq,
  * very little CPU time.
  */
 
-static __inline__ int finish_current_sequence(drm_via_state_t * cur_seq)
+static __inline__ int finish_current_sequence(struct drm_via_state * cur_seq)
 {
 	switch (cur_seq->unfinished) {
 	case z_address:
@@ -345,7 +352,7 @@ static __inline__ int finish_current_sequence(drm_via_state_t * cur_seq)
 }
 
 static __inline__ int
-investigate_hazard(uint32_t cmd, hazard_t hz, drm_via_state_t *cur_seq)
+investigate_hazard(uint32_t cmd, enum hazard hz, struct drm_via_state *cur_seq)
 {
 	register uint32_t tmp, *tmp_addr;
 
@@ -511,7 +518,7 @@ investigate_hazard(uint32_t cmd, hazard_t hz, drm_via_state_t *cur_seq)
 		cur_seq->multitex = (cmd >> 3) & 1;
 		return 0;
 	default:
-		DRM_ERROR("Illegal DMA data: 0x%x\n", cmd);
+		DRM_ERROR("Illegal DMA data: 0x%08x\n", cmd);
 		return 2;
 	}
 	return 2;
@@ -519,7 +526,7 @@ investigate_hazard(uint32_t cmd, hazard_t hz, drm_via_state_t *cur_seq)
 
 static __inline__ int
 via_check_prim_list(uint32_t const **buffer, const uint32_t * buf_end,
-		    drm_via_state_t *cur_seq)
+		    struct drm_via_state *cur_seq)
 {
 	struct drm_via_private *dev_priv =
 	    (struct drm_via_private *) cur_seq->dev->dev_private;
@@ -621,15 +628,15 @@ via_check_prim_list(uint32_t const **buffer, const uint32_t * buf_end,
 	return ret;
 }
 
-static __inline__ verifier_state_t
+static __inline__ enum verifier_state
 via_check_header2(uint32_t const **buffer, const uint32_t *buf_end,
-		  drm_via_state_t *hc_state)
+		  struct drm_via_state *hc_state)
 {
 	uint32_t cmd;
 	int hz_mode;
-	hazard_t hz;
+	enum hazard hz;
 	const uint32_t *buf = *buffer;
-	const hazard_t *hz_table;
+	const enum hazard *hz_table;
 
 	if ((buf_end - buf) < 2) {
 		DRM_ERROR
@@ -713,7 +720,7 @@ via_check_header2(uint32_t const **buffer, const uint32_t *buf_end,
 	return state_command;
 }
 
-static __inline__ verifier_state_t
+static __inline__ enum verifier_state
 via_parse_header2(struct drm_via_private *dev_priv, uint32_t const **buffer,
 		  const uint32_t *buf_end, int *fire_count)
 {
@@ -781,6 +788,17 @@ static __inline__ int verify_mmio_address(uint32_t address)
 	return 0;
 }
 
+static inline int is_dummy_cmd(uint32_t cmd)
+{
+	if ((cmd & INV_DUMMY_MASK) == 0xCC000000 ||
+	    (cmd & INV_DUMMY_MASK) == 0xCD000000 ||
+	    (cmd & INV_DUMMY_MASK) == 0xCE000000 ||
+	    (cmd & INV_DUMMY_MASK) == 0xCF000000 ||
+	    (cmd & INV_DUMMY_MASK) == 0xDD000000)
+		return 1;
+	return 0;
+}
+
 static __inline__ int
 verify_video_tail(uint32_t const **buffer, const uint32_t * buf_end,
 		  uint32_t dwords)
@@ -802,12 +820,12 @@ verify_video_tail(uint32_t const **buffer, const uint32_t * buf_end,
 	return 0;
 }
 
-static __inline__ verifier_state_t
+static __inline__ enum verifier_state
 via_check_header1(uint32_t const **buffer, const uint32_t * buf_end)
 {
 	uint32_t cmd;
 	const uint32_t *buf = *buffer;
-	verifier_state_t ret = state_command;
+	enum verifier_state ret = state_command;
 
 	while (buf < buf_end) {
 		cmd = *buf;
@@ -834,14 +852,24 @@ via_check_header1(uint32_t const **buffer, const uint32_t * buf_end)
 	return ret;
 }
 
-static __inline__ verifier_state_t
+static __inline__ enum verifier_state
 via_parse_header1(struct drm_via_private *dev_priv, uint32_t const **buffer,
 		  const uint32_t *buf_end)
 {
-	register uint32_t cmd;
+	register uint32_t cmd = VIA_REG_GECMD;
 	const uint32_t *buf = *buffer;
 
 	while (buf < buf_end) {
+
+		/*
+		 * Wait idle to avoid lenghty PCI stalls.
+		 * There is no on-chip queue for these MMIO commands, so
+		 * without this idle wait, the chip will simply
+		 * stall the PCI bus until the engines are idle.
+		 */
+		if (unlikely(cmd == VIA_REG_GECMD))
+			via_wait_idle(dev_priv);
+
 		cmd = *buf;
 		if ((cmd & HALCYON_HEADER1MASK) != HALCYON_HEADER1)
 			break;
@@ -853,7 +881,7 @@ via_parse_header1(struct drm_via_private *dev_priv, uint32_t const **buffer,
 	return state_command;
 }
 
-static __inline__ verifier_state_t
+static __inline__ enum verifier_state
 via_check_vheader5(uint32_t const **buffer, const uint32_t *buf_end)
 {
 	uint32_t data;
@@ -886,7 +914,7 @@ via_check_vheader5(uint32_t const **buffer, const uint32_t *buf_end)
 
 }
 
-static __inline__ verifier_state_t
+static __inline__ enum verifier_state
 via_parse_vheader5(struct drm_via_private *dev_priv, uint32_t const **buffer,
 		   const uint32_t *buf_end)
 {
@@ -904,7 +932,7 @@ via_parse_vheader5(struct drm_via_private *dev_priv, uint32_t const **buffer,
 	return state_command;
 }
 
-static __inline__ verifier_state_t
+static __inline__ enum verifier_state
 via_check_vheader6(uint32_t const **buffer, const uint32_t * buf_end)
 {
 	uint32_t data;
@@ -941,7 +969,7 @@ via_check_vheader6(uint32_t const **buffer, const uint32_t * buf_end)
 	return state_command;
 }
 
-static __inline__ verifier_state_t
+static __inline__ enum verifier_state
 via_parse_vheader6(struct drm_via_private *dev_priv, uint32_t const **buffer,
 		   const uint32_t *buf_end)
 {
@@ -968,11 +996,11 @@ via_verify_command_stream(const uint32_t * buf, unsigned int size,
 {
 
 	struct drm_via_private *dev_priv = dev->dev_private;
-	drm_via_state_t *hc_state = &dev_priv->hc_state;
-	drm_via_state_t saved_state = *hc_state;
+	struct drm_via_state *hc_state = &dev_priv->hc_state;
+	struct drm_via_state saved_state = *hc_state;
 	uint32_t cmd;
 	const uint32_t *buf_end = buf + (size >> 2);
-	verifier_state_t state = state_command;
+	enum verifier_state state = state_command;
 	int cme_video;
 	int supported_3d;
 
@@ -1042,10 +1070,10 @@ via_parse_command_stream(struct drm_device *dev, const uint32_t *buf,
 {
 
 	struct drm_via_private *dev_priv = dev->dev_private;
-	uint32_t cmd;
 	const uint32_t *buf_end = buf + (size >> 2);
-	verifier_state_t state = state_command;
+	enum verifier_state state = state_command;
 	int fire_count = 0;
+	uint32_t cmd;
 
 	while (buf < buf_end) {
 
@@ -1091,7 +1119,7 @@ via_parse_command_stream(struct drm_device *dev, const uint32_t *buf,
 }
 
 static void
-setup_hazard_table(hz_init_t init_table[], hazard_t table[], int size)
+setup_hazard_table(struct hz_init init_table[], enum hazard table[], int size)
 {
 	int i;
 
@@ -1105,9 +1133,9 @@ setup_hazard_table(hz_init_t init_table[], hazard_t table[], int size)
 void via_init_command_verifier(void)
 {
 	setup_hazard_table(init_table1, table1,
-			   sizeof(init_table1) / sizeof(hz_init_t));
+			   sizeof(init_table1) / sizeof(struct hz_init));
 	setup_hazard_table(init_table2, table2,
-			   sizeof(init_table2) / sizeof(hz_init_t));
+			   sizeof(init_table2) / sizeof(struct hz_init));
 	setup_hazard_table(init_table3, table3,
-			   sizeof(init_table3) / sizeof(hz_init_t));
+			   sizeof(init_table3) / sizeof(struct hz_init));
 }

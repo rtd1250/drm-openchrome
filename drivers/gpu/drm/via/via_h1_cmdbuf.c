@@ -48,7 +48,6 @@ static void via_cmdbuf_start(struct drm_via_private *dev_priv);
 static void via_cmdbuf_pause(struct drm_via_private *dev_priv);
 static void via_cmdbuf_reset(struct drm_via_private *dev_priv);
 static void via_cmdbuf_rewind(struct drm_via_private *dev_priv);
-static int via_wait_idle(struct drm_via_private *dev_priv);
 static void via_pad_cache(struct drm_via_private *dev_priv, int qwords);
 
 /*
@@ -427,7 +426,7 @@ static int via_hook_segment(struct drm_via_private *dev_priv,
 	return paused;
 }
 
-static int via_wait_idle(struct drm_via_private *dev_priv)
+int via_wait_idle(struct drm_via_private *dev_priv)
 {
 	int count = 10000000;
 
