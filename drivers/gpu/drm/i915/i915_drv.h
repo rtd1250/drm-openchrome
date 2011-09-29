@@ -36,6 +36,7 @@
 #include <linux/io-mapping.h>
 #include <linux/i2c.h>
 #include <drm/intel-gtt.h>
+#include <linux/backlight.h>
 
 /* General customization:
  */
@@ -225,26 +226,26 @@ struct drm_i915_display_funcs {
 
 struct intel_device_info {
 	u8 gen;
-	u8 is_mobile : 1;
-	u8 is_i85x : 1;
-	u8 is_i915g : 1;
-	u8 is_i945gm : 1;
-	u8 is_g33 : 1;
-	u8 need_gfx_hws : 1;
-	u8 is_g4x : 1;
-	u8 is_pineview : 1;
-	u8 is_broadwater : 1;
-	u8 is_crestline : 1;
-	u8 is_ivybridge : 1;
-	u8 has_fbc : 1;
-	u8 has_pipe_cxsr : 1;
-	u8 has_hotplug : 1;
-	u8 cursor_needs_physical : 1;
-	u8 has_overlay : 1;
-	u8 overlay_needs_physical : 1;
-	u8 supports_tv : 1;
-	u8 has_bsd_ring : 1;
-	u8 has_blt_ring : 1;
+	u8 is_mobile:1;
+	u8 is_i85x:1;
+	u8 is_i915g:1;
+	u8 is_i945gm:1;
+	u8 is_g33:1;
+	u8 need_gfx_hws:1;
+	u8 is_g4x:1;
+	u8 is_pineview:1;
+	u8 is_broadwater:1;
+	u8 is_crestline:1;
+	u8 is_ivybridge:1;
+	u8 has_fbc:1;
+	u8 has_pipe_cxsr:1;
+	u8 has_hotplug:1;
+	u8 cursor_needs_physical:1;
+	u8 has_overlay:1;
+	u8 overlay_needs_physical:1;
+	u8 supports_tv:1;
+	u8 has_bsd_ring:1;
+	u8 has_blt_ring:1;
 };
 
 enum no_fbc_reason {
@@ -264,6 +265,7 @@ enum intel_pch {
 };
 
 #define QUIRK_PIPEA_FORCE (1<<0)
+#define QUIRK_LVDS_SSC_DISABLE (1<<1)
 
 struct intel_fbdev;
 struct intel_fbc_work;
@@ -543,6 +545,7 @@ typedef struct drm_i915_private {
 	u32 savePIPEB_LINK_M1;
 	u32 savePIPEB_LINK_N1;
 	u32 saveMCHBAR_RENDER_STANDBY;
+	u32 savePCH_PORT_HOTPLUG;
 
 	struct {
 		/** Bridge to intel-gtt-ko */
@@ -688,6 +691,7 @@ typedef struct drm_i915_private {
 	int child_dev_num;
 	struct child_device_config *child_dev;
 	struct drm_connector *int_lvds_connector;
+	struct drm_connector *int_edp_connector;
 
 	bool mchbar_need_disable;
 
@@ -721,6 +725,8 @@ typedef struct drm_i915_private {
 	/* list of fbdev register on this device */
 	struct intel_fbdev *fbdev;
 
+	struct backlight_device *backlight;
+
 	struct drm_property *broadcast_rgb_property;
 	struct drm_property *force_audio_property;
 
@@ -753,19 +759,19 @@ struct drm_i915_gem_object {
 	 * (has pending rendering), and is not set if it's on inactive (ready
 	 * to be unbound).
 	 */
-	unsigned int active : 1;
+	unsigned int active:1;
 
 	/**
 	 * This is set if the object has been written to since last bound
 	 * to the GTT
 	 */
-	unsigned int dirty : 1;
+	unsigned int dirty:1;
 
 	/**
 	 * This is set if the object has been written to since the last
 	 * GPU flush.
 	 */
-	unsigned int pending_gpu_write : 1;
+	unsigned int pending_gpu_write:1;
 
 	/**
 	 * Fence register bits (if any) for this object.  Will be set
@@ -774,18 +780,18 @@ struct drm_i915_gem_object {
 	 *
 	 * Size: 4 bits for 16 fences + sign (for FENCE_REG_NONE)
 	 */
-	signed int fence_reg : 5;
+	signed int fence_reg:5;
 
 	/**
 	 * Advice: are the backing pages purgeable?
 	 */
-	unsigned int madv : 2;
+	unsigned int madv:2;
 
 	/**
 	 * Current tiling mode for the object.
 	 */
-	unsigned int tiling_mode : 2;
-	unsigned int tiling_changed : 1;
+	unsigned int tiling_mode:2;
+	unsigned int tiling_changed:1;
 
 	/** How many users have pinned this object in GTT space. The following
 	 * users can each hold at most one reference: pwrite/pread, pin_ioctl
@@ -796,22 +802,22 @@ struct drm_i915_gem_object {
 	 *
 	 * In the worst case this is 1 + 1 + 1 + 2*2 = 7. That would fit into 3
 	 * bits with absolutely no headroom. So use 4 bits. */
-	unsigned int pin_count : 4;
+	unsigned int pin_count:4;
 #define DRM_I915_GEM_OBJECT_MAX_PIN_COUNT 0xf
 
 	/**
 	 * Is the object at the current location in the gtt mappable and
 	 * fenceable? Used to avoid costly recalculations.
 	 */
-	unsigned int map_and_fenceable : 1;
+	unsigned int map_and_fenceable:1;
 
 	/**
 	 * Whether the current gtt mapping needs to be mappable (and isn't just
 	 * mappable by accident). Track pin and fault separate for a more
 	 * accurate mappable working set.
 	 */
-	unsigned int fault_mappable : 1;
-	unsigned int pin_mappable : 1;
+	unsigned int fault_mappable:1;
+	unsigned int pin_mappable:1;
 
 	/*
 	 * Is the GPU currently using a fence to access this buffer,
@@ -1050,7 +1056,7 @@ i915_enable_pipestat(drm_i915_private_t *dev_priv, int pipe, u32 mask);
 void
 i915_disable_pipestat(drm_i915_private_t *dev_priv, int pipe, u32 mask);
 
-void intel_enable_asle (struct drm_device *dev);
+void intel_enable_asle(struct drm_device *dev);
 
 #ifdef CONFIG_DEBUG_FS
 extern void i915_destroy_error_state(struct drm_device *dev);
@@ -1140,7 +1146,7 @@ int i915_gem_dumb_create(struct drm_file *file_priv,
 int i915_gem_mmap_gtt(struct drm_file *file_priv, struct drm_device *dev,
 		      uint32_t handle, uint64_t *offset);
 int i915_gem_dumb_destroy(struct drm_file *file_priv, struct drm_device *dev,
-			  uint32_t handle);			  
+			  uint32_t handle);
 /**
  * Returns true if seq1 is later than seq2.
  */
@@ -1199,7 +1205,9 @@ void i915_gem_free_all_phys_object(struct drm_device *dev);
 void i915_gem_release(struct drm_device *dev, struct drm_file *file);
 
 uint32_t
-i915_gem_get_unfenced_gtt_alignment(struct drm_i915_gem_object *obj);
+i915_gem_get_unfenced_gtt_alignment(struct drm_device *dev,
+				    uint32_t size,
+				    int tiling_mode);
 
 int i915_gem_object_set_cache_level(struct drm_i915_gem_object *obj,
 				    enum i915_cache_level cache_level);
@@ -1295,8 +1303,8 @@ extern void intel_disable_fbc(struct drm_device *dev);
 extern bool ironlake_set_drps(struct drm_device *dev, u8 val);
 extern void ironlake_enable_rc6(struct drm_device *dev);
 extern void gen6_set_rps(struct drm_device *dev, u8 val);
-extern void intel_detect_pch (struct drm_device *dev);
-extern int intel_trans_dp_port_sel (struct drm_crtc *crtc);
+extern void intel_detect_pch(struct drm_device *dev);
+extern int intel_trans_dp_port_sel(struct drm_crtc *crtc);
 
 /* overlay */
 #ifdef CONFIG_DEBUG_FS

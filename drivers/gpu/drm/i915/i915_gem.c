@@ -179,7 +179,7 @@ i915_gem_get_aperture_ioctl(struct drm_device *dev, void *data,
 	mutex_unlock(&dev->struct_mutex);
 
 	args->aper_size = dev_priv->mm.gtt_total;
-	args->aper_available_size = args->aper_size -pinned;
+	args->aper_available_size = args->aper_size - pinned;
 
 	return 0;
 }
@@ -1265,74 +1265,6 @@ out:
 }
 
 /**
- * i915_gem_create_mmap_offset - create a fake mmap offset for an object
- * @obj: obj in question
- *
- * GEM memory mapping works by handing back to userspace a fake mmap offset
- * it can use in a subsequent mmap(2) call.  The DRM core code then looks
- * up the object based on the offset and sets up the various memory mapping
- * structures.
- *
- * This routine allocates and attaches a fake offset for @obj.
- */
-static int
-i915_gem_create_mmap_offset(struct drm_i915_gem_object *obj)
-{
-	struct drm_device *dev = obj->base.dev;
-	struct drm_gem_mm *mm = dev->mm_private;
-	struct drm_map_list *list;
-	struct drm_local_map *map;
-	int ret = 0;
-
-	/* Set the object up for mmap'ing */
-	list = &obj->base.map_list;
-	list->map = kzalloc(sizeof(struct drm_map_list), GFP_KERNEL);
-	if (!list->map)
-		return -ENOMEM;
-
-	map = list->map;
-	map->type = _DRM_GEM;
-	map->size = obj->base.size;
-	map->handle = obj;
-
-	/* Get a DRM GEM mmap offset allocated... */
-	list->file_offset_node = drm_mm_search_free(&mm->offset_manager,
-						    obj->base.size / PAGE_SIZE,
-						    0, 0);
-	if (!list->file_offset_node) {
-		DRM_ERROR("failed to allocate offset for bo %d\n",
-			  obj->base.name);
-		ret = -ENOSPC;
-		goto out_free_list;
-	}
-
-	list->file_offset_node = drm_mm_get_block(list->file_offset_node,
-						  obj->base.size / PAGE_SIZE,
-						  0);
-	if (!list->file_offset_node) {
-		ret = -ENOMEM;
-		goto out_free_list;
-	}
-
-	list->hash.key = list->file_offset_node->start;
-	ret = drm_ht_insert_item(&mm->offset_hash, &list->hash);
-	if (ret) {
-		DRM_ERROR("failed to add to map hash\n");
-		goto out_free_mm;
-	}
-
-	return 0;
-
-out_free_mm:
-	drm_mm_put_block(list->file_offset_node);
-out_free_list:
-	kfree(list->map);
-	list->map = NULL;
-
-	return ret;
-}
-
-/**
  * i915_gem_release_mmap - remove physical page mappings
  * @obj: obj in question
  *
@@ -1360,39 +1292,25 @@ i915_gem_release_mmap(struct drm_i915_gem_object *obj)
 	obj->fault_mappable = false;
 }
 
-static void
-i915_gem_free_mmap_offset(struct drm_i915_gem_object *obj)
-{
-	struct drm_device *dev = obj->base.dev;
-	struct drm_gem_mm *mm = dev->mm_private;
-	struct drm_map_list *list = &obj->base.map_list;
-
-	drm_ht_remove_item(&mm->offset_hash, &list->hash);
-	drm_mm_put_block(list->file_offset_node);
-	kfree(list->map);
-	list->map = NULL;
-}
-
 static uint32_t
-i915_gem_get_gtt_size(struct drm_i915_gem_object *obj)
+i915_gem_get_gtt_size(struct drm_device *dev, uint32_t size, int tiling_mode)
 {
-	struct drm_device *dev = obj->base.dev;
-	uint32_t size;
+	uint32_t gtt_size;
 
 	if (INTEL_INFO(dev)->gen >= 4 ||
-	    obj->tiling_mode == I915_TILING_NONE)
-		return obj->base.size;
+	    tiling_mode == I915_TILING_NONE)
+		return size;
 
 	/* Previous chips need a power-of-two fence region when tiling */
 	if (INTEL_INFO(dev)->gen == 3)
-		size = 1024*1024;
+		gtt_size = 1024*1024;
 	else
-		size = 512*1024;
+		gtt_size = 512*1024;
 
-	while (size < obj->base.size)
-		size <<= 1;
+	while (gtt_size < size)
+		gtt_size <<= 1;
 
-	return size;
+	return gtt_size;
 }
 
 /**
@@ -1403,59 +1321,52 @@ i915_gem_get_gtt_size(struct drm_i915_gem_object *obj)
  * potential fence register mapping.
  */
 static uint32_t
-i915_gem_get_gtt_alignment(struct drm_i915_gem_object *obj)
+i915_gem_get_gtt_alignment(struct drm_device *dev,
+			   uint32_t size,
+			   int tiling_mode)
 {
-	struct drm_device *dev = obj->base.dev;
-
 	/*
 	 * Minimum alignment is 4k (GTT page size), but might be greater
 	 * if a fence register is needed for the object.
 	 */
 	if (INTEL_INFO(dev)->gen >= 4 ||
-	    obj->tiling_mode == I915_TILING_NONE)
+	    tiling_mode == I915_TILING_NONE)
 		return 4096;
 
 	/*
 	 * Previous chips need to be aligned to the size of the smallest
 	 * fence register that can contain the object.
 	 */
-	return i915_gem_get_gtt_size(obj);
+	return i915_gem_get_gtt_size(dev, size, tiling_mode);
 }
 
 /**
  * i915_gem_get_unfenced_gtt_alignment - return required GTT alignment for an
  *					 unfenced object
- * @obj: object to check
+ * @dev: the device
+ * @size: size of the object
+ * @tiling_mode: tiling mode of the object
  *
  * Return the required GTT alignment for an object, only taking into account
  * unfenced tiled surface requirements.
  */
 uint32_t
-i915_gem_get_unfenced_gtt_alignment(struct drm_i915_gem_object *obj)
+i915_gem_get_unfenced_gtt_alignment(struct drm_device *dev,
+				    uint32_t size,
+				    int tiling_mode)
 {
-	struct drm_device *dev = obj->base.dev;
-	int tile_height;
-
 	/*
 	 * Minimum alignment is 4k (GTT page size) for sane hw.
 	 */
 	if (INTEL_INFO(dev)->gen >= 4 || IS_G33(dev) ||
-	    obj->tiling_mode == I915_TILING_NONE)
+	    tiling_mode == I915_TILING_NONE)
 		return 4096;
 
-	/*
-	 * Older chips need unfenced tiled buffers to be aligned to the left
-	 * edge of an even tile row (where tile rows are counted as if the bo is
-	 * placed in a fenced gtt region).
+	/* Previous hardware however needs to be aligned to a power-of-two
+	 * tile height. The simplest method for determining this is to reuse
+	 * the power-of-tile object size.
 	 */
-	if (IS_GEN2(dev))
-		tile_height = 16;
-	else if (obj->tiling_mode == I915_TILING_Y && HAS_128_BYTE_Y_TILING(dev))
-		tile_height = 32;
-	else
-		tile_height = 8;
-
-	return tile_height * obj->stride * 2;
+	return i915_gem_get_gtt_size(dev, size, tiling_mode);
 }
 
 int
@@ -1493,7 +1404,7 @@ i915_gem_mmap_gtt(struct drm_file *file,
 	}
 
 	if (!obj->base.map_list.map) {
-		ret = i915_gem_create_mmap_offset(obj);
+		ret = drm_gem_create_mmap_offset(&obj->base);
 		if (ret)
 			goto out;
 	}
@@ -1864,7 +1775,7 @@ void i915_gem_reset(struct drm_device *dev)
 	 * lost bo to the inactive list.
 	 */
 	while (!list_empty(&dev_priv->mm.flushing_list)) {
-		obj= list_first_entry(&dev_priv->mm.flushing_list,
+		obj = list_first_entry(&dev_priv->mm.flushing_list,
 				      struct drm_i915_gem_object,
 				      mm_list);
 
@@ -1930,7 +1841,7 @@ i915_gem_retire_requests_ring(struct intel_ring_buffer *ring)
 	while (!list_empty(&ring->active_list)) {
 		struct drm_i915_gem_object *obj;
 
-		obj= list_first_entry(&ring->active_list,
+		obj = list_first_entry(&ring->active_list,
 				      struct drm_i915_gem_object,
 				      ring_list);
 
@@ -2776,9 +2687,16 @@ i915_gem_object_bind_to_gtt(struct drm_i915_gem_object *obj,
 		return -EINVAL;
 	}
 
-	fence_size = i915_gem_get_gtt_size(obj);
-	fence_alignment = i915_gem_get_gtt_alignment(obj);
-	unfenced_alignment = i915_gem_get_unfenced_gtt_alignment(obj);
+	fence_size = i915_gem_get_gtt_size(dev,
+					   obj->base.size,
+					   obj->tiling_mode);
+	fence_alignment = i915_gem_get_gtt_alignment(dev,
+						     obj->base.size,
+						     obj->tiling_mode);
+	unfenced_alignment =
+		i915_gem_get_unfenced_gtt_alignment(dev,
+						    obj->base.size,
+						    obj->tiling_mode);
 
 	if (alignment == 0)
 		alignment = map_and_fenceable ? fence_alignment :
@@ -2883,7 +2801,7 @@ i915_gem_object_bind_to_gtt(struct drm_i915_gem_object *obj,
 
 	fenceable =
 		obj->gtt_space->size == fence_size &&
-		(obj->gtt_space->start & (fence_alignment -1)) == 0;
+		(obj->gtt_space->start & (fence_alignment - 1)) == 0;
 
 	mappable =
 		obj->gtt_offset + obj->base.size <= dev_priv->mm.gtt_mappable_end;
@@ -3113,7 +3031,7 @@ i915_gem_object_pin_to_display_plane(struct drm_i915_gem_object *obj,
 
 	if (pipelined != obj->ring) {
 		ret = i915_gem_object_wait_rendering(obj);
-		if (ret)
+		if (ret == -ERESTARTSYS)
 			return ret;
 	}
 
@@ -3599,7 +3517,7 @@ i915_gem_busy_ioctl(struct drm_device *dev, void *data,
 			 */
 			request = kzalloc(sizeof(*request), GFP_KERNEL);
 			if (request)
-				ret = i915_add_request(obj->ring, NULL,request);
+				ret = i915_add_request(obj->ring, NULL, request);
 			else
 				ret = -ENOMEM;
 		}
@@ -3624,7 +3542,7 @@ int
 i915_gem_throttle_ioctl(struct drm_device *dev, void *data,
 			struct drm_file *file_priv)
 {
-    return i915_gem_ring_throttle(dev, file_priv);
+	return i915_gem_ring_throttle(dev, file_priv);
 }
 
 int
@@ -3753,7 +3671,7 @@ static void i915_gem_free_object_tail(struct drm_i915_gem_object *obj)
 	trace_i915_gem_object_destroy(obj);
 
 	if (obj->base.map_list.map)
-		i915_gem_free_mmap_offset(obj);
+		drm_gem_free_mmap_offset(&obj->base);
 
 	drm_gem_object_release(&obj->base);
 	i915_gem_info_remove_obj(dev_priv, obj->base.size);

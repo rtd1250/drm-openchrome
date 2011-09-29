@@ -306,11 +306,14 @@ static void i915_hotplug_work_func(struct work_struct *work)
 	struct drm_mode_config *mode_config = &dev->mode_config;
 	struct intel_encoder *encoder;
 
+	mutex_lock(&mode_config->mutex);
 	DRM_DEBUG_KMS("running encoder hotplug functions\n");
 
 	list_for_each_entry(encoder, &mode_config->encoder_list, base.head)
 		if (encoder->hot_plug)
 			encoder->hot_plug(encoder);
+
+	mutex_unlock(&mode_config->mutex);
 
 	/* Just fire off a uevent and let userspace tell us what to do */
 	drm_helper_hpd_irq_event(dev);
@@ -708,7 +711,7 @@ i915_error_object_create(struct drm_i915_private *dev_priv,
 
 	page_count = src->base.size / PAGE_SIZE;
 
-	dst = kmalloc(sizeof(*dst) + page_count * sizeof (u32 *), GFP_ATOMIC);
+	dst = kmalloc(sizeof(*dst) + page_count * sizeof(u32 *), GFP_ATOMIC);
 	if (dst == NULL)
 		return NULL;
 
@@ -1490,7 +1493,7 @@ static int ironlake_enable_vblank(struct drm_device *dev, int pipe)
 
 	spin_lock_irqsave(&dev_priv->irq_lock, irqflags);
 	ironlake_enable_display_irq(dev_priv, (pipe == 0) ?
-				    DE_PIPEA_VBLANK: DE_PIPEB_VBLANK);
+				    DE_PIPEA_VBLANK : DE_PIPEB_VBLANK);
 	spin_unlock_irqrestore(&dev_priv->irq_lock, irqflags);
 
 	return 0;
@@ -1538,7 +1541,7 @@ static void ironlake_disable_vblank(struct drm_device *dev, int pipe)
 
 	spin_lock_irqsave(&dev_priv->irq_lock, irqflags);
 	ironlake_disable_display_irq(dev_priv, (pipe == 0) ?
-				     DE_PIPEA_VBLANK: DE_PIPEB_VBLANK);
+				     DE_PIPEA_VBLANK : DE_PIPEB_VBLANK);
 	spin_unlock_irqrestore(&dev_priv->irq_lock, irqflags);
 }
 
@@ -2055,8 +2058,10 @@ void intel_irq_init(struct drm_device *dev)
 		dev->driver->get_vblank_counter = gm45_get_vblank_counter;
 	}
 
-
-	dev->driver->get_vblank_timestamp = i915_get_vblank_timestamp;
+	if (drm_core_check_feature(dev, DRIVER_MODESET))
+		dev->driver->get_vblank_timestamp = i915_get_vblank_timestamp;
+	else
+		dev->driver->get_vblank_timestamp = NULL;
 	dev->driver->get_scanout_position = i915_get_crtc_scanoutpos;
 
 	if (IS_IVYBRIDGE(dev)) {

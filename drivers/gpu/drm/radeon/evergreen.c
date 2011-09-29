@@ -41,6 +41,31 @@ static void evergreen_gpu_init(struct radeon_device *rdev);
 void evergreen_fini(struct radeon_device *rdev);
 static void evergreen_pcie_gen2_enable(struct radeon_device *rdev);
 
+void evergreen_fix_pci_max_read_req_size(struct radeon_device *rdev)
+{
+	u16 ctl, v;
+	int cap, err;
+
+	cap = pci_pcie_cap(rdev->pdev);
+	if (!cap)
+		return;
+
+	err = pci_read_config_word(rdev->pdev, cap + PCI_EXP_DEVCTL, &ctl);
+	if (err)
+		return;
+
+	v = (ctl & PCI_EXP_DEVCTL_READRQ) >> 12;
+
+	/* if bios or OS sets MAX_READ_REQUEST_SIZE to an invalid value, fix it
+	 * to avoid hangs or perfomance issues
+	 */
+	if ((v == 0) || (v == 6) || (v == 7)) {
+		ctl &= ~PCI_EXP_DEVCTL_READRQ;
+		ctl |= (2 << 12);
+		pci_write_config_word(rdev->pdev, cap + PCI_EXP_DEVCTL, ctl);
+	}
+}
+
 void evergreen_pre_page_flip(struct radeon_device *rdev, int crtc)
 {
 	/* enable the pflip int */
@@ -743,7 +768,7 @@ static void evergreen_program_watermarks(struct radeon_device *rdev,
 		    !evergreen_average_bandwidth_vs_available_bandwidth(&wm) ||
 		    !evergreen_check_latency_hiding(&wm) ||
 		    (rdev->disp_priority == 2)) {
-			DRM_INFO("force priority to high\n");
+			DRM_DEBUG_KMS("force priority to high\n");
 			priority_a_cnt |= PRIORITY_ALWAYS_ON;
 			priority_b_cnt |= PRIORITY_ALWAYS_ON;
 		}
@@ -910,6 +935,9 @@ int evergreen_pcie_gart_enable(struct radeon_device *rdev)
 	WREG32(VM_CONTEXT1_CNTL, 0);
 
 	evergreen_pcie_gart_tlb_flush(rdev);
+	DRM_INFO("PCIE GART of %uM enabled (table at 0x%016llX).\n",
+		 (unsigned)(rdev->mc.gtt_size >> 20),
+		 (unsigned long long)rdev->gart.table_addr);
 	rdev->gart.ready = true;
 	return 0;
 }
@@ -1357,6 +1385,7 @@ int evergreen_cp_resume(struct radeon_device *rdev)
 				 SOFT_RESET_PA |
 				 SOFT_RESET_SH |
 				 SOFT_RESET_VGT |
+				 SOFT_RESET_SPI |
 				 SOFT_RESET_SX));
 	RREG32(GRBM_SOFT_RESET);
 	mdelay(15);
@@ -1862,6 +1891,8 @@ static void evergreen_gpu_init(struct radeon_device *rdev)
 
 	WREG32(GRBM_CNTL, GRBM_READ_TIMEOUT(0xff));
 
+	evergreen_fix_pci_max_read_req_size(rdev);
+
 	cc_gc_shader_pipe_config = RREG32(CC_GC_SHADER_PIPE_CONFIG) & ~2;
 
 	cc_gc_shader_pipe_config |=
@@ -1997,7 +2028,7 @@ static void evergreen_gpu_init(struct radeon_device *rdev)
 			gb_backend_map = 0x66442200;
 			break;
 		case CHIP_JUNIPER:
-			gb_backend_map = 0x00006420;
+			gb_backend_map = 0x00002200;
 			break;
 		default:
 			gb_backend_map =

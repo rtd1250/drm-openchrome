@@ -60,7 +60,7 @@
  *                          are considered as fatal)
  */
 
-#include <asm/atomic.h>
+#include <linux/atomic.h>
 #include <linux/wait.h>
 #include <linux/list.h>
 #include <linux/kref.h>
@@ -1143,6 +1143,8 @@ int radeon_gem_set_tiling_ioctl(struct drm_device *dev, void *data,
 				struct drm_file *filp);
 int radeon_gem_get_tiling_ioctl(struct drm_device *dev, void *data,
 				struct drm_file *filp);
+int radeon_gem_wait_ioctl(struct drm_device *dev, void *data,
+			  struct drm_file *filp);
 
 /* VRAM scratch page for HDP bug */
 struct r700_vram_scratch {
