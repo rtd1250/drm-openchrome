@@ -193,7 +193,7 @@ km400_mem_type(struct drm_via_private *dev_priv, struct pci_dev *bridge)
 				dev_priv->vram_type = VIA_MEM_DDR_400;
 				break;
 			case 0x03:
-				dev_priv->vram_type = VIA_MEM_DDR_266;	
+				dev_priv->vram_type = VIA_MEM_DDR_266;
 			default:
 				break;
 			}
@@ -297,7 +297,7 @@ p4m800_mem_type(struct drm_via_private *dev_priv, struct pci_bus *bus,
 	switch (fsb >> 5) {
 	case 0:
 		freq = 3; /* 100 MHz */
-		break;	
+		break;
 	case 1:
 		freq = 4; /* 133 MHz */
 		break;
@@ -332,7 +332,7 @@ p4m800_mem_type(struct drm_via_private *dev_priv, struct pci_bus *bus,
 		dev_priv->vram_type = VIA_MEM_DDR_200;
 		break;
 	case 0x04:
-		dev_priv->vram_type = VIA_MEM_DDR_266;	
+		dev_priv->vram_type = VIA_MEM_DDR_266;
 		break;
 	case 0x05:
 		dev_priv->vram_type = VIA_MEM_DDR_333;
@@ -342,7 +342,7 @@ p4m800_mem_type(struct drm_via_private *dev_priv, struct pci_bus *bus,
 	default:
 		break;
 	}
-	return ret;	
+	return ret;
 }
 
 static int
@@ -378,7 +378,7 @@ km8xx_mem_type(struct drm_via_private *dev_priv)
 		} else {
 			ret = pci_read_config_byte(dram, 0x96, &type);
 			if (ret)
-				return ret; 
+				return ret;
 			type >>= 4;
 			type &= 0x07;
 
@@ -410,7 +410,7 @@ km8xx_mem_type(struct drm_via_private *dev_priv)
 		if (ret)
 			return ret;
 
-        	if (type & 0x01) {	/* DDR3 */
+		if (type & 0x01) {	/* DDR3 */
 			switch(tmp & 0x07) {
 			case 0x03:
 				dev_priv->vram_type = VIA_MEM_DDR3_800;
@@ -426,7 +426,7 @@ km8xx_mem_type(struct drm_via_private *dev_priv)
 			default:
 				break;
 			}
-        	} else {		/* DDR2 */
+		} else {		/* DDR2 */
 			switch(tmp & 0x07) {
 			case 0x00:
 				dev_priv->vram_type = VIA_MEM_DDR2_400;
@@ -488,7 +488,7 @@ cn400_mem_type(struct drm_via_private *dev_priv, struct pci_bus *bus,
 	switch (fsb >> 5) {
 	case 0:
 		freq = 3; /* 100 MHz */
-		break;	
+		break;
 	case 1:
 		freq = 4; /* 133 MHz */
 		break;
@@ -520,7 +520,7 @@ cn400_mem_type(struct drm_via_private *dev_priv, struct pci_bus *bus,
 		dev_priv->vram_type = VIA_MEM_DDR_200;
 		break;
 	case 0x04:
-		dev_priv->vram_type = VIA_MEM_DDR_266;	
+		dev_priv->vram_type = VIA_MEM_DDR_266;
 		break;
 	case 0x05:
 		dev_priv->vram_type = VIA_MEM_DDR_333;
@@ -538,7 +538,7 @@ cn700_mem_type(struct drm_via_private *dev_priv, struct pci_dev *fn3)
 {
 	int ret;
 	u8 tmp;
-	
+
 	ret = pci_read_config_byte(fn3, 0x90, &tmp);
 	if (!ret) {
 		switch(tmp & 0x07) {
@@ -634,7 +634,7 @@ vx900_mem_type(struct drm_via_private *dev_priv, struct pci_dev *fn3)
 	ret = pci_read_config_byte(fn3, 0x6C, &type);
 	if (ret)
 		return ret;
- 	volt = type;
+	volt = type;
 	type &= 0xC0;
 	type >>= 6;
 	volt &= 0x20;
@@ -695,6 +695,7 @@ int via_detect_vram(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
 	struct pci_dev *bridge = NULL, *fn3 = NULL;
+	unsigned long long vram_start;
 	int vram_size = 0, ret = 0;
 	char *name = "Unknown";
 	struct pci_bus *bus;
@@ -721,6 +722,7 @@ int via_detect_vram(struct drm_device *dev)
 		DRM_ERROR("No function 3 on host bridge...\n");
 		goto out_err;
 	}
+	vram_start = pci_resource_start(dev->pdev, 0);
 
 	switch (bridge->device) {
 
@@ -748,7 +750,7 @@ int via_detect_vram(struct drm_device *dev)
 
 	/* P4M800 */
 	case PCI_DEVICE_ID_VIA_3296_0:
-		ret = p4m800_mem_type(dev_priv, bus, fn3);		
+		ret = p4m800_mem_type(dev_priv, bus, fn3);
 
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
 		if (ret)
@@ -757,7 +759,7 @@ int via_detect_vram(struct drm_device *dev)
 		break;
 
 	/* K8M800/K8N800 */
-	case PCI_DEVICE_ID_VIA_8380_0: 
+	case PCI_DEVICE_ID_VIA_8380_0:
 	/* K8M890 */
 	case PCI_DEVICE_ID_VIA_VT3336:
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
@@ -767,7 +769,7 @@ int via_detect_vram(struct drm_device *dev)
 
 		if (bridge->device == PCI_DEVICE_ID_VIA_VT3336)
 			vram_size <<= 2;
-		
+
 		ret = km8xx_mem_type(dev_priv);
 		if (ret)
 			goto out_err;
@@ -822,6 +824,8 @@ int via_detect_vram(struct drm_device *dev)
 
 	/* VX900 */
 	case PCI_DEVICE_ID_VIA_VT3410:
+		vram_start = pci_resource_start(dev->pdev, 2);
+
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
 		if (ret)
 			goto out_err;
@@ -835,19 +839,6 @@ int via_detect_vram(struct drm_device *dev)
 	default:
 		DRM_ERROR("Unknown North Bridge device 0x%04x.\n", bridge->device);
 		goto out_err;
-	}
-
-	/*
-	 * Detect VRAM start.
-	 */
-	if (fn3 != NULL && (fn3->device == 0x3204)) {
-		pci_read_config_byte(fn3, 0x47, &size);
-		dev_priv->vram_start = size << 24;
-		dev_priv->vram_start -= vram_size;
-	} else {
-		int index = (bridge->device == PCI_DEVICE_ID_VIA_VT3410) ? 2 : 0;
-
-		dev_priv->vram_start = pci_resource_start(dev->pdev, index);
 	}
 
 	switch (dev_priv->vram_type) {
@@ -912,8 +903,7 @@ int via_detect_vram(struct drm_device *dev)
 	ret = ttm_bo_init_mm(&dev_priv->bdev, TTM_PL_VRAM, vram_size >> PAGE_SHIFT);
 	if (!ret) {
 		DRM_INFO("Detected %llu MB of %s Video RAM at physical address 0x%08llx.\n",
-			(unsigned long long) vram_size >> 20, name,
-			(unsigned long long) dev_priv->vram_start);
+			(unsigned long long) vram_size >> 20, name, vram_start);
 	}
 out_err:
 	if (bridge)
@@ -988,7 +978,7 @@ static const struct drm_mode_config_funcs via_mode_funcs = {
 	.output_poll_changed	= via_output_poll_changed
 };
 
-static int 
+static int
 via_fb_probe(struct drm_fb_helper *helper,
 		struct drm_fb_helper_surface_size *sizes)
 {
@@ -996,7 +986,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 	struct fb_info *info = helper->fbdev;
 	struct ttm_bo_kmap_obj *kmap = NULL;
 	struct drm_framebuffer *fb = NULL;
-	struct drm_gem_object *obj = NULL; 
+	struct drm_gem_object *obj = NULL;
 	struct drm_mode_fb_cmd mode_cmd;
 	int size, ret = 0;
 	void *ptr;
@@ -1051,7 +1041,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 	info->screen_size = kmap->bo->num_pages << PAGE_SHIFT;
 	info->screen_base = kmap->virtual;
 
-	drm_fb_helper_fill_var(info, helper, fb->width, fb->height);	
+	drm_fb_helper_fill_var(info, helper, fb->width, fb->height);
 	drm_fb_helper_fill_fix(info, fb->pitch, fb->depth);
 	ret = 1;
 out_err:
@@ -1153,7 +1143,7 @@ int via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **ptr)
 	strcpy(info->fix.id, dev->driver->name);
 	strcat(info->fix.id, "drmfb");
 	info->flags = FBINFO_DEFAULT | FBINFO_CAN_FORCE_OUTPUT;
-	info->fbops = &viafb_ops; 
+	info->fbops = &viafb_ops;
 
 	info->pixmap.size = 64*1024;
 	info->pixmap.buf_align = 8;

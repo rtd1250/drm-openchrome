@@ -115,12 +115,12 @@ struct drm_via_private {
 	drm_via_sarea_t *sarea_priv;
 	drm_local_map_t *sarea;
 	struct drm_fb_helper *helper;
-	unsigned long vram_start;
 	u8 vram_type;
 	wait_queue_head_t decoder_queue[VIA_NR_XVMC_LOCKS];
 	struct ttm_bo_kmap_obj dmabuf;
 	struct ttm_bo_kmap_obj mmio;
 	struct ttm_bo_kmap_obj gart;
+	struct ttm_bo_kmap_obj vq;
 	enum via_engine engine_type;
 	unsigned int dma_low;
 	unsigned int dma_high;

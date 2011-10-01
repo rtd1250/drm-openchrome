@@ -216,7 +216,7 @@ via_gem_alloc(struct drm_device *dev, void *data,
 				args->size, via_ttm_bo_destroy);
 	if (!gem)
 		return ret;
- 
+
 	bo = gem->driver_private;
 	if (bo) {
 		ret = drm_gem_handle_create(file_priv, gem, &args->handle);

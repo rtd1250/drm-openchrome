@@ -76,7 +76,7 @@ int via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
 				man->available_caching = TTM_PL_FLAG_UNCACHED | TTM_PL_FLAG_WC;
 				man->default_caching = TTM_PL_FLAG_WC;
 			} else
-				DRM_ERROR("AGP is possible but not enabled\n");	
+				DRM_ERROR("AGP is possible but not enabled\n");
 		}
 #endif
 		break;
@@ -237,13 +237,13 @@ static int via_bo_move(struct ttm_buffer_object *bo,
 	int ret = 0;
 
 	/* No real memory copy. Just use the new_mem
-	 * directly. */ 
+	 * directly. */
 	if ((old_mem->mem_type == TTM_PL_SYSTEM &&
 	    (new_mem->mem_type == TTM_PL_TT || !bo->ttm)) ||
 	    (old_mem->mem_type == TTM_PL_TT &&
 	     new_mem->mem_type == TTM_PL_SYSTEM) ||
 	    (new_mem->mem_type == TTM_PL_PRIV0)) {
-        	BUG_ON(old_mem->mm_node != NULL);
+		BUG_ON(old_mem->mm_node != NULL);
 		*old_mem = *new_mem;
 		new_mem->mm_node = NULL;
 		return ret;
@@ -305,7 +305,10 @@ static int via_ttm_io_mem_reserve(struct ttm_bo_device *bdev, struct ttm_mem_reg
 		break;
 
 	case TTM_PL_VRAM:
-		mem->bus.base = dev_priv->vram_start;
+		if (dev->pci_device == 0x7122)
+			mem->bus.base = pci_resource_start(dev->pdev, 2);
+		else
+			mem->bus.base = pci_resource_start(dev->pdev, 0);
 		break;
 
 	default:
@@ -324,8 +327,8 @@ static int via_verify_access(struct ttm_buffer_object *bo, struct file *filp)
 }
 
 static struct ttm_bo_driver via_bo_driver = {
-	.create_ttm_backend_entry 	= via_create_ttm_backend_entry,
-	.invalidate_caches 		= via_invalidate_caches,
+	.create_ttm_backend_entry	= via_create_ttm_backend_entry,
+	.invalidate_caches		= via_invalidate_caches,
 	.init_mem_type			= via_init_mem_type,
 	.evict_flags			= via_evict_flags,
 	.move				= via_bo_move,
