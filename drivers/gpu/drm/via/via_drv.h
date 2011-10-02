@@ -40,6 +40,8 @@
 #include "ttm/ttm_memory.h"
 #include "ttm/ttm_module.h"
 
+#include "ttm_heap.h"
+
 #include <video/vga.h>
 #include "crtc_hw.h"
 #include <linux/i2c.h>

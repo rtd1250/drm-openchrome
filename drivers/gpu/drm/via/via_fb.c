@@ -1018,11 +1018,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 		goto out_err;
 	obj->driver_private = kmap->bo;
 
-	ret = ttm_bo_reserve(kmap->bo, true, false, false, 0);
-	if (!ret) {
-		ret = ttm_bo_kmap(kmap->bo, 0, kmap->bo->num_pages, kmap);
-		ttm_bo_unreserve(kmap->bo);
-	}
+	ret = ttm_bo_pin(kmap->bo, kmap);
 	if (ret)
 		goto out_err;
 
@@ -1185,9 +1181,7 @@ void via_framebuffer_fini(struct drm_fb_helper *helper)
 		fb_dealloc_cmap(&info->cmap);
 
 	if (kmap) {
-		if (!ttm_bo_reserve(kmap->bo, true, false, false, 0))
-			ttm_bo_kunmap(kmap);
-		ttm_bo_unreserve(kmap->bo);
+		ttm_bo_unpin(kmap->bo, kmap);
 		ttm_bo_unref(&kmap->bo);
 	}
 

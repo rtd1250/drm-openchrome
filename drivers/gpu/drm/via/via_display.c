@@ -603,11 +603,9 @@ via_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 	enum mode_set_atomic state = old_fb ? LEAVE_ATOMIC_MODE_SET : ENTER_ATOMIC_MODE_SET;
 	struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
 	struct drm_framebuffer *new_fb = crtc->fb;
-	struct ttm_placement *placement;
 	struct ttm_buffer_object *bo;
 	struct drm_gem_object *obj;
-	int ret = 0, i;
-	uint32_t *ptr;
+	int ret = 0;
 
 	/* no fb bound */
 	if (!new_fb) {
@@ -616,23 +614,16 @@ via_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 	}
 
 	obj = new_fb->helper_private;
-	placement = obj->filp->private_data;
 	bo = obj->driver_private;
 
-	ptr = (uint32_t *) placement->placement;
-	for (i = 0; i < placement->num_placement; i++)
-		*ptr++ |= TTM_PL_FLAG_NO_EVICT;
-//	ret = ttm_bo_validate(bo, placement, false, false, false);
-	if (likely(ret == 0)) {
+	ret = ttm_bo_pin(bo, NULL);
+	if (likely(ret == 0))
 		ret = crtc_funcs->mode_set_base_atomic(crtc, new_fb, x, y, state);
-	}
 
 	/* Free the framebuffer */
-	ptr = (uint32_t *) placement->placement;
-	for (i = 0; i < placement->num_placement; i++)
-		*ptr++ &= ~TTM_PL_FLAG_NO_EVICT;
-	/*if (ttm_bo_validate(bo, placement, false, false, false))
-		DRM_ERROR("framebuffer still locked\n");*/
+	ret = ttm_bo_unpin(bo, NULL);
+	if (unlikely(ret))
+		DRM_ERROR("framebuffer still locked\n");
 	return ret;
 }
 

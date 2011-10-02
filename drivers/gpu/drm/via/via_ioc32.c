@@ -73,7 +73,7 @@ static int via_do_init_map(struct drm_device *dev, drm_via_init_t *init)
 		drm_local_map_t *tmp;
 
 		if (dev_priv->mmio.bo) {
-			ttm_bo_kunmap(&dev_priv->mmio);
+			ttm_bo_pin(dev_priv->mmio.bo, &dev_priv->mmio);
 			ttm_bo_unref(&dev_priv->mmio.bo);
 			dev_priv->mmio.bo = NULL;
 		}

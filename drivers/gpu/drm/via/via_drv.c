@@ -128,13 +128,8 @@ via_allocate_pcie_gart_table(struct drm_via_private *dev_priv)
 	if (unlikely(ret))
 		goto err;
 
-	ret = ttm_bo_reserve(bo, true, false, false, 0);
-	if (ret)
-		goto err;
-
-	/* kmap the gart table */
-	ret = ttm_bo_kmap(bo, 0, bo->num_pages, &dev_priv->gart);
-	ttm_bo_unreserve(bo);
+	/* allocate the gart table */
+	ret = ttm_bo_pin(bo, &dev_priv->gart);
 	if (ret)
 		goto err;
 
@@ -182,12 +177,7 @@ via_init_vq(struct drm_via_private *dev_priv)
 	if (unlikely(ret))
 		goto err;
 
-	ret = ttm_bo_reserve(bo, true, false, false, 0);
-	if (ret)
-		goto err;
-
-	ret = ttm_bo_kmap(bo, 0, bo->num_pages, &dev_priv->vq);
-	ttm_bo_unreserve(bo);
+	ret = ttm_bo_pin(bo, &dev_priv->vq);
 	if (ret)
 		goto err;
 
@@ -248,12 +238,7 @@ via_mmio_setup(struct drm_device *dev)
 	if (ret)
 		goto err;
 
-	ret = ttm_bo_reserve(bo, true, false, false, 0);
-	if (ret)
-		goto err;
-
-	ret = ttm_bo_kmap(bo, 0, bo->num_pages, &dev_priv->mmio);
-	ttm_bo_unreserve(bo);
+	ret = ttm_bo_pin(bo, &dev_priv->mmio);
 err:
 	if (!ret)
 		DRM_INFO("Detected MMIO at physical address 0x%08llx.\n",
@@ -501,10 +486,7 @@ static int via_driver_unload(struct drm_device *dev)
 
 	bo = dev_priv->vq.bo;
 	if (bo) {
-		ret = ttm_bo_reserve(bo, true, false, false, 0);
-		if (!ret)
-			ttm_bo_kunmap(&dev_priv->vq);
-		ttm_bo_unreserve(bo);
+		ttm_bo_unpin(bo, &dev_priv->vq);
 		ttm_bo_unref(&bo);
 	}
 
@@ -516,19 +498,13 @@ static int via_driver_unload(struct drm_device *dev)
 
 			vga_wseq(VGABASE, 0x6C, orig);
 		}
-		ret = ttm_bo_reserve(bo, true, false, false, 0);
-		if (!ret)
-			ttm_bo_kunmap(&dev_priv->gart);
-		ttm_bo_unreserve(bo);
+		ttm_bo_unpin(bo, &dev_priv->gart);
 		ttm_bo_unref(&bo);
 	}
 
 	bo = dev_priv->mmio.bo;
 	if (bo) {
-		ret = ttm_bo_reserve(bo, true, false, false, 0);
-		if (!ret)
-			ttm_bo_kunmap(&dev_priv->mmio);
-		ttm_bo_unreserve(bo);
+		ttm_bo_unpin(bo, &dev_priv->mmio);
 		ttm_bo_unref(&bo);
 	}
 

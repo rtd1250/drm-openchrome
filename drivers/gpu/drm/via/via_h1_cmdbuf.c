@@ -137,7 +137,7 @@ int via_dma_cleanup(struct drm_device *dev)
 
 			via_cmdbuf_reset(dev_priv);
 
-			ttm_bo_kunmap(&dev_priv->dmabuf);
+			ttm_bo_unpin(bo, &dev_priv->dmabuf);
 			ttm_bo_unref(&bo);
 			dev_priv->dmabuf.virtual = NULL;
 		}
@@ -167,13 +167,9 @@ static int via_initialize(struct drm_device *dev,
 				init->offset, false, via_ttm_bo_destroy,
 				NULL, &bo);
 	if (!ret) {
-		ret = ttm_bo_reserve(bo, true, false, false, 0);
-		if (!ret) {
-			ret = ttm_bo_kmap(bo, 0, bo->num_pages, &dev_priv->dmabuf);
-			ttm_bo_unreserve(bo);
-			if (ret)
-				goto out_err;
-		}
+		ret = ttm_bo_pin(bo, &dev_priv->dmabuf);
+		if (ret)
+			goto out_err;
 	}
 
 	dev_priv->dma_low = 0;
