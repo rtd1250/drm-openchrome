@@ -43,7 +43,7 @@ void ttm_gem_free_object(struct drm_gem_object *obj)
 
 void ttm_gem_vm_open(struct vm_area_struct *vma)
 {
-	struct drm_gem_object *obj = vma->vm_private_data;	
+	struct drm_gem_object *obj = vma->vm_private_data;
 	struct ttm_buffer_object *bo = obj->driver_private;
 
 	if (bo)
@@ -53,7 +53,7 @@ void ttm_gem_vm_open(struct vm_area_struct *vma)
 
 void ttm_gem_vm_close(struct vm_area_struct *vma)
 {
-	struct drm_gem_object *obj = vma->vm_private_data;	
+	struct drm_gem_object *obj = vma->vm_private_data;
 	struct ttm_buffer_object *bo = obj->driver_private;
 
 	if (bo)
@@ -66,7 +66,7 @@ static const struct vm_operations_struct *ttm_vm_ops = NULL;
 
 int ttm_gem_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 {
-	struct drm_gem_object *obj = vma->vm_private_data;	
+	struct drm_gem_object *obj = vma->vm_private_data;
 	struct ttm_bo_object *bo = obj->driver_private;
 	int ret;
 

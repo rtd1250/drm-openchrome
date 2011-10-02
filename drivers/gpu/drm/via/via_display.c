@@ -164,7 +164,7 @@ via_iga1_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green, u16 *blue,
 		/* enable LUT */
 		vga_wseq(VGABASE, 0x1B, BIT(0));
 		/*  Disable gamma in case it was enabled previously */
-		vga_wcrt(VGABASE, 0x33, BIT(7));	
+		vga_wcrt(VGABASE, 0x33, BIT(7));
 		/* access Primary Display's LUT. */
 		vga_wseq(VGABASE, 0x1A, sr1a & 0xFE);
 	} else {
@@ -226,7 +226,7 @@ via_iga2_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
 	} else {
 		/* Enable Gamma */
 		vga_wseq(VGABASE, 0x1A, sr1a | BIT(0));
-		val = (vga_rcrt(VGABASE, 0x6A) | BIT(1)); 
+		val = (vga_rcrt(VGABASE, 0x6A) | BIT(1));
 		vga_wcrt(VGABASE, 0x6A, val);
 
 		if (!(val & BIT(7)))
@@ -273,7 +273,7 @@ static const struct drm_crtc_funcs via_iga2_funcs = {
 	.destroy = via_crtc_destroy,
 };
 
-static void 
+static void
 via_load_FIFO_reg(struct via_crtc *iga, struct drm_display_mode *mode)
 {
 	struct drm_device *dev = iga->base.dev;
@@ -282,7 +282,7 @@ via_load_FIFO_reg(struct via_crtc *iga, struct drm_display_mode *mode)
 	int queue_expire_num, reg_value;
 
 	/* If resolution > 1280x1024, expire length = 64, else
- 	   expire length = 128 */
+	   expire length = 128 */
 	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_K8M800 ||
 	     dev->pdev->device == PCI_DEVICE_ID_VIA_CN700) &&
 	    ((hor_active > 1280) && (ver_active > 1024)))
@@ -297,7 +297,7 @@ via_load_FIFO_reg(struct via_crtc *iga, struct drm_display_mode *mode)
         } else {
 		/* Set Display FIFO Depth Select */
 		reg_value = IGA2_FIFO_DEPTH_SELECT_FORMULA(iga->fifo_max_depth);
-		if (dev->pdev->device == PCI_DEVICE_ID_VIA_K8M800) 
+		if (dev->pdev->device == PCI_DEVICE_ID_VIA_K8M800)
 			reg_value--;
 		load_value_to_registers(VGABASE, &iga->fifo_depth, reg_value);
 	}
@@ -335,7 +335,7 @@ void via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 
 		reg_value = IGA1_HOR_BLANK_END_FORMULA(mode->crtc_hblank_end);
 		load_value_to_registers(VGABASE, &iga->timings.hblank_end, reg_value);
-	
+
 		reg_value = IGA1_HOR_SYNC_START_FORMULA(mode->crtc_hsync_start);
 		load_value_to_registers(VGABASE, &iga->timings.hsync_start, reg_value);
 
@@ -368,7 +368,7 @@ void via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 
 		reg_value = IGA2_HOR_BLANK_START_FORMULA(mode->crtc_hblank_start);
 		load_value_to_registers(VGABASE, &iga->timings.hblank_start, reg_value);
-	
+
 		reg_value = IGA2_HOR_BLANK_END_FORMULA(mode->crtc_hblank_end);
 		load_value_to_registers(VGABASE, &iga->timings.hblank_end, reg_value);
 
@@ -518,7 +518,7 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
         if (!iga->index) {
 		via_unlock_crt(VGABASE);
 		vga_wcrt(VGABASE, 0x09, 0x00);	/*initial CR09=0 */
-		orig = (vga_rcrt(VGABASE, 0x11) & ~0x70);	
+		orig = (vga_rcrt(VGABASE, 0x11) & ~0x70);
 		vga_wcrt(VGABASE, 0x11, orig);
 		orig = (vga_rcrt(VGABASE, 0x17) & ~BIT(7));
 		vga_wcrt(VGABASE, 0x17, orig);
@@ -528,8 +528,8 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 	via_load_crtc_timing(iga, mode);
 
 	/* always set to 1 */
-	orig = (vga_rcrt(VGABASE, 0x03) & ~0x80);	
-	vga_wcrt(VGABASE, 0x03, (orig | 0x80));	
+	orig = (vga_rcrt(VGABASE, 0x03) & ~0x80);
+	vga_wcrt(VGABASE, 0x03, (orig | 0x80));
 	/* line compare should set all bits = 1 (extend modes) */
 	vga_wcrt(VGABASE, 0x18, 0xFF);
 	/* line compare should set all bits = 1 (extend modes) */
@@ -552,7 +552,7 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 	vga_wcrt(VGABASE, 0x14, 0x00);
 
 	/* If K8M800, enable Prefetch Mode. */
-	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_K8M800) || 
+	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_K8M800) ||
 	    (dev->pdev->device == PCI_DEVICE_ID_VIA_K8M890)) {
 		orig = (vga_rcrt(VGABASE, 0x33) & ~0x08);
 		vga_wcrt(VGABASE, 0x33, (orig | 0x08));
@@ -582,7 +582,7 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 	    (dev->pdev->device != PCI_DEVICE_ID_VIA_KM400)) {
 		via_load_FIFO_reg(iga, mode);
 	} else if (adjusted_mode->hdisplay == 1024 &&
-		   adjusted_mode->vdisplay == 768) { 
+		   adjusted_mode->vdisplay == 768) {
 		/* Update Patch Register */
 		orig = (vga_rseq(VGABASE, 0x16) & ~0xBF);
 		vga_wseq(VGABASE, 0x16, (orig | 0x0C));
@@ -756,7 +756,7 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	return 0;
 }
 
-static void 
+static void
 drm_mode_crtc_load_lut(struct drm_crtc *crtc)
 {
 	int size = crtc->gamma_size * sizeof(uint16_t);
@@ -793,7 +793,7 @@ static const struct drm_crtc_helper_funcs via_iga2_helper_funcs = {
 	.load_lut = drm_mode_crtc_load_lut,
 };
 
-static void 
+static void
 via_crtc_init(struct drm_device *dev, int index)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
@@ -820,7 +820,7 @@ via_crtc_init(struct drm_device *dev, int index)
 
 		iga->timings.hblank_end.count = ARRAY_SIZE(iga2_hor_blank_end);
 		iga->timings.hblank_end.regs = iga2_hor_blank_end;
-	
+
 		if (PCI_DEVICE_ID_VIA_CN700 <= dev->pdev->device)
 			iga->timings.hsync_start.count = ARRAY_SIZE(iga2_hor_sync_start);
 		else
@@ -851,13 +851,13 @@ via_crtc_init(struct drm_device *dev, int index)
 		/* Secondary FIFO setup */
 		iga->high_threshold.count = ARRAY_SIZE(iga2_fifo_high_threshold_select);
 		iga->high_threshold.regs = iga2_fifo_high_threshold_select;
-		
-		iga->threshold.count = ARRAY_SIZE(iga2_fifo_threshold_select);	
+
+		iga->threshold.count = ARRAY_SIZE(iga2_fifo_threshold_select);
 		iga->threshold.regs = iga2_fifo_threshold_select;
 
 		iga->display_queue.count = ARRAY_SIZE(iga2_display_queue_expire_num);
 		iga->display_queue.regs = iga2_display_queue_expire_num;
-		
+
 		iga->fifo_depth.count = ARRAY_SIZE(iga2_fifo_depth_select);
 		iga->fifo_depth.regs = iga2_fifo_depth_select;
 
@@ -955,7 +955,7 @@ via_crtc_init(struct drm_device *dev, int index)
 
 		iga->timings.hblank_end.count = ARRAY_SIZE(iga1_hor_blank_end);
 		iga->timings.hblank_end.regs = iga1_hor_blank_end;
-	
+
 		iga->timings.hsync_start.count = ARRAY_SIZE(iga1_hor_sync_start);
 		iga->timings.hsync_start.regs = iga1_hor_sync_start;
 
@@ -984,12 +984,12 @@ via_crtc_init(struct drm_device *dev, int index)
 		iga->high_threshold.count = ARRAY_SIZE(iga1_fifo_high_threshold_select);
 		iga->high_threshold.regs = iga1_fifo_high_threshold_select;
 
-		iga->threshold.count = ARRAY_SIZE(iga1_fifo_threshold_select);	
+		iga->threshold.count = ARRAY_SIZE(iga1_fifo_threshold_select);
 		iga->threshold.regs = iga1_fifo_threshold_select;
 
 		iga->display_queue.count = ARRAY_SIZE(iga1_display_queue_expire_num);
 		iga->display_queue.regs = iga1_display_queue_expire_num;
-		
+
 		iga->fifo_depth.count = ARRAY_SIZE(iga1_fifo_depth_select);
 		iga->fifo_depth.regs = iga1_fifo_depth_select;
 

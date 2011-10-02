@@ -1,5 +1,5 @@
 /*
- * Copyright © 2011 James Simmons 
+ * Copyright © 2011 James Simmons
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -93,7 +93,7 @@ static void
 via_analog_prepare(struct drm_encoder *encoder)
 {
 	struct drm_encoder_helper_funcs *encoder_funcs = encoder->helper_private;
- 
+
 	encoder_funcs->dpms(encoder, DRM_MODE_DPMS_OFF);
 }
 

@@ -1,6 +1,6 @@
 /*
  * Copyright 2011 James Simmons <jsimmons@infradead.org>
- * 
+ *
  * Based on code for the viafb driver.
  * Copyright 1998-2008 VIA Technologies, Inc. All Rights Reserved.
  * Copyright 2001-2008 S3 Graphics, Inc. All Rights Reserved.
@@ -342,7 +342,7 @@ static struct pll_config get_pll_config(struct pll_config *config, int size,
 	return best;
 }
 
-static u32 
+static u32
 via_get_clk_value(struct drm_device *dev, int clk)
 {
 	u32 value = 0;
@@ -379,7 +379,7 @@ via_get_clk_value(struct drm_device *dev, int clk)
 }
 
 /* Set VCLK*/
-static void 
+static void
 via_set_vclock(struct drm_crtc *crtc, u32 clk)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);

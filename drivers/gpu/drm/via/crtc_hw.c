@@ -36,12 +36,12 @@ regs_init(void __iomem *regs)
 	vga_wseq(regs, 0x4, 0x0e);
 
 	for (i = 0; i < 0x5; i++)
-		vga_wgfx(regs, i, 0x00);	
+		vga_wgfx(regs, i, 0x00);
 
 	vga_wgfx(regs, 0x05, 0x40);
-	vga_wgfx(regs, 0x06, 0x05); 
-	vga_wgfx(regs, 0x07, 0x0f); 
-	vga_wgfx(regs, 0x08, 0xff); 
+	vga_wgfx(regs, 0x06, 0x05);
+	vga_wgfx(regs, 0x07, 0x0f);
+	vga_wgfx(regs, 0x08, 0xff);
 
 	for (i = 0; i < 0x10; i++)
 		vga_wattr(regs, i, i);

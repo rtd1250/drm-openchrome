@@ -65,9 +65,9 @@ static int via_do_init_map(struct drm_device *dev, drm_via_init_t *init)
 					init->sarea_priv_offset);
 
 	/**
-	 * The UMS xorg servers depends on the virtual address which it 
+	 * The UMS xorg servers depends on the virtual address which it
 	 * received by mmap in userland. This is for backward compatiablity
-	 * only. Once we have full KMS x servers this will go away. 
+	 * only. Once we have full KMS x servers this will go away.
 	 */
 	if (init->mmio_offset) {
 		drm_local_map_t *tmp;
@@ -128,20 +128,20 @@ static int via_mem_alloc(struct drm_device *dev, void *data,
 	}
 
 	if (mem->type == VIA_MEM_AGP) {
-		start = dev_priv->agp_offset; 
+		start = dev_priv->agp_offset;
 		type = TTM_PL_FLAG_TT;
 	}
 
 	/*
-         * VIA hardware access is 128 bits boundries. Modify size 
-         * to be in unites of 128 bit access. For the TTM/GEM layer 
+         * VIA hardware access is 128 bits boundries. Modify size
+         * to be in unites of 128 bit access. For the TTM/GEM layer
          * the size needs to rounded to the nearest page. The user
          * might ask for a offset that is not aligned. In that case
          * we find the start of the page for this offset and allocate
          * from there.
          */
-	obj = ttm_gem_create(dev, &dev_priv->bdev, type, false, 
-				VIA_MM_ALIGN_SIZE, PAGE_SIZE, 
+	obj = ttm_gem_create(dev, &dev_priv->bdev, type, false,
+				VIA_MM_ALIGN_SIZE, PAGE_SIZE,
 				start, mem->size, via_ttm_bo_destroy);
 	if (!obj)
 		return ret;
@@ -211,7 +211,7 @@ via_gem_alloc(struct drm_device *dev, void *data,
 	if (!domain)
 		domain = args->write_domains;
 
-	gem = ttm_gem_create(dev, &dev_priv->bdev, domain, false, 
+	gem = ttm_gem_create(dev, &dev_priv->bdev, domain, false,
 				VIA_MM_ALIGN_SIZE, PAGE_SIZE, 0,
 				args->size, via_ttm_bo_destroy);
 	if (!gem)

@@ -291,7 +291,6 @@ static int via_ttm_io_mem_reserve(struct ttm_bo_device *bdev, struct ttm_mem_reg
 		return 0;
 
 	case TTM_PL_TT:
-		mem->bus.offset = mem->start << PAGE_SHIFT;
 #if __OS_HAS_AGP
 		if (drm_pci_device_is_agp(dev)) {
 			mem->bus.is_iomem = !dev->agp->cant_use_aperture;

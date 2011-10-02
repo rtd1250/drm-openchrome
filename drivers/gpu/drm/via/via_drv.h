@@ -154,10 +154,10 @@ struct drm_via_private {
 #define VIA_MEM_SDR66		0x01
 #define VIA_MEM_SDR100		0x02
 #define VIA_MEM_SDR133		0x03
-#define VIA_MEM_DDR_200 	0x04
-#define VIA_MEM_DDR_266 	0x05
-#define VIA_MEM_DDR_333 	0x06
-#define VIA_MEM_DDR_400 	0x07
+#define VIA_MEM_DDR_200		0x04
+#define VIA_MEM_DDR_266		0x05
+#define VIA_MEM_DDR_333		0x06
+#define VIA_MEM_DDR_400		0x07
 #define VIA_MEM_DDR2_400	0x08
 #define VIA_MEM_DDR2_533	0x09
 #define VIA_MEM_DDR2_667	0x0A

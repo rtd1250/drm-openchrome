@@ -157,7 +157,7 @@ ttm_bo_allocate(struct ttm_bo_device *bdev,
 				size, destroy);
 	if (!ret) {
 		if (persistant_swap_storage)
-			persistant_swap_storage->private_data = placement;	
+			persistant_swap_storage->private_data = placement;
 		*p_bo = bo;
 	} else
 		kfree(p);

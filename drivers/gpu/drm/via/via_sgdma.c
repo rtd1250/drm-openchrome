@@ -1,6 +1,6 @@
 /**************************************************************************
  *
- * Copyright (c) 2011 James Simmons <jsimmons@infradead.org> 
+ * Copyright (c) 2011 James Simmons <jsimmons@infradead.org>
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -54,7 +54,7 @@ static int ttm_sgdma_populate(struct ttm_backend *be, unsigned long num_pages,
 		entry->pagelist = pages;
 
                 for_each_sg(sgtab->sgl, sg, sgtab->nents, i)
-			sg_set_page(sg, pages[i], PAGE_SIZE, 0); 
+			sg_set_page(sg, pages[i], PAGE_SIZE, 0);
 
 		entry->pages = dma_map_sg(dma_be->dev->dev, sgtab->sgl,
 					sgtab->nents, dma_be->direction);
@@ -76,8 +76,7 @@ static int via_pcie_sgdma_bind(struct ttm_backend *be, struct ttm_mem_reg *mem)
 	orig = (vga_rseq(VGABASE, 0x6C) & 0x7F);
 	vga_wseq(VGABASE, 0x6C, orig);
 
-	/* Update the relevant entries */	
-	DRM_INFO("mem->start %lu\n", mem->start);
+	/* Update the relevant entries */
 	dma_be->offset = mem->start << PAGE_SHIFT;
 	for (i = 0; i < entry->pages; i++) {
 		writel(page_to_pfn(entry->pagelist[i]) & 0x3FFFFFFF,
@@ -108,7 +107,7 @@ static int via_pcie_sgdma_unbind(struct ttm_backend *be)
 	orig = (vga_rseq(VGABASE, 0x6C) & 0x7F);
 	vga_wseq(VGABASE, 0x6C, orig);
 
-	/* Update the relevant entries */	
+	/* Update the relevant entries */
 	for (i = 0; i < entry->pages; i++)
 		writel(0x80000000, dev_priv->gart.virtual + dma_be->offset + i);
 	dma_be->offset = 0;

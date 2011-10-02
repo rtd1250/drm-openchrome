@@ -135,22 +135,22 @@
 #define VX900_IGA1_FIFO_HIGH_THRESHOLD          320
 #define VX900_IGA1_DISPLAY_QUEUE_EXPIRE_NUM     160
 
-#define VX900_IGA2_FIFO_MAX_DEPTH               192  
+#define VX900_IGA2_FIFO_MAX_DEPTH               192
 #define VX900_IGA2_FIFO_THRESHOLD               160
 #define VX900_IGA2_FIFO_HIGH_THRESHOLD          160
 #define VX900_IGA2_DISPLAY_QUEUE_EXPIRE_NUM     320
 
 #ifdef VIA_VT3293_SUPPORT
 /* For VT3293  */
-#define CN750_IGA1_FIFO_MAX_DEPTH               96     
-#define CN750_IGA1_FIFO_THRESHOLD               76     
-#define CN750_IGA1_FIFO_HIGH_THRESHOLD          76     
-#define CN750_IGA1_DISPLAY_QUEUE_EXPIRE_NUM     32     
+#define CN750_IGA1_FIFO_MAX_DEPTH               96
+#define CN750_IGA1_FIFO_THRESHOLD               76
+#define CN750_IGA1_FIFO_HIGH_THRESHOLD          76
+#define CN750_IGA1_DISPLAY_QUEUE_EXPIRE_NUM     32
 
-#define CN750_IGA2_FIFO_MAX_DEPTH               96     
-#define CN750_IGA2_FIFO_THRESHOLD               76     
-#define CN750_IGA2_FIFO_HIGH_THRESHOLD          76     
-#define CN750_IGA2_DISPLAY_QUEUE_EXPIRE_NUM     32     
+#define CN750_IGA2_FIFO_MAX_DEPTH               96
+#define CN750_IGA2_FIFO_THRESHOLD               76
+#define CN750_IGA2_FIFO_HIGH_THRESHOLD          76
+#define CN750_IGA2_DISPLAY_QUEUE_EXPIRE_NUM     32
 #endif
 
 
@@ -271,7 +271,7 @@ static struct io_register iga2_fetch_count[] = {
 #define IGA2_HOR_TOTAL_REG_NUM          2           /* location: {CR50,0,7},{CR55,0,3} */
 #define IGA2_HOR_ADDR_REG_NUM           3           /* location: {CR51,0,7},{CR55,4,6},{CR55,7,7} */
 #define IGA2_HOR_BLANK_START_REG_NUM    3           /* location: {CR52,0,7},{CR54,0,2},{CR6B,0,0} */
-#define IGA2_HOR_BLANK_END_REG_NUM      3           /* location: CLE266: {CR53,0,7},{CR54,3,5} => CLE266's CR5D[6] is reserved, 
+#define IGA2_HOR_BLANK_END_REG_NUM      3           /* location: CLE266: {CR53,0,7},{CR54,3,5} => CLE266's CR5D[6] is reserved,
                                                        so it may have problem to set 1600x1200 on IGA2. */                                                   /*           Others: {CR53,0,7},{CR54,3,5},{CR5D,6,6} */
 #define IGA2_HOR_SYNC_START_REG_NUM     4           /* location: {CR56,0,7},{CR54,6,7},{CR5C,7,7} */
                                                     /*           VT3314 and Later: {CR56,0,7},{CR54,6,7},{CR5C,7,7}, {CR5D,7,7} */
@@ -449,7 +449,7 @@ struct io_register iga2_hor_sync_start[] = {
 	{ VGA_CRT_IC, 0x5D, 7, 7 }
 };
 
-/* IGA2 Horizontal Sync End */ 
+/* IGA2 Horizontal Sync End */
 struct io_register iga2_hor_sync_end[] = {
 	{ VGA_CRT_IC, 0x57, 0, 7 },
 	{ VGA_CRT_IC, 0x5C, 6, 6 }

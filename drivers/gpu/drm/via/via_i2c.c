@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc.,
  * 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
- * 
+ *
  * This part was influenced by the via i2c code written for the viafb
  * driver by VIA Technologies and S3 Graphics
  */

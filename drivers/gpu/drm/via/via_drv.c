@@ -580,7 +580,7 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 	chip_revision_info(dev);
 	via_init_2d(dev);
 	via_init_3d(dev_priv);
-	via_init_vq(dev_priv);
+	//via_init_vq(dev_priv);
 
 #if __OS_HAS_AGP
 	if ((dev_priv->engine_type > VIA_ENG_H2) ||
