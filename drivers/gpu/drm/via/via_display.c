@@ -620,10 +620,15 @@ via_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 	if (likely(ret == 0))
 		ret = crtc_funcs->mode_set_base_atomic(crtc, new_fb, x, y, state);
 
-	/* Free the framebuffer */
-	ret = ttm_bo_unpin(bo, NULL);
-	if (unlikely(ret))
-		DRM_ERROR("framebuffer still locked\n");
+	/* Free the old framebuffer if it exist */
+	if (old_fb) {
+		obj = old_fb->helper_private;
+		bo = obj->driver_private;
+
+		ret = ttm_bo_unpin(bo, NULL);
+		if (unlikely(ret))
+			DRM_ERROR("framebuffer still locked\n");
+	}
 	return ret;
 }
 
