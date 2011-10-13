@@ -41,46 +41,10 @@ void ttm_gem_free_object(struct drm_gem_object *obj)
 	kfree(obj);
 }
 
-void ttm_gem_vm_open(struct vm_area_struct *vma)
-{
-	struct drm_gem_object *obj = vma->vm_private_data;
-	struct ttm_buffer_object *bo = obj->driver_private;
-
-	if (bo)
-		(void)ttm_bo_reference(bo);
-	drm_gem_vm_open(vma);
-}
-
-void ttm_gem_vm_close(struct vm_area_struct *vma)
-{
-	struct drm_gem_object *obj = vma->vm_private_data;
-	struct ttm_buffer_object *bo = obj->driver_private;
-
-	if (bo)
-		ttm_bo_unref(&bo);
-	drm_gem_vm_close(vma);
-	vma->vm_private_data = NULL;
-}
-
-static const struct vm_operations_struct *ttm_vm_ops = NULL;
-
-int ttm_gem_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
-{
-	struct drm_gem_object *obj = vma->vm_private_data;
-	struct ttm_bo_object *bo = obj->driver_private;
-	int ret;
-
-	vma->vm_private_data = bo;
-	ret =  ttm_vm_ops->fault(vma, vmf);
-	vma->vm_private_data = obj;
-	return ret;
-}
-
-int ttm_gem_mmap(struct file *filp, struct vm_area_struct *vma)
+int ttm_mmap(struct file *filp, struct vm_area_struct *vma)
 {
 	struct drm_via_private *dev_priv;
 	struct drm_file *file_priv;
-	int ret = -EINVAL;
 
 	if (unlikely(vma->vm_pgoff < DRM_FILE_PAGE_OFFSET))
 		return drm_mmap(filp, vma);
@@ -88,15 +52,9 @@ int ttm_gem_mmap(struct file *filp, struct vm_area_struct *vma)
 	file_priv = filp->private_data;
 	dev_priv = file_priv->minor->dev->dev_private;
 	if (!dev_priv)
-		return ret;
+		return -EINVAL;
 
-	ret = ttm_bo_mmap(filp, vma, &dev_priv->bdev);
-	if (unlikely(ret != 0))
-		return ret;
-
-	if (unlikely(ttm_vm_ops == NULL))
-		ttm_vm_ops = vma->vm_ops;
-	return drm_gem_mmap(filp, vma);
+	return ttm_bo_mmap(filp, vma, &dev_priv->bdev);
 }
 
 struct drm_gem_object *

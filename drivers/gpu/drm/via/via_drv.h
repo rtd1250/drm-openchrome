@@ -222,13 +222,10 @@ extern int ttm_bo_allocate(struct ttm_bo_device *bdev, unsigned long size,
 				void (*destroy) (struct ttm_buffer_object *),
 				struct file *persistant_swap_storage,
 				struct ttm_buffer_object **p_bo);
+extern int ttm_mmap(struct file *filp, struct vm_area_struct *vma);
 
 extern int ttm_gem_init_object(struct drm_gem_object *obj);
 extern void ttm_gem_free_object(struct drm_gem_object *obj);
-extern void ttm_gem_vm_open(struct vm_area_struct *vma);
-extern void ttm_gem_vm_close(struct vm_area_struct *vma);
-extern int ttm_gem_mmap(struct file *filp, struct vm_area_struct *vma);
-extern int ttm_gem_fault(struct vm_area_struct *vma, struct vm_fault *vmf);
 extern struct drm_gem_object *ttm_gem_create(struct drm_device *dev,
 					struct ttm_bo_device *bdev, int type,
 					bool interruptible,

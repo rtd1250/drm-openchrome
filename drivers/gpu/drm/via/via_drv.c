@@ -196,7 +196,7 @@ via_init_vq(struct drm_via_private *dev_priv)
 	VIA_WRITE(0x420, vqlen);
 	VIA_WRITE(0x420, 0x74301001);
 	VIA_WRITE(0x420, 0x00000000);
-	DRM_INFO("Allocated %d KB of memory for VQ\n", size);
+	DRM_INFO("Allocated %d KB of memory for VQ\n", size >> 10);
 err:
 	return ret;
 }
@@ -627,12 +627,6 @@ static void via_reclaim_buffers_locked(struct drm_device *dev,
 	return;
 }
 
-static struct vm_operations_struct ttm_gem_vm_ops = {
-	.fault = ttm_gem_fault,
-	.open = ttm_gem_vm_open,
-	.close = ttm_gem_vm_close,
-};
-
 static struct drm_driver via_driver = {
 	.driver_features =
 		DRIVER_USE_AGP | DRIVER_USE_MTRR | DRIVER_HAVE_IRQ |
@@ -654,7 +648,6 @@ static struct drm_driver via_driver = {
 	.lastclose = via_lastclose,
 	.gem_init_object = ttm_gem_init_object,
 	.gem_free_object = ttm_gem_free_object,
-	.gem_vm_ops = &ttm_gem_vm_ops,
 	.dumb_create = via_dumb_create,
 	.dumb_map_offset = via_dumb_mmap,
 	.dumb_destroy = gem_dumb_destroy,
@@ -664,7 +657,7 @@ static struct drm_driver via_driver = {
 		.open = drm_open,
 		.release = drm_release,
 		.unlocked_ioctl = drm_ioctl,
-		.mmap = ttm_gem_mmap,
+		.mmap = ttm_mmap,
 		.poll = drm_poll,
 		.fasync = drm_fasync,
 		.llseek = noop_llseek,
