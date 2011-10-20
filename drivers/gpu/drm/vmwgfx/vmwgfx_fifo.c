@@ -45,7 +45,11 @@ bool vmw_fifo_have_3d(struct vmw_private *dev_priv)
 	if (hwversion == 0)
 		return false;
 
-	if (hwversion < SVGA3D_HWVERSION_WS65_B1)
+	if (hwversion < SVGA3D_HWVERSION_WS8_B1)
+		return false;
+
+	/* Non-Screen Object path does not support surfaces */
+	if (!dev_priv->sou_priv)
 		return false;
 
 	return true;
@@ -243,9 +247,8 @@ static int vmw_fifo_wait(struct vmw_private *dev_priv,
 		spin_lock_irqsave(&dev_priv->irq_lock, irq_flags);
 		outl(SVGA_IRQFLAG_FIFO_PROGRESS,
 		     dev_priv->io_start + VMWGFX_IRQSTATUS_PORT);
-		vmw_write(dev_priv, SVGA_REG_IRQMASK,
-			  vmw_read(dev_priv, SVGA_REG_IRQMASK) |
-			  SVGA_IRQFLAG_FIFO_PROGRESS);
+		dev_priv->irq_mask |= SVGA_IRQFLAG_FIFO_PROGRESS;
+		vmw_write(dev_priv, SVGA_REG_IRQMASK, dev_priv->irq_mask);
 		spin_unlock_irqrestore(&dev_priv->irq_lock, irq_flags);
 	}
 	mutex_unlock(&dev_priv->hw_mutex);
@@ -267,9 +270,8 @@ static int vmw_fifo_wait(struct vmw_private *dev_priv,
 	mutex_lock(&dev_priv->hw_mutex);
 	if (atomic_dec_and_test(&dev_priv->fifo_queue_waiters)) {
 		spin_lock_irqsave(&dev_priv->irq_lock, irq_flags);
-		vmw_write(dev_priv, SVGA_REG_IRQMASK,
-			  vmw_read(dev_priv, SVGA_REG_IRQMASK) &
-			  ~SVGA_IRQFLAG_FIFO_PROGRESS);
+		dev_priv->irq_mask &= ~SVGA_IRQFLAG_FIFO_PROGRESS;
+		vmw_write(dev_priv, SVGA_REG_IRQMASK, dev_priv->irq_mask);
 		spin_unlock_irqrestore(&dev_priv->irq_lock, irq_flags);
 	}
 	mutex_unlock(&dev_priv->hw_mutex);
@@ -277,6 +279,16 @@ static int vmw_fifo_wait(struct vmw_private *dev_priv,
 	return ret;
 }
 
+/**
+ * Reserve @bytes number of bytes in the fifo.
+ *
+ * This function will return NULL (error) on two conditions:
+ *  If it timeouts waiting for fifo space, or if @bytes is larger than the
+ *   available fifo space.
+ *
+ * Returns:
+ *   Pointer to the fifo, or null on error (possible hardware hang).
+ */
 void *vmw_fifo_reserve(struct vmw_private *dev_priv, uint32_t bytes)
 {
 	struct vmw_fifo_state *fifo_state = &dev_priv->fifo;
@@ -490,4 +502,61 @@ int vmw_fifo_send_fence(struct vmw_private *dev_priv, uint32_t *seqno)
 
 out_err:
 	return ret;
+}
+
+/**
+ * vmw_fifo_emit_dummy_query - emits a dummy query to the fifo.
+ *
+ * @dev_priv: The device private structure.
+ * @cid: The hardware context id used for the query.
+ *
+ * This function is used to emit a dummy occlusion query with
+ * no primitives rendered between query begin and query end.
+ * It's used to provide a query barrier, in order to know that when
+ * this query is finished, all preceding queries are also finished.
+ *
+ * A Query results structure should have been initialized at the start
+ * of the dev_priv->dummy_query_bo buffer object. And that buffer object
+ * must also be either reserved or pinned when this function is called.
+ *
+ * Returns -ENOMEM on failure to reserve fifo space.
+ */
+int vmw_fifo_emit_dummy_query(struct vmw_private *dev_priv,
+			      uint32_t cid)
+{
+	/*
+	 * A query wait without a preceding query end will
+	 * actually finish all queries for this cid
+	 * without writing to the query result structure.
+	 */
+
+	struct ttm_buffer_object *bo = dev_priv->dummy_query_bo;
+	struct {
+		SVGA3dCmdHeader header;
+		SVGA3dCmdWaitForQuery body;
+	} *cmd;
+
+	cmd = vmw_fifo_reserve(dev_priv, sizeof(*cmd));
+
+	if (unlikely(cmd == NULL)) {
+		DRM_ERROR("Out of fifo space for dummy query.\n");
+		return -ENOMEM;
+	}
+
+	cmd->header.id = SVGA_3D_CMD_WAIT_FOR_QUERY;
+	cmd->header.size = sizeof(cmd->body);
+	cmd->body.cid = cid;
+	cmd->body.type = SVGA3D_QUERYTYPE_OCCLUSION;
+
+	if (bo->mem.mem_type == TTM_PL_VRAM) {
+		cmd->body.guestResult.gmrId = SVGA_GMR_FRAMEBUFFER;
+		cmd->body.guestResult.offset = bo->offset;
+	} else {
+		cmd->body.guestResult.gmrId = bo->mem.start;
+		cmd->body.guestResult.offset = 0;
+	}
+
+	vmw_fifo_commit(dev_priv, sizeof(*cmd));
+
+	return 0;
 }

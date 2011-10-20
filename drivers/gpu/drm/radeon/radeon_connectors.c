@@ -68,11 +68,11 @@ void radeon_connector_hotplug(struct drm_connector *connector)
 	if (connector->connector_type == DRM_MODE_CONNECTOR_DisplayPort) {
 		int saved_dpms = connector->dpms;
 
-		if (radeon_hpd_sense(rdev, radeon_connector->hpd.hpd) &&
-		    radeon_dp_needs_link_train(radeon_connector))
-			drm_helper_connector_dpms(connector, DRM_MODE_DPMS_ON);
-		else
+		/* Only turn off the display it it's physically disconnected */
+		if (!radeon_hpd_sense(rdev, radeon_connector->hpd.hpd))
 			drm_helper_connector_dpms(connector, DRM_MODE_DPMS_OFF);
+		else if (radeon_dp_needs_link_train(radeon_connector))
+			drm_helper_connector_dpms(connector, DRM_MODE_DPMS_ON);
 		connector->dpms = saved_dpms;
 	}
 }
@@ -724,6 +724,7 @@ radeon_vga_detect(struct drm_connector *connector, bool force)
 		dret = radeon_ddc_probe(radeon_connector,
 					radeon_connector->requires_extended_probe);
 	if (dret) {
+		radeon_connector->detected_by_load = false;
 		if (radeon_connector->edid) {
 			kfree(radeon_connector->edid);
 			radeon_connector->edid = NULL;
@@ -750,12 +751,21 @@ radeon_vga_detect(struct drm_connector *connector, bool force)
 	} else {
 
 		/* if we aren't forcing don't do destructive polling */
-		if (!force)
-			return connector->status;
+		if (!force) {
+			/* only return the previous status if we last
+			 * detected a monitor via load.
+			 */
+			if (radeon_connector->detected_by_load)
+				return connector->status;
+			else
+				return ret;
+		}
 
 		if (radeon_connector->dac_load_detect && encoder) {
 			encoder_funcs = encoder->helper_private;
 			ret = encoder_funcs->detect(encoder, connector);
+			if (ret == connector_status_connected)
+				radeon_connector->detected_by_load = true;
 		}
 	}
 
@@ -897,6 +907,7 @@ radeon_dvi_detect(struct drm_connector *connector, bool force)
 		dret = radeon_ddc_probe(radeon_connector,
 					radeon_connector->requires_extended_probe);
 	if (dret) {
+		radeon_connector->detected_by_load = false;
 		if (radeon_connector->edid) {
 			kfree(radeon_connector->edid);
 			radeon_connector->edid = NULL;
@@ -959,8 +970,18 @@ radeon_dvi_detect(struct drm_connector *connector, bool force)
 	if ((ret == connector_status_connected) && (radeon_connector->use_digital == true))
 		goto out;
 
+	/* DVI-D and HDMI-A are digital only */
+	if ((connector->connector_type == DRM_MODE_CONNECTOR_DVID) ||
+	    (connector->connector_type == DRM_MODE_CONNECTOR_HDMIA))
+		goto out;
+
+	/* if we aren't forcing don't do destructive polling */
 	if (!force) {
-		ret = connector->status;
+		/* only return the previous status if we last
+		 * detected a monitor via load.
+		 */
+		if (radeon_connector->detected_by_load)
+			ret = connector->status;
 		goto out;
 	}
 
@@ -984,6 +1005,7 @@ radeon_dvi_detect(struct drm_connector *connector, bool force)
 					ret = encoder_funcs->detect(encoder, connector);
 					if (ret == connector_status_connected) {
 						radeon_connector->use_digital = false;
+						radeon_connector->detected_by_load = true;
 					}
 				}
 				break;
@@ -1303,23 +1325,14 @@ radeon_dp_detect(struct drm_connector *connector, bool force)
 		/* get the DPCD from the bridge */
 		radeon_dp_getdpcd(radeon_connector);
 
-		if (radeon_hpd_sense(rdev, radeon_connector->hpd.hpd))
-			ret = connector_status_connected;
-		else {
-			/* need to setup ddc on the bridge */
-			if (encoder)
-				radeon_atom_ext_encoder_setup_ddc(encoder);
+		if (encoder) {
+			/* setup ddc on the bridge */
+			radeon_atom_ext_encoder_setup_ddc(encoder);
 			if (radeon_ddc_probe(radeon_connector,
-					     radeon_connector->requires_extended_probe))
+					     radeon_connector->requires_extended_probe)) /* try DDC */
 				ret = connector_status_connected;
-		}
-
-		if ((ret == connector_status_disconnected) &&
-		    radeon_connector->dac_load_detect) {
-			struct drm_encoder *encoder = radeon_best_single_encoder(connector);
-			struct drm_encoder_helper_funcs *encoder_funcs;
-			if (encoder) {
-				encoder_funcs = encoder->helper_private;
+			else if (radeon_connector->dac_load_detect) { /* try load detection */
+				struct drm_encoder_helper_funcs *encoder_funcs = encoder->helper_private;
 				ret = encoder_funcs->detect(encoder, connector);
 			}
 		}

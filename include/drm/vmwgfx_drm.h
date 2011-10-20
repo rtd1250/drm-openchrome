@@ -52,6 +52,8 @@
 #define DRM_VMW_FENCE_SIGNALED       15
 #define DRM_VMW_FENCE_UNREF          16
 #define DRM_VMW_FENCE_EVENT          17
+#define DRM_VMW_PRESENT              18
+#define DRM_VMW_PRESENT_READBACK     19
 
 
 /*************************************************************************/
@@ -681,5 +683,109 @@ struct drm_vmw_fence_arg {
 };
 
 
+/*************************************************************************/
+/**
+ * DRM_VMW_FENCE_EVENT
+ *
+ * Queues an event on a fence to be delivered on the drm character device
+ * when the fence has signaled the DRM_VMW_FENCE_FLAG_EXEC flag.
+ * Optionally the approximate time when the fence signaled is
+ * given by the event.
+ */
 
+/*
+ * The event type
+ */
+#define DRM_VMW_EVENT_FENCE_SIGNALED 0x80000000
+
+struct drm_vmw_event_fence {
+	struct drm_event base;
+	uint64_t user_data;
+	uint32_t tv_sec;
+	uint32_t tv_usec;
+};
+
+/*
+ * Flags that may be given to the command.
+ */
+/* Request fence signaled time on the event. */
+#define DRM_VMW_FE_FLAG_REQ_TIME (1 << 0)
+
+/**
+ * struct drm_vmw_fence_event_arg
+ *
+ * @fence_rep: Pointer to fence_rep structure cast to uint64_t or 0 if
+ * the fence is not supposed to be referenced by user-space.
+ * @user_info: Info to be delivered with the event.
+ * @handle: Attach the event to this fence only.
+ * @flags: A set of flags as defined above.
+ */
+struct drm_vmw_fence_event_arg {
+	uint64_t fence_rep;
+	uint64_t user_data;
+	uint32_t handle;
+	uint32_t flags;
+};
+
+
+/*************************************************************************/
+/**
+ * DRM_VMW_PRESENT
+ *
+ * Executes an SVGA present on a given fb for a given surface. The surface
+ * is placed on the framebuffer. Cliprects are given relative to the given
+ * point (the point disignated by dest_{x|y}).
+ *
+ */
+
+/**
+ * struct drm_vmw_present_arg
+ * @fb_id: framebuffer id to present / read back from.
+ * @sid: Surface id to present from.
+ * @dest_x: X placement coordinate for surface.
+ * @dest_y: Y placement coordinate for surface.
+ * @clips_ptr: Pointer to an array of clip rects cast to an uint64_t.
+ * @num_clips: Number of cliprects given relative to the framebuffer origin,
+ * in the same coordinate space as the frame buffer.
+ * @pad64: Unused 64-bit padding.
+ *
+ * Input argument to the DRM_VMW_PRESENT ioctl.
+ */
+
+struct drm_vmw_present_arg {
+	uint32_t fb_id;
+	uint32_t sid;
+	int32_t dest_x;
+	int32_t dest_y;
+	uint64_t clips_ptr;
+	uint32_t num_clips;
+	uint32_t pad64;
+};
+
+
+/*************************************************************************/
+/**
+ * DRM_VMW_PRESENT_READBACK
+ *
+ * Executes an SVGA present readback from a given fb to the dma buffer
+ * currently bound as the fb. If there is no dma buffer bound to the fb,
+ * an error will be returned.
+ *
+ */
+
+/**
+ * struct drm_vmw_present_arg
+ * @fb_id: fb_id to present / read back from.
+ * @num_clips: Number of cliprects.
+ * @clips_ptr: Pointer to an array of clip rects cast to an uint64_t.
+ * @fence_rep: Pointer to a struct drm_vmw_fence_rep, cast to an uint64_t.
+ * If this member is NULL, then the ioctl should not return a fence.
+ */
+
+struct drm_vmw_present_readback_arg {
+	 uint32_t fb_id;
+	 uint32_t num_clips;
+	 uint64_t clips_ptr;
+	 uint64_t fence_rep;
+};
 #endif
