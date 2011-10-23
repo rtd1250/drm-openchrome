@@ -138,7 +138,7 @@ static int create_i2c_bus(struct drm_device *dev, struct via_i2c *i2c_par)
 	algo->getsda = via_i2c_getsda;
 	algo->getscl = via_i2c_getscl;
 	algo->udelay = 10;
-	algo->timeout = 2;
+	algo->timeout = usecs_to_jiffies(2200); /* from VESA */
 	algo->data = i2c_par;
 
 	sprintf(adapter->name, "VIA i2c bit bus 0x%02x",
