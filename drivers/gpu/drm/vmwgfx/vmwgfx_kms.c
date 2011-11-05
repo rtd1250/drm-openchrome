@@ -353,7 +353,6 @@ void vmw_framebuffer_surface_destroy(struct drm_framebuffer *framebuffer)
 static int do_surface_dirty_sou(struct vmw_private *dev_priv,
 				struct drm_file *file_priv,
 				struct vmw_framebuffer *framebuffer,
-				struct vmw_surface *surf,
 				unsigned flags, unsigned color,
 				struct drm_clip_rect *clips,
 				unsigned num_clips, int inc)
@@ -381,7 +380,6 @@ static int do_surface_dirty_sou(struct vmw_private *dev_priv,
 		units[num_units++] = vmw_crtc_to_du(crtc);
 	}
 
-	BUG_ON(surf == NULL);
 	BUG_ON(!clips || !num_clips);
 
 	fifo_size = sizeof(*cmd) + sizeof(SVGASignedRect) * num_clips;
@@ -476,7 +474,6 @@ int vmw_framebuffer_surface_dirty(struct drm_framebuffer *framebuffer,
 	struct vmw_master *vmaster = vmw_master(file_priv->master);
 	struct vmw_framebuffer_surface *vfbs =
 		vmw_framebuffer_to_vfbs(framebuffer);
-	struct vmw_surface *surf = vfbs->surface;
 	struct drm_clip_rect norect;
 	int ret, inc = 1;
 
@@ -502,7 +499,7 @@ int vmw_framebuffer_surface_dirty(struct drm_framebuffer *framebuffer,
 		inc = 2; /* skip source rects */
 	}
 
-	ret = do_surface_dirty_sou(dev_priv, file_priv, &vfbs->base, surf,
+	ret = do_surface_dirty_sou(dev_priv, file_priv, &vfbs->base,
 				   flags, color,
 				   clips, num_clips, inc);
 
@@ -642,7 +639,6 @@ void vmw_framebuffer_dmabuf_destroy(struct drm_framebuffer *framebuffer)
 
 static int do_dmabuf_dirty_ldu(struct vmw_private *dev_priv,
 			       struct vmw_framebuffer *framebuffer,
-			       struct vmw_dma_buffer *buffer,
 			       unsigned flags, unsigned color,
 			       struct drm_clip_rect *clips,
 			       unsigned num_clips, int increment)
@@ -679,6 +675,7 @@ static int do_dmabuf_define_gmrfb(struct drm_file *file_priv,
 				  struct vmw_private *dev_priv,
 				  struct vmw_framebuffer *framebuffer)
 {
+	int depth = framebuffer->base.depth;
 	size_t fifo_size;
 	int ret;
 
@@ -686,6 +683,13 @@ static int do_dmabuf_define_gmrfb(struct drm_file *file_priv,
 		uint32_t header;
 		SVGAFifoCmdDefineGMRFB body;
 	} *cmd;
+
+	/* Emulate RGBA support, contrary to svga_reg.h this is not
+	 * supported by hosts. This is only a problem if we are reading
+	 * this value later and expecting what we uploaded back.
+	 */
+	if (depth == 32)
+		depth = 24;
 
 	fifo_size = sizeof(*cmd);
 	cmd = kmalloc(fifo_size, GFP_KERNEL);
@@ -697,7 +701,7 @@ static int do_dmabuf_define_gmrfb(struct drm_file *file_priv,
 	memset(cmd, 0, fifo_size);
 	cmd->header = SVGA_CMD_DEFINE_GMRFB;
 	cmd->body.format.bitsPerPixel = framebuffer->base.bits_per_pixel;
-	cmd->body.format.colorDepth = framebuffer->base.depth;
+	cmd->body.format.colorDepth = depth;
 	cmd->body.format.reserved = 0;
 	cmd->body.bytesPerLine = framebuffer->base.pitch;
 	cmd->body.ptr.gmrId = framebuffer->user_handle;
@@ -714,7 +718,6 @@ static int do_dmabuf_define_gmrfb(struct drm_file *file_priv,
 static int do_dmabuf_dirty_sou(struct drm_file *file_priv,
 			       struct vmw_private *dev_priv,
 			       struct vmw_framebuffer *framebuffer,
-			       struct vmw_dma_buffer *buffer,
 			       unsigned flags, unsigned color,
 			       struct drm_clip_rect *clips,
 			       unsigned num_clips, int increment)
@@ -803,7 +806,6 @@ int vmw_framebuffer_dmabuf_dirty(struct drm_framebuffer *framebuffer,
 	struct vmw_master *vmaster = vmw_master(file_priv->master);
 	struct vmw_framebuffer_dmabuf *vfbd =
 		vmw_framebuffer_to_vfbd(framebuffer);
-	struct vmw_dma_buffer *dmabuf = vfbd->buffer;
 	struct drm_clip_rect norect;
 	int ret, increment = 1;
 
@@ -823,12 +825,12 @@ int vmw_framebuffer_dmabuf_dirty(struct drm_framebuffer *framebuffer,
 	}
 
 	if (dev_priv->ldu_priv) {
-		ret = do_dmabuf_dirty_ldu(dev_priv, &vfbd->base, dmabuf,
+		ret = do_dmabuf_dirty_ldu(dev_priv, &vfbd->base,
 					  flags, color,
 					  clips, num_clips, increment);
 	} else {
 		ret = do_dmabuf_dirty_sou(file_priv, dev_priv, &vfbd->base,
-					  dmabuf, flags, color,
+					  flags, color,
 					  clips, num_clips, increment);
 	}
 
