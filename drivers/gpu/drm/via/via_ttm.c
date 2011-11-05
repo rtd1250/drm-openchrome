@@ -87,6 +87,9 @@ int via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
 		man->flags = TTM_MEMTYPE_FLAG_FIXED | TTM_MEMTYPE_FLAG_MAPPABLE;
 		man->available_caching = TTM_PL_FLAG_UNCACHED | TTM_PL_FLAG_WC;
 		man->default_caching = TTM_PL_FLAG_WC;
+		/* The display base address does not always equal the start of
+		 * the memory region of the VRAM. In our case it is */
+		man->gpu_offset = 0;
 		break;
 
 	case TTM_PL_PRIV0:

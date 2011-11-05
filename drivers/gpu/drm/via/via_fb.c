@@ -988,6 +988,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 	struct drm_framebuffer *fb = NULL;
 	struct drm_gem_object *obj = NULL;
 	struct drm_mode_fb_cmd mode_cmd;
+	struct apertures_struct *ap;
 	int size, ret = 0;
 	void *ptr;
 
@@ -1036,6 +1037,13 @@ via_fb_probe(struct drm_fb_helper *helper,
 	info->fix.smem_len = kmap->bo->num_pages << PAGE_SHIFT;
 	info->screen_size = kmap->bo->num_pages << PAGE_SHIFT;
 	info->screen_base = kmap->virtual;
+
+	ap = alloc_apertures(1);
+	if (!ap)
+		goto out_err;
+	ap->ranges[0].size = kmap->bo->bdev->man[kmap->bo->mem.mem_type].size;
+	ap->ranges[0].base = kmap->bo->mem.bus.base;
+	info->apertures = ap;
 
 	drm_fb_helper_fill_var(info, helper, fb->width, fb->height);
 	drm_fb_helper_fill_fix(info, fb->pitch, fb->depth);
@@ -1179,6 +1187,8 @@ void via_framebuffer_fini(struct drm_fb_helper *helper)
 	unregister_framebuffer(info);
 	if (info->cmap.len)
 		fb_dealloc_cmap(&info->cmap);
+	if (info->apertures)
+		kfree(info->apertures);
 
 	if (kmap) {
 		ttm_bo_unpin(kmap->bo, kmap);

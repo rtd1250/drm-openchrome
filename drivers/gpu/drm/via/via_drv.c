@@ -477,7 +477,7 @@ static int via_driver_unload(struct drm_device *dev)
 	if (ret)
 		return ret;
 
-	if (dev->driver->driver_features & DRIVER_MODESET)
+	if (drm_core_check_feature(dev, DRIVER_MODESET))
 		via_modeset_fini(dev);
 
 	drm_vblank_cleanup(dev);
@@ -582,7 +582,7 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 	if (ret)
 		goto out_err;
 
-	if (dev->driver->driver_features & DRIVER_MODESET)
+	if (drm_core_check_feature(dev, DRIVER_MODESET))
 		ret = via_modeset_init(dev);
 out_err:
 	if (ret)
@@ -674,20 +674,6 @@ static struct drm_driver via_driver = {
 static int __devinit
 via_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 {
-	if (via_driver.driver_features & DRIVER_MODESET) {
-		struct apertures_struct *ap;
-		bool primary = false;
-
-		ap = alloc_apertures(1);
-		ap->ranges[0].base = pci_resource_start(pdev, 0);
-		ap->ranges[0].size = pci_resource_len(pdev, 0);
-
-		/* Need to make this more portable. */
-#ifdef CONFIG_X86
-		primary = pdev->resource[PCI_ROM_RESOURCE].flags & IORESOURCE_ROM_SHADOW;
-#endif
-		remove_conflicting_framebuffers(ap, "viadrmfb", primary);
-	}
 	return drm_get_pci_dev(pdev, ent, &via_driver);
 }
 
