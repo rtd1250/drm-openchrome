@@ -204,15 +204,15 @@ via_gem_alloc(struct drm_device *dev, void *data,
 	struct drm_via_private *dev_priv = dev->dev_private;
 	struct ttm_buffer_object *bo = NULL;
 	struct drm_gem_create *args = data;
-	__u32 domain = args->read_domains;
+	__u32 domain = args->write_domains;
 	struct drm_gem_object *gem;
 	int ret = -EINVAL;
 
 	if (!domain)
-		domain = args->write_domains;
+		domain = args->read_domains;
 
 	gem = ttm_gem_create(dev, &dev_priv->bdev, domain, false,
-				VIA_MM_ALIGN_SIZE, PAGE_SIZE, 0,
+				args->alignment, PAGE_SIZE, 0,
 				args->size, via_ttm_bo_destroy);
 	if (!gem)
 		return ret;
@@ -225,6 +225,8 @@ via_gem_alloc(struct drm_device *dev, void *data,
 			DRM_DEBUG("Video memory allocation failed\n");
 			kfree(gem);
 		}
+		args->map_handle = bo->addr_space_offset;
+		args->offset = bo->offset;
 	}
 	return ret;
 }

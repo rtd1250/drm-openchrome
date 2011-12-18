@@ -22,7 +22,6 @@
  */
 
 #include "drmP.h"
-#include "via_drm.h"
 #include "via_drv.h"
 
 #include "drm_pciids.h"
