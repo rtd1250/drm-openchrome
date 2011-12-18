@@ -22,6 +22,8 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#include <linux/module.h>
+
 #include "drmP.h"
 #include "via_drv.h"
 #include "drm_pciids.h"
@@ -414,6 +416,7 @@ static void via_init_3d(struct drm_via_private *dev_priv)
 	VIA_WRITE(VIA_REG_TRANSPACE, 0x130002db);
 }
 
+<<<<<<< HEAD
 static int via_dumb_create(struct drm_file *filp, struct drm_device *dev,
 				struct drm_mode_create_dumb *args)
 {
@@ -627,7 +630,18 @@ static void via_reclaim_buffers_locked(struct drm_device *dev,
 	return;
 }
 
-static struct drm_driver via_driver = {
+static const struct file_operations via_driver_fops = {
+	.owner = THIS_MODULE,
+	.open = drm_open,
+	.release = drm_release,
+	.unlocked_ioctl = drm_ioctl,
+	.mmap = drm_mmap,
+	.poll = drm_poll,
+	.fasync = drm_fasync,
+	.llseek = noop_llseek,
+};
+
+static struct drm_driver driver = {
 	.driver_features =
 		DRIVER_USE_AGP | DRIVER_USE_MTRR | DRIVER_HAVE_IRQ |
 		DRIVER_GEM | DRIVER_IRQ_SHARED,
@@ -652,17 +666,7 @@ static struct drm_driver via_driver = {
 	.dumb_map_offset = via_dumb_mmap,
 	.dumb_destroy = gem_dumb_destroy,
 	.ioctls = via_ioctls,
-	.fops = {
-		.owner = THIS_MODULE,
-		.open = drm_open,
-		.release = drm_release,
-		.unlocked_ioctl = drm_ioctl,
-		.mmap = ttm_mmap,
-		.poll = drm_poll,
-		.fasync = drm_fasync,
-		.llseek = noop_llseek,
-	},
-
+	.fops = &via_driver_fops,
 	.name = DRIVER_NAME,
 	.desc = DRIVER_DESC,
 	.date = DRIVER_DATE,
