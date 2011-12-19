@@ -23,7 +23,6 @@
 
 #include <linux/delay.h>
 #include <linux/spinlock.h>
-#include <linux/module.h>
 #include <asm/olpc.h>
 
 #include "drm.h"

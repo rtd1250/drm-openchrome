@@ -28,47 +28,17 @@
 #include "via_drv.h"
 
 struct ttm_sgdma_backend {
-	enum dma_data_direction direction;
-	struct ttm_backend backend;
-	struct sg_table *table;
-	struct drm_device *dev;
+	struct ttm_dma_tt sgdma;
 	unsigned long offset;
 };
 
-static int ttm_sgdma_populate(struct ttm_backend *be, unsigned long num_pages,
-				struct page **pages,
-				struct page *dummy_read_page,
-				dma_addr_t *dma_addrs)
+static int
+via_pcie_sgdma_bind(struct ttm_tt *ttm, struct ttm_mem_reg *mem)
 {
-	struct ttm_sgdma_backend *dma_be =
-		container_of(be, struct ttm_sgdma_backend, backend);
-	struct sg_table *sgtab = dma_be->table;
-	struct scatterlist *sg;
-	int ret = 0, i;
-
-	ret = sg_alloc_table(sgtab, num_pages, GFP_KERNEL);
-	if (!ret) {
-		struct drm_sg_mem *entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-
-		entry->busaddr = dma_addrs;
-		entry->pagelist = pages;
-
-                for_each_sg(sgtab->sgl, sg, sgtab->nents, i)
-			sg_set_page(sg, pages[i], PAGE_SIZE, 0);
-
-		entry->pages = dma_map_sg(dma_be->dev->dev, sgtab->sgl,
-					sgtab->nents, dma_be->direction);
-		dma_be->dev->sg = entry;
-	}
-	return ret;
-}
-
-static int via_pcie_sgdma_bind(struct ttm_backend *be, struct ttm_mem_reg *mem)
-{
-	struct ttm_sgdma_backend *dma_be =
-		container_of(be, struct ttm_sgdma_backend, backend);
-	struct drm_via_private *dev_priv = dma_be->dev->dev_private;
-	struct drm_sg_mem *entry = dma_be->dev->sg;
+	struct ttm_sgdma_backend *dma_be = (struct ttm_sgdma_backend *)ttm;
+	struct ttm_bo_device *bdev = dma_be->sgdma.ttm.bdev;
+	struct drm_via_private *dev_priv =
+                container_of(bdev, struct drm_via_private, bdev);
 	u8 orig;
 	int i;
 
@@ -78,8 +48,8 @@ static int via_pcie_sgdma_bind(struct ttm_backend *be, struct ttm_mem_reg *mem)
 
 	/* Update the relevant entries */
 	dma_be->offset = mem->start << PAGE_SHIFT;
-	for (i = 0; i < entry->pages; i++) {
-		writel(page_to_pfn(entry->pagelist[i]) & 0x3FFFFFFF,
+        for (i = 0; i < ttm->num_pages; i++) {
+		writel(page_to_pfn(ttm->pages[i]) & 0x3FFFFFFF,
 			dev_priv->gart.virtual + dma_be->offset + i);
 	}
 
@@ -94,21 +64,25 @@ static int via_pcie_sgdma_bind(struct ttm_backend *be, struct ttm_mem_reg *mem)
 	return 1;
 }
 
-static int via_pcie_sgdma_unbind(struct ttm_backend *be)
+static int
+via_pcie_sgdma_unbind(struct ttm_tt *ttm)
 {
-	struct ttm_sgdma_backend *dma_be =
-		container_of(be, struct ttm_sgdma_backend, backend);
-	struct drm_via_private *dev_priv = dma_be->dev->dev_private;
-	struct drm_sg_mem *entry = dma_be->dev->sg;
+	struct ttm_sgdma_backend *dma_be = (struct ttm_sgdma_backend *)ttm;
+	struct ttm_bo_device *bdev = dma_be->sgdma.ttm.bdev;
+	struct drm_via_private *dev_priv =
+                container_of(bdev, struct drm_via_private, bdev);
 	u8 orig;
 	int i;
+
+	if (ttm->state != tt_bound)
+		return 0;
 
 	/* Disable gart table HW protect */
 	orig = (vga_rseq(VGABASE, 0x6C) & 0x7F);
 	vga_wseq(VGABASE, 0x6C, orig);
 
 	/* Update the relevant entries */
-	for (i = 0; i < entry->pages; i++)
+	for (i = 0; i < ttm->num_pages; i++)
 		writel(0x80000000, dev_priv->gart.virtual + dma_be->offset + i);
 	dma_be->offset = 0;
 
@@ -119,48 +93,29 @@ static int via_pcie_sgdma_unbind(struct ttm_backend *be)
 	/* Enable gart table HW protect */
 	orig = (vga_rseq(VGABASE, 0x6C) | 0x80);
 	vga_wseq(VGABASE, 0x6C, orig);
-
-	return 1;
+	return 0;
 }
 
-static void ttm_sgdma_destroy(struct ttm_backend *be)
+static void
+via_sgdma_destroy(struct ttm_tt *ttm)
 {
-	struct ttm_sgdma_backend *dma_be =
-		container_of(be, struct ttm_sgdma_backend, backend);
-	struct sg_table *sgtab = dma_be->table;
+	struct ttm_sgdma_backend *dma_be = (struct ttm_sgdma_backend *)ttm;
 
-	if (dma_be->offset)
-		be->func->unbind(be);
-
-	dma_unmap_sg(dma_be->dev->dev, sgtab->sgl, sgtab->nents,
-			dma_be->direction);
-	kfree(dma_be->dev->sg);
-	dma_be->dev->sg = NULL;
-}
-
-/* Called after destroy */
-static void ttm_sgdma_clear(struct ttm_backend *be)
-{
-	struct ttm_sgdma_backend *dma_be =
-		container_of(be, struct ttm_sgdma_backend, backend);
-	struct sg_table *sgtab = dma_be->table;
-
-	if (dma_be->dev->sg)
-		be->func->destroy(be);
-
-	sg_free_table(sgtab);
-	kfree(dma_be);
+        if (ttm) {
+                ttm_dma_tt_fini(&dma_be->sgdma);
+                kfree(dma_be);
+        }
 }
 
 static struct ttm_backend_func ttm_sgdma_func = {
-	.populate = ttm_sgdma_populate,
-	.clear = ttm_sgdma_clear,
 	.bind = via_pcie_sgdma_bind,
 	.unbind = via_pcie_sgdma_unbind,
-	.destroy = ttm_sgdma_destroy,
+	.destroy = via_sgdma_destroy,
 };
 
-struct ttm_backend *via_sgdma_backend_init(struct ttm_bo_device *bdev, struct drm_device *dev)
+struct ttm_tt *
+via_sgdma_backend_init(struct ttm_bo_device *bdev, unsigned long size,
+			uint32_t page_flags, struct page *dummy_read_page)
 {
 	struct ttm_sgdma_backend *dma_be;
 
@@ -168,10 +123,12 @@ struct ttm_backend *via_sgdma_backend_init(struct ttm_bo_device *bdev, struct dr
 	if (!dma_be)
 		return NULL;
 
-	dma_be->backend.func = &ttm_sgdma_func;
-	dma_be->backend.bdev = bdev;
-	dma_be->direction = DMA_BIDIRECTIONAL;
-	dma_be->dev = dev;
-	return &dma_be->backend;
+	dma_be->sgdma.ttm.func = &ttm_sgdma_func;
+
+	if (ttm_dma_tt_init(&dma_be->sgdma, bdev, size, page_flags, dummy_read_page)) {
+		kfree(dma_be);
+		return NULL;
+	}
+	return &dma_be->sgdma.ttm;
 }
 EXPORT_SYMBOL(via_sgdma_backend_init);

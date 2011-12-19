@@ -21,9 +21,6 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
-
-#include <linux/module.h>
-
 #include "drmP.h"
 #include "via_drv.h"
 #include "drm_pciids.h"
@@ -416,7 +413,6 @@ static void via_init_3d(struct drm_via_private *dev_priv)
 	VIA_WRITE(VIA_REG_TRANSPACE, 0x130002db);
 }
 
-<<<<<<< HEAD
 static int via_dumb_create(struct drm_file *filp, struct drm_device *dev,
 				struct drm_mode_create_dumb *args)
 {
@@ -559,7 +555,7 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 	chip_revision_info(dev);
 	via_init_2d(dev);
 	via_init_3d(dev_priv);
-	via_init_vq(dev_priv);
+	//via_init_vq(dev_priv);
 
 #if __OS_HAS_AGP
 	if ((dev_priv->engine_type > VIA_ENG_H2) ||
@@ -641,7 +637,7 @@ static const struct file_operations via_driver_fops = {
 	.llseek = noop_llseek,
 };
 
-static struct drm_driver driver = {
+static struct drm_driver via_driver = {
 	.driver_features =
 		DRIVER_USE_AGP | DRIVER_USE_MTRR | DRIVER_HAVE_IRQ |
 		DRIVER_GEM | DRIVER_IRQ_SHARED,

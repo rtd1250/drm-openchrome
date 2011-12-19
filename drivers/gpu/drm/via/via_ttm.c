@@ -23,16 +23,86 @@
 #include "drmP.h"
 #include "via_drv.h"
 
-struct ttm_backend *via_create_ttm_backend_entry(struct ttm_bo_device *bdev)
+static struct ttm_tt *
+via_ttm_tt_create(struct ttm_bo_device *bdev, unsigned long size,
+			uint32_t page_flags, struct page *dummy_read_page)
 {
 	struct drm_via_private *dev_priv =
 		container_of(bdev, struct drm_via_private, bdev);
 
 #if __OS_HAS_AGP
 	if (drm_pci_device_is_agp(dev_priv->dev))
-		return ttm_agp_backend_init(bdev, dev_priv->dev->agp->bridge);
+		return ttm_agp_tt_create(bdev, dev_priv->dev->agp->bridge,
+					size, page_flags, dummy_read_page);
 #endif
-	return via_sgdma_backend_init(bdev, dev_priv->dev);
+	return via_sgdma_backend_init(bdev, size, page_flags, dummy_read_page);
+}
+
+static int
+via_ttm_tt_populate(struct ttm_tt *ttm)
+{
+	struct ttm_dma_tt *ttm_dma = (void *)ttm;
+	struct ttm_bo_device *bdev = ttm_dma->ttm.bdev;
+	struct drm_via_private *dev_priv =
+		container_of(bdev, struct drm_via_private, bdev);
+	struct drm_device *dev = dev_priv->dev;
+	unsigned int i;
+	int ret = 0;
+
+	if (ttm->state != tt_unpopulated)
+		return 0;
+
+#ifdef CONFIG_SWIOTLB
+	if (swiotlb_nr_tbl())
+		return ttm_dma_populate((void *)ttm, dev->dev);
+#endif
+
+	ret = ttm_pool_populate(ttm);
+	if (ret)
+		return ret;
+
+	for (i = 0; i < ttm->num_pages; i++) {
+		ttm_dma->dma_address[i] = pci_map_page(dev->pdev, ttm->pages[i],
+							0, PAGE_SIZE,
+							PCI_DMA_BIDIRECTIONAL);
+		if (pci_dma_mapping_error(dev->pdev, ttm_dma->dma_address[i])) {
+			while (--i) {
+				pci_unmap_page(dev->pdev, ttm_dma->dma_address[i],
+						PAGE_SIZE, PCI_DMA_BIDIRECTIONAL);
+				ttm_dma->dma_address[i] = 0;
+			}
+			ttm_pool_unpopulate(ttm);
+			return -EFAULT;
+		}
+	}
+	return ret;
+}
+
+static void
+via_ttm_tt_unpopulate(struct ttm_tt *ttm)
+{
+	struct ttm_dma_tt *ttm_dma = (void *)ttm;
+	struct ttm_bo_device *bdev = ttm_dma->ttm.bdev;
+	struct drm_via_private *dev_priv =
+		container_of(bdev, struct drm_via_private, bdev);
+	struct drm_device *dev = dev_priv->dev;
+	unsigned int i;
+
+#ifdef CONFIG_SWIOTLB
+	if (swiotlb_nr_tbl()) {
+		ttm_dma_unpopulate((void *)ttm, dev->dev);
+		return;
+	}
+#endif
+
+	for (i = 0; i < ttm->num_pages; i++) {
+		if (ttm_dma->dma_address[i]) {
+			pci_unmap_page(dev->pdev, ttm_dma->dma_address[i],
+					PAGE_SIZE, PCI_DMA_BIDIRECTIONAL);
+		}
+	}
+
+	ttm_pool_unpopulate(ttm);
 }
 
 int via_invalidate_caches(struct ttm_bo_device *bdev, uint32_t flags)
@@ -329,19 +399,21 @@ static int via_verify_access(struct ttm_buffer_object *bo, struct file *filp)
 }
 
 static struct ttm_bo_driver via_bo_driver = {
-	.create_ttm_backend_entry	= via_create_ttm_backend_entry,
-	.invalidate_caches		= via_invalidate_caches,
-	.init_mem_type			= via_init_mem_type,
-	.evict_flags			= via_evict_flags,
-	.move				= via_bo_move,
-	.verify_access			= via_verify_access,
-	/*.sync_obj_signaled		= via_fence_signalled,
-	.sync_obj_wait			= via_fence_wait,
-	.sync_obj_flush			= via_fence_flush,
-	.sync_obj_unref			= via_fence_unref,
-	.sync_obj_ref			= via_fence_ref,*/
-	.io_mem_reserve			= &via_ttm_io_mem_reserve,
-	.io_mem_free			= &via_ttm_io_mem_free,
+	.ttm_tt_create          = &via_ttm_tt_create,
+	.ttm_tt_populate        = &via_ttm_tt_populate,
+	.ttm_tt_unpopulate      = &via_ttm_tt_unpopulate,
+	.invalidate_caches	= via_invalidate_caches,
+	.init_mem_type		= via_init_mem_type,
+	.evict_flags		= via_evict_flags,
+	.move			= via_bo_move,
+	.verify_access		= via_verify_access,
+	/*.sync_obj_signaled	= via_fence_signalled,
+	.sync_obj_wait		= via_fence_wait,
+	.sync_obj_flush		= via_fence_flush,
+	.sync_obj_unref		= via_fence_unref,
+	.sync_obj_ref		= via_fence_ref,*/
+	.io_mem_reserve		= &via_ttm_io_mem_reserve,
+	.io_mem_free		= &via_ttm_io_mem_free,
 };
 
 void

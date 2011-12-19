@@ -20,7 +20,6 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
-
 #include "drmP.h"
 #include "via_drv.h"
 
@@ -947,13 +946,13 @@ via_output_poll_changed(struct drm_device *dev)
 static struct drm_framebuffer *
 via_user_framebuffer_create(struct drm_device *dev,
 				struct drm_file *file_priv,
-				struct drm_mode_fb_cmd *mode_cmd)
+				struct drm_mode_fb_cmd2 *mode_cmd)
 {
 	struct drm_framebuffer *fb;
 	struct drm_gem_object *obj;
 	int ret;
 
-	obj = drm_gem_object_lookup(dev, file_priv, mode_cmd->handle);
+	obj = drm_gem_object_lookup(dev, file_priv, mode_cmd->handles[0]);
 	if (obj ==  NULL) {
 		DRM_ERROR("No GEM object available to create framebuffer\n");
 		return ERR_PTR(-ENOENT);
@@ -986,7 +985,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 	struct ttm_bo_kmap_obj *kmap = NULL;
 	struct drm_framebuffer *fb = NULL;
 	struct drm_gem_object *obj = NULL;
-	struct drm_mode_fb_cmd mode_cmd;
+	struct drm_mode_fb_cmd2 mode_cmd;
 	struct apertures_struct *ap;
 	int size, ret = 0;
 	void *ptr;
@@ -1004,11 +1003,12 @@ via_fb_probe(struct drm_fb_helper *helper,
 
 	mode_cmd.height = sizes->surface_height;
 	mode_cmd.width = sizes->surface_width;
-	mode_cmd.depth = sizes->surface_depth;
-	mode_cmd.bpp = sizes->surface_bpp;
-
-	mode_cmd.pitch = ((mode_cmd.width * mode_cmd.bpp >> 3) + 7) & ~7;
-	size = ALIGN(mode_cmd.pitch * mode_cmd.height, PAGE_SIZE);
+	mode_cmd.pixel_format = drm_mode_legacy_fb_format(sizes->surface_bpp,
+							sizes->surface_depth);
+	mode_cmd.pitches[0] = (mode_cmd.width * sizes->surface_bpp >> 3);
+	mode_cmd.pitches[0] = roundup(mode_cmd.pitches[0], 8);
+	size= mode_cmd.pitches[0] * mode_cmd.height;
+	size = ALIGN(size, PAGE_SIZE);
 
 	obj = drm_gem_object_alloc(helper->dev, size);
 	ret = ttm_bo_allocate(&dev_priv->bdev, size, ttm_bo_type_kernel,

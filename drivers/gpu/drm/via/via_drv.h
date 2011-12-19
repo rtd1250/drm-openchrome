@@ -39,11 +39,13 @@
 #include "ttm/ttm_placement.h"
 #include "ttm/ttm_memory.h"
 #include "ttm/ttm_module.h"
+#include "ttm/ttm_page_alloc.h"
 
 #include "ttm_heap.h"
 
 #include <video/vga.h>
 #include "crtc_hw.h"
+#include <linux/module.h>
 #include <linux/i2c.h>
 #include <linux/i2c-algo-bit.h>
 #include <linux/via-core.h>
@@ -203,8 +205,8 @@ extern void via_framebuffer_fini(struct drm_fb_helper *helper);
 
 extern int via_ttm_init(struct drm_via_private *dev_priv);
 extern void via_ttm_bo_destroy(struct ttm_buffer_object *bo);
-extern struct ttm_backend *via_sgdma_backend_init(struct ttm_bo_device *bdev,
-						struct drm_device *dev);
+extern struct ttm_tt *via_sgdma_backend_init(struct ttm_bo_device *bdev, unsigned long size,
+					uint32_t page_flags, struct page *dummy_read_page);
 
 extern int ttm_global_init(struct drm_global_reference *global_ref,
 				struct ttm_bo_global_ref *global_bo,

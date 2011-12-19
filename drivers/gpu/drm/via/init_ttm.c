@@ -116,6 +116,7 @@ ttm_bo_allocate(struct ttm_bo_device *bdev,
 	struct ttm_buffer_object *bo = NULL;
 	struct ttm_placement *placement;
 	int cnt = 0, i = 0, ret;
+	unsigned long acc_size;
 	struct ttm_heap *heap;
 	char *p;
 
@@ -129,7 +130,8 @@ ttm_bo_allocate(struct ttm_bo_device *bdev,
 			flags[cnt++] = (type | bdev->man[i].available_caching);
 	} while (i++ < TTM_NUM_MEM_TYPES);
 
-	p = kzalloc(sizeof(struct ttm_heap) + cnt * sizeof(uint32_t), GFP_KERNEL);
+	acc_size = sizeof(struct ttm_heap) + cnt * sizeof(uint32_t);
+	p = kzalloc(acc_size, GFP_KERNEL);
 	if (!p)
 		return -ENOMEM;
 
@@ -138,8 +140,10 @@ ttm_bo_allocate(struct ttm_bo_device *bdev,
 	placement = &heap->placement;
 	ptr = (uint32_t *) (p + sizeof(struct ttm_heap));
 
+	acc_size = ttm_bo_dma_acc_size(bdev, size, acc_size);
+
 	/* Special work around for old driver's api */
-	if (buffer_start && cnt == 1 && origin != ttm_bo_type_user) {
+	if (buffer_start && cnt == 1) {
 		placement->fpfn = rounddown(buffer_start, page_align) >> PAGE_SHIFT;
 		placement->lpfn = placement->fpfn + (size >> PAGE_SHIFT);
 		buffer_start = 0;
@@ -154,7 +158,7 @@ ttm_bo_allocate(struct ttm_bo_device *bdev,
 	ret = ttm_bo_init(bdev, bo, size, origin, placement,
 				page_align >> PAGE_SHIFT, buffer_start,
 				interruptible, persistant_swap_storage,
-				size, destroy);
+				acc_size, destroy);
 	if (!ret)
 		*p_bo = bo;
 	else
