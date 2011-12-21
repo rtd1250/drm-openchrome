@@ -636,10 +636,10 @@ static int
 via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 				int x, int y, enum mode_set_atomic state)
 {
-	u32 addr = y * fb->pitch + x * (fb->bits_per_pixel >> 3), pitch;
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	struct drm_gem_object *obj = fb->helper_private;
 	struct ttm_buffer_object *bo = obj->driver_private;
+	u32 pitch = (x * fb->bits_per_pixel) >> 3, addr;
 	u8 value, orig;
 
 	/*if ((state == ENTER_ATOMIC_MODE_SET) && (fb != crtc->fb))
@@ -648,7 +648,8 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 		restore_accel(dev);*/
 
 	/* Set the framebuffer offset */
-	addr += bo->offset;
+	pitch += y * fb->pitch;
+	addr = (bo->offset + pitch) >> 1;
 
 	vga_wcrt(VGABASE, 0x0D, addr & 0xFF);
 	vga_wcrt(VGABASE, 0x0C, (addr >> 8) & 0xFF);
@@ -661,7 +662,8 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	vga_wseq(VGABASE, 0x1C, (pitch & 7));
 	vga_wseq(VGABASE, 0x1D, ((pitch >> 3) & 0x03));*/
 
-	if ((state == ENTER_ATOMIC_MODE_SET) || crtc->fb->pitch != fb->pitch) {
+	if ((state == ENTER_ATOMIC_MODE_SET) ||
+	     crtc->fb->pitch != fb->pitch) {
 		/* Spec does not say that first adapter skips 3 bits but old
 		 * code did it and seems to be reasonable in analogy to
 		 * second adapter */
@@ -702,14 +704,15 @@ static int
 via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 				int x, int y, enum mode_set_atomic state)
 {
-	u32 addr = y * fb->pitch + x * (fb->bits_per_pixel >> 3), pitch;
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	struct drm_gem_object *obj = fb->helper_private;
 	struct ttm_buffer_object *bo = obj->driver_private;
+	u32 pitch = x * (fb->bits_per_pixel >> 3), addr;
 	u8 value, orig;
 
 	/* Set the framebuffer offset */
-	addr += bo->offset;
+	pitch += y * fb->pitch;
+	addr = bo->offset + pitch;
 
 	/* Secondary display supports only quadword aligned memory */
 	vga_wcrt(VGABASE, 0x62, (addr >> 2) & 0xfe);
