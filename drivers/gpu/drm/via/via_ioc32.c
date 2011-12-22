@@ -208,8 +208,6 @@ via_gem_alloc(struct drm_device *dev, void *data,
 	struct drm_gem_object *gem;
 	int ret = -EINVAL;
 
-	return ret;
-
 	if (!domain)
 		domain = args->read_domains;
 

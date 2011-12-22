@@ -41,8 +41,6 @@
 #include "ttm/ttm_module.h"
 #include "ttm/ttm_page_alloc.h"
 
-#include "ttm_heap.h"
-
 #include <video/vga.h>
 #include "crtc_hw.h"
 #include <linux/module.h>
@@ -77,6 +75,11 @@ typedef struct drm_via_irq {
 	uint32_t enable_mask;
 	wait_queue_head_t irq_queue;
 } drm_via_irq_t;
+
+struct sgdma_tt {
+        struct ttm_dma_tt sgdma;
+        unsigned long offset;
+};
 
 enum via_engine {
 	VIA_ENG_H1 = 0,
@@ -224,6 +227,8 @@ extern int ttm_bo_allocate(struct ttm_bo_device *bdev, unsigned long size,
 				void (*destroy) (struct ttm_buffer_object *),
 				struct file *persistant_swap_storage,
 				struct ttm_buffer_object **p_bo);
+extern int ttm_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap);
+extern int ttm_bo_pin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap);
 extern int ttm_mmap(struct file *filp, struct vm_area_struct *vma);
 
 extern int ttm_gem_init_object(struct drm_gem_object *obj);

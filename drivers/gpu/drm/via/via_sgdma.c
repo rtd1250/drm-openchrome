@@ -27,18 +27,13 @@
 #include "drmP.h"
 #include "via_drv.h"
 
-struct ttm_sgdma_backend {
-	struct ttm_dma_tt sgdma;
-	unsigned long offset;
-};
-
 static int
 via_pcie_sgdma_bind(struct ttm_tt *ttm, struct ttm_mem_reg *mem)
 {
-	struct ttm_sgdma_backend *dma_be = (struct ttm_sgdma_backend *)ttm;
-	struct ttm_bo_device *bdev = dma_be->sgdma.ttm.bdev;
+	struct sgdma_tt *dma_tt = (struct sgdma_tt *) ttm;
+	struct ttm_bo_device *bdev = dma_tt->sgdma.ttm.bdev;
 	struct drm_via_private *dev_priv =
-                container_of(bdev, struct drm_via_private, bdev);
+		container_of(bdev, struct drm_via_private, bdev);
 	u8 orig;
 	int i;
 
@@ -47,10 +42,10 @@ via_pcie_sgdma_bind(struct ttm_tt *ttm, struct ttm_mem_reg *mem)
 	vga_wseq(VGABASE, 0x6C, orig);
 
 	/* Update the relevant entries */
-	dma_be->offset = mem->start << PAGE_SHIFT;
-        for (i = 0; i < ttm->num_pages; i++) {
+	dma_tt->offset = mem->start << PAGE_SHIFT;
+	for (i = 0; i < ttm->num_pages; i++) {
 		writel(page_to_pfn(ttm->pages[i]) & 0x3FFFFFFF,
-			dev_priv->gart.virtual + dma_be->offset + i);
+			dev_priv->gart.virtual + dma_tt->offset + i);
 	}
 
 	/* Invalided GTI cache */
@@ -67,10 +62,10 @@ via_pcie_sgdma_bind(struct ttm_tt *ttm, struct ttm_mem_reg *mem)
 static int
 via_pcie_sgdma_unbind(struct ttm_tt *ttm)
 {
-	struct ttm_sgdma_backend *dma_be = (struct ttm_sgdma_backend *)ttm;
-	struct ttm_bo_device *bdev = dma_be->sgdma.ttm.bdev;
+	struct sgdma_tt *dma_tt = (struct sgdma_tt *) ttm;
+	struct ttm_bo_device *bdev = dma_tt->sgdma.ttm.bdev;
 	struct drm_via_private *dev_priv =
-                container_of(bdev, struct drm_via_private, bdev);
+		container_of(bdev, struct drm_via_private, bdev);
 	u8 orig;
 	int i;
 
@@ -83,8 +78,8 @@ via_pcie_sgdma_unbind(struct ttm_tt *ttm)
 
 	/* Update the relevant entries */
 	for (i = 0; i < ttm->num_pages; i++)
-		writel(0x80000000, dev_priv->gart.virtual + dma_be->offset + i);
-	dma_be->offset = 0;
+		writel(0x80000000, dev_priv->gart.virtual + dma_tt->offset + i);
+	dma_tt->offset = 0;
 
 	/* Invalided GTI cache */
 	orig = (vga_rseq(VGABASE, 0x6F) | 0x80);
@@ -99,12 +94,12 @@ via_pcie_sgdma_unbind(struct ttm_tt *ttm)
 static void
 via_sgdma_destroy(struct ttm_tt *ttm)
 {
-	struct ttm_sgdma_backend *dma_be = (struct ttm_sgdma_backend *)ttm;
+	struct sgdma_tt *dma_tt = (struct sgdma_tt *) ttm;
 
-        if (ttm) {
-                ttm_dma_tt_fini(&dma_be->sgdma);
-                kfree(dma_be);
-        }
+	if (ttm) {
+		ttm_dma_tt_fini(&dma_tt->sgdma);
+		kfree(dma_tt);
+	}
 }
 
 static struct ttm_backend_func ttm_sgdma_func = {
@@ -117,18 +112,18 @@ struct ttm_tt *
 via_sgdma_backend_init(struct ttm_bo_device *bdev, unsigned long size,
 			uint32_t page_flags, struct page *dummy_read_page)
 {
-	struct ttm_sgdma_backend *dma_be;
+	struct sgdma_tt *dma_tt;
 
-	dma_be = kzalloc(sizeof(*dma_be), GFP_KERNEL);
-	if (!dma_be)
+	dma_tt = kzalloc(sizeof(*dma_tt), GFP_KERNEL);
+	if (!dma_tt)
 		return NULL;
 
-	dma_be->sgdma.ttm.func = &ttm_sgdma_func;
+	dma_tt->sgdma.ttm.func = &ttm_sgdma_func;
 
-	if (ttm_dma_tt_init(&dma_be->sgdma, bdev, size, page_flags, dummy_read_page)) {
-		kfree(dma_be);
+	if (ttm_dma_tt_init(&dma_tt->sgdma, bdev, size, page_flags, dummy_read_page)) {
+		kfree(dma_tt);
 		return NULL;
 	}
-	return &dma_be->sgdma.ttm;
+	return &dma_tt->sgdma.ttm;
 }
 EXPORT_SYMBOL(via_sgdma_backend_init);

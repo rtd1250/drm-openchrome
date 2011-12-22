@@ -22,9 +22,16 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "ttm_heap.h"
+#include "drmP.h"
+#include "ttm/ttm_bo_driver.h"
+#include "ttm/ttm_placement.h"
 
 #define DRM_FILE_PAGE_OFFSET (0x100000000ULL >> PAGE_SHIFT)
+
+struct ttm_heap {
+        struct ttm_placement placement;
+        struct ttm_buffer_object pbo;
+};
 
 static int
 ttm_global_mem_init(struct drm_global_reference *ref)
