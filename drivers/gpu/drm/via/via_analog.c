@@ -174,6 +174,7 @@ via_analog_set_property(struct drm_connector *connector,
 }
 
 static const struct drm_connector_funcs via_analog_connector_funcs = {
+	.dpms = drm_helper_connector_dpms,
 	.detect = via_analog_detect,
 	.fill_modes = drm_helper_probe_single_connector_modes,
 	.destroy = via_analog_destroy,

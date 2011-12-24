@@ -1006,7 +1006,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 	mode_cmd.pixel_format = drm_mode_legacy_fb_format(sizes->surface_bpp,
 							sizes->surface_depth);
 	mode_cmd.pitches[0] = (mode_cmd.width * sizes->surface_bpp >> 3);
-	mode_cmd.pitches[0] = roundup(mode_cmd.pitches[0], 8);
+	mode_cmd.pitches[0] = roundup(mode_cmd.pitches[0], 16);
 	size= mode_cmd.pitches[0] * mode_cmd.height;
 	size = ALIGN(size, PAGE_SIZE);
 
@@ -1044,7 +1044,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 	ap->ranges[0].base = kmap->bo->mem.bus.base;
 	info->apertures = ap;
 
-	drm_fb_helper_fill_var(info, helper, fb->width, fb->height);
+	drm_fb_helper_fill_var(info, helper, sizes->fb_width, sizes->fb_height);
 	drm_fb_helper_fill_fix(info, fb->pitch, fb->depth);
 	ret = 1;
 out_err:
