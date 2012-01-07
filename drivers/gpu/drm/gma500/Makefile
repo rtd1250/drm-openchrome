@@ -11,6 +11,7 @@ gma500_gfx-y += gem_glue.o \
 	  gtt.o \
 	  intel_bios.o \
 	  intel_i2c.o \
+	  intel_gmbus.o \
 	  intel_opregion.o \
 	  mmu.o \
 	  power.o \
@@ -24,7 +25,7 @@ gma500_gfx-y += gem_glue.o \
 	  psb_device.o \
 	  mid_bios.o
 
-gma500_gfx-$(CONFIG_DRM_CEDARVIEW) +=  cdv_device.o \
+gma500_gfx-$(CONFIG_DRM_GMA3600) +=  cdv_device.o \
 	  cdv_intel_crt.o \
 	  cdv_intel_display.o \
 	  cdv_intel_hdmi.o \

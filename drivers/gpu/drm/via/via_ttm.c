@@ -53,6 +53,11 @@ via_ttm_tt_populate(struct ttm_tt *ttm)
 	if (ttm->state != tt_unpopulated)
 		return 0;
 
+#if __OS_HAS_AGP
+	if (drm_pci_device_is_agp(dev_priv->dev))
+		return ttm_agp_tt_populate(ttm);	
+#endif
+
 #ifdef CONFIG_SWIOTLB
 	if (swiotlb_nr_tbl())
 		return ttm_dma_populate(sgdma, dev->dev);
@@ -60,9 +65,6 @@ via_ttm_tt_populate(struct ttm_tt *ttm)
 
 	ret = ttm_pool_populate(ttm);
 	if (ret)
-		return ret;
-
-	if (!sgdma->dma_address)
 		return ret;
 
 	for (i = 0; i < ttm->num_pages; i++) {
@@ -93,6 +95,13 @@ via_ttm_tt_unpopulate(struct ttm_tt *ttm)
 	struct drm_device *dev = dev_priv->dev;
 	unsigned int i;
 
+#if __OS_HAS_AGP
+	if (drm_pci_device_is_agp(dev_priv->dev)) {
+		ttm_agp_tt_unpopulate(ttm);
+		return;
+	}
+#endif
+
 #ifdef CONFIG_SWIOTLB
 	if (swiotlb_nr_tbl()) {
 		ttm_dma_unpopulate(sgdma, dev->dev);
@@ -100,14 +109,13 @@ via_ttm_tt_unpopulate(struct ttm_tt *ttm)
 	}
 #endif
 
-	if (sgdma->dma_address) {
-		for (i = 0; i < ttm->num_pages; i++) {
-			if (sgdma->dma_address[i]) {
-				pci_unmap_page(dev->pdev, sgdma->dma_address[i],
-						PAGE_SIZE, PCI_DMA_BIDIRECTIONAL);
-			}	
+	for (i = 0; i < ttm->num_pages; i++) {
+		if (sgdma->dma_address[i]) {
+			pci_unmap_page(dev->pdev, sgdma->dma_address[i],
+					PAGE_SIZE, PCI_DMA_BIDIRECTIONAL);
 		}
 	}
+
 	ttm_pool_unpopulate(ttm);
 }
 

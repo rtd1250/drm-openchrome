@@ -648,7 +648,7 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 		restore_accel(dev);*/
 
 	/* Set the framebuffer offset */
-	pitch += y * fb->pitch;
+	pitch += (y * fb->pitches[0]);
 	addr = (bo->offset + pitch) >> 1;
 
 	vga_wcrt(VGABASE, 0x0D, addr & 0xFF);
@@ -662,12 +662,12 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	vga_wseq(VGABASE, 0x1C, (pitch & 7));
 	vga_wseq(VGABASE, 0x1D, ((pitch >> 3) & 0x03));*/
 
-	if ((state == ENTER_ATOMIC_MODE_SET) ||
-	     crtc->fb->pitch != fb->pitch) {
+	if ((state == ENTER_ATOMIC_MODE_SET) || 
+	     crtc->fb->pitches[0] != fb->pitches[0]) {
 		/* Spec does not say that first adapter skips 3 bits but old
 		 * code did it and seems to be reasonable in analogy to
 		 * second adapter */
-		pitch = fb->pitch >> 3;
+		pitch = fb->pitches[0] >> 3;
 		vga_wcrt(VGABASE, 0x13, pitch & 0xFF);
 		orig = (vga_rcrt(VGABASE, 0x35) & ~0xE0);
 		vga_wcrt(VGABASE, 0x35, ((pitch >> 3) & 0xE0) | orig);
@@ -707,12 +707,12 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	struct drm_gem_object *obj = fb->helper_private;
 	struct ttm_buffer_object *bo = obj->driver_private;
-	u32 pitch = x * (fb->bits_per_pixel >> 3), addr;
+	u32 pitch = (x * fb->bits_per_pixel) >> 3, addr;
 	u8 value, orig;
 
 	/* Set the framebuffer offset */
-	pitch += y * fb->pitch;
-	addr = bo->offset + pitch;
+	pitch += y * fb->pitches[0];
+	addr = (bo->offset + pitch);
 
 	/* Secondary display supports only quadword aligned memory */
 	vga_wcrt(VGABASE, 0x62, (addr >> 2) & 0xfe);
@@ -721,9 +721,10 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	orig = (vga_rcrt(VGABASE, 0xA3) & ~0x07);
 	vga_wcrt(VGABASE, 0xA3, ((addr >> 26) & 0x07) | orig);
 
-	if ((state == ENTER_ATOMIC_MODE_SET) || crtc->fb->pitch != fb->pitch) {
+	if ((state == ENTER_ATOMIC_MODE_SET) ||
+	     crtc->fb->pitches[0] != fb->pitches[0]) {
 		/* Set secondary pitch */
-		pitch = fb->pitch >> 3;
+		pitch = fb->pitches[0] >> 3;
 		vga_wcrt(VGABASE, 0x66, pitch & 0xFF);
 		orig = (vga_rcrt(VGABASE, 0x67) & ~0x03);
 		vga_wcrt(VGABASE, 0x67, ((pitch >> 8) & 0x03) | orig);

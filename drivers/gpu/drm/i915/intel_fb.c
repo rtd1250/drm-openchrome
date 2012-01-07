@@ -149,7 +149,7 @@ static int intelfb_create(struct intel_fbdev *ifbdev,
 
 //	memset(info->screen_base, 0, size);
 
-	drm_fb_helper_fill_fix(info, fb->pitch, fb->depth);
+	drm_fb_helper_fill_fix(info, fb->pitches[0], fb->depth);
 	drm_fb_helper_fill_var(info, &ifbdev->helper, sizes->fb_width, sizes->fb_height);
 
 	info->pixmap.size = 64*1024;
@@ -270,8 +270,14 @@ void intel_fb_restore_mode(struct drm_device *dev)
 {
 	int ret;
 	drm_i915_private_t *dev_priv = dev->dev_private;
+	struct drm_mode_config *config = &dev->mode_config;
+	struct drm_plane *plane;
 
 	ret = drm_fb_helper_restore_fbdev_mode(&dev_priv->fbdev->helper);
 	if (ret)
 		DRM_DEBUG("failed to restore crtc mode\n");
+
+	/* Be sure to shut off any planes that may be active */
+	list_for_each_entry(plane, &config->plane_list, head)
+		plane->funcs->disable_plane(plane);
 }

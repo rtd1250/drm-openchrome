@@ -1045,7 +1045,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 	info->apertures = ap;
 
 	drm_fb_helper_fill_var(info, helper, sizes->fb_width, sizes->fb_height);
-	drm_fb_helper_fill_fix(info, fb->pitch, fb->depth);
+	drm_fb_helper_fill_fix(info, fb->pitches[0], fb->depth);
 	ret = 1;
 out_err:
 	if (ret < 0) {

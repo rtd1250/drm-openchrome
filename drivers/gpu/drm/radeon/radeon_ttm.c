@@ -188,7 +188,7 @@ static void radeon_evict_flags(struct ttm_buffer_object *bo,
 	rbo = container_of(bo, struct radeon_bo, tbo);
 	switch (bo->mem.mem_type) {
 	case TTM_PL_VRAM:
-		if (rbo->rdev->cp.ready == false)
+		if (rbo->rdev->ring[RADEON_RING_TYPE_GFX_INDEX].ready == false)
 			radeon_ttm_placement_from_domain(rbo, RADEON_GEM_DOMAIN_CPU);
 		else
 			radeon_ttm_placement_from_domain(rbo, RADEON_GEM_DOMAIN_GTT);
@@ -223,10 +223,10 @@ static int radeon_move_blit(struct ttm_buffer_object *bo,
 	struct radeon_device *rdev;
 	uint64_t old_start, new_start;
 	struct radeon_fence *fence;
-	int r;
+	int r, i;
 
 	rdev = radeon_get_rdev(bo->bdev);
-	r = radeon_fence_create(rdev, &fence);
+	r = radeon_fence_create(rdev, &fence, rdev->copy_ring);
 	if (unlikely(r)) {
 		return r;
 	}
@@ -255,12 +255,42 @@ static int radeon_move_blit(struct ttm_buffer_object *bo,
 		DRM_ERROR("Unknown placement %d\n", old_mem->mem_type);
 		return -EINVAL;
 	}
-	if (!rdev->cp.ready) {
-		DRM_ERROR("Trying to move memory with CP turned off.\n");
+	if (!rdev->ring[rdev->copy_ring].ready) {
+		DRM_ERROR("Trying to move memory with ring turned off.\n");
 		return -EINVAL;
 	}
 
 	BUILD_BUG_ON((PAGE_SIZE % RADEON_GPU_PAGE_SIZE) != 0);
+
+	/* sync other rings */
+	if (rdev->family >= CHIP_R600) {
+		for (i = 0; i < RADEON_NUM_RINGS; ++i) {
+			/* no need to sync to our own or unused rings */
+			if (i == rdev->copy_ring || !rdev->ring[i].ready)
+				continue;
+
+			if (!fence->semaphore) {
+				r = radeon_semaphore_create(rdev, &fence->semaphore);
+				/* FIXME: handle semaphore error */
+				if (r)
+					continue;
+			}
+
+			r = radeon_ring_lock(rdev, &rdev->ring[i], 3);
+			/* FIXME: handle ring lock error */
+			if (r)
+				continue;
+			radeon_semaphore_emit_signal(rdev, i, fence->semaphore);
+			radeon_ring_unlock_commit(rdev, &rdev->ring[i]);
+
+			r = radeon_ring_lock(rdev, &rdev->ring[rdev->copy_ring], 3);
+			/* FIXME: handle ring lock error */
+			if (r)
+				continue;
+			radeon_semaphore_emit_wait(rdev, rdev->copy_ring, fence->semaphore);
+			radeon_ring_unlock_commit(rdev, &rdev->ring[rdev->copy_ring]);
+		}
+	}
 
 	r = radeon_copy(rdev, old_start, new_start,
 			new_mem->num_pages * (PAGE_SIZE / RADEON_GPU_PAGE_SIZE), /* GPU pages */
@@ -380,7 +410,7 @@ static int radeon_bo_move(struct ttm_buffer_object *bo,
 		radeon_move_null(bo, new_mem);
 		return 0;
 	}
-	if (!rdev->cp.ready || rdev->asic->copy == NULL) {
+	if (!rdev->ring[RADEON_RING_TYPE_GFX_INDEX].ready || rdev->asic->copy == NULL) {
 		/* use memcpy */
 		goto memcpy;
 	}
@@ -588,6 +618,11 @@ static int radeon_ttm_tt_populate(struct ttm_tt *ttm)
 		return 0;
 
 	rdev = radeon_get_rdev(ttm->bdev);
+#if __OS_HAS_AGP
+	if (rdev->flags & RADEON_IS_AGP) {
+		return ttm_agp_tt_populate(ttm);
+	}
+#endif
 
 #ifdef CONFIG_SWIOTLB
 	if (swiotlb_nr_tbl()) {
@@ -624,6 +659,12 @@ static void radeon_ttm_tt_unpopulate(struct ttm_tt *ttm)
 	unsigned i;
 
 	rdev = radeon_get_rdev(ttm->bdev);
+#if __OS_HAS_AGP
+	if (rdev->flags & RADEON_IS_AGP) {
+		ttm_agp_tt_unpopulate(ttm);
+		return;
+	}
+#endif
 
 #ifdef CONFIG_SWIOTLB
 	if (swiotlb_nr_tbl()) {
