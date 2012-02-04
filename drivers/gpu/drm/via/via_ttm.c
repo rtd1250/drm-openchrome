@@ -438,8 +438,11 @@ via_ttm_bo_destroy(struct ttm_buffer_object *bo)
 
 int via_ttm_init(struct drm_via_private *dev_priv)
 {
-	return ttm_global_init(&dev_priv->mem_global_ref,
+	int ret = ttm_global_init(&dev_priv->mem_global_ref,
 				&dev_priv->bo_global_ref,
 				&via_bo_driver,
 				&dev_priv->bdev, false);
+	if (!ret)
+		dev_priv->bdev.dev_mapping = dev_priv->dev->dev_mapping;
+	return ret;
 }
