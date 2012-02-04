@@ -286,6 +286,8 @@ int radeon_vm_manager_init(struct radeon_device *rdev)
 {
 	int r;
 
+	rdev->vm_manager.enabled = false;
+
 	/* mark first vm as always in use, it's the system one */
 	r = radeon_sa_bo_manager_init(rdev, &rdev->vm_manager.sa_manager,
 				      rdev->vm_manager.max_pfn * 8,
@@ -295,7 +297,12 @@ int radeon_vm_manager_init(struct radeon_device *rdev)
 			(rdev->vm_manager.max_pfn * 8) >> 10);
 		return r;
 	}
-	return rdev->vm_manager.funcs->init(rdev);
+
+	r = rdev->vm_manager.funcs->init(rdev);
+	if (r == 0)
+		rdev->vm_manager.enabled = true;
+
+	return r;
 }
 
 /* cs mutex must be lock */
@@ -334,6 +341,7 @@ void radeon_vm_manager_fini(struct radeon_device *rdev)
 	radeon_vm_manager_suspend(rdev);
 	rdev->vm_manager.funcs->fini(rdev);
 	radeon_sa_bo_manager_fini(rdev, &rdev->vm_manager.sa_manager);
+	rdev->vm_manager.enabled = false;
 }
 
 int radeon_vm_manager_start(struct radeon_device *rdev)
@@ -486,10 +494,10 @@ int radeon_vm_bo_add(struct radeon_device *rdev,
 		}
 		if (bo_va->soffset >= tmp->soffset && bo_va->soffset < tmp->eoffset) {
 			/* bo and tmp overlap, invalid offset */
-			kfree(bo_va);
 			dev_err(rdev->dev, "bo %p va 0x%08X conflict with (bo %p 0x%08X 0x%08X)\n",
 				bo, (unsigned)bo_va->soffset, tmp->bo,
 				(unsigned)tmp->soffset, (unsigned)tmp->eoffset);
+			kfree(bo_va);
 			mutex_unlock(&vm->mutex);
 			return -EINVAL;
 		}
@@ -595,7 +603,7 @@ int radeon_vm_bo_rmv(struct radeon_device *rdev,
 	radeon_vm_bo_update_pte(rdev, vm, bo, NULL);
 	radeon_mutex_unlock(&rdev->cs_mutex);
 	list_del(&bo_va->vm_list);
-	mutex_lock(&vm->mutex);
+	mutex_unlock(&vm->mutex);
 
 	kfree(bo_va);
 	return 0;

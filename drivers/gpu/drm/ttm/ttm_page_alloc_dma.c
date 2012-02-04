@@ -933,10 +933,8 @@ static int ttm_dma_pool_get_num_unused_pages(void)
 	unsigned total = 0;
 
 	mutex_lock(&_manager->lock);
-	list_for_each_entry(p, &_manager->pools, pools) {
-		if (p)
-			total += p->pool->npages_free;
-	}
+	list_for_each_entry(p, &_manager->pools, pools)
+		total += p->pool->npages_free;
 	mutex_unlock(&_manager->lock);
 	return total;
 }
@@ -954,10 +952,9 @@ void ttm_dma_unpopulate(struct ttm_dma_tt *ttm_dma, struct device *dev)
 
 	type = ttm_to_type(ttm->page_flags, ttm->caching_state);
 	pool = ttm_dma_find_pool(dev, type);
-	if (!pool) {
-		WARN_ON(!pool);
+	if (!pool)
 		return;
-	}
+
 	is_cached = (ttm_dma_find_pool(pool->dev,
 		     ttm_to_type(ttm->page_flags, tt_cached)) == pool);
 
@@ -1031,7 +1028,7 @@ static int ttm_dma_pool_mm_shrink(struct shrinker *shrink,
 	list_for_each_entry(p, &_manager->pools, pools) {
 		unsigned nr_free;
 
-		if (!p && !p->dev)
+		if (!p->dev)
 			continue;
 		if (shrink_pages == 0)
 			break;
