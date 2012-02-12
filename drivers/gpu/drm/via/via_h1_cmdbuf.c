@@ -426,7 +426,7 @@ int via_wait_idle(struct drm_via_private *dev_priv)
 {
 	int count = 10000000;
 
-	while (!(VIA_READ(VIA_REG_STATUS) & VIA_VR_QUEUE_BUSY) && --count)
+	while (!(VIA_READ(VIA_REG_STATUS) & VIA_VR_QUEUE_EMPTY) && --count)
 		;
 
 	while (count && (VIA_READ(VIA_REG_STATUS) &

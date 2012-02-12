@@ -69,23 +69,58 @@ disable_second_display_channel(struct drm_via_private *dev_priv)
 	vga_wcrt(VGABASE, 0x6A, (orig | BIT(6)));
 }
 
-static int
-via_iga1_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
-			uint32_t handle, uint32_t width, uint32_t height)
+static void
+via_hide_cursor(struct drm_crtc *crtc)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
-	int max_height = 64, max_width = 64, ret = 0;
+	uint32_t temp;
+
+	if (iga->index) {
+		temp = VIA_READ(HI_CONTROL);
+		VIA_WRITE(HI_CONTROL, temp & 0xFFFFFFFA);
+	} else {
+		temp = VIA_READ(PRIM_HI_CTRL);
+		VIA_WRITE(PRIM_HI_CTRL, temp & 0xFFFFFFFA);
+	}
+}
+
+static void
+via_show_cursor(struct drm_crtc *crtc)
+{
+	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
+	struct drm_via_private *dev_priv = crtc->dev->dev_private;
+
+	if (!iga->cursor_kmap.bo)
+		return;
+
+	/* Program the offset and turn on Hardware icon Cursor */
+	if (iga->index) {
+		VIA_WRITE(HI_FBOFFSET, iga->cursor_kmap.bo->offset);
+		VIA_WRITE(HI_CONTROL, 0xB6000005);
+	} else {
+		VIA_WRITE(PRIM_HI_FBOFFSET, iga->cursor_kmap.bo->offset);
+		VIA_WRITE(PRIM_HI_CTRL, 0x36000005);
+	}
+}
+
+static int
+via_iga_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
+			uint32_t handle, uint32_t width, uint32_t height)
+{
+	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
+	int max_height = 64, max_width = 64, ret = 0, i, j;
 	struct drm_device *dev = crtc->dev;
 	struct drm_gem_object *obj = NULL;
-	uint32_t temp;
+	struct ttm_bo_kmap_obj user_kmap;
+
+	if (!iga->cursor_kmap.bo)
+		return -ENXIO;
 
 	if (!handle) {
 		/* turn off cursor */
-		temp = VIA_READ(VIA_REG_HI_CONTROL1);
-		VIA_WRITE(VIA_REG_HI_CONTROL1, temp & 0xFFFFFFFA);
-		obj = iga->cursor_bo;
-		goto unpin;
+		via_hide_cursor(crtc);
+		return 0;
 	}
 
 	if (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266 ||
@@ -105,30 +140,67 @@ via_iga1_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
 		return -ENOENT;
 	}
 
-	/* set_cursor, show_cursor */
-	iga->cursor_bo = obj;
-unpin:
-	if (obj)
-		drm_gem_object_unreference_unlocked(obj);
-	return ret;
-}
+	user_kmap.bo = obj->driver_private;
+	ret = ttm_bo_pin(user_kmap.bo, &user_kmap);
+	if (!ret) {
+		/* Copy data from userland to cursor memory region */
+		u32 *dst = iga->cursor_kmap.virtual, *src = user_kmap.virtual;
 
-static int
-via_iga2_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
-			uint32_t handle, uint32_t width, uint32_t height)
-{
-	return 0;
+		memset_io(dst, 0x00, iga->cursor_kmap.bo->mem.size);
+		for (i = 0; i < height; j++) {
+			iowrite32_rep(dst, src, width * 4);
+			dst += max_width;
+			src += width;	
+		}
+		ttm_bo_unpin(user_kmap.bo, &user_kmap);
+
+		via_show_cursor(crtc);
+	}
+	drm_gem_object_unreference_unlocked(obj);
+	return ret;
 }
 
 static int
 via_iga1_cursor_move(struct drm_crtc *crtc, int x, int y)
 {
+	struct drm_via_private *dev_priv = crtc->dev->dev_private;
+	unsigned char xoff = 0, yoff = 0;
+	int xpos = x, ypos = y;
+
+	if (x < 0) {
+		xoff = (-x) & 0xFF;
+		xpos = 0;
+	}
+
+	if (y < 0) {
+		yoff = (-y) & 0xFF;
+		ypos = 0;
+	}
+
+	VIA_WRITE(PRIM_HI_POSSTART, ((xpos << 16) | (ypos & 0x07ff)));
+	VIA_WRITE(PRIM_HI_CENTEROFFSET, ((xoff << 16) | (yoff & 0x07ff)));
 	return 0;
 }
 
 static int
 via_iga2_cursor_move(struct drm_crtc *crtc, int x, int y)
 {
+	struct drm_via_private *dev_priv = crtc->dev->dev_private;
+	unsigned char xoff = 0, yoff = 0;
+	int xpos = x, ypos = y;
+
+	if (x < 0) {
+		xoff = (-x) & 0xFF;
+		xpos = 0;
+	}
+
+	if (y < 0) {
+		yoff = (-y) & 0xFF;
+		ypos = 0;
+	}
+
+	VIA_WRITE(HI_POSSTART, ((xpos << 16) | (ypos & 0x07ff)));
+	VIA_WRITE(HI_CENTEROFFSET, ((xoff << 16) | (yoff & 0x07ff)));
 	return 0;
 }
 
@@ -251,14 +323,15 @@ via_crtc_destroy(struct drm_crtc *crtc)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 
+	if (iga->cursor_kmap.bo) {
+		ttm_bo_unpin(iga->cursor_kmap.bo, &iga->cursor_kmap);
+		ttm_bo_unref(&iga->cursor_kmap.bo);
+	}
 	drm_crtc_cleanup(crtc);
-
-	if (iga->cursor_bo)
-		crtc->dev->driver->gem_free_object(iga->cursor_bo);
 }
 
 static const struct drm_crtc_funcs via_iga1_funcs = {
-	.cursor_set = via_iga1_cursor_set,
+	.cursor_set = via_iga_cursor_set,
 	.cursor_move = via_iga1_cursor_move,
 	.gamma_set = via_iga1_gamma_set,
 	.set_config = drm_crtc_helper_set_config,
@@ -266,7 +339,7 @@ static const struct drm_crtc_funcs via_iga1_funcs = {
 };
 
 static const struct drm_crtc_funcs via_iga2_funcs = {
-	.cursor_set = via_iga2_cursor_set,
+	.cursor_set = via_iga_cursor_set,
 	.cursor_move = via_iga2_cursor_move,
 	.gamma_set = via_iga2_gamma_set,
 	.set_config = drm_crtc_helper_set_config,
@@ -277,9 +350,9 @@ static void
 via_load_FIFO_reg(struct via_crtc *iga, struct drm_display_mode *mode)
 {
 	struct drm_device *dev = iga->base.dev;
+	int queue_expire_num = iga->display_queue_expire_num, reg_value;
 	int hor_active = mode->hdisplay, ver_active = mode->vdisplay;
 	struct drm_via_private *dev_priv = dev->dev_private;
-	int queue_expire_num, reg_value;
 
 	/* If resolution > 1280x1024, expire length = 64, else
 	   expire length = 128 */
@@ -287,8 +360,6 @@ via_load_FIFO_reg(struct via_crtc *iga, struct drm_display_mode *mode)
 	     dev->pdev->device == PCI_DEVICE_ID_VIA_CN700) &&
 	    ((hor_active > 1280) && (ver_active > 1024)))
 		queue_expire_num = 16;
-	else
-		queue_expire_num = iga->display_queue_expire_num;
 
         if (!iga->index) {
 		/* Set Display FIFO Depth Select */
@@ -456,6 +527,7 @@ via_crtc_prepare(struct drm_crtc *crtc)
 	struct drm_crtc_helper_funcs *crtc_funcs;
 
 	/* Turn off the cursor */
+	via_hide_cursor(crtc);
 
 	/* Blank the screen */
 	if (crtc->enabled) {
@@ -472,6 +544,7 @@ via_crtc_commit(struct drm_crtc *crtc)
 	struct drm_crtc_helper_funcs *crtc_funcs;
 
 	/* Turn on the cursor */
+	via_show_cursor(crtc);
 
 	/* Turn on the monitor */
 	if (crtc->enabled) {
@@ -799,7 +872,9 @@ via_crtc_init(struct drm_device *dev, int index)
 	struct drm_via_private *dev_priv = dev->dev_private;
 	struct via_crtc *iga = &dev_priv->iga[index];
 	struct drm_crtc *crtc = &iga->base;
+	int cursor_size = 64 * 64 * 4;
 
+	memset(iga, 0, sizeof(struct via_crtc));
 	iga->index = index;
 	if (index) {
 		drm_crtc_init(dev, crtc, &via_iga2_funcs);
@@ -1067,6 +1142,38 @@ via_crtc_init(struct drm_device *dev, int index)
 		}
 	}
 	drm_mode_crtc_set_gamma_size(crtc, 256);
+
+	/* set 0 as transparent color key */
+	VIA_WRITE(PRIM_HI_TRANSCOLOR, 0);
+	VIA_WRITE(PRIM_HI_FIFO, 0x0D000D0F);
+	VIA_WRITE(PRIM_HI_INVTCOLOR, 0X00FFFFFF);
+	VIA_WRITE(V327_HI_INVTCOLOR, 0X00FFFFFF);
+
+	/* set 0 as transparent color key */
+	VIA_WRITE(HI_TRANSPARENT_COLOR, 0);
+	VIA_WRITE(HI_INVTCOLOR, 0X00FFFFFF);
+	VIA_WRITE(ALPHA_V3_PREFIFO_CONTROL, 0xE0000);
+	VIA_WRITE(ALPHA_V3_FIFO_CONTROL, 0xE0F0000);
+
+	/* Turn cursor off. */
+	VIA_WRITE(HI_CONTROL, VIA_READ(HI_CONTROL) & 0xFFFFFFFA);
+
+	if (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266 ||
+	    dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)
+		cursor_size = 32 * 32 * 4;
+
+	iga->cursor_kmap.bo = NULL;
+	if (!ttm_bo_allocate(&dev_priv->bdev, cursor_size, ttm_bo_type_kernel,
+				TTM_PL_FLAG_VRAM, 16, PAGE_SIZE, 0, false,
+				via_ttm_bo_destroy, NULL, &iga->cursor_kmap.bo)) {
+		if (ttm_bo_pin(iga->cursor_kmap.bo, &iga->cursor_kmap)) {
+			DRM_ERROR("failed to mmap the cursor\n");
+			ttm_bo_unref(&iga->cursor_kmap.bo);
+			iga->cursor_kmap.bo = NULL;
+		}
+	} else {
+		DRM_ERROR("Failed to allocate cursor\n"); 
+	}
 }
 
 int via_modeset_init(struct drm_device *dev)

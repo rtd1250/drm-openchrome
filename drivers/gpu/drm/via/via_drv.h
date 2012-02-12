@@ -98,8 +98,8 @@ struct via_i2c {
 };
 
 struct via_crtc {
-	struct drm_gem_object *cursor_bo;
 	struct drm_crtc base;
+	struct ttm_bo_kmap_obj cursor_kmap;
 	struct crtc_timings timings;
 	struct registers fetch;
 	unsigned int display_queue_expire_num;
