@@ -171,30 +171,10 @@ static int via_mem_alloc(struct drm_device *dev, void *data,
 
 static int via_mem_free(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
-	struct drm_gem_object *obj;
 	drm_via_mem_t *mem = data;
-	int ret = 0;
 
-	/*
-	 * Yes this is stolen from gem_close_ioctl. Just
-	 * for old userland support. Will go away!!!
-	 */
-	spin_lock(&file_priv->table_lock);
-
-	/* Check if we currently have a reference on the object */
-	obj = idr_find(&file_priv->object_idr, mem->index);
-	if (obj == NULL) {
-		spin_unlock(&file_priv->table_lock);
-		return -EINVAL;
-	}
-
-	/* Release reference and decrement refcount. */
-	idr_remove(&file_priv->object_idr, mem->index);
-	spin_unlock(&file_priv->table_lock);
-
-	drm_gem_object_handle_unreference_unlocked(obj);
 	DRM_DEBUG("free = 0x%lx\n", mem->index);
-	return ret;
+	return drm_gem_handle_delete(file_priv, mem->index);
 }
 
 static int
