@@ -928,7 +928,7 @@ via_user_framebuffer_destroy(struct drm_framebuffer *fb)
 
 	if (obj) {
 		drm_gem_object_unreference_unlocked(obj);
-		fb->dev->driver->gem_free_object(obj);
+		fb->helper_private = NULL;
 	}
 	drm_framebuffer_cleanup(fb);
 }
@@ -962,11 +962,13 @@ via_user_framebuffer_create(struct drm_device *dev,
 	if (fb == NULL)
 		return ERR_PTR(-ENOMEM);
 
-	fb->helper_private = obj;
 	ret = drm_framebuffer_init(dev, fb, &via_fb_funcs);
-	if (ret)
+	if (ret) {
+		drm_gem_object_unreference(obj);
+		kfree(fb);
 		return ERR_PTR(ret);
-
+	}
+	fb->helper_private = obj;
 	drm_helper_mode_fill_fb_struct(fb, mode_cmd);
 	return fb;
 }
