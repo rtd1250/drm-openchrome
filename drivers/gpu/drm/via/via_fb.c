@@ -926,11 +926,12 @@ via_user_framebuffer_destroy(struct drm_framebuffer *fb)
 {
 	struct drm_gem_object *obj = fb->helper_private;
 
+	drm_framebuffer_cleanup(fb);
 	if (obj) {
 		drm_gem_object_unreference_unlocked(obj);
 		fb->helper_private = NULL;
 	}
-	drm_framebuffer_cleanup(fb);
+	kfree(fb);
 }
 
 static const struct drm_framebuffer_funcs via_fb_funcs = {
