@@ -109,7 +109,7 @@ via_iga_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
 			uint32_t handle, uint32_t width, uint32_t height)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	int max_height = 64, max_width = 64, ret = 0, i, j;
+	int max_height = 64, max_width = 64, ret = 0, i;
 	struct drm_device *dev = crtc->dev;
 	struct drm_gem_object *obj = NULL;
 	struct ttm_bo_kmap_obj user_kmap;
@@ -120,7 +120,7 @@ via_iga_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
 	if (!handle) {
 		/* turn off cursor */
 		via_hide_cursor(crtc);
-		return 0;
+		return ret;
 	}
 
 	if (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266 ||
@@ -135,28 +135,27 @@ via_iga_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
 	}
 
 	obj = drm_gem_object_lookup(dev, file_priv, handle);
-	if (!obj) {
+	if (!obj || !obj->driver_private) {
 		DRM_ERROR("Cannot find cursor object %x for crtc %d\n", handle, crtc->base.id);
 		return -ENOENT;
 	}
 
 	user_kmap.bo = obj->driver_private;
-	ret = ttm_bo_pin(user_kmap.bo, &user_kmap);
+	ret = ttm_bo_kmap(user_kmap.bo, 0, user_kmap.bo->mem.size, &user_kmap);
 	if (!ret) {
 		/* Copy data from userland to cursor memory region */
 		u32 *dst = iga->cursor_kmap.virtual, *src = user_kmap.virtual;
 
-		memset_io(dst, 0x00, iga->cursor_kmap.bo->mem.size);
-		for (i = 0; i < height; j++) {
-			iowrite32_rep(dst, src, width * 4);
+		memset_io(dst, 0x0, iga->cursor_kmap.bo->mem.size);
+		for (i = 0; i < height; i++) {
+			__iowrite32_copy(dst, src, width);
 			dst += max_width;
-			src += width;	
+			src += width;
 		}
-		ttm_bo_unpin(user_kmap.bo, &user_kmap);
-
-		via_show_cursor(crtc);
+		ttm_bo_kunmap(&user_kmap);
 	}
 	drm_gem_object_unreference_unlocked(obj);
+	via_show_cursor(crtc);
 	return ret;
 }
 
@@ -722,7 +721,7 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 
 	/* Set the framebuffer offset */
 	pitch += (y * fb->pitches[0]);
-	addr = (bo->offset + pitch) >> 1;
+	addr = roundup(bo->offset + pitch, 16) >> 1;
 
 	vga_wcrt(VGABASE, 0x0D, addr & 0xFF);
 	vga_wcrt(VGABASE, 0x0C, (addr >> 8) & 0xFF);
@@ -785,7 +784,7 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 
 	/* Set the framebuffer offset */
 	pitch += y * fb->pitches[0];
-	addr = (bo->offset + pitch);
+	addr = roundup(bo->offset + pitch, 16);
 
 	/* Secondary display supports only quadword aligned memory */
 	vga_wcrt(VGABASE, 0x62, (addr >> 2) & 0xfe);
@@ -1162,7 +1161,6 @@ via_crtc_init(struct drm_device *dev, int index)
 	    dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)
 		cursor_size = 32 * 32 * 4;
 
-	iga->cursor_kmap.bo = NULL;
 	if (!ttm_bo_allocate(&dev_priv->bdev, cursor_size, ttm_bo_type_kernel,
 				TTM_PL_FLAG_VRAM, 16, PAGE_SIZE, 0, false,
 				via_ttm_bo_destroy, NULL, &iga->cursor_kmap.bo)) {
