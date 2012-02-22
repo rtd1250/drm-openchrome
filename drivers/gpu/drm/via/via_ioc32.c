@@ -28,7 +28,7 @@
 #include "drmP.h"
 #include "via_drv.h"
 
-static int via_agp_init(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int via_agp_init(struct drm_device *dev, void *data, struct drm_file *filp)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
 	drm_via_agp_t *agp = data;
@@ -38,7 +38,7 @@ static int via_agp_init(struct drm_device *dev, void *data, struct drm_file *fil
 	return 0;
 }
 
-static int via_fb_init(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int via_fb_init(struct drm_device *dev, void *data, struct drm_file *filp)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
 	drm_via_fb_t *fb = data;
@@ -96,7 +96,7 @@ static int via_do_init_map(struct drm_device *dev, drm_via_init_t *init)
 	return 0;
 }
 
-static int via_map_init(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int via_map_init(struct drm_device *dev, void *data, struct drm_file *filp)
 {
 	drm_via_init_t *init = data;
 	int ret = 0;
@@ -113,7 +113,7 @@ static int via_map_init(struct drm_device *dev, void *data, struct drm_file *fil
 }
 
 static int via_mem_alloc(struct drm_device *dev, void *data,
-			struct drm_file *file_priv)
+			struct drm_file *filp)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
 	int type = TTM_PL_FLAG_VRAM, start = dev_priv->vram_offset, ret = -EINVAL;
@@ -133,22 +133,22 @@ static int via_mem_alloc(struct drm_device *dev, void *data,
 	}
 
 	/*
-         * VIA hardware access is 128 bits boundries. Modify size
-         * to be in unites of 128 bit access. For the TTM/GEM layer
-         * the size needs to rounded to the nearest page. The user
-         * might ask for a offset that is not aligned. In that case
-         * we find the start of the page for this offset and allocate
-         * from there.
-         */
+	 * VIA hardware access is 128 bits boundries. Modify size
+	 * to be in unites of 128 bit access. For the TTM/GEM layer
+	 * the size needs to rounded to the nearest page. The user
+	 * might ask for a offset that is not aligned. In that case
+	 * we find the start of the page for this offset and allocate
+	 * from there.
+	 */
 	obj = ttm_gem_create(dev, &dev_priv->bdev, type, false,
-				VIA_MM_ALIGN_SIZE, PAGE_SIZE,
-				start, mem->size, via_ttm_bo_destroy);
+				VIA_MM_ALIGN_SIZE, PAGE_SIZE, start,
+				mem->size, via_ttm_bo_destroy);
 	if (!obj)
 		return ret;
 
 	bo = obj->driver_private;
 	if (bo) {
-		ret = drm_gem_handle_create(file_priv, obj, &handle);
+		ret = drm_gem_handle_create(filp, obj, &handle);
 		drm_gem_object_unreference_unlocked(obj);
 	}
 
@@ -169,44 +169,39 @@ static int via_mem_alloc(struct drm_device *dev, void *data,
 	return ret;
 }
 
-static int via_mem_free(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int via_mem_free(struct drm_device *dev, void *data, struct drm_file *filp)
 {
 	drm_via_mem_t *mem = data;
 
 	DRM_DEBUG("free = 0x%lx\n", mem->index);
-	return drm_gem_handle_delete(file_priv, mem->index);
+	return drm_gem_handle_delete(filp, mem->index);
 }
 
 static int
 via_gem_alloc(struct drm_device *dev, void *data,
-		struct drm_file *file_priv)
+		struct drm_file *filp)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
-	struct ttm_buffer_object *bo = NULL;
 	struct drm_gem_create *args = data;
-	__u32 domain = args->write_domains;
-	struct drm_gem_object *gem;
-	int ret = -EINVAL;
+	struct drm_gem_object *obj;
+	int ret = -ENOMEM;
 
-	if (!domain)
-		domain = args->read_domains;
+	obj = ttm_gem_create(dev, &dev_priv->bdev, args->domains, false,
+				args->alignment, PAGE_SIZE, 0, args->size,
+				via_ttm_bo_destroy);
+	if (obj && obj->driver_private) {
+		ret = drm_gem_handle_create(filp, obj, &args->handle);
+		drm_gem_object_unreference_unlocked(obj);
+	}
 
-	gem = ttm_gem_create(dev, &dev_priv->bdev, domain, false,
-				args->alignment, PAGE_SIZE, 0,
-				args->size, via_ttm_bo_destroy);
-	if (!gem)
-		return ret;
+	if (!ret) {
+		struct ttm_buffer_object *bo = obj->driver_private; 
 
-	bo = gem->driver_private;
-	if (bo) {
-		ret = drm_gem_handle_create(file_priv, gem, &args->handle);
-		drm_gem_object_unreference_unlocked(gem);
-		if (ret) {
-			DRM_DEBUG("Video memory allocation failed\n");
-			kfree(gem);
-		}
 		args->map_handle = bo->addr_space_offset;
 		args->offset = bo->offset;
+	} else {
+		if (obj) drm_gem_object_unreference(obj);
+		DRM_DEBUG("GEM allocation failed\n");
 	}
 	return ret;
 }
