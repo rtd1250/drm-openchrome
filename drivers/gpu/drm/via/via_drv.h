@@ -113,6 +113,19 @@ struct via_crtc {
 	uint32_t index;
 };
 
+#define DISP_DI_NONE		0x00
+#define DISP_DI_DVP0		BIT(0)
+#define DISP_DI_DVP1		BIT(1)
+#define DISP_DI_DFPL		BIT(2)
+#define DISP_DI_DFPH		BIT(3)
+#define DISP_DI_DFP		BIT(4)
+#define DISP_DI_DAC		BIT(5)
+
+struct via_encoder {
+	struct drm_encoder base;
+	int diPort;
+};
+
 struct drm_via_private {
 	struct drm_global_reference mem_global_ref;
 	struct ttm_bo_global_ref bo_global_ref;
@@ -270,6 +283,9 @@ extern void via_unlock_crt(void __iomem *regs);
 extern void via_set_pll(struct drm_crtc *crtc, struct drm_display_mode *mode);
 
 extern struct drm_encoder* via_best_encoder(struct drm_connector *connector);
+extern void via_diport_set_source(struct drm_encoder *encoder);
+
 extern void via_analog_init(struct drm_device *dev);
+extern void via_lvds_init(struct drm_device *dev);
 
 #endif

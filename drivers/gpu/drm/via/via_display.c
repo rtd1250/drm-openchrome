@@ -69,6 +69,131 @@ disable_second_display_channel(struct drm_via_private *dev_priv)
 	vga_wcrt(VGABASE, 0x6A, (orig | BIT(6)));
 }
 
+void
+via_diport_set_source(struct drm_encoder *encoder)
+{
+	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
+	struct drm_via_private *dev_priv = encoder->dev->dev_private;
+	struct via_crtc *iga = NULL;
+	u8 orig;
+
+	if (!encoder->crtc)
+		return;
+
+	iga = container_of(encoder->crtc, struct via_crtc, base);
+
+	switch (enc->diPort) {
+	case DISP_DI_DVP0:
+		orig = vga_rcrt(VGABASE, 0x96) & ~BIT(4);
+		if (iga->index)
+			orig |= BIT(4);
+		vga_wcrt(VGABASE, 0x96, orig);
+
+		/* enable dvp0 under CX700 */
+		if (encoder->dev->pdev->device == PCI_DEVICE_ID_VIA_VT3157) {
+			orig = vga_rcrt(VGABASE, 0x91) & BIT(5);
+			vga_wcrt(VGABASE, 0x91, orig);
+		}
+		break;
+
+	case DISP_DI_DVP1:
+		orig = vga_rcrt(VGABASE, 0x9B) & ~BIT(4);
+		if (iga->index)
+			orig |= BIT(4);
+		vga_wcrt(VGABASE, 0x9B, orig);
+		/* The xorg driver enables this for CX700 and up. Does
+		 * DVI exist for pre CX700 hardware?
+		 */
+		orig = vga_rcrt(VGABASE, 0xD3) & ~BIT(5);
+		vga_wcrt(VGABASE, 0xD3, orig);
+		break;
+
+	case DISP_DI_DFPH:
+		/*
+		 * Port 96 is used on newer hardware for the TDMS. Older
+		 * hardware uses it for the LVDS.
+		 */
+		if (encoder->encoder_type == DRM_MODE_CONNECTOR_LVDS) {
+			orig = vga_rcrt(VGABASE, 0x96) & ~BIT(4);
+			if (iga->index)
+				orig |= BIT(4);
+			vga_wcrt(VGABASE, 0x96, orig);
+		}
+		orig = vga_rcrt(VGABASE, 0x97) & ~BIT(4);
+		if (iga->index)
+			orig |= BIT(4);
+		vga_wcrt(VGABASE, 0x97, orig);
+		break;
+
+	case DISP_DI_DFPL:
+		/* Like DFPH port 9B is used on newer hardware for the TDMS. */
+		if (encoder->encoder_type == DRM_MODE_CONNECTOR_LVDS) {
+			orig = vga_rcrt(VGABASE, 0x9B) & ~BIT(4);
+			if (iga->index)
+				orig |= BIT(4);
+			vga_wcrt(VGABASE, 0x9B, orig);
+		}
+		orig = vga_rcrt(VGABASE, 0x99) & ~BIT(4);
+		if (iga->index)
+			orig |= BIT(4);
+		vga_wcrt(VGABASE, 0x99, orig);
+		break;
+
+	case DISP_DI_DFP:
+		orig = vga_rcrt(VGABASE, 0x97) & ~BIT(4);
+		if (iga->index)
+			orig |= BIT(4);
+		vga_wcrt(VGABASE, 0x97, orig);
+
+		orig = vga_rcrt(VGABASE, 0x99) & ~BIT(4);
+		if (iga->index)
+			orig |= BIT(4);
+		vga_wcrt(VGABASE, 0x99, orig);
+		break;
+
+	/* For TTL Type LCD */
+	case (DISP_DI_DFPL + DISP_DI_DVP1):
+		orig = vga_rcrt(VGABASE, 0x99) & ~BIT(4);
+		if (iga->index)
+			orig |= BIT(4);
+		vga_wcrt(VGABASE, 0x99, orig);
+
+		orig = vga_rcrt(VGABASE, 0x9B) & ~BIT(4);
+		if (iga->index)
+			orig |= BIT(4);
+		vga_wcrt(VGABASE, 0x9B, orig);
+                break;
+
+	/* For 409 TTL Type LCD */
+	case (DISP_DI_DFPH + DISP_DI_DFPL + DISP_DI_DVP1):
+		orig = vga_rcrt(VGABASE, 0x97) & ~BIT(4);
+		if (iga->index)
+			orig |= BIT(4);
+		vga_wcrt(VGABASE, 0x97, orig);
+
+		orig = vga_rcrt(VGABASE, 0x99) & ~BIT(4);
+		if (iga->index)
+			orig |= BIT(4);
+		vga_wcrt(VGABASE, 0x99, orig);
+
+		orig = vga_rcrt(VGABASE, 0x9B) & ~BIT(4);
+		if (iga->index)
+			orig |= BIT(4);
+		vga_wcrt(VGABASE, 0x9B, orig);
+                break;
+
+	case DISP_DI_NONE:
+		orig = vga_rseq(VGABASE, 0x16) & ~BIT(6);
+		if (iga->index)
+			orig |= BIT(6);
+		vga_wseq(VGABASE, 0x16, orig);
+		break;
+
+	default:
+		break;
+	}
+}
+
 static void
 via_hide_cursor(struct drm_crtc *crtc)
 {
@@ -734,7 +859,7 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	vga_wseq(VGABASE, 0x1C, (pitch & 7));
 	vga_wseq(VGABASE, 0x1D, ((pitch >> 3) & 0x03));*/
 
-	if ((state == ENTER_ATOMIC_MODE_SET) || 
+	if ((state == ENTER_ATOMIC_MODE_SET) ||
 	     crtc->fb->pitches[0] != fb->pitches[0]) {
 		/* Spec does not say that first adapter skips 3 bits but old
 		 * code did it and seems to be reasonable in analogy to
@@ -1170,7 +1295,7 @@ via_crtc_init(struct drm_device *dev, int index)
 			iga->cursor_kmap.bo = NULL;
 		}
 	} else {
-		DRM_ERROR("Failed to allocate cursor\n"); 
+		DRM_ERROR("Failed to allocate cursor\n");
 	}
 }
 

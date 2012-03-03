@@ -43,20 +43,7 @@ static void
 via_analog_dpms(struct drm_encoder *encoder, int mode)
 {
 	struct drm_via_private *dev_priv = encoder->dev->dev_private;
-	struct drm_crtc *crtc = encoder->crtc;
 	u8 mask = BIT(5) + BIT(4), orig;
-	struct via_crtc *iga;
-
-	/* Not attached to any crtc */
-	if (!crtc)
-		return;
-
-	/* Select the proper IGA */
-	orig = (vga_rseq(VGABASE, 0x16) & ~BIT(6));
-	iga = container_of(crtc, struct via_crtc, base);
-	if (iga->index)
-		orig |= BIT(6);
-	vga_wseq(VGABASE, 0x16, orig);
 
 	orig = (vga_rcrt(VGABASE, 0x36) & ~mask);
 	switch (mode) {
@@ -120,6 +107,9 @@ via_analog_mode_set(struct drm_encoder *encoder,
 
 	orig = (vga_r(VGABASE, VGA_MIS_R) & ~0xC0);
 	vga_w(VGABASE, VGA_MIS_W, ((polarity & 0xC0) | orig));
+
+	/* Select the proper IGA */
+	via_diport_set_source(encoder);
 }
 
 static const struct drm_encoder_helper_funcs via_analog_enc_helper_funcs = {
@@ -214,17 +204,15 @@ static const struct drm_connector_helper_funcs via_analog_connector_helper_funcs
 void via_analog_init(struct drm_device *dev)
 {
 	struct drm_connector *connector;
-	struct drm_encoder *enc;
+	struct via_encoder *enc;
 	void *par;
-	int size;
 
-	size = sizeof(struct drm_encoder) + sizeof(struct drm_connector);
-	par = kzalloc(size, GFP_KERNEL);
+	par = kzalloc(sizeof(*enc) + sizeof(*connector), GFP_KERNEL);
 	if (!par) {
 		DRM_ERROR("Failed to allocate connector and encoder\n");
 		return;
 	}
-	connector = par + sizeof(struct drm_encoder);
+	connector = par + sizeof(*enc);
 	enc = par;
 
 	/* Piece together our connector */
@@ -236,12 +224,13 @@ void via_analog_init(struct drm_device *dev)
 	connector->doublescan_allowed = false;
 
 	/* Setup the encoders and attach them */
-	drm_encoder_init(dev, enc, &via_analog_enc_funcs, DRM_MODE_ENCODER_DAC);
-	drm_encoder_helper_add(enc, &via_analog_enc_helper_funcs);
-	enc->possible_clones = 0;
-	enc->possible_crtcs = BIT(1) | BIT(0);
+	drm_encoder_init(dev, &enc->base, &via_analog_enc_funcs, DRM_MODE_ENCODER_DAC);
+	drm_encoder_helper_add(&enc->base, &via_analog_enc_helper_funcs);
+	enc->base.possible_clones = 0;
+	enc->base.possible_crtcs = BIT(1) | BIT(0);
+	enc->diPort = DISP_DI_NONE;
 
-	drm_mode_connector_attach_encoder(connector, enc);
+	drm_mode_connector_attach_encoder(connector, &enc->base);
 
 	drm_sysfs_connector_add(connector);
 }
