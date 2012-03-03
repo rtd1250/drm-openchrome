@@ -450,7 +450,7 @@ void r100_pm_misc(struct radeon_device *rdev)
 	/* set pcie lanes */
 	if ((rdev->flags & RADEON_IS_PCIE) &&
 	    !(rdev->flags & RADEON_IS_IGP) &&
-	    rdev->asic->set_pcie_lanes &&
+	    rdev->asic->pm.set_pcie_lanes &&
 	    (ps->pcie_lanes !=
 	     rdev->pm.power_state[rdev->pm.current_power_state_index].pcie_lanes)) {
 		radeon_set_pcie_lanes(rdev,
@@ -630,8 +630,8 @@ int r100_pci_gart_init(struct radeon_device *rdev)
 	if (r)
 		return r;
 	rdev->gart.table_size = rdev->gart.num_gpu_pages * 4;
-	rdev->asic->gart_tlb_flush = &r100_pci_gart_tlb_flush;
-	rdev->asic->gart_set_page = &r100_pci_gart_set_page;
+	rdev->asic->gart.tlb_flush = &r100_pci_gart_tlb_flush;
+	rdev->asic->gart.set_page = &r100_pci_gart_set_page;
 	return radeon_gart_table_ram_alloc(rdev);
 }
 
@@ -970,9 +970,8 @@ static int r100_cp_wait_for_idle(struct radeon_device *rdev)
 	return -1;
 }
 
-void r100_ring_start(struct radeon_device *rdev)
+void r100_ring_start(struct radeon_device *rdev, struct radeon_ring *ring)
 {
-	struct radeon_ring *ring = &rdev->ring[RADEON_RING_TYPE_GFX_INDEX];
 	int r;
 
 	r = radeon_ring_lock(rdev, ring, 2);
@@ -1183,8 +1182,8 @@ int r100_cp_init(struct radeon_device *rdev, unsigned ring_size)
 	WREG32(RADEON_CP_RB_WPTR_DELAY, 0);
 	WREG32(RADEON_CP_CSQ_MODE, 0x00004D4D);
 	WREG32(RADEON_CP_CSQ_CNTL, RADEON_CSQ_PRIBM_INDBM);
-	radeon_ring_start(rdev);
-	r = radeon_ring_test(rdev, ring);
+	radeon_ring_start(rdev, RADEON_RING_TYPE_GFX_INDEX, &rdev->ring[RADEON_RING_TYPE_GFX_INDEX]);
+	r = radeon_ring_test(rdev, RADEON_RING_TYPE_GFX_INDEX, ring);
 	if (r) {
 		DRM_ERROR("radeon: cp isn't working (%d).\n", r);
 		return r;
@@ -3743,7 +3742,7 @@ void r100_ring_ib_execute(struct radeon_device *rdev, struct radeon_ib *ib)
 	radeon_ring_write(ring, ib->length_dw);
 }
 
-int r100_ib_test(struct radeon_device *rdev)
+int r100_ib_test(struct radeon_device *rdev, struct radeon_ring *ring)
 {
 	struct radeon_ib *ib;
 	uint32_t scratch;
@@ -3968,7 +3967,7 @@ static int r100_startup(struct radeon_device *rdev)
 	if (r)
 		return r;
 
-	r = r100_ib_test(rdev);
+	r = radeon_ib_test(rdev, RADEON_RING_TYPE_GFX_INDEX, &rdev->ring[RADEON_RING_TYPE_GFX_INDEX]);
 	if (r) {
 		dev_err(rdev->dev, "failed testing IB (%d).\n", r);
 		rdev->accel_working = false;
