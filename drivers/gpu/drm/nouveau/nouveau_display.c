@@ -286,6 +286,20 @@ nouveau_display_create(struct drm_device *dev)
 	disp->underscan_vborder_property =
 		drm_property_create_range(dev, 0, "underscan vborder", 0, 128);
 
+	if (gen == 1) {
+		disp->vibrant_hue_property =
+			drm_property_create(dev, DRM_MODE_PROP_RANGE,
+					    "vibrant hue", 2);
+		disp->vibrant_hue_property->values[0] = 0;
+		disp->vibrant_hue_property->values[1] = 180; /* -90..+90 */
+
+		disp->color_vibrance_property =
+			drm_property_create(dev, DRM_MODE_PROP_RANGE,
+					    "color vibrance", 2);
+		disp->color_vibrance_property->values[0] = 0;
+		disp->color_vibrance_property->values[1] = 200; /* -100..+100 */
+	}
+
 	dev->mode_config.funcs = (void *)&nouveau_mode_config_funcs;
 	dev->mode_config.fb_base = pci_resource_start(dev->pdev, 1);
 
@@ -302,6 +316,9 @@ nouveau_display_create(struct drm_device *dev)
 		dev->mode_config.max_width = 8192;
 		dev->mode_config.max_height = 8192;
 	}
+
+	dev->mode_config.preferred_depth = 24;
+	dev->mode_config.prefer_shadow = 1;
 
 	drm_kms_helper_poll_init(dev);
 	drm_kms_helper_poll_disable(dev);
