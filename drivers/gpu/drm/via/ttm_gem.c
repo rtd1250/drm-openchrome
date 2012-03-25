@@ -38,7 +38,6 @@ void ttm_gem_free_object(struct drm_gem_object *obj)
 		ttm_bo_unref(&bo);
 	}
 	drm_gem_object_release(obj);
-	kfree(obj);
 }
 
 int ttm_mmap(struct file *filp, struct vm_area_struct *vma)
