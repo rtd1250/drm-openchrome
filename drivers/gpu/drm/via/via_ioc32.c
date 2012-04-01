@@ -153,8 +153,8 @@ static int via_mem_alloc(struct drm_device *dev, void *data,
 	}
 
 	if (!ret) {
-		mem->size = obj->size;
-		mem->offset = bo->mem.start << PAGE_SHIFT;
+		mem->size = bo->mem.size;
+		mem->offset = bo->offset;
 		mem->index = (unsigned long) handle;
 		ret = 0;
 	} else {
@@ -195,10 +195,11 @@ via_gem_alloc(struct drm_device *dev, void *data,
 	}
 
 	if (!ret) {
-		struct ttm_buffer_object *bo = obj->driver_private; 
+		struct ttm_buffer_object *bo = obj->driver_private;
 
 		args->map_handle = bo->addr_space_offset;
 		args->offset = bo->offset;
+		args->size = bo->mem.size;
 	} else {
 		if (obj) drm_gem_object_unreference(obj);
 		DRM_DEBUG("GEM allocation failed\n");
