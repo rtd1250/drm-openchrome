@@ -35,6 +35,7 @@
 #include <linux/mman.h>
 #include <linux/pagemap.h>
 #include <linux/shmem_fs.h>
+#include <linux/dma-buf.h>
 #include "drmP.h"
 
 /** @file drm_gem.c
@@ -231,6 +232,10 @@ drm_gem_handle_delete(struct drm_file *filp, u32 handle)
 	/* Release reference and decrement refcount. */
 	idr_remove(&filp->object_idr, handle);
 	spin_unlock(&filp->table_lock);
+
+	if (obj->import_attach)
+		drm_prime_remove_imported_buf_handle(&filp->prime,
+				obj->import_attach->dmabuf);
 
 	if (dev->driver->gem_close_object)
 		dev->driver->gem_close_object(obj, filp);
@@ -527,6 +532,10 @@ drm_gem_object_release_handle(int id, void *ptr, void *data)
 	struct drm_gem_object *obj = ptr;
 	struct drm_device *dev = obj->dev;
 
+	if (obj->import_attach)
+		drm_prime_remove_imported_buf_handle(&file_priv->prime,
+				obj->import_attach->dmabuf);
+
 	if (dev->driver->gem_close_object)
 		dev->driver->gem_close_object(obj, file_priv);
 
@@ -660,6 +669,9 @@ int drm_gem_mmap(struct file *filp, struct vm_area_struct *vma)
 	struct drm_gem_object *obj;
 	struct drm_hash_item *hash;
 	int ret = 0;
+
+	if (drm_device_is_unplugged(dev))
+		return -ENODEV;
 
 	mutex_lock(&dev->struct_mutex);
 

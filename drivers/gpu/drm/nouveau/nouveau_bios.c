@@ -177,14 +177,15 @@ bios_shadow_pci(struct nvbios *bios)
 
 	if (!pci_enable_rom(pdev)) {
 		void __iomem *rom = pci_map_rom(pdev, &length);
-		if (rom) {
+		if (rom && length) {
 			bios->data = kmalloc(length, GFP_KERNEL);
 			if (bios->data) {
 				memcpy_fromio(bios->data, rom, length);
 				bios->length = length;
 			}
-			pci_unmap_rom(pdev, rom);
 		}
+		if (rom)
+			pci_unmap_rom(pdev, rom);
 
 		pci_disable_rom(pdev);
 	}
@@ -1144,7 +1145,8 @@ init_dp_condition(struct nvbios *bios, uint16_t offset, struct init_exec *iexec)
 		break;
 	case 1:
 	case 2:
-		if (!(entry[5] & cond))
+		if ((table[0]  < 0x40 && !(entry[5] & cond)) ||
+		    (table[0] == 0x40 && !(entry[4] & cond)))
 			iexec->execute = false;
 		break;
 	case 5:
