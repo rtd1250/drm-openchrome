@@ -36,12 +36,22 @@ void via_lock_crt(void __iomem *regs)
 	vga_wcrt(regs, 0x11, (orig | 0x80));
 }
 
-void via_unlock_crt(void __iomem *regs)
+void via_unlock_crt(void __iomem *regs, int pci_id)
 {
-	u8 orig = (vga_rcrt(regs, 0x11) & ~0x80);
+	u8 orig = (vga_rcrt(regs, 0x11) & ~0x80), mask;
 
 	vga_wcrt(regs, 0x11, orig);
-	orig = (vga_rcrt(regs, 0x47) & ~0x01);
+	switch (pci_id) {
+	case PCI_DEVICE_ID_VIA_VX875:
+	case PCI_DEVICE_ID_VIA_VX900:
+		mask = BIT(2);
+		break;
+	default:
+		mask = BIT(0);
+		break;
+	}
+
+	orig = (vga_rcrt(regs, 0x47) & ~mask);
 	vga_wcrt(regs, 0x47, orig);
 }
 
@@ -516,7 +526,7 @@ void via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 	struct drm_via_private *dev_priv = dev->dev_private;
 	int reg_value = 0;
 
-	via_unlock_crt(VGABASE);
+	via_unlock_crt(VGABASE, dev->pdev->device);
 
 	if (!iga->index) {
 		reg_value = IGA1_HOR_TOTAL_FORMULA(mode->crtc_htotal);
@@ -713,7 +723,7 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 	regs_init(VGABASE);
 
         if (!iga->index) {
-		via_unlock_crt(VGABASE);
+		via_unlock_crt(VGABASE, dev->pdev->device);
 		vga_wcrt(VGABASE, 0x09, 0x00);	/*initial CR09=0 */
 		orig = (vga_rcrt(VGABASE, 0x11) & ~0x70);
 		vga_wcrt(VGABASE, 0x11, orig);
