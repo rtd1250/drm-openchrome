@@ -344,12 +344,14 @@ struct io_register iga1_hor_total[] = {
 
 /* IGA1 Horizontal Addressable Video */
 struct io_register iga1_hor_addr[] = {
-	{ VGA_CRT_IC, 0x01, 0, 7 }
+	{ VGA_CRT_IC, 0x01, 0, 7 },
+	{ VGA_CRT_IC, 0x45, 1, 1 }
 };
 
 /* IGA1 Horizontal Blank Start */
 struct io_register iga1_hor_blank_start[] = {
-	{ VGA_CRT_IC, 0x02, 0, 7 }
+	{ VGA_CRT_IC, 0x02, 0, 7 },
+	{ VGA_CRT_IC, 0x45, 2, 2 }
 };
 
 /* IGA1 Horizontal Blank End */
@@ -425,13 +427,15 @@ struct io_register iga2_hor_total[] = {
 /* IGA2 Horizontal Addressable Video */
 struct io_register iga2_hor_addr[] = {
 	{ VGA_CRT_IC, 0x51, 0, 7 },
-	{ VGA_CRT_IC, 0x55, 4, 6 }
+	{ VGA_CRT_IC, 0x55, 4, 6 },
+	{ VGA_CRT_IC, 0x55, 7, 7 }
 };
 
 /* IGA2 Horizontal Blank Start */
 struct io_register iga2_hor_blank_start[] = {
 	{ VGA_CRT_IC, 0x52, 0, 7 },
-	{ VGA_CRT_IC, 0x54, 0, 2 }
+	{ VGA_CRT_IC, 0x54, 0, 2 },
+	{ VGA_CRT_IC, 0x6B, 0, 0 }
 };
 
 /* IGA2 Horizontal Blank End */

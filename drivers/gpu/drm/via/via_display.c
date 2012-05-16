@@ -1023,9 +1023,13 @@ via_crtc_init(struct drm_device *dev, int index)
 
 		iga->timings.hdisplay.count = ARRAY_SIZE(iga2_hor_addr);
 		iga->timings.hdisplay.regs = iga2_hor_addr;
+		if (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900)
+			iga->timings.hdisplay.count--;
 
 		iga->timings.hblank_start.count = ARRAY_SIZE(iga2_hor_blank_start);
 		iga->timings.hblank_start.regs = iga2_hor_blank_start;
+		if (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900)
+			iga->timings.hblank_start.count--;
 
 		iga->timings.hblank_end.count = ARRAY_SIZE(iga2_hor_blank_end);
 		iga->timings.hblank_end.regs = iga2_hor_blank_end;
@@ -1158,9 +1162,13 @@ via_crtc_init(struct drm_device *dev, int index)
 
 		iga->timings.hdisplay.count = ARRAY_SIZE(iga1_hor_addr);
 		iga->timings.hdisplay.regs = iga1_hor_addr;
+		if (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900)
+			iga->timings.hdisplay.count--;
 
 		iga->timings.hblank_start.count = ARRAY_SIZE(iga1_hor_blank_start);
 		iga->timings.hblank_start.regs = iga1_hor_blank_start;
+		if (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900)
+			iga->timings.hblank_start.count--;
 
 		iga->timings.hblank_end.count = ARRAY_SIZE(iga1_hor_blank_end);
 		iga->timings.hblank_end.regs = iga1_hor_blank_end;
