@@ -565,6 +565,17 @@ void via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 		reg_value = IGA1_VER_SYNC_END_FORMULA(mode->crtc_vsync_end);
 		load_value_to_registers(VGABASE, &iga->timings.vsync_end, reg_value);
 	} else {
+		if (dev->pdev->device == PCI_DEVICE_ID_VIA_VX900) {
+			u8 orig = vga_rcrt(VGABASE, 0x45) & ~BIT(0);
+
+			/* Disable IGA1 shadow timing */
+			vga_wcrt(VGABASE, 0x45, orig);
+
+			/* Disable IGA1 pixel timing */
+			orig = vga_rcrt(VGABASE, 0xFD) & ~(BIT(6) + BIT(5));
+			vga_wcrt(VGABASE, 0xFD, orig);
+		}
+
 		reg_value = IGA2_HOR_TOTAL_FORMULA(mode->crtc_htotal);
 		load_value_to_registers(VGABASE, &iga->timings.htotal, reg_value);
 
