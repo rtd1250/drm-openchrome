@@ -165,7 +165,7 @@ ttm_bo_allocate(struct ttm_bo_device *bdev,
 	ret = ttm_bo_init(bdev, bo, size, origin, placement,
 				page_align >> PAGE_SHIFT, buffer_start,
 				interruptible, persistant_swap_storage,
-				acc_size, destroy);
+				acc_size, NULL, destroy);
 	if (!ret)
 		*p_bo = bo;
 	else
