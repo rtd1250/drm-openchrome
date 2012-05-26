@@ -980,10 +980,10 @@ static int i915_getparam(struct drm_device *dev, void *data,
 		value = 1;
 		break;
 	case I915_PARAM_HAS_BSD:
-		value = HAS_BSD(dev);
+		value = intel_ring_initialized(&dev_priv->ring[VCS]);
 		break;
 	case I915_PARAM_HAS_BLT:
-		value = HAS_BLT(dev);
+		value = intel_ring_initialized(&dev_priv->ring[BCS]);
 		break;
 	case I915_PARAM_HAS_RELAXED_FENCING:
 		value = 1;
@@ -1271,6 +1271,12 @@ static bool i915_switcheroo_can_switch(struct pci_dev *pdev)
 	return can_switch;
 }
 
+static const struct vga_switcheroo_client_ops i915_switcheroo_ops = {
+	.set_gpu_state = i915_switcheroo_set_state,
+	.reprobe = NULL,
+	.can_switch = i915_switcheroo_can_switch,
+};
+
 static int i915_load_modeset_init(struct drm_device *dev)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
@@ -1293,10 +1299,7 @@ static int i915_load_modeset_init(struct drm_device *dev)
 
 	intel_register_dsm_handler();
 
-	ret = vga_switcheroo_register_client(dev->pdev,
-					     i915_switcheroo_set_state,
-					     NULL,
-					     i915_switcheroo_can_switch);
+	ret = vga_switcheroo_register_client(dev->pdev, &i915_switcheroo_ops);
 	if (ret)
 		goto cleanup_vga_client;
 

@@ -193,7 +193,7 @@ int radeon_wb_init(struct radeon_device *rdev)
 
 	if (rdev->wb.wb_obj == NULL) {
 		r = radeon_bo_create(rdev, RADEON_GPU_PAGE_SIZE, PAGE_SIZE, true,
-				RADEON_GEM_DOMAIN_GTT, &rdev->wb.wb_obj);
+				     RADEON_GEM_DOMAIN_GTT, NULL, &rdev->wb.wb_obj);
 		if (r) {
 			dev_warn(rdev->dev, "(%d) create WB bo failed\n", r);
 			return r;
@@ -697,6 +697,11 @@ static bool radeon_switcheroo_can_switch(struct pci_dev *pdev)
 	return can_switch;
 }
 
+static const struct vga_switcheroo_client_ops radeon_switcheroo_ops = {
+	.set_gpu_state = radeon_switcheroo_set_state,
+	.reprobe = NULL,
+	.can_switch = radeon_switcheroo_can_switch,
+};
 
 int radeon_device_init(struct radeon_device *rdev,
 		       struct drm_device *ddev,
@@ -731,9 +736,11 @@ int radeon_device_init(struct radeon_device *rdev,
 	mutex_init(&rdev->gem.mutex);
 	mutex_init(&rdev->pm.mutex);
 	mutex_init(&rdev->vram_mutex);
-	INIT_LIST_HEAD(&rdev->gem.objects);
 	init_waitqueue_head(&rdev->irq.vblank_queue);
 	init_waitqueue_head(&rdev->irq.idle_queue);
+	r = radeon_gem_init(rdev);
+	if (r)
+		return r;
 	/* initialize vm here */
 	rdev->vm_manager.use_bitmap = 1;
 	rdev->vm_manager.max_pfn = 1 << 20;
@@ -809,10 +816,7 @@ int radeon_device_init(struct radeon_device *rdev,
 	/* this will fail for cards that aren't VGA class devices, just
 	 * ignore it */
 	vga_client_register(rdev->pdev, rdev, NULL, radeon_vga_set_decode);
-	vga_switcheroo_register_client(rdev->pdev,
-				       radeon_switcheroo_set_state,
-				       NULL,
-				       radeon_switcheroo_can_switch);
+	vga_switcheroo_register_client(rdev->pdev, &radeon_switcheroo_ops);
 
 	r = radeon_init(rdev);
 	if (r)
