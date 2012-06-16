@@ -429,12 +429,7 @@ static int via_dumb_create(struct drm_file *filp, struct drm_device *dev,
 		ret = drm_gem_handle_create(filp, obj, &args->handle);
 		/* drop reference from allocate - handle holds it now */
 		drm_gem_object_unreference_unlocked(obj);
-	}
-
-	if (ret) {
-		if (obj) drm_gem_object_free((struct kref *)obj);
-	} else
-		args->size = obj->size;
+    }
 	return ret;
 }
 

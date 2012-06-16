@@ -191,29 +191,27 @@ via_gem_alloc(struct drm_device *dev, void *data,
 				via_ttm_bo_destroy);
 	if (obj && obj->driver_private) {
 		ret = drm_gem_handle_create(filp, obj, &args->handle);
+		/* drop reference from allocate - handle holds it now */
 		drm_gem_object_unreference_unlocked(obj);
-	}
+	    if (!ret) {
+		    struct ttm_buffer_object *bo = obj->driver_private;
 
-	if (!ret) {
-		struct ttm_buffer_object *bo = obj->driver_private;
-
-		args->map_handle = bo->addr_space_offset;
-		args->offset = bo->offset;
-		args->size = bo->mem.size;
-	} else {
-		if (obj) drm_gem_object_unreference(obj);
-		DRM_DEBUG("GEM allocation failed\n");
-	}
+		    args->map_handle = bo->addr_space_offset;
+		    args->offset = bo->offset;
+		    args->size = bo->mem.size;
+	    }
+    }
 	return ret;
 }
 
 struct drm_ioctl_desc via_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(VIA_ALLOCMEM, via_mem_alloc, DRM_AUTH),
 	DRM_IOCTL_DEF_DRV(VIA_FREEMEM, via_mem_free, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(VIA_AGP_INIT, via_agp_init, DRM_AUTH|DRM_MASTER),
-	DRM_IOCTL_DEF_DRV(VIA_FB_INIT, via_fb_init, DRM_AUTH|DRM_MASTER),
-	DRM_IOCTL_DEF_DRV(VIA_MAP_INIT, via_map_init, DRM_AUTH|DRM_MASTER),
+	DRM_IOCTL_DEF_DRV(VIA_AGP_INIT, via_agp_init, DRM_AUTH | DRM_MASTER),
+	DRM_IOCTL_DEF_DRV(VIA_FB_INIT, via_fb_init, DRM_AUTH | DRM_MASTER),
+	DRM_IOCTL_DEF_DRV(VIA_MAP_INIT, via_map_init, DRM_AUTH | DRM_MASTER),
 	DRM_IOCTL_DEF_DRV(VIA_DEC_FUTEX, via_decoder_futex, DRM_AUTH),
+	DRM_IOCTL_DEF_DRV(VIA_GEM_CREATE, via_gem_alloc, DRM_AUTH | DRM_UNLOCKED),
 	DRM_IOCTL_DEF_DRV(VIA_DMA_INIT, via_dma_init, DRM_AUTH),
 	DRM_IOCTL_DEF_DRV(VIA_CMDBUFFER, via_cmdbuffer, DRM_AUTH),
 	DRM_IOCTL_DEF_DRV(VIA_FLUSH, via_flush_ioctl, DRM_AUTH),
@@ -222,7 +220,6 @@ struct drm_ioctl_desc via_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(VIA_WAIT_IRQ, via_wait_irq, DRM_AUTH),
 	DRM_IOCTL_DEF_DRV(VIA_DMA_BLIT, via_dma_blit, DRM_AUTH),
 	DRM_IOCTL_DEF_DRV(VIA_BLIT_SYNC, via_dma_blit_sync, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(VIA_GEM_CREATE, via_gem_alloc, DRM_AUTH)
 };
 
 int via_max_ioctl = DRM_ARRAY_SIZE(via_ioctls);
