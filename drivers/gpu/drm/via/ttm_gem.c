@@ -66,7 +66,7 @@ ttm_gem_create(struct drm_device *dev, struct ttm_bo_device *bdev, int types,
 	struct drm_gem_object *obj;
 	int ret;
 
-	size = roundup(size, byte_align);
+	size = round_up(size, byte_align);
 	size = ALIGN(size, page_align);
 
 	obj = drm_gem_object_alloc(dev, size);

@@ -127,7 +127,7 @@ ttm_bo_allocate(struct ttm_bo_device *bdev,
 	struct ttm_heap *heap;
 	char *p;
 
-	size = roundup(size, byte_align);
+	size = round_up(size, byte_align);
 	size = ALIGN(size, page_align);
 
 	do {

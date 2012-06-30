@@ -867,7 +867,7 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 
 	/* Set the framebuffer offset */
 	pitch += (y * fb->pitches[0]);
-	addr = roundup(bo->offset + pitch, 16) >> 1;
+	addr = round_up(bo->offset + pitch, 16) >> 1;
 
 	vga_wcrt(VGABASE, 0x0D, addr & 0xFF);
 	vga_wcrt(VGABASE, 0x0C, (addr >> 8) & 0xFF);
@@ -930,7 +930,7 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 
 	/* Set the framebuffer offset */
 	pitch += y * fb->pitches[0];
-	addr = roundup(bo->offset + pitch, 16);
+	addr = round_up(bo->offset + pitch, 16);
 
 	/* Secondary display supports only quadword aligned memory */
 	vga_wcrt(VGABASE, 0x62, (addr >> 2) & 0xfe);

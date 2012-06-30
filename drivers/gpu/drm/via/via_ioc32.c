@@ -193,14 +193,14 @@ via_gem_alloc(struct drm_device *dev, void *data,
 		ret = drm_gem_handle_create(filp, obj, &args->handle);
 		/* drop reference from allocate - handle holds it now */
 		drm_gem_object_unreference_unlocked(obj);
-	    if (!ret) {
-		    struct ttm_buffer_object *bo = obj->driver_private;
+		if (!ret) {
+			struct ttm_buffer_object *bo = obj->driver_private;
 
-		    args->map_handle = bo->addr_space_offset;
-		    args->offset = bo->offset;
-		    args->size = bo->mem.size;
-	    }
-    }
+			args->map_handle = bo->addr_space_offset;
+			args->offset = bo->offset;
+			args->size = bo->mem.size;
+		}
+	}
 	return ret;
 }
 

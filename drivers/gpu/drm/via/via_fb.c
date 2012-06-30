@@ -1008,7 +1008,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 	mode_cmd.pixel_format = drm_mode_legacy_fb_format(sizes->surface_bpp,
 							sizes->surface_depth);
 	mode_cmd.pitches[0] = (mode_cmd.width * sizes->surface_bpp >> 3);
-	mode_cmd.pitches[0] = roundup(mode_cmd.pitches[0], 16);
+	mode_cmd.pitches[0] = round_up(mode_cmd.pitches[0], 16);
 	size= mode_cmd.pitches[0] * mode_cmd.height;
 	size = ALIGN(size, PAGE_SIZE);
 
