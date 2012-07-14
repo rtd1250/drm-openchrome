@@ -29,54 +29,38 @@
 #include "via_drv.h"
 #include "via_disp_reg.h"
 
+static inline
 void via_lock_crt(void __iomem *regs)
 {
-	u8 orig = (vga_rcrt(regs, 0x11) & ~0x80);
-
-	vga_wcrt(regs, 0x11, (orig | 0x80));
+	svga_wcrt_mask(regs, 0x11, BIT(7), BIT(7));
 }
 
+static inline
 void via_unlock_crt(void __iomem *regs, int pci_id)
 {
-	u8 orig = (vga_rcrt(regs, 0x11) & ~0x80), mask;
+	u8 mask = BIT(0);
 
-	vga_wcrt(regs, 0x11, orig);
-	switch (pci_id) {
-	case PCI_DEVICE_ID_VIA_VX875:
-	case PCI_DEVICE_ID_VIA_VX900:
-		mask = BIT(2);
-		break;
-	default:
-		mask = BIT(0);
-		break;
-	}
-
-	orig = (vga_rcrt(regs, 0x47) & ~mask);
-	vga_wcrt(regs, 0x47, orig);
+	svga_wcrt_mask(regs, 0x11, 0, BIT(7));
+	if ((pci_id == PCI_DEVICE_ID_VIA_VX875) ||
+	    (pci_id == PCI_DEVICE_ID_VIA_VX900))
+		mask = BIT(4);
+	svga_wcrt_mask(regs, 0x47, 0, mask);
 }
 
 static void
 enable_second_display_channel(struct drm_via_private *dev_priv)
 {
-	u8 orig = vga_rcrt(VGABASE, 0x6A) & ~BIT(6);
-
-	vga_wcrt(VGABASE, 0x6A, orig);
-	vga_wcrt(VGABASE, 0x6A, (orig | BIT(7)));
-	orig |= (BIT(7) | BIT(6));
-	vga_wcrt(VGABASE, 0x6A, orig);
-	orig = ~0x3F;
-	vga_wcrt(VGABASE, 0x6A, orig);
+	svga_wcrt_mask(VGABASE, 0x6A, 0x00, BIT(6));
+	svga_wcrt_mask(VGABASE, 0x6A, BIT(7), BIT(7));
+	svga_wcrt_mask(VGABASE, 0x6A, BIT(6), BIT(6));
 }
 
 static void
 disable_second_display_channel(struct drm_via_private *dev_priv)
 {
-	u8 orig = vga_rcrt(VGABASE, 0x6A) & ~BIT(6);
-
-	vga_wcrt(VGABASE, 0x6A, orig);
-	orig &= ~BIT(7);
-	vga_wcrt(VGABASE, 0x6A, orig);
-	vga_wcrt(VGABASE, 0x6A, (orig | BIT(6)));
+	svga_wcrt_mask(VGABASE, 0x6A, 0x00, BIT(6));
+	svga_wcrt_mask(VGABASE, 0x6A, 0x00, BIT(7));
+	svga_wcrt_mask(VGABASE, 0x6A, BIT(6), BIT(6));
 }
 
 void
@@ -85,37 +69,29 @@ via_diport_set_source(struct drm_encoder *encoder)
 	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
 	struct drm_via_private *dev_priv = encoder->dev->dev_private;
 	struct via_crtc *iga = NULL;
-	u8 orig;
+	u8 value = 0;
 
 	if (!encoder->crtc)
 		return;
 
 	iga = container_of(encoder->crtc, struct via_crtc, base);
+	if (iga->index)
+		value = BIT(4);
 
 	switch (enc->diPort) {
 	case DISP_DI_DVP0:
-		orig = vga_rcrt(VGABASE, 0x96) & ~BIT(4);
-		if (iga->index)
-			orig |= BIT(4);
-		vga_wcrt(VGABASE, 0x96, orig);
-
+		svga_wcrt_mask(VGABASE, 0x96, value, BIT(4));
 		/* enable dvp0 under CX700 */
-		if (encoder->dev->pdev->device == PCI_DEVICE_ID_VIA_VT3157) {
-			orig = vga_rcrt(VGABASE, 0x91) & BIT(5);
-			vga_wcrt(VGABASE, 0x91, orig);
-		}
+		if (encoder->dev->pdev->device == PCI_DEVICE_ID_VIA_VT3157)
+			svga_wcrt_mask(VGABASE, 0x91, BIT(5), BIT(5));
 		break;
 
 	case DISP_DI_DVP1:
-		orig = vga_rcrt(VGABASE, 0x9B) & ~BIT(4);
-		if (iga->index)
-			orig |= BIT(4);
-		vga_wcrt(VGABASE, 0x9B, orig);
+		svga_wcrt_mask(VGABASE, 0x9B, value, BIT(4));
 		/* The xorg driver enables this for CX700 and up. Does
 		 * DVI exist for pre CX700 hardware?
 		 */
-		orig = vga_rcrt(VGABASE, 0xD3) & ~BIT(5);
-		vga_wcrt(VGABASE, 0xD3, orig);
+		svga_wcrt_mask(VGABASE, 0xD3, 0x00, BIT(5));
 		break;
 
 	case DISP_DI_DFPH:
@@ -123,80 +99,40 @@ via_diport_set_source(struct drm_encoder *encoder)
 		 * Port 96 is used on newer hardware for the TDMS. Older
 		 * hardware uses it for the LVDS.
 		 */
-		if (encoder->encoder_type == DRM_MODE_CONNECTOR_LVDS) {
-			orig = vga_rcrt(VGABASE, 0x96) & ~BIT(4);
-			if (iga->index)
-				orig |= BIT(4);
-			vga_wcrt(VGABASE, 0x96, orig);
-		}
-		orig = vga_rcrt(VGABASE, 0x97) & ~BIT(4);
-		if (iga->index)
-			orig |= BIT(4);
-		vga_wcrt(VGABASE, 0x97, orig);
+		if (encoder->encoder_type == DRM_MODE_CONNECTOR_LVDS)
+			svga_wcrt_mask(VGABASE, 0x96, value, BIT(4));
+		svga_wcrt_mask(VGABASE, 0x97, value, BIT(4));
 		break;
 
 	case DISP_DI_DFPL:
 		/* Like DFPH port 9B is used on newer hardware for the TDMS. */
-		if (encoder->encoder_type == DRM_MODE_CONNECTOR_LVDS) {
-			orig = vga_rcrt(VGABASE, 0x9B) & ~BIT(4);
-			if (iga->index)
-				orig |= BIT(4);
-			vga_wcrt(VGABASE, 0x9B, orig);
-		}
-		orig = vga_rcrt(VGABASE, 0x99) & ~BIT(4);
-		if (iga->index)
-			orig |= BIT(4);
-		vga_wcrt(VGABASE, 0x99, orig);
+		if (encoder->encoder_type == DRM_MODE_CONNECTOR_LVDS)
+			svga_wcrt_mask(VGABASE, 0x9B, value, BIT(4));
+		svga_wcrt_mask(VGABASE, 0x99, value, BIT(4));
 		break;
 
 	case DISP_DI_DFP:
-		orig = vga_rcrt(VGABASE, 0x97) & ~BIT(4);
-		if (iga->index)
-			orig |= BIT(4);
-		vga_wcrt(VGABASE, 0x97, orig);
-
-		orig = vga_rcrt(VGABASE, 0x99) & ~BIT(4);
-		if (iga->index)
-			orig |= BIT(4);
-		vga_wcrt(VGABASE, 0x99, orig);
+		svga_wcrt_mask(VGABASE, 0x97, value, BIT(4));
+		svga_wcrt_mask(VGABASE, 0x99, value, BIT(4));
 		break;
 
 	/* For TTL Type LCD */
 	case (DISP_DI_DFPL + DISP_DI_DVP1):
-		orig = vga_rcrt(VGABASE, 0x99) & ~BIT(4);
-		if (iga->index)
-			orig |= BIT(4);
-		vga_wcrt(VGABASE, 0x99, orig);
-
-		orig = vga_rcrt(VGABASE, 0x9B) & ~BIT(4);
-		if (iga->index)
-			orig |= BIT(4);
-		vga_wcrt(VGABASE, 0x9B, orig);
-                break;
+		svga_wcrt_mask(VGABASE, 0x99, value, BIT(4));
+		svga_wcrt_mask(VGABASE, 0x9B, value, BIT(4));
+		break;
 
 	/* For 409 TTL Type LCD */
 	case (DISP_DI_DFPH + DISP_DI_DFPL + DISP_DI_DVP1):
-		orig = vga_rcrt(VGABASE, 0x97) & ~BIT(4);
-		if (iga->index)
-			orig |= BIT(4);
-		vga_wcrt(VGABASE, 0x97, orig);
-
-		orig = vga_rcrt(VGABASE, 0x99) & ~BIT(4);
-		if (iga->index)
-			orig |= BIT(4);
-		vga_wcrt(VGABASE, 0x99, orig);
-
-		orig = vga_rcrt(VGABASE, 0x9B) & ~BIT(4);
-		if (iga->index)
-			orig |= BIT(4);
-		vga_wcrt(VGABASE, 0x9B, orig);
+		svga_wcrt_mask(VGABASE, 0x97, value, BIT(4));
+		svga_wcrt_mask(VGABASE, 0x99, value, BIT(4));
+		svga_wcrt_mask(VGABASE, 0x9B, value, BIT(4));
                 break;
 
 	case DISP_DI_NONE:
-		orig = vga_rseq(VGABASE, 0x16) & ~BIT(6);
-		if (iga->index)
-			orig |= BIT(6);
-		vga_wseq(VGABASE, 0x16, orig);
+		if (iga->index) value = BIT(6);
+
+		svga_wseq_mask(VGABASE, 0x16, value, BIT(6));
 		break;
 
 	default:
@@ -566,14 +502,11 @@ void via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 		load_value_to_registers(VGABASE, &iga->timings.vsync_end, reg_value);
 	} else {
 		if (dev->pdev->device == PCI_DEVICE_ID_VIA_VX900) {
-			u8 orig = vga_rcrt(VGABASE, 0x45) & ~BIT(0);
-
 			/* Disable IGA1 shadow timing */
-			vga_wcrt(VGABASE, 0x45, orig);
+			svga_wcrt_mask(VGABASE, 0x45, 0x00, BIT(0));
 
 			/* Disable IGA1 pixel timing */
-			orig = vga_rcrt(VGABASE, 0xFD) & ~(BIT(6) + BIT(5));
-			vga_wcrt(VGABASE, 0xFD, orig);
+			svga_wcrt_mask(VGABASE, 0xFD, 0x00, BIT(6) | BIT(5));
 		}
 
 		reg_value = IGA2_HOR_TOTAL_FORMULA(mode->crtc_htotal);
@@ -619,23 +552,20 @@ static void
 via_iga1_dpms(struct drm_crtc *crtc, int mode)
 {
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
-	u8 orig = (vga_rseq(VGABASE, 0x01) & ~BIT(5));
 
 	switch (mode) {
 	case DRM_MODE_DPMS_SUSPEND:
 	case DRM_MODE_DPMS_STANDBY:
 	case DRM_MODE_DPMS_OFF:
 		/* turn off CRT screen (IGA1) */
-
-		vga_wseq(VGABASE, 0x01, (BIT(5) | orig));
+		svga_wseq_mask(VGABASE, 0x01, BIT(5), BIT(5));
 		drm_vblank_pre_modeset(crtc->dev, 0);
 		break;
 
 	case DRM_MODE_DPMS_ON:
-		/* turn on CRT screen (IGA1) */
-
 		drm_vblank_post_modeset(crtc->dev, 0);
-		vga_wseq(VGABASE, 0x00, orig);
+		/* turn on CRT screen (IGA1) */
+		svga_wseq_mask(VGABASE, 0x01, 0x00, BIT(5));
 		break;
 	}
 }
@@ -644,24 +574,23 @@ static void
 via_iga2_dpms(struct drm_crtc *crtc, int mode)
 {
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
-	u8 orig = (vga_rseq(VGABASE, 0x6b) & ~BIT(2));
 
 	switch (mode) {
 	case DRM_MODE_DPMS_SUSPEND:
 	case DRM_MODE_DPMS_STANDBY:
 	case DRM_MODE_DPMS_OFF:
 		/* turn off CRT screen (IGA2) */
+		svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(2));
 
-		vga_wcrt(VGABASE, 0x6b, (BIT(2) | orig));
 		disable_second_display_channel(dev_priv);
 		drm_vblank_pre_modeset(crtc->dev, 1);
 		break;
 	case DRM_MODE_DPMS_ON:
-		/* turn on CRT screen (IGA2) */
-
 		drm_vblank_post_modeset(crtc->dev, 1);
 		enable_second_display_channel(dev_priv);
-		vga_wcrt(VGABASE, 0x6b, orig);
+
+		/* turn on CRT screen (IGA2) */
+		svga_wcrt_mask(VGABASE, 0x6B, BIT(2), BIT(2));
 		break;
 	}
 }
@@ -717,7 +646,6 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 	struct drm_framebuffer *fb = crtc->fb;
 	struct drm_device *dev = crtc->dev;
 	int value;
-	u8 orig;
 
 	if (!fb)
 		fb = old_fb;
@@ -728,40 +656,33 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 	/* Write Misc Register */
 	vga_w(VGABASE, VGA_MIS_W, 0xC7);
 
-	orig = (vga_rseq(VGABASE, 0x15) & ~0xA2);
-	vga_wseq(VGABASE, 0x15, (orig | 0xA2));
+	svga_wseq_mask(VGABASE, 0x15, 0xA2, 0xA2);
 
 	regs_init(VGABASE);
 
         if (!iga->index) {
 		via_unlock_crt(VGABASE, dev->pdev->device);
 		vga_wcrt(VGABASE, 0x09, 0x00);	/*initial CR09=0 */
-		orig = (vga_rcrt(VGABASE, 0x11) & ~0x70);
-		vga_wcrt(VGABASE, 0x11, orig);
-		orig = (vga_rcrt(VGABASE, 0x17) & ~BIT(7));
-		vga_wcrt(VGABASE, 0x17, orig);
+
+		svga_wcrt_mask(VGABASE, 0x11, 0x00, 0x70);
+		svga_wcrt_mask(VGABASE, 0x17, 0x00, BIT(7));
         }
 
 	/* Write CRTC */
 	via_load_crtc_timing(iga, mode);
 
 	/* always set to 1 */
-	orig = (vga_rcrt(VGABASE, 0x03) & ~0x80);
-	vga_wcrt(VGABASE, 0x03, (orig | 0x80));
+	svga_wcrt_mask(VGABASE, 0x03, BIT(7), BIT(7));
 	/* line compare should set all bits = 1 (extend modes) */
 	vga_wcrt(VGABASE, 0x18, 0xFF);
 	/* line compare should set all bits = 1 (extend modes) */
-	orig = (vga_rcrt(VGABASE, 0x07) & ~0x10);
-	vga_wcrt(VGABASE, 0x07, (orig | 0x10));
+	svga_wcrt_mask(VGABASE, 0x07, BIT(4), BIT(4));
 	/* line compare should set all bits = 1 (extend modes) */
-	orig = (vga_rcrt(VGABASE, 0x09) & ~0x40);
-	vga_wcrt(VGABASE, 0x09, (orig | 0x40));
+	svga_wcrt_mask(VGABASE, 0x09, BIT(6), 0xFF);
 	/* line compare should set all bits = 1 (extend modes) */
-	orig = (vga_rcrt(VGABASE, 0x35) & ~0x10);
-	vga_wcrt(VGABASE, 0x35, (orig | 0x10));
+	svga_wcrt_mask(VGABASE, 0x35, BIT(4), BIT(4));
 	/* line compare should set all bits = 1 (extend modes) */
-	orig = (vga_rcrt(VGABASE, 0x33) & ~0x06);
-	vga_wcrt(VGABASE, 0x33, (orig | 0x06));
+	svga_wcrt_mask(VGABASE, 0x33, 0x05, 0x06);
 	/* extend mode always set to e3h */
 	vga_wcrt(VGABASE, 0x17, 0xE3);
 	/* extend mode always set to 0h */
@@ -771,20 +692,15 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 
 	/* If K8M800, enable Prefetch Mode. */
 	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_K8M800) ||
-	    (dev->pdev->device == PCI_DEVICE_ID_VIA_K8M890)) {
-		orig = (vga_rcrt(VGABASE, 0x33) & ~0x08);
-		vga_wcrt(VGABASE, 0x33, (orig | 0x08));
-	}
+	    (dev->pdev->device == PCI_DEVICE_ID_VIA_K8M890))
+		svga_wcrt_mask(VGABASE, 0x33, 0x00, BIT(3));
 
 	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) &&
-	    (dev_priv->revision == CLE266_REVISION_AX)) {
-		orig = (vga_rcrt(VGABASE, 0x1A) & ~0x02);
-		vga_wcrt(VGABASE, 0x1A, (orig | 0x02));
-	}
+	    (dev_priv->revision == CLE266_REVISION_AX))
+		svga_wseq_mask(VGABASE, 0x1A, BIT(1), BIT(1));
 
 	via_lock_crt(VGABASE);
-	orig = (vga_rcrt(VGABASE, 0x17) | BIT(7));
-	vga_wcrt(VGABASE, 0x17, orig);
+	svga_wcrt_mask(VGABASE, 0x17, BIT(7), BIT(7));
 
 	/* Load Fetch registers */
 	if (!iga->index)
@@ -802,8 +718,7 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 	} else if (adjusted_mode->hdisplay == 1024 &&
 		   adjusted_mode->vdisplay == 768) {
 		/* Update Patch Register */
-		orig = (vga_rseq(VGABASE, 0x16) & ~0xBF);
-		vga_wseq(VGABASE, 0x16, (orig | 0x0C));
+		svga_wseq_mask(VGABASE, 0x16, 0x0C, 0xBF);
 		vga_wseq(VGABASE, 0x18, 0x4C);
 	}
 	vga_r(VGABASE, VGA_IS1_RC);
@@ -858,7 +773,7 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	struct drm_gem_object *obj = fb->helper_private;
 	struct ttm_buffer_object *bo = obj->driver_private;
 	u32 pitch = (x * fb->bits_per_pixel) >> 3, addr;
-	u8 value, orig;
+	u8 value;
 
 	/*if ((state == ENTER_ATOMIC_MODE_SET) && (fb != crtc->fb))
 		disable_accel(dev);
@@ -872,8 +787,8 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	vga_wcrt(VGABASE, 0x0D, addr & 0xFF);
 	vga_wcrt(VGABASE, 0x0C, (addr >> 8) & 0xFF);
 	vga_wcrt(VGABASE, 0x34, (addr >> 16) & 0xFF);
-	orig = (vga_rcrt(VGABASE, 0x48) & ~0x1F);
-	vga_wcrt(VGABASE, 0x48, ((addr >> 24) & 0x1F) | orig);
+	value = (vga_rcrt(VGABASE, 0x48) & ~0x1F);
+	vga_wcrt(VGABASE, 0x48, ((addr >> 24) & 0x1F) | value);
 
 	/* Fetch register handling *
 	pitch = ((fb->pitch * (fb->bits_per_pixel >> 3)) >> 4) + 4;
@@ -887,8 +802,8 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 		 * second adapter */
 		pitch = fb->pitches[0] >> 3;
 		vga_wcrt(VGABASE, 0x13, pitch & 0xFF);
-		orig = (vga_rcrt(VGABASE, 0x35) & ~0xE0);
-		vga_wcrt(VGABASE, 0x35, ((pitch >> 3) & 0xE0) | orig);
+		value = (vga_rcrt(VGABASE, 0x35) & ~0xE0);
+		vga_wcrt(VGABASE, 0x35, ((pitch >> 3) & 0xE0) | value);
 	}
 
 	if ((state == ENTER_ATOMIC_MODE_SET) || crtc->fb->depth != fb->depth) {
@@ -912,8 +827,7 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 			DRM_ERROR("Unsupported depth: %d\n", fb->depth);
 			return -EINVAL;
 		}
-		orig = (vga_rseq(VGABASE, 0x15) & ~0x1C);
-		vga_wseq(VGABASE, 0x15, (value & 0x1C) | orig);
+		svga_wseq_mask(VGABASE, 0x15, value, 0x1C);
 	}
 	return 0;
 }
@@ -926,7 +840,7 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	struct drm_gem_object *obj = fb->helper_private;
 	struct ttm_buffer_object *bo = obj->driver_private;
 	u32 pitch = (x * fb->bits_per_pixel) >> 3, addr;
-	u8 value, orig;
+	u8 value;
 
 	/* Set the framebuffer offset */
 	pitch += y * fb->pitches[0];
@@ -936,18 +850,18 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	vga_wcrt(VGABASE, 0x62, (addr >> 2) & 0xfe);
 	vga_wcrt(VGABASE, 0x63, (addr >> 10) & 0xff);
 	vga_wcrt(VGABASE, 0x64, (addr >> 18) & 0xff);
-	orig = (vga_rcrt(VGABASE, 0xA3) & ~0x07);
-	vga_wcrt(VGABASE, 0xA3, ((addr >> 26) & 0x07) | orig);
+	value = (vga_rcrt(VGABASE, 0xA3) & ~0x07);
+	vga_wcrt(VGABASE, 0xA3, ((addr >> 26) & 0x07) | value);
 
 	if ((state == ENTER_ATOMIC_MODE_SET) ||
 	     crtc->fb->pitches[0] != fb->pitches[0]) {
 		/* Set secondary pitch */
 		pitch = fb->pitches[0] >> 3;
 		vga_wcrt(VGABASE, 0x66, pitch & 0xFF);
-		orig = (vga_rcrt(VGABASE, 0x67) & ~0x03);
-		vga_wcrt(VGABASE, 0x67, ((pitch >> 8) & 0x03) | orig);
-		orig = (vga_rcrt(VGABASE, 0x71) & ~0x80);
-		vga_wcrt(VGABASE, 0x71, ((pitch >> 3) & 0x80) | orig);
+		value = (vga_rcrt(VGABASE, 0x67) & ~0x03);
+		vga_wcrt(VGABASE, 0x67, ((pitch >> 8) & 0x03) | value);
+		value = (vga_rcrt(VGABASE, 0x71) & ~0x80);
+		vga_wcrt(VGABASE, 0x71, ((pitch >> 3) & 0x80) | value);
 	}
 
 	if ((state == ENTER_ATOMIC_MODE_SET) || crtc->fb->depth != fb->depth) {
@@ -968,8 +882,7 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 			DRM_ERROR("Unsupported depth: %d\n", fb->depth);
 			return -EINVAL;
 		}
-		orig = (vga_rseq(VGABASE, 0x67) & ~0xC0);
-		vga_wseq(VGABASE, 0x67, (value & 0xC0) | orig);
+		svga_wseq_mask(VGABASE, 0x67, value, 0xC0);
 	}
 	return 0;
 }

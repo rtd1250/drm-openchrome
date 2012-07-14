@@ -54,14 +54,31 @@ regs_init(void __iomem *regs)
 }
 
 void
-load_value_to_registers(void __iomem *regbase, struct registers *regs,
-			int value)
+load_register_tables(void __iomem *regbase, struct vga_registers *regs)
 {
-	int bit_num = 0, shift_next_reg, reg_mask;
-	int start_index, end_index, cr_index;
+	u8 port, cr_index, orig, reg_mask, data;
+	int i;
+
+	for (i = 0; i < regs->count; i++) {
+		reg_mask = regs->regs[i].start_bit;
+		data = regs->regs[i].end_bit;
+		cr_index = regs->regs[i].io_addr;
+		port = regs->regs[i].ioport;
+
+		vga_w(regbase, port, cr_index);
+		orig = (vga_r(regbase, port + 1) & ~reg_mask);
+		vga_w(regbase, port + 1, ((data & reg_mask) | orig));
+	}
+}
+
+void
+load_value_to_registers(void __iomem *regbase, struct vga_registers *regs,
+			unsigned int value)
+{
+	unsigned int bit_num = 0, shift_next_reg, reg_mask;
+	u8 start_index, end_index, cr_index, orig;
+	unsigned int data, i, j;
 	u16 get_bit, port;
-	int data, i, j;
-	u8 orig;
 
 	for (i = 0; i < regs->count; i++) {
 		start_index = regs->regs[i].start_bit;
@@ -72,9 +89,8 @@ load_value_to_registers(void __iomem *regbase, struct registers *regs,
 
 		shift_next_reg = bit_num;
 		for (j = start_index; j <= end_index; j++) {
-			/*if (bit_num==8) value = value >>8; */
-			reg_mask = reg_mask | (BIT(0) << j);
-			get_bit = (value & (BIT(0) << bit_num));
+			reg_mask = reg_mask | (1 << j);
+			get_bit = (value & (1 << bit_num));
 			data |= ((get_bit >> shift_next_reg) << start_index);
 			bit_num++;
 		}

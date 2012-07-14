@@ -43,24 +43,23 @@ static void
 via_analog_dpms(struct drm_encoder *encoder, int mode)
 {
 	struct drm_via_private *dev_priv = encoder->dev->dev_private;
-	u8 mask = BIT(5) + BIT(4), orig;
+	u8 mask = 0;
 
-	orig = (vga_rcrt(VGABASE, 0x36) & ~mask);
 	switch (mode) {
 	case DRM_MODE_DPMS_SUSPEND:
-		orig |= BIT(5);		// VSync off
+		mask = BIT(5);		// VSync off
 		break;
 	case DRM_MODE_DPMS_STANDBY:
-		orig |= BIT(4);		// HSync off
+		mask = BIT(4);		// HSync off
 		break;
 	case DRM_MODE_DPMS_OFF:
-		orig |= mask;		// HSync and VSync off
+		mask = (BIT(5) | BIT(4));// HSync and VSync off
 		break;
 	case DRM_MODE_DPMS_ON:
 	default:
 		break;
 	}
-	vga_wcrt(VGABASE, 0x36, orig);
+	svga_wcrt_mask(VGABASE, 0x36, mask, BIT(5) | BIT(4));
 }
 
 /* Pass our mode to the connectors and the CRTC to give them a chance to
@@ -98,15 +97,13 @@ via_analog_mode_set(struct drm_encoder *encoder,
 		       struct drm_display_mode *adjusted_mode)
 {
 	struct drm_via_private *dev_priv = encoder->dev->dev_private;
-	u8 polarity = 0, orig;
+	u8 polarity = 0;
 
 	if (adjusted_mode->flags & DRM_MODE_FLAG_NHSYNC)
 		polarity |= BIT(6);
 	if (adjusted_mode->flags & DRM_MODE_FLAG_NVSYNC)
 		polarity |= BIT(7);
-
-	orig = (vga_r(VGABASE, VGA_MIS_R) & ~0xC0);
-	vga_w(VGABASE, VGA_MIS_W, ((polarity & 0xC0) | orig));
+	svga_wmisc_mask(VGABASE, polarity, BIT(7) | BIT(6));
 
 	/* Select the proper IGA */
 	via_diport_set_source(encoder);

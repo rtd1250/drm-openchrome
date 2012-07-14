@@ -385,20 +385,15 @@ via_set_vclock(struct drm_crtc *crtc, u32 clk)
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	struct drm_device *dev = crtc->dev;
-	u8 orig;
 
 	/* H.W. Reset : ON */
-	orig = (vga_rcrt(VGABASE, 0x17) & ~0x80);
-	vga_wcrt(VGABASE, 0x17, orig);
+	svga_wcrt_mask(VGABASE, 0x17, 0x00, BIT(7));
 
 	/* Enable reset */
-	if (!iga->index) {
-		orig = (vga_rseq(VGABASE, 0x40) | 0x02);
-		vga_wseq(VGABASE, 0x40, orig);
-	} else {
-		orig = (vga_rseq(VGABASE, 0x40) | 0x04);
-		vga_wseq(VGABASE, 0x40, orig);
-	}
+	if (!iga->index)
+		svga_wseq_mask(VGABASE, 0x40, BIT(1), BIT(1));
+	else
+		svga_wseq_mask(VGABASE, 0x40, BIT(2), BIT(2));
 
 	if (!iga->index) {
 		/* Change D,N FOR VCLK */
@@ -453,21 +448,16 @@ via_set_vclock(struct drm_crtc *crtc, u32 clk)
 	}
 
 	/* disable reset */
-	if (!iga->index) {
-		orig = (vga_rseq(VGABASE, 0x40) & ~0x02);
-		vga_wseq(VGABASE, 0x40, orig);
-	} else {
-		orig = (vga_rseq(VGABASE, 0x40) & ~0x04);
-		vga_wseq(VGABASE, 0x40, orig);
-	}
+	if (!iga->index)
+		svga_wseq_mask(VGABASE, 0x40, 0x00, BIT(1));
+	else
+		svga_wseq_mask(VGABASE, 0x40, 0x00, BIT(2));
 
 	/* H.W. Reset : OFF */
-	orig = (vga_rcrt(VGABASE, 0x17) & ~0x80);
-	vga_wcrt(VGABASE, 0x17, (orig | BIT(7)));
+	svga_wcrt_mask(VGABASE, 0x17, BIT(7), BIT(7));
 
 	/* The clock is finally ready !! */
-	orig = (vga_r(VGABASE, VGA_MIS_R) & ~0x0C);
-	vga_w(VGABASE, VGA_MIS_W, orig | 0x0C);
+	svga_wmisc_mask(VGABASE, BIT(3) | BIT(2), BIT(3) | BIT(2));
 }
 
 void

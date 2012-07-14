@@ -118,7 +118,7 @@ via_allocate_pcie_gart_table(struct drm_via_private *dev_priv)
 {
 	struct ttm_buffer_object *bo;
 	int size = SGDMA_MEMORY, ret;
-	u8 orig;
+	u8 value;
 
 	ret = ttm_bo_allocate(&dev_priv->bdev, size, ttm_bo_type_kernel,
 				TTM_PL_FLAG_VRAM | TTM_PL_FLAG_NO_EVICT,
@@ -133,27 +133,24 @@ via_allocate_pcie_gart_table(struct drm_via_private *dev_priv)
 		goto err;
 
 	/* enable gti write */
-	orig = (vga_rseq(VGABASE, 0x6C) & 0x7F);
-	vga_wseq(VGABASE, 0x6C, orig);
+	svga_wseq_mask(VGABASE, 0x6C, BIT(7), BIT(7));
 
 	/* set the base address of gart table */
-	orig = (bo->offset & 0xff000) >> 12;
-	vga_wseq(VGABASE, 0x6A, orig);
+	value = (bo->offset & 0xff000) >> 12;
+	vga_wseq(VGABASE, 0x6A, value);
 
-	orig = (bo->offset & 0xff000) >> 20;
-	vga_wseq(VGABASE, 0x6B, orig);
+	value = (bo->offset & 0xff000) >> 20;
+	vga_wseq(VGABASE, 0x6B, value);
 
-	orig = vga_rseq(VGABASE, 0x6C);
-	orig |= ((bo->offset >> 28) & 0x01);
-	vga_wseq(VGABASE, 0x6C, orig);
+	value = vga_rseq(VGABASE, 0x6C);
+	value |= ((bo->offset >> 28) & 0x01);
+	vga_wseq(VGABASE, 0x6C, value);
 
 	/* flush the gti cache */
-	orig = (vga_rseq(VGABASE, 0x6F) | 0x80);
-	vga_wseq(VGABASE, 0x6F, orig);
+	svga_wseq_mask(VGABASE, 0x6F, BIT(7), BIT(7));
 
 	/* disable the gti write */
-	orig = (vga_rseq(VGABASE, 0x6C) | 0x80);
-	vga_wseq(VGABASE, 0x6C, orig);
+	svga_wseq_mask(VGABASE, 0x6C, 0x00, BIT(7));
 	DRM_INFO("Allocated %d KB of DMA memory\n", size >> 10);
 err:
 	return ret;
@@ -481,11 +478,8 @@ static int via_driver_unload(struct drm_device *dev)
 	bo = dev_priv->gart.bo;
 	if (bo) {
 		/* enable gti write */
-		if (pci_is_pcie(dev->pdev)) {
-			u8 orig = (vga_rseq(VGABASE, 0x6C) & 0x7F);
-
-			vga_wseq(VGABASE, 0x6C, orig);
-		}
+		if (pci_is_pcie(dev->pdev))
+			svga_wseq_mask(VGABASE, 0x6C, BIT(7), BIT(7));
 		ttm_bo_unpin(bo, &dev_priv->gart);
 		ttm_bo_unref(&bo);
 	}

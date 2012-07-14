@@ -101,15 +101,15 @@ struct via_crtc {
 	struct drm_crtc base;
 	struct ttm_bo_kmap_obj cursor_kmap;
 	struct crtc_timings timings;
-	struct registers fetch;
+	struct vga_registers fetch;
 	unsigned int display_queue_expire_num;
 	unsigned int fifo_high_threshold;
 	unsigned int fifo_threshold;
 	unsigned int fifo_max_depth;
-	struct registers display_queue;
-	struct registers high_threshold;
-	struct registers threshold;
-	struct registers fifo_depth;
+	struct vga_registers display_queue;
+	struct vga_registers high_threshold;
+	struct vga_registers threshold;
+	struct vga_registers fifo_depth;
 	uint32_t index;
 };
 
@@ -277,9 +277,6 @@ extern int via_modeset_init(struct drm_device *dev);
 extern void via_i2c_exit(struct drm_device *dev);
 extern int via_i2c_init(struct drm_device *dev);
 extern int via_get_edid_modes(struct drm_connector *connector);
-
-extern void via_lock_crt(void __iomem *regs);
-extern void via_unlock_crt(void __iomem *regs, int pci_id);
 extern void via_set_pll(struct drm_crtc *crtc, struct drm_display_mode *mode);
 
 extern struct drm_encoder* via_best_encoder(struct drm_connector *connector);

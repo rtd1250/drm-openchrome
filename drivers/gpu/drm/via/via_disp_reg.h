@@ -38,7 +38,6 @@
 #define IGA2_FIFO_HIGH_THRESHOLD_REG_NUM        2
 #define IGA2_DISPLAY_QUEUE_EXPIRE_NUM_REG_NUM   1
 
-
 /* Definition FIFO Design Method */
 #define IGA1_FIFO_DEPTH_SELECT_FORMULA(x)                   (x/2)-1
 #define IGA1_FIFO_THRESHOLD_FORMULA(x)                      (x/4)
@@ -49,7 +48,6 @@
 #define IGA2_FIFO_THRESHOLD_FORMULA(x)                      (x/4)
 #define IGA2_DISPLAY_QUEUE_EXPIRE_NUM_FORMULA(x)            (x/4)
 #define IGA2_FIFO_HIGH_THRESHOLD_FORMULA(x)                 (x/4)
-
 
 /*Define Display OFFSET*/
 /* VT3314 chipset*/
@@ -153,52 +151,51 @@
 #define CN750_IGA2_DISPLAY_QUEUE_EXPIRE_NUM     32
 #endif
 
-
 /* Display FIFO Relation Registers */
 
 /* IGA1 FIFO Depth_Select */
-struct io_register iga1_fifo_depth_select[] = {
+struct vga_regset iga1_fifo_depth_select[] __devinitdata = {
 	{ VGA_SEQ_I, 0x17, 0, 7}
 };
 
 /* IGA2 FIFO Depth_Select */
-struct io_register iga2_fifo_depth_select[] = {
+struct vga_regset iga2_fifo_depth_select[] __devinitdata = {
 	{ VGA_CRT_IC, 0x68, 4, 7},
 	{ VGA_CRT_IC, 0x94, 7, 7},
 	{ VGA_CRT_IC, 0x95, 7, 7}
 };
 
 /* IGA1 FIFO Threshold Select */
-struct io_register iga1_fifo_high_threshold_select[] = {
+struct vga_regset iga1_fifo_high_threshold_select[] __devinitdata = {
 	{ VGA_SEQ_I, 0x16, 0, 5},
 	{ VGA_SEQ_I, 0x16, 7, 7}
 };
 
 /* IGA2 FIFO Threshold Select */
-struct io_register iga2_fifo_high_threshold_select[] = {
+struct vga_regset iga2_fifo_high_threshold_select[] __devinitdata = {
 	{ VGA_CRT_IC, 0x68, 0, 3},
 	{ VGA_CRT_IC, 0x95, 4, 6}
 };
 
 /* IGA1 FIFO High Threshold Select */
-struct io_register iga1_fifo_threshold_select[] = {
+struct vga_regset iga1_fifo_threshold_select[] __devinitdata = {
 	{ VGA_SEQ_I, 0x18, 0, 5},
 	{ VGA_SEQ_I, 0x18, 7, 7}
 };
 
 /* IGA2 FIFO High Threshold Select */
-struct io_register iga2_fifo_threshold_select[] = {
+struct vga_regset iga2_fifo_threshold_select[] __devinitdata = {
 	{ VGA_CRT_IC, 0x92, 0, 3},
 	{ VGA_CRT_IC, 0x95, 0, 2}
 };
 
 /* IGA1 FIFO display queue expire */
-struct io_register iga1_display_queue_expire_num[] = {
+struct vga_regset iga1_display_queue_expire_num[] __devinitdata = {
 	{ VGA_SEQ_I, 0x22, 0, 4 }
 };
 
 /* IGA2 FIFO display queue expire */
-struct io_register iga2_display_queue_expire_num[] = {
+struct vga_regset iga2_display_queue_expire_num[] __devinitdata = {
 	{ VGA_CRT_IC, 0x94, 0, 6 }
 };
 
@@ -215,13 +212,13 @@ struct io_register iga2_display_queue_expire_num[] = {
 #define IGA2_OFFSET_FORMULA(x,y)	    (x*y)/IGA2_OFFSET_ALIGN_BYTE	 /* x: H resolution, y: color depth */
 
 /* IGA1 Offset Register */
-struct io_register iga1_offset[] = {
+struct vga_regset iga1_offset[] __devinitdata = {
 	{ VGA_CRT_IC, 0x13, 0, 7 },
 	{ VGA_CRT_IC, 0x35, 5, 7 }
 };
 
 /* IGA2 Offset Register */
-struct io_register iga2_offset[] = {
+struct vga_regset iga2_offset[] __devinitdata = {
 	{ VGA_CRT_IC, 0x66, 0, 7 },
 	{ VGA_CRT_IC, 0x67, 0, 1 },
 	{ VGA_CRT_IC, 0x71, 7, 7 }
@@ -240,12 +237,12 @@ struct io_register iga2_offset[] = {
 #define IGA2_FETCH_COUNT_PATCH_VALUE	0
 #define IGA2_FETCH_COUNT_FORMULA(x,y)	((x*y)/IGA1_FETCH_COUNT_ALIGN_BYTE)+ IGA2_FETCH_COUNT_PATCH_VALUE
 
-static struct io_register iga1_fetch_count[] = {
+static struct vga_regset iga1_fetch_count[] __devinitdata = {
 	{ VGA_SEQ_I, 0x1C, 0, 7},
 	{ VGA_SEQ_I, 0x1D, 0, 1}
 };
 
-static struct io_register iga2_fetch_count[] = {
+static struct vga_regset iga2_fetch_count[] __devinitdata = {
 	{ VGA_CRT_IC, 0x65, 0, 7},
 	{ VGA_CRT_IC, 0x67, 2, 3}
 };
@@ -283,7 +280,6 @@ static struct io_register iga2_fetch_count[] = {
 #define IGA2_VER_SYNC_START_REG_NUM     2           /* location: {CR5E,0,7},{CR5F,5,7} */
 #define IGA2_VER_SYNC_END_REG_NUM       1           /* location: {CR5F,0,4} */
 
-
 /* Definition IGA1 Design Method of CRTC Registers */
 #define IGA1_HOR_TOTAL_FORMULA(x)	(x/8) - 5
 #define IGA1_HOR_ADDR_FORMULA(x)	(x/8) - 1
@@ -298,7 +294,6 @@ static struct io_register iga2_fetch_count[] = {
 #define IGA1_VER_BLANK_END_FORMULA(x)	(x - 1)
 #define IGA1_VER_SYNC_START_FORMULA(x)	(x - 1)
 #define IGA1_VER_SYNC_END_FORMULA(x)	(x - 1)
-
 
 /* Definition IGA2 Design Method of CRTC Registers */
 #define IGA2_HOR_TOTAL_FORMULA(x)	(x - 1)
@@ -337,43 +332,43 @@ static struct io_register iga2_fetch_count[] = {
 /************************************************/
 
 /* IGA1 Horizontal Total */
-struct io_register iga1_hor_total[] = {
+struct vga_regset iga1_hor_total[] __devinitdata = {
 	{ VGA_CRT_IC, 0x00, 0, 7 },
 	{ VGA_CRT_IC, 0x36, 3, 3 }
 };
 
 /* IGA1 Horizontal Addressable Video */
-struct io_register iga1_hor_addr[] = {
+struct vga_regset iga1_hor_addr[] __devinitdata = {
 	{ VGA_CRT_IC, 0x01, 0, 7 },
 	{ VGA_CRT_IC, 0x45, 1, 1 }
 };
 
 /* IGA1 Horizontal Blank Start */
-struct io_register iga1_hor_blank_start[] = {
+struct vga_regset iga1_hor_blank_start[] __devinitdata = {
 	{ VGA_CRT_IC, 0x02, 0, 7 },
 	{ VGA_CRT_IC, 0x45, 2, 2 }
 };
 
 /* IGA1 Horizontal Blank End */
-struct io_register iga1_hor_blank_end[] = {
+struct vga_regset iga1_hor_blank_end[] __devinitdata = {
 	{ VGA_CRT_IC, 0x03, 0, 4 },
 	{ VGA_CRT_IC, 0x05, 7, 7 },
 	{ VGA_CRT_IC, 0x33, 5, 5 }
 };
 
 /* IGA1 Horizontal Sync Start */
-struct io_register iga1_hor_sync_start[] = {
+struct vga_regset iga1_hor_sync_start[] __devinitdata = {
 	{ VGA_CRT_IC, 0x04, 0, 7 },
 	{ VGA_CRT_IC, 0x33, 4, 4 }
 };
 
 /* IGA1 Horizontal Sync End */
-struct io_register iga1_hor_sync_end[] = {
+struct vga_regset iga1_hor_sync_end[] __devinitdata = {
 	{ VGA_CRT_IC, 0x05, 0, 4 }
 };
 
 /* IGA1 Vertical Total */
-struct io_register iga1_ver_total[] = {
+struct vga_regset iga1_ver_total[] __devinitdata = {
 	{ VGA_CRT_IC, 0x06, 0, 7 },
 	{ VGA_CRT_IC, 0x07, 0, 0 },
 	{ VGA_CRT_IC, 0x07, 5, 5 },
@@ -381,7 +376,7 @@ struct io_register iga1_ver_total[] = {
 };
 
 /* IGA1 Vertical Addressable Video */
-struct io_register iga1_ver_addr[] = {
+struct vga_regset iga1_ver_addr[] __devinitdata = {
 	{ VGA_CRT_IC, 0x12, 0, 7 },
 	{ VGA_CRT_IC, 0x07, 1, 1 },
 	{ VGA_CRT_IC, 0x07, 6, 6 },
@@ -389,7 +384,7 @@ struct io_register iga1_ver_addr[] = {
 };
 
 /* IGA1 Vertical Blank Start */
-struct io_register iga1_ver_blank_start[] = {
+struct vga_regset iga1_ver_blank_start[] __devinitdata = {
 	{ VGA_CRT_IC, 0x15, 0, 7 },
 	{ VGA_CRT_IC, 0x07, 3, 3 },
 	{ VGA_CRT_IC, 0x09, 5, 5 },
@@ -397,12 +392,12 @@ struct io_register iga1_ver_blank_start[] = {
 };
 
 /* IGA1 Vertical Blank End */
-struct io_register iga1_ver_blank_end[] = {
+struct vga_regset iga1_ver_blank_end[] __devinitdata = {
 	{ VGA_CRT_IC, 0x16, 0, 7 }
 };
 
 /* IGA1 Vertical Sync Start */
-struct io_register iga1_ver_sync_start[] = {
+struct vga_regset iga1_ver_sync_start[] __devinitdata = {
 	{ VGA_CRT_IC, 0x10, 0, 7 },
 	{ VGA_CRT_IC, 0x07, 2, 2 },
 	{ VGA_CRT_IC, 0x07, 7, 7 },
@@ -410,7 +405,7 @@ struct io_register iga1_ver_sync_start[] = {
 };
 
 /* IGA1 Vertical Sync End */
-struct io_register iga1_ver_sync_end[] = {
+struct vga_regset iga1_ver_sync_end[] __devinitdata = {
 	{ VGA_CRT_IC, 0x11, 0, 3 }
 };
 
@@ -419,34 +414,34 @@ struct io_register iga1_ver_sync_end[] = {
 /************************************************/
 
 /* IGA2 Horizontal Total */
-struct io_register iga2_hor_total[] = {
+struct vga_regset iga2_hor_total[] __devinitdata = {
 	{ VGA_CRT_IC, 0x50, 0, 7 },
 	{ VGA_CRT_IC, 0x55, 0, 3 }
 };
 
 /* IGA2 Horizontal Addressable Video */
-struct io_register iga2_hor_addr[] = {
+struct vga_regset iga2_hor_addr[] __devinitdata = {
 	{ VGA_CRT_IC, 0x51, 0, 7 },
 	{ VGA_CRT_IC, 0x55, 4, 6 },
 	{ VGA_CRT_IC, 0x55, 7, 7 }
 };
 
 /* IGA2 Horizontal Blank Start */
-struct io_register iga2_hor_blank_start[] = {
+struct vga_regset iga2_hor_blank_start[] __devinitdata = {
 	{ VGA_CRT_IC, 0x52, 0, 7 },
 	{ VGA_CRT_IC, 0x54, 0, 2 },
 	{ VGA_CRT_IC, 0x6B, 0, 0 }
 };
 
 /* IGA2 Horizontal Blank End */
-struct io_register iga2_hor_blank_end[] = {
+struct vga_regset iga2_hor_blank_end[] __devinitdata = {
 	{ VGA_CRT_IC, 0x53, 0, 7 },
 	{ VGA_CRT_IC, 0x54, 3, 5 },
 	{ VGA_CRT_IC, 0x5D, 6, 6 }
 };
 
 /* IGA2 Horizontal Sync Start */
-struct io_register iga2_hor_sync_start[] = {
+struct vga_regset iga2_hor_sync_start[] __devinitdata = {
 	{ VGA_CRT_IC, 0x56, 0, 7 },
 	{ VGA_CRT_IC, 0x54, 6, 7 },
 	{ VGA_CRT_IC, 0x5C, 7, 7 },
@@ -454,43 +449,43 @@ struct io_register iga2_hor_sync_start[] = {
 };
 
 /* IGA2 Horizontal Sync End */
-struct io_register iga2_hor_sync_end[] = {
+struct vga_regset iga2_hor_sync_end[] __devinitdata = {
 	{ VGA_CRT_IC, 0x57, 0, 7 },
 	{ VGA_CRT_IC, 0x5C, 6, 6 }
 };
 
 /* IGA2 Vertical Total */
-struct io_register iga2_ver_total[] = {
+struct vga_regset iga2_ver_total[] __devinitdata = {
 	{ VGA_CRT_IC, 0x58, 0, 7 },
 	{ VGA_CRT_IC, 0x5D, 0, 2 }
 };
 
 /* IGA2 Vertical Addressable Video */
-struct io_register iga2_ver_addr[] = {
+struct vga_regset iga2_ver_addr[] __devinitdata = {
 	{ VGA_CRT_IC, 0x59, 0, 7 },
 	{ VGA_CRT_IC, 0x5D, 3, 5 }
 };
 
 /* IGA2 Vertical Blank Start */
-struct io_register iga2_ver_blank_start[] = {
+struct vga_regset iga2_ver_blank_start[] __devinitdata = {
 	{ VGA_CRT_IC, 0x5A, 0, 7 },
 	{ VGA_CRT_IC, 0x5C, 0, 2 }
 };
 
 /* IGA2 Vertical Blank End */
-struct io_register iga2_ver_blank_end[] = {
+struct vga_regset iga2_ver_blank_end[] __devinitdata = {
 	{ VGA_CRT_IC, 0x5B, 0, 7 },
 	{ VGA_CRT_IC, 0x5C, 3, 5 }
 };
 
 /* IGA2 Vertical Sync Start */
-struct io_register iga2_ver_sync_start[] = {
+struct vga_regset iga2_ver_sync_start[] __devinitdata = {
 	{ VGA_CRT_IC, 0x5E, 0, 7 },
 	{ VGA_CRT_IC, 0x5F, 5, 7 }
 };
 
 /* IGA2 Vertical Sync End */
-static struct io_register iga2_ver_sync_end[] = {
+static struct vga_regset iga2_ver_sync_end[] __devinitdata = {
 	{ VGA_CRT_IC, 0x5F, 0, 4 }
 };
 

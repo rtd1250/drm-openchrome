@@ -34,12 +34,10 @@ via_pcie_sgdma_bind(struct ttm_tt *ttm, struct ttm_mem_reg *mem)
 	struct ttm_bo_device *bdev = dma_tt->sgdma.ttm.bdev;
 	struct drm_via_private *dev_priv =
 		container_of(bdev, struct drm_via_private, bdev);
-	u8 orig;
 	int i;
 
 	/* Disable gart table HW protect */
-	orig = (vga_rseq(VGABASE, 0x6C) & 0x7F);
-	vga_wseq(VGABASE, 0x6C, orig);
+	svga_wseq_mask(VGABASE, 0x6C, 0x00, BIT(7));
 
 	/* Update the relevant entries */
 	dma_tt->offset = mem->start << PAGE_SHIFT;
@@ -49,13 +47,10 @@ via_pcie_sgdma_bind(struct ttm_tt *ttm, struct ttm_mem_reg *mem)
 	}
 
 	/* Invalided GTI cache */
-	orig = (vga_rseq(VGABASE, 0x6F) | 0x80);
-	vga_wseq(VGABASE, 0x6F, orig);
+	svga_wseq_mask(VGABASE, 0x6F, BIT(7), BIT(7));
 
 	/* Enable gart table HW protect */
-	orig = (vga_rseq(VGABASE, 0x6C) | 0x80);
-	vga_wseq(VGABASE, 0x6C, orig);
-
+	svga_wseq_mask(VGABASE, 0x6C, BIT(7), BIT(7));
 	return 1;
 }
 
@@ -66,15 +61,13 @@ via_pcie_sgdma_unbind(struct ttm_tt *ttm)
 	struct ttm_bo_device *bdev = dma_tt->sgdma.ttm.bdev;
 	struct drm_via_private *dev_priv =
 		container_of(bdev, struct drm_via_private, bdev);
-	u8 orig;
 	int i;
 
 	if (ttm->state != tt_bound)
 		return 0;
 
 	/* Disable gart table HW protect */
-	orig = (vga_rseq(VGABASE, 0x6C) & 0x7F);
-	vga_wseq(VGABASE, 0x6C, orig);
+	svga_wseq_mask(VGABASE, 0x6C, 0x00, BIT(7));
 
 	/* Update the relevant entries */
 	for (i = 0; i < ttm->num_pages; i++)
@@ -82,12 +75,10 @@ via_pcie_sgdma_unbind(struct ttm_tt *ttm)
 	dma_tt->offset = 0;
 
 	/* Invalided GTI cache */
-	orig = (vga_rseq(VGABASE, 0x6F) | 0x80);
-	vga_wseq(VGABASE, 0x6F, orig);
+	svga_wseq_mask(VGABASE, 0x6F, BIT(7), BIT(7));
 
 	/* Enable gart table HW protect */
-	orig = (vga_rseq(VGABASE, 0x6C) | 0x80);
-	vga_wseq(VGABASE, 0x6C, orig);
+	svga_wseq_mask(VGABASE, 0x6C, BIT(7), BIT(7));
 	return 0;
 }
 

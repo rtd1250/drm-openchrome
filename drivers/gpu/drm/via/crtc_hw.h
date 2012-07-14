@@ -25,16 +25,16 @@
 #ifndef __CRTC_HW_H__
 #define __CRTC_HW_H__
 
-struct io_register {
+struct vga_regset {
 	u16 ioport;
 	u8 io_addr;
 	u8 start_bit;
 	u8 end_bit;
 };
 
-struct registers {
+struct vga_registers {
 	unsigned int count;
-	struct io_register *regs;
+	struct vga_regset *regs;
 };
 
 /************************************************
@@ -42,22 +42,41 @@ struct registers {
  ************************************************/
 
 struct crtc_timings {
-	struct registers htotal;
-	struct registers hdisplay;
-	struct registers hblank_start;
-	struct registers hblank_end;
-	struct registers hsync_start;
-	struct registers hsync_end;
-	struct registers vtotal;
-	struct registers vdisplay;
-	struct registers vblank_start;
-	struct registers vblank_end;
-	struct registers vsync_start;
-	struct registers vsync_end;
+	struct vga_registers htotal;
+	struct vga_registers hdisplay;
+	struct vga_registers hblank_start;
+	struct vga_registers hblank_end;
+	struct vga_registers hsync_start;
+	struct vga_registers hsync_end;
+	struct vga_registers vtotal;
+	struct vga_registers vdisplay;
+	struct vga_registers vblank_start;
+	struct vga_registers vblank_end;
+	struct vga_registers vsync_start;
+	struct vga_registers vsync_end;
 };
 
+/* Write a value to misc register with a mask */
+static inline void svga_wmisc_mask(void __iomem *regbase, u8 data, u8 mask)
+{
+	vga_w(regbase, VGA_MIS_W, (data & mask) | (vga_r(regbase, VGA_MIS_R) & ~mask));
+}
+
+/* Write a value to a sequence register with a mask */
+static inline void svga_wseq_mask(void __iomem *regbase, u8 index, u8 data, u8 mask)
+{
+	vga_wseq(regbase, index, (data & mask) | (vga_rseq(regbase, index) & ~mask));
+}
+
+/* Write a value to a CRT register with a mask */
+static inline void svga_wcrt_mask(void __iomem *regbase, u8 index, u8 data, u8 mask)
+{
+	vga_wcrt(regbase, index, (data & mask) | (vga_rcrt(regbase, index) & ~mask));
+}
+
 extern void regs_init(void __iomem *regs);
-extern void load_value_to_registers(void __iomem *regbase,
-					struct registers *regs, int value);
+extern void load_register_tables(void __iomem *regbase, struct vga_registers *regs);
+extern void load_value_to_registers(void __iomem *regbase, struct vga_registers *regs,
+					unsigned int value);
 
 #endif /* __CRTC_HW_H__ */
