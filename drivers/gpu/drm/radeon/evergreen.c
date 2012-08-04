@@ -99,6 +99,14 @@ void evergreen_fix_pci_max_read_req_size(struct radeon_device *rdev)
 	}
 }
 
+/**
+ * dce4_wait_for_vblank - vblank wait asic callback.
+ *
+ * @rdev: radeon_device pointer
+ * @crtc: crtc to wait for vblank on
+ *
+ * Wait for vblank on the requested crtc (evergreen+).
+ */
 void dce4_wait_for_vblank(struct radeon_device *rdev, int crtc)
 {
 	struct radeon_crtc *radeon_crtc = rdev->mode_info.crtcs[crtc];
@@ -118,18 +126,49 @@ void dce4_wait_for_vblank(struct radeon_device *rdev, int crtc)
 	}
 }
 
+/**
+ * radeon_irq_kms_pflip_irq_get - pre-pageflip callback.
+ *
+ * @rdev: radeon_device pointer
+ * @crtc: crtc to prepare for pageflip on
+ *
+ * Pre-pageflip callback (evergreen+).
+ * Enables the pageflip irq (vblank irq).
+ */
 void evergreen_pre_page_flip(struct radeon_device *rdev, int crtc)
 {
 	/* enable the pflip int */
 	radeon_irq_kms_pflip_irq_get(rdev, crtc);
 }
 
+/**
+ * evergreen_post_page_flip - pos-pageflip callback.
+ *
+ * @rdev: radeon_device pointer
+ * @crtc: crtc to cleanup pageflip on
+ *
+ * Post-pageflip callback (evergreen+).
+ * Disables the pageflip irq (vblank irq).
+ */
 void evergreen_post_page_flip(struct radeon_device *rdev, int crtc)
 {
 	/* disable the pflip int */
 	radeon_irq_kms_pflip_irq_put(rdev, crtc);
 }
 
+/**
+ * evergreen_page_flip - pageflip callback.
+ *
+ * @rdev: radeon_device pointer
+ * @crtc_id: crtc to cleanup pageflip on
+ * @crtc_base: new address of the crtc (GPU MC address)
+ *
+ * Does the actual pageflip (evergreen+).
+ * During vblank we take the crtc lock and wait for the update_pending
+ * bit to go high, when it does, we release the lock, and allow the
+ * double buffered update to take place.
+ * Returns the current update pending status.
+ */
 u32 evergreen_page_flip(struct radeon_device *rdev, int crtc_id, u64 crtc_base)
 {
 	struct radeon_crtc *radeon_crtc = rdev->mode_info.crtcs[crtc_id];
@@ -214,6 +253,15 @@ int sumo_get_temp(struct radeon_device *rdev)
 	return actual_temp * 1000;
 }
 
+/**
+ * sumo_pm_init_profile - Initialize power profiles callback.
+ *
+ * @rdev: radeon_device pointer
+ *
+ * Initialize the power states used in profile mode
+ * (sumo, trinity, SI).
+ * Used for profile mode only.
+ */
 void sumo_pm_init_profile(struct radeon_device *rdev)
 {
 	int idx;
@@ -265,6 +313,14 @@ void sumo_pm_init_profile(struct radeon_device *rdev)
 		rdev->pm.power_state[idx].num_clock_modes - 1;
 }
 
+/**
+ * evergreen_pm_misc - set additional pm hw parameters callback.
+ *
+ * @rdev: radeon_device pointer
+ *
+ * Set non-clock parameters associated with a power state
+ * (voltage, etc.) (evergreen+).
+ */
 void evergreen_pm_misc(struct radeon_device *rdev)
 {
 	int req_ps_idx = rdev->pm.requested_power_state_index;
@@ -292,6 +348,13 @@ void evergreen_pm_misc(struct radeon_device *rdev)
 	}
 }
 
+/**
+ * evergreen_pm_prepare - pre-power state change callback.
+ *
+ * @rdev: radeon_device pointer
+ *
+ * Prepare for a power state change (evergreen+).
+ */
 void evergreen_pm_prepare(struct radeon_device *rdev)
 {
 	struct drm_device *ddev = rdev->ddev;
@@ -310,6 +373,13 @@ void evergreen_pm_prepare(struct radeon_device *rdev)
 	}
 }
 
+/**
+ * evergreen_pm_finish - post-power state change callback.
+ *
+ * @rdev: radeon_device pointer
+ *
+ * Clean up after a power state change (evergreen+).
+ */
 void evergreen_pm_finish(struct radeon_device *rdev)
 {
 	struct drm_device *ddev = rdev->ddev;
@@ -328,6 +398,15 @@ void evergreen_pm_finish(struct radeon_device *rdev)
 	}
 }
 
+/**
+ * evergreen_hpd_sense - hpd sense callback.
+ *
+ * @rdev: radeon_device pointer
+ * @hpd: hpd (hotplug detect) pin
+ *
+ * Checks if a digital monitor is connected (evergreen+).
+ * Returns true if connected, false if not connected.
+ */
 bool evergreen_hpd_sense(struct radeon_device *rdev, enum radeon_hpd_id hpd)
 {
 	bool connected = false;
@@ -364,6 +443,14 @@ bool evergreen_hpd_sense(struct radeon_device *rdev, enum radeon_hpd_id hpd)
 	return connected;
 }
 
+/**
+ * evergreen_hpd_set_polarity - hpd set polarity callback.
+ *
+ * @rdev: radeon_device pointer
+ * @hpd: hpd (hotplug detect) pin
+ *
+ * Set the polarity of the hpd pin (evergreen+).
+ */
 void evergreen_hpd_set_polarity(struct radeon_device *rdev,
 				enum radeon_hpd_id hpd)
 {
@@ -424,6 +511,14 @@ void evergreen_hpd_set_polarity(struct radeon_device *rdev,
 	}
 }
 
+/**
+ * evergreen_hpd_init - hpd setup callback.
+ *
+ * @rdev: radeon_device pointer
+ *
+ * Setup the hpd pins used by the card (evergreen+).
+ * Enable the pin, set the polarity, and enable the hpd interrupts.
+ */
 void evergreen_hpd_init(struct radeon_device *rdev)
 {
 	struct drm_device *dev = rdev->ddev;
@@ -462,6 +557,14 @@ void evergreen_hpd_init(struct radeon_device *rdev)
 	radeon_irq_kms_enable_hpd(rdev, enabled);
 }
 
+/**
+ * evergreen_hpd_fini - hpd tear down callback.
+ *
+ * @rdev: radeon_device pointer
+ *
+ * Tear down the hpd pins used by the card (evergreen+).
+ * Disable the hpd interrupts.
+ */
 void evergreen_hpd_fini(struct radeon_device *rdev)
 {
 	struct drm_device *dev = rdev->ddev;
@@ -925,6 +1028,14 @@ static void evergreen_program_watermarks(struct radeon_device *rdev,
 
 }
 
+/**
+ * evergreen_bandwidth_update - update display watermarks callback.
+ *
+ * @rdev: radeon_device pointer
+ *
+ * Update the display watermarks based on the requested mode(s)
+ * (evergreen+).
+ */
 void evergreen_bandwidth_update(struct radeon_device *rdev)
 {
 	struct drm_display_mode *mode0 = NULL;
@@ -948,6 +1059,15 @@ void evergreen_bandwidth_update(struct radeon_device *rdev)
 	}
 }
 
+/**
+ * evergreen_mc_wait_for_idle - wait for MC idle callback.
+ *
+ * @rdev: radeon_device pointer
+ *
+ * Wait for the MC (memory controller) to be idle.
+ * (evergreen+).
+ * Returns 0 if the MC is idle, -1 if not.
+ */
 int evergreen_mc_wait_for_idle(struct radeon_device *rdev)
 {
 	unsigned i;
@@ -1364,11 +1484,27 @@ void evergreen_mc_program(struct radeon_device *rdev)
 void evergreen_ring_ib_execute(struct radeon_device *rdev, struct radeon_ib *ib)
 {
 	struct radeon_ring *ring = &rdev->ring[ib->ring];
+	u32 next_rptr;
 
 	/* set to DX10/11 mode */
 	radeon_ring_write(ring, PACKET3(PACKET3_MODE_CONTROL, 0));
 	radeon_ring_write(ring, 1);
-	/* FIXME: implement */
+
+	if (ring->rptr_save_reg) {
+		next_rptr = ring->wptr + 3 + 4;
+		radeon_ring_write(ring, PACKET3(PACKET3_SET_CONFIG_REG, 1));
+		radeon_ring_write(ring, ((ring->rptr_save_reg - 
+					  PACKET3_SET_CONFIG_REG_START) >> 2));
+		radeon_ring_write(ring, next_rptr);
+	} else if (rdev->wb.enabled) {
+		next_rptr = ring->wptr + 5 + 4;
+		radeon_ring_write(ring, PACKET3(PACKET3_MEM_WRITE, 3));
+		radeon_ring_write(ring, ring->next_rptr_gpu_addr & 0xfffffffc);
+		radeon_ring_write(ring, (upper_32_bits(ring->next_rptr_gpu_addr) & 0xff) | (1 << 18));
+		radeon_ring_write(ring, next_rptr);
+		radeon_ring_write(ring, 0);
+	}
+
 	radeon_ring_write(ring, PACKET3(PACKET3_INDIRECT_BUFFER, 2));
 	radeon_ring_write(ring,
 #ifdef __BIG_ENDIAN
@@ -2180,6 +2316,14 @@ static int evergreen_gpu_soft_reset(struct radeon_device *rdev)
 		RREG32(GRBM_STATUS_SE1));
 	dev_info(rdev->dev, "  SRBM_STATUS=0x%08X\n",
 		RREG32(SRBM_STATUS));
+	dev_info(rdev->dev, "  R_008674_CP_STALLED_STAT1 = 0x%08X\n",
+		RREG32(CP_STALLED_STAT1));
+	dev_info(rdev->dev, "  R_008678_CP_STALLED_STAT2 = 0x%08X\n",
+		RREG32(CP_STALLED_STAT2));
+	dev_info(rdev->dev, "  R_00867C_CP_BUSY_STAT     = 0x%08X\n",
+		RREG32(CP_BUSY_STAT));
+	dev_info(rdev->dev, "  R_008680_CP_STAT          = 0x%08X\n",
+		RREG32(CP_STAT));
 	evergreen_mc_stop(rdev, &save);
 	if (evergreen_mc_wait_for_idle(rdev)) {
 		dev_warn(rdev->dev, "Wait for MC idle timedout !\n");
@@ -2217,6 +2361,14 @@ static int evergreen_gpu_soft_reset(struct radeon_device *rdev)
 		RREG32(GRBM_STATUS_SE1));
 	dev_info(rdev->dev, "  SRBM_STATUS=0x%08X\n",
 		RREG32(SRBM_STATUS));
+	dev_info(rdev->dev, "  R_008674_CP_STALLED_STAT1 = 0x%08X\n",
+		RREG32(CP_STALLED_STAT1));
+	dev_info(rdev->dev, "  R_008678_CP_STALLED_STAT2 = 0x%08X\n",
+		RREG32(CP_STALLED_STAT2));
+	dev_info(rdev->dev, "  R_00867C_CP_BUSY_STAT     = 0x%08X\n",
+		RREG32(CP_BUSY_STAT));
+	dev_info(rdev->dev, "  R_008680_CP_STAT          = 0x%08X\n",
+		RREG32(CP_STAT));
 	evergreen_mc_resume(rdev, &save);
 	return 0;
 }
@@ -3087,13 +3239,11 @@ static int evergreen_startup(struct radeon_device *rdev)
 	if (r)
 		return r;
 
-	r = radeon_ib_pool_start(rdev);
-	if (r)
+	r = radeon_ib_pool_init(rdev);
+	if (r) {
+		dev_err(rdev->dev, "IB initialization failed (%d).\n", r);
 		return r;
-
-	r = radeon_ib_ring_tests(rdev);
-	if (r)
-		return r;
+	}
 
 	r = r600_audio_init(rdev);
 	if (r) {
@@ -3137,9 +3287,6 @@ int evergreen_suspend(struct radeon_device *rdev)
 	struct radeon_ring *ring = &rdev->ring[RADEON_RING_TYPE_GFX_INDEX];
 
 	r600_audio_fini(rdev);
-	/* FIXME: we should wait for ring to be empty */
-	radeon_ib_pool_suspend(rdev);
-	r600_blit_suspend(rdev);
 	r700_cp_stop(rdev);
 	ring->ready = false;
 	evergreen_irq_suspend(rdev);
@@ -3225,20 +3372,14 @@ int evergreen_init(struct radeon_device *rdev)
 	if (r)
 		return r;
 
-	r = radeon_ib_pool_init(rdev);
 	rdev->accel_working = true;
-	if (r) {
-		dev_err(rdev->dev, "IB initialization failed (%d).\n", r);
-		rdev->accel_working = false;
-	}
-
 	r = evergreen_startup(rdev);
 	if (r) {
 		dev_err(rdev->dev, "disabling GPU acceleration\n");
 		r700_cp_fini(rdev);
 		r600_irq_fini(rdev);
 		radeon_wb_fini(rdev);
-		r100_ib_fini(rdev);
+		radeon_ib_pool_fini(rdev);
 		radeon_irq_kms_fini(rdev);
 		evergreen_pcie_gart_fini(rdev);
 		rdev->accel_working = false;
@@ -3265,7 +3406,7 @@ void evergreen_fini(struct radeon_device *rdev)
 	r700_cp_fini(rdev);
 	r600_irq_fini(rdev);
 	radeon_wb_fini(rdev);
-	r100_ib_fini(rdev);
+	radeon_ib_pool_fini(rdev);
 	radeon_irq_kms_fini(rdev);
 	evergreen_pcie_gart_fini(rdev);
 	r600_vram_scratch_fini(rdev);
@@ -3280,7 +3421,8 @@ void evergreen_fini(struct radeon_device *rdev)
 
 void evergreen_pcie_gen2_enable(struct radeon_device *rdev)
 {
-	u32 link_width_cntl, speed_cntl;
+	u32 link_width_cntl, speed_cntl, mask;
+	int ret;
 
 	if (radeon_pcie_gen2 == 0)
 		return;
@@ -3294,6 +3436,15 @@ void evergreen_pcie_gen2_enable(struct radeon_device *rdev)
 	/* x2 cards have a special sequence */
 	if (ASIC_IS_X2(rdev))
 		return;
+
+	ret = drm_pcie_get_speed_cap_mask(rdev->ddev, &mask);
+	if (ret != 0)
+		return;
+
+	if (!(mask & DRM_PCIE_SPEED_50))
+		return;
+
+	DRM_INFO("enabling PCIE gen 2 link speeds, disable with radeon.pcie_gen2=0\n");
 
 	speed_cntl = RREG32_PCIE_P(PCIE_LC_SPEED_CNTL);
 	if ((speed_cntl & LC_OTHER_SIDE_EVER_SENT_GEN2) ||

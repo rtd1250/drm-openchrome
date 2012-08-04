@@ -239,7 +239,7 @@ void radeon_fence_process(struct radeon_device *rdev, int ring);
 bool radeon_fence_signaled(struct radeon_fence *fence);
 int radeon_fence_wait(struct radeon_fence *fence, bool interruptible);
 int radeon_fence_wait_next_locked(struct radeon_device *rdev, int ring);
-int radeon_fence_wait_empty_locked(struct radeon_device *rdev, int ring);
+void radeon_fence_wait_empty_locked(struct radeon_device *rdev, int ring);
 int radeon_fence_wait_any(struct radeon_device *rdev,
 			  struct radeon_fence **fences,
 			  bool intr);
@@ -362,7 +362,7 @@ struct radeon_bo_list {
  * alignment).
  */
 struct radeon_sa_manager {
-	spinlock_t		lock;
+	wait_queue_head_t	wq;
 	struct radeon_bo	*bo;
 	struct list_head	*hole;
 	struct list_head	flist[RADEON_NUM_RINGS];
@@ -622,6 +622,9 @@ struct radeon_ring {
 	unsigned		rptr;
 	unsigned		rptr_offs;
 	unsigned		rptr_reg;
+	unsigned		rptr_save_reg;
+	u64			next_rptr_gpu_addr;
+	volatile u32		*next_rptr_cpu_addr;
 	unsigned		wptr;
 	unsigned		wptr_old;
 	unsigned		wptr_reg;
@@ -637,6 +640,7 @@ struct radeon_ring {
 	u32			ptr_reg_shift;
 	u32			ptr_reg_mask;
 	u32			nop;
+	u32			idx;
 };
 
 /*
@@ -735,8 +739,6 @@ struct r600_blit {
 	u32 state_len;
 };
 
-void r600_blit_suspend(struct radeon_device *rdev);
-
 /*
  * SI RLC stuff
  */
@@ -752,14 +754,14 @@ struct si_rlc {
 int radeon_ib_get(struct radeon_device *rdev, int ring,
 		  struct radeon_ib *ib, unsigned size);
 void radeon_ib_free(struct radeon_device *rdev, struct radeon_ib *ib);
-int radeon_ib_schedule(struct radeon_device *rdev, struct radeon_ib *ib);
+int radeon_ib_schedule(struct radeon_device *rdev, struct radeon_ib *ib,
+		       struct radeon_ib *const_ib);
 int radeon_ib_pool_init(struct radeon_device *rdev);
 void radeon_ib_pool_fini(struct radeon_device *rdev);
-int radeon_ib_pool_start(struct radeon_device *rdev);
-int radeon_ib_pool_suspend(struct radeon_device *rdev);
 int radeon_ib_ring_tests(struct radeon_device *rdev);
 /* Ring access between begin & end cannot sleep */
-int radeon_ring_index(struct radeon_device *rdev, struct radeon_ring *cp);
+bool radeon_ring_supports_scratch_reg(struct radeon_device *rdev,
+				      struct radeon_ring *ring);
 void radeon_ring_free_size(struct radeon_device *rdev, struct radeon_ring *cp);
 int radeon_ring_alloc(struct radeon_device *rdev, struct radeon_ring *cp, unsigned ndw);
 int radeon_ring_lock(struct radeon_device *rdev, struct radeon_ring *cp, unsigned ndw);
@@ -771,6 +773,10 @@ int radeon_ring_test(struct radeon_device *rdev, struct radeon_ring *cp);
 void radeon_ring_force_activity(struct radeon_device *rdev, struct radeon_ring *ring);
 void radeon_ring_lockup_update(struct radeon_ring *ring);
 bool radeon_ring_test_lockup(struct radeon_device *rdev, struct radeon_ring *ring);
+unsigned radeon_ring_backup(struct radeon_device *rdev, struct radeon_ring *ring,
+			    uint32_t **data);
+int radeon_ring_restore(struct radeon_device *rdev, struct radeon_ring *ring,
+			unsigned size, uint32_t *data);
 int radeon_ring_init(struct radeon_device *rdev, struct radeon_ring *cp, unsigned ring_size,
 		     unsigned rptr_offs, unsigned rptr_reg, unsigned wptr_reg,
 		     u32 ptr_reg_shift, u32 ptr_reg_mask, u32 nop);
@@ -869,6 +875,7 @@ struct radeon_wb {
 };
 
 #define RADEON_WB_SCRATCH_OFFSET 0
+#define RADEON_WB_RING0_NEXT_RPTR 256
 #define RADEON_WB_CP_RPTR_OFFSET 1024
 #define RADEON_WB_CP1_RPTR_OFFSET 1280
 #define RADEON_WB_CP2_RPTR_OFFSET 1536
@@ -1446,6 +1453,7 @@ struct radeon_device {
 	struct device			*dev;
 	struct drm_device		*ddev;
 	struct pci_dev			*pdev;
+	struct rw_semaphore		exclusive_lock;
 	/* ASIC */
 	union radeon_asic_config	config;
 	enum radeon_family		family;
@@ -1762,8 +1770,6 @@ extern void radeon_ttm_set_active_vram_size(struct radeon_device *rdev, u64 size
  */
 int radeon_vm_manager_init(struct radeon_device *rdev);
 void radeon_vm_manager_fini(struct radeon_device *rdev);
-int radeon_vm_manager_start(struct radeon_device *rdev);
-int radeon_vm_manager_suspend(struct radeon_device *rdev);
 int radeon_vm_init(struct radeon_device *rdev, struct radeon_vm *vm);
 void radeon_vm_fini(struct radeon_device *rdev, struct radeon_vm *vm);
 int radeon_vm_bind(struct radeon_device *rdev, struct radeon_vm *vm);

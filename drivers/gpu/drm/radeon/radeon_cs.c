@@ -354,11 +354,11 @@ static int radeon_cs_ib_chunk(struct radeon_device *rdev,
 	}
 	radeon_cs_sync_rings(parser);
 	parser->ib.vm_id = 0;
-	r = radeon_ib_schedule(rdev, &parser->ib);
+	r = radeon_ib_schedule(rdev, &parser->ib, NULL);
 	if (r) {
 		DRM_ERROR("Failed to schedule IB !\n");
 	}
-	return 0;
+	return r;
 }
 
 static int radeon_bo_vm_update_pte(struct radeon_cs_parser *parser,
@@ -452,25 +452,24 @@ static int radeon_cs_ib_vm_chunk(struct radeon_device *rdev,
 	}
 	radeon_cs_sync_rings(parser);
 
+	parser->ib.vm_id = vm->id;
+	/* ib pool is bind at 0 in virtual address space,
+	 * so gpu_addr is the offset inside the pool bo
+	 */
+	parser->ib.gpu_addr = parser->ib.sa_bo->soffset;
+
 	if ((rdev->family >= CHIP_TAHITI) &&
 	    (parser->chunk_const_ib_idx != -1)) {
 		parser->const_ib.vm_id = vm->id;
-		/* ib pool is bind at 0 in virtual address space to gpu_addr is the
-		 * offset inside the pool bo
+		/* ib pool is bind at 0 in virtual address space,
+		 * so gpu_addr is the offset inside the pool bo
 		 */
 		parser->const_ib.gpu_addr = parser->const_ib.sa_bo->soffset;
-		r = radeon_ib_schedule(rdev, &parser->const_ib);
-		if (r)
-			goto out;
+		r = radeon_ib_schedule(rdev, &parser->ib, &parser->const_ib);
+	} else {
+		r = radeon_ib_schedule(rdev, &parser->ib, NULL);
 	}
 
-	parser->ib.vm_id = vm->id;
-	/* ib pool is bind at 0 in virtual address space to gpu_addr is the
-	 * offset inside the pool bo
-	 */
-	parser->ib.gpu_addr = parser->ib.sa_bo->soffset;
-	parser->ib.is_const_ib = false;
-	r = radeon_ib_schedule(rdev, &parser->ib);
 out:
 	if (!r) {
 		if (vm->fence) {
@@ -499,7 +498,9 @@ int radeon_cs_ioctl(struct drm_device *dev, void *data, struct drm_file *filp)
 	struct radeon_cs_parser parser;
 	int r;
 
+	down_read(&rdev->exclusive_lock);
 	if (!rdev->accel_working) {
+		up_read(&rdev->exclusive_lock);
 		return -EBUSY;
 	}
 	/* initialize parser */
@@ -512,6 +513,7 @@ int radeon_cs_ioctl(struct drm_device *dev, void *data, struct drm_file *filp)
 	if (r) {
 		DRM_ERROR("Failed to initialize parser !\n");
 		radeon_cs_parser_fini(&parser, r);
+		up_read(&rdev->exclusive_lock);
 		r = radeon_cs_handle_lockup(rdev, r);
 		return r;
 	}
@@ -520,6 +522,7 @@ int radeon_cs_ioctl(struct drm_device *dev, void *data, struct drm_file *filp)
 		if (r != -ERESTARTSYS)
 			DRM_ERROR("Failed to parse relocation %d!\n", r);
 		radeon_cs_parser_fini(&parser, r);
+		up_read(&rdev->exclusive_lock);
 		r = radeon_cs_handle_lockup(rdev, r);
 		return r;
 	}
@@ -533,6 +536,7 @@ int radeon_cs_ioctl(struct drm_device *dev, void *data, struct drm_file *filp)
 	}
 out:
 	radeon_cs_parser_fini(&parser, r);
+	up_read(&rdev->exclusive_lock);
 	r = radeon_cs_handle_lockup(rdev, r);
 	return r;
 }

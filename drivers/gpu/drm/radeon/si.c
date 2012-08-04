@@ -1765,10 +1765,31 @@ void si_ring_ib_execute(struct radeon_device *rdev, struct radeon_ib *ib)
 	struct radeon_ring *ring = &rdev->ring[ib->ring];
 	u32 header;
 
-	if (ib->is_const_ib)
+	if (ib->is_const_ib) {
+		/* set switch buffer packet before const IB */
+		radeon_ring_write(ring, PACKET3(PACKET3_SWITCH_BUFFER, 0));
+		radeon_ring_write(ring, 0);
+
 		header = PACKET3(PACKET3_INDIRECT_BUFFER_CONST, 2);
-	else
+	} else {
+		u32 next_rptr;
+		if (ring->rptr_save_reg) {
+			next_rptr = ring->wptr + 3 + 4 + 8;
+			radeon_ring_write(ring, PACKET3(PACKET3_SET_CONFIG_REG, 1));
+			radeon_ring_write(ring, ((ring->rptr_save_reg -
+						  PACKET3_SET_CONFIG_REG_START) >> 2));
+			radeon_ring_write(ring, next_rptr);
+		} else if (rdev->wb.enabled) {
+			next_rptr = ring->wptr + 5 + 4 + 8;
+			radeon_ring_write(ring, PACKET3(PACKET3_WRITE_DATA, 3));
+			radeon_ring_write(ring, (1 << 8));
+			radeon_ring_write(ring, ring->next_rptr_gpu_addr & 0xfffffffc);
+			radeon_ring_write(ring, upper_32_bits(ring->next_rptr_gpu_addr) & 0xffffffff);
+			radeon_ring_write(ring, next_rptr);
+		}
+
 		header = PACKET3(PACKET3_INDIRECT_BUFFER, 2);
+	}
 
 	radeon_ring_write(ring, header);
 	radeon_ring_write(ring,
@@ -1779,18 +1800,20 @@ void si_ring_ib_execute(struct radeon_device *rdev, struct radeon_ib *ib)
 	radeon_ring_write(ring, upper_32_bits(ib->gpu_addr) & 0xFFFF);
 	radeon_ring_write(ring, ib->length_dw | (ib->vm_id << 24));
 
-	/* flush read cache over gart for this vmid */
-	radeon_ring_write(ring, PACKET3(PACKET3_SET_CONFIG_REG, 1));
-	radeon_ring_write(ring, (CP_COHER_CNTL2 - PACKET3_SET_CONFIG_REG_START) >> 2);
-	radeon_ring_write(ring, ib->vm_id);
-	radeon_ring_write(ring, PACKET3(PACKET3_SURFACE_SYNC, 3));
-	radeon_ring_write(ring, PACKET3_TCL1_ACTION_ENA |
-			  PACKET3_TC_ACTION_ENA |
-			  PACKET3_SH_KCACHE_ACTION_ENA |
-			  PACKET3_SH_ICACHE_ACTION_ENA);
-	radeon_ring_write(ring, 0xFFFFFFFF);
-	radeon_ring_write(ring, 0);
-	radeon_ring_write(ring, 10); /* poll interval */
+	if (!ib->is_const_ib) {
+		/* flush read cache over gart for this vmid */
+		radeon_ring_write(ring, PACKET3(PACKET3_SET_CONFIG_REG, 1));
+		radeon_ring_write(ring, (CP_COHER_CNTL2 - PACKET3_SET_CONFIG_REG_START) >> 2);
+		radeon_ring_write(ring, ib->vm_id);
+		radeon_ring_write(ring, PACKET3(PACKET3_SURFACE_SYNC, 3));
+		radeon_ring_write(ring, PACKET3_TCL1_ACTION_ENA |
+				  PACKET3_TC_ACTION_ENA |
+				  PACKET3_SH_KCACHE_ACTION_ENA |
+				  PACKET3_SH_ICACHE_ACTION_ENA);
+		radeon_ring_write(ring, 0xFFFFFFFF);
+		radeon_ring_write(ring, 0);
+		radeon_ring_write(ring, 10); /* poll interval */
+	}
 }
 
 /*
@@ -1917,10 +1940,20 @@ static int si_cp_start(struct radeon_device *rdev)
 
 static void si_cp_fini(struct radeon_device *rdev)
 {
+	struct radeon_ring *ring;
 	si_cp_enable(rdev, false);
-	radeon_ring_fini(rdev, &rdev->ring[RADEON_RING_TYPE_GFX_INDEX]);
-	radeon_ring_fini(rdev, &rdev->ring[CAYMAN_RING_TYPE_CP1_INDEX]);
-	radeon_ring_fini(rdev, &rdev->ring[CAYMAN_RING_TYPE_CP2_INDEX]);
+
+	ring = &rdev->ring[RADEON_RING_TYPE_GFX_INDEX];
+	radeon_ring_fini(rdev, ring);
+	radeon_scratch_free(rdev, ring->rptr_save_reg);
+
+	ring = &rdev->ring[CAYMAN_RING_TYPE_CP1_INDEX];
+	radeon_ring_fini(rdev, ring);
+	radeon_scratch_free(rdev, ring->rptr_save_reg);
+
+	ring = &rdev->ring[CAYMAN_RING_TYPE_CP2_INDEX];
+	radeon_ring_fini(rdev, ring);
+	radeon_scratch_free(rdev, ring->rptr_save_reg);
 }
 
 static int si_cp_resume(struct radeon_device *rdev)
@@ -3750,34 +3783,17 @@ static int si_startup(struct radeon_device *rdev)
 	if (r)
 		return r;
 
-	r = radeon_ib_pool_start(rdev);
-	if (r)
-		return r;
-
-	r = radeon_ib_test(rdev, RADEON_RING_TYPE_GFX_INDEX, &rdev->ring[RADEON_RING_TYPE_GFX_INDEX]);
+	r = radeon_ib_pool_init(rdev);
 	if (r) {
-		DRM_ERROR("radeon: failed testing IB (%d) on CP ring 0\n", r);
-		rdev->accel_working = false;
+		dev_err(rdev->dev, "IB initialization failed (%d).\n", r);
 		return r;
 	}
 
-	r = radeon_ib_test(rdev, CAYMAN_RING_TYPE_CP1_INDEX, &rdev->ring[CAYMAN_RING_TYPE_CP1_INDEX]);
+	r = radeon_vm_manager_init(rdev);
 	if (r) {
-		DRM_ERROR("radeon: failed testing IB (%d) on CP ring 1\n", r);
-		rdev->accel_working = false;
+		dev_err(rdev->dev, "vm manager initialization failed (%d).\n", r);
 		return r;
 	}
-
-	r = radeon_ib_test(rdev, CAYMAN_RING_TYPE_CP2_INDEX, &rdev->ring[CAYMAN_RING_TYPE_CP2_INDEX]);
-	if (r) {
-		DRM_ERROR("radeon: failed testing IB (%d) on CP ring 2\n", r);
-		rdev->accel_working = false;
-		return r;
-	}
-
-	r = radeon_vm_manager_start(rdev);
-	if (r)
-		return r;
 
 	return 0;
 }
@@ -3807,12 +3823,6 @@ int si_resume(struct radeon_device *rdev)
 
 int si_suspend(struct radeon_device *rdev)
 {
-	/* FIXME: we should wait for ring to be empty */
-	radeon_ib_pool_suspend(rdev);
-	radeon_vm_manager_suspend(rdev);
-#if 0
-	r600_blit_suspend(rdev);
-#endif
 	si_cp_enable(rdev, false);
 	rdev->ring[RADEON_RING_TYPE_GFX_INDEX].ready = false;
 	rdev->ring[CAYMAN_RING_TYPE_CP1_INDEX].ready = false;
@@ -3901,17 +3911,7 @@ int si_init(struct radeon_device *rdev)
 	if (r)
 		return r;
 
-	r = radeon_ib_pool_init(rdev);
 	rdev->accel_working = true;
-	if (r) {
-		dev_err(rdev->dev, "IB initialization failed (%d).\n", r);
-		rdev->accel_working = false;
-	}
-	r = radeon_vm_manager_init(rdev);
-	if (r) {
-		dev_err(rdev->dev, "vm manager initialization failed (%d).\n", r);
-	}
-
 	r = si_startup(rdev);
 	if (r) {
 		dev_err(rdev->dev, "disabling GPU acceleration\n");
@@ -3919,7 +3919,7 @@ int si_init(struct radeon_device *rdev)
 		si_irq_fini(rdev);
 		si_rlc_fini(rdev);
 		radeon_wb_fini(rdev);
-		r100_ib_fini(rdev);
+		radeon_ib_pool_fini(rdev);
 		radeon_vm_manager_fini(rdev);
 		radeon_irq_kms_fini(rdev);
 		si_pcie_gart_fini(rdev);
@@ -3948,7 +3948,7 @@ void si_fini(struct radeon_device *rdev)
 	si_rlc_fini(rdev);
 	radeon_wb_fini(rdev);
 	radeon_vm_manager_fini(rdev);
-	r100_ib_fini(rdev);
+	radeon_ib_pool_fini(rdev);
 	radeon_irq_kms_fini(rdev);
 	si_pcie_gart_fini(rdev);
 	r600_vram_scratch_fini(rdev);

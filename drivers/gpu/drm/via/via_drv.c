@@ -589,22 +589,11 @@ static int via_final_context(struct drm_device *dev, int context)
 	return 1;
 }
 
-static void via_lastclose(struct drm_device *dev)
-{
-	struct drm_via_private *dev_priv = dev->dev_private;
-
-	if (!dev_priv)
-		return;
-}
-
 static void via_reclaim_buffers_locked(struct drm_device *dev,
 					struct drm_file *filp)
 {
 	mutex_lock(&dev->struct_mutex);
-
-	if (dev->driver->dma_quiescent)
-		dev->driver->dma_quiescent(dev);
-
+	via_driver_dma_quiescent(dev);
 	mutex_unlock(&dev->struct_mutex);
 	return;
 }
@@ -626,6 +615,7 @@ static struct drm_driver via_driver = {
 		DRIVER_GEM | DRIVER_IRQ_SHARED,
 	.load = via_driver_load,
 	.unload = via_driver_unload,
+	.preclose = via_reclaim_buffers_locked,
 	.context_dtor = via_final_context,
 	.get_vblank_counter = drm_vblank_count,
 	.enable_vblank = via_enable_vblank,
@@ -635,10 +625,6 @@ static struct drm_driver via_driver = {
 	.irq_uninstall = via_driver_irq_uninstall,
 	.irq_handler = via_driver_irq_handler,
 	.dma_quiescent = via_driver_dma_quiescent,
-	.reclaim_buffers = drm_core_reclaim_buffers,
-	.reclaim_buffers_locked = NULL,
-	.reclaim_buffers_idlelocked = via_reclaim_buffers_locked,
-	.lastclose = via_lastclose,
 	.gem_init_object = ttm_gem_init_object,
 	.gem_free_object = ttm_gem_free_object,
 	.dumb_create = via_dumb_create,
