@@ -417,7 +417,7 @@ static const struct drm_crtc_funcs via_iga2_funcs = {
 };
 
 static void
-via_load_FIFO_reg(struct via_crtc *iga, struct drm_display_mode *mode)
+via_load_fifo_reg(struct via_crtc *iga, struct drm_display_mode *mode)
 {
 	struct drm_device *dev = iga->base.dev;
 	int queue_expire_num = iga->display_queue_expire_num, reg_value;
@@ -432,11 +432,11 @@ via_load_FIFO_reg(struct via_crtc *iga, struct drm_display_mode *mode)
 		queue_expire_num = 16;
 
         if (!iga->index) {
-		/* Set Display FIFO Depth Select */
+		/* Set IGA1 Display FIFO Depth Select */
 		reg_value = IGA1_FIFO_DEPTH_SELECT_FORMULA(iga->fifo_max_depth);
 		load_value_to_registers(VGABASE, &iga->fifo_depth, reg_value);
         } else {
-		/* Set Display FIFO Depth Select */
+		/* Set IGA2 Display FIFO Depth Select */
 		reg_value = IGA2_FIFO_DEPTH_SELECT_FORMULA(iga->fifo_max_depth);
 		if (dev->pdev->device == PCI_DEVICE_ID_VIA_K8M800)
 			reg_value--;
@@ -465,6 +465,14 @@ void via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 	via_unlock_crt(VGABASE, dev->pdev->device);
 
 	if (!iga->index) {
+		if (dev->pdev->device == PCI_DEVICE_ID_VIA_VX900) {
+			/* Disable IGA1 shadow timing */
+			svga_wcrt_mask(VGABASE, 0x45, 0x00, BIT(0));
+
+			/* Disable IGA1 pixel timing */
+			svga_wcrt_mask(VGABASE, 0xFD, 0x00, BIT(6) | BIT(5));
+		}
+
 		reg_value = IGA1_HOR_TOTAL_FORMULA(mode->crtc_htotal);
 		load_value_to_registers(VGABASE, &iga->timings.htotal, reg_value);
 
@@ -500,15 +508,8 @@ void via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 
 		reg_value = IGA1_VER_SYNC_END_FORMULA(mode->crtc_vsync_end);
 		load_value_to_registers(VGABASE, &iga->timings.vsync_end, reg_value);
+
 	} else {
-		if (dev->pdev->device == PCI_DEVICE_ID_VIA_VX900) {
-			/* Disable IGA1 shadow timing */
-			svga_wcrt_mask(VGABASE, 0x45, 0x00, BIT(0));
-
-			/* Disable IGA1 pixel timing */
-			svga_wcrt_mask(VGABASE, 0xFD, 0x00, BIT(6) | BIT(5));
-		}
-
 		reg_value = IGA2_HOR_TOTAL_FORMULA(mode->crtc_htotal);
 		load_value_to_registers(VGABASE, &iga->timings.htotal, reg_value);
 
@@ -645,7 +646,6 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	struct drm_framebuffer *fb = crtc->fb;
 	struct drm_device *dev = crtc->dev;
-	int value;
 
 	if (!fb)
 		fb = old_fb;
@@ -702,19 +702,10 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 	via_lock_crt(VGABASE);
 	svga_wcrt_mask(VGABASE, 0x17, BIT(7), BIT(7));
 
-	/* Load Fetch registers */
-	if (!iga->index)
-		value = IGA1_FETCH_COUNT_FORMULA(mode->hdisplay,
-						fb->bits_per_pixel / 8);
-	else
-		value = IGA2_FETCH_COUNT_FORMULA(mode->hdisplay,
-						fb->bits_per_pixel / 8);
-	load_value_to_registers(VGABASE, &iga->fetch, value);
-
 	/* Load FIFO */
 	if ((dev->pdev->device != PCI_DEVICE_ID_VIA_CLE266) &&
 	    (dev->pdev->device != PCI_DEVICE_ID_VIA_KM400)) {
-		via_load_FIFO_reg(iga, mode);
+		via_load_fifo_reg(iga, mode);
 	} else if (adjusted_mode->hdisplay == 1024 &&
 		   adjusted_mode->vdisplay == 768) {
 		/* Update Patch Register */
@@ -769,6 +760,7 @@ static int
 via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 				int x, int y, enum mode_set_atomic state)
 {
+	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	struct drm_gem_object *obj = fb->helper_private;
 	struct ttm_buffer_object *bo = obj->driver_private;
@@ -790,20 +782,17 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	value = (vga_rcrt(VGABASE, 0x48) & ~0x1F);
 	vga_wcrt(VGABASE, 0x48, ((addr >> 24) & 0x1F) | value);
 
-	/* Fetch register handling *
-	pitch = ((fb->pitch * (fb->bits_per_pixel >> 3)) >> 4) + 4;
-	vga_wseq(VGABASE, 0x1C, (pitch & 7));
-	vga_wseq(VGABASE, 0x1D, ((pitch >> 3) & 0x03));*/
+	/* Load Fetch registers */
+	pitch = ALIGN((crtc->mode.hdisplay * fb->bits_per_pixel >> 3), 16) >> 4;
+	load_value_to_registers(VGABASE, &iga->fetch, pitch);
 
 	if ((state == ENTER_ATOMIC_MODE_SET) ||
 	     crtc->fb->pitches[0] != fb->pitches[0]) {
 		/* Spec does not say that first adapter skips 3 bits but old
 		 * code did it and seems to be reasonable in analogy to
 		 * second adapter */
-		pitch = fb->pitches[0] >> 3;
-		vga_wcrt(VGABASE, 0x13, pitch & 0xFF);
-		value = (vga_rcrt(VGABASE, 0x35) & ~0xE0);
-		vga_wcrt(VGABASE, 0x35, ((pitch >> 3) & 0xE0) | value);
+		load_value_to_registers(VGABASE, &iga->offset,
+					ALIGN(fb->pitches[0], 16) >> 3);
 	}
 
 	if ((state == ENTER_ATOMIC_MODE_SET) || crtc->fb->depth != fb->depth) {
@@ -836,6 +825,7 @@ static int
 via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 				int x, int y, enum mode_set_atomic state)
 {
+	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	struct drm_gem_object *obj = fb->helper_private;
 	struct ttm_buffer_object *bo = obj->driver_private;
@@ -853,15 +843,15 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	value = (vga_rcrt(VGABASE, 0xA3) & ~0x07);
 	vga_wcrt(VGABASE, 0xA3, ((addr >> 26) & 0x07) | value);
 
+	/* Load Fetch registers */
+	pitch = ALIGN((crtc->mode.hdisplay * fb->bits_per_pixel >> 3), 16) >> 4;
+	load_value_to_registers(VGABASE, &iga->fetch, pitch);
+
 	if ((state == ENTER_ATOMIC_MODE_SET) ||
 	     crtc->fb->pitches[0] != fb->pitches[0]) {
 		/* Set secondary pitch */
-		pitch = fb->pitches[0] >> 3;
-		vga_wcrt(VGABASE, 0x66, pitch & 0xFF);
-		value = (vga_rcrt(VGABASE, 0x67) & ~0x03);
-		vga_wcrt(VGABASE, 0x67, ((pitch >> 8) & 0x03) | value);
-		value = (vga_rcrt(VGABASE, 0x71) & ~0x80);
-		vga_wcrt(VGABASE, 0x71, ((pitch >> 3) & 0x80) | value);
+		load_value_to_registers(VGABASE, &iga->offset,
+					ALIGN(fb->pitches[0], 16) >> 3);
 	}
 
 	if ((state == ENTER_ATOMIC_MODE_SET) || crtc->fb->depth != fb->depth) {
@@ -932,7 +922,6 @@ via_crtc_init(struct drm_device *dev, int index)
 	struct drm_crtc *crtc = &iga->base;
 	int cursor_size = 64 * 64 * 4;
 
-	memset(iga, 0, sizeof(struct via_crtc));
 	iga->index = index;
 	if (index) {
 		drm_crtc_init(dev, crtc, &via_iga2_funcs);
@@ -958,11 +947,11 @@ via_crtc_init(struct drm_device *dev, int index)
 		iga->timings.hblank_end.count = ARRAY_SIZE(iga2_hor_blank_end);
 		iga->timings.hblank_end.regs = iga2_hor_blank_end;
 
-		if (PCI_DEVICE_ID_VIA_CN700 <= dev->pdev->device)
-			iga->timings.hsync_start.count = ARRAY_SIZE(iga2_hor_sync_start);
-		else
-			iga->timings.hsync_start.count = 3;
+		iga->timings.hsync_start.count = ARRAY_SIZE(iga2_hor_sync_start);
 		iga->timings.hsync_start.regs = iga2_hor_sync_start;
+		if (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266 ||
+		    dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)
+			iga->timings.hsync_start.count--;
 
 		iga->timings.hsync_end.count = ARRAY_SIZE(iga2_hor_sync_end);
 		iga->timings.hsync_end.regs = iga2_hor_sync_end;
@@ -1000,6 +989,10 @@ via_crtc_init(struct drm_device *dev, int index)
 
 		iga->fetch.count = ARRAY_SIZE(iga2_fetch_count);
 		iga->fetch.regs = iga2_fetch_count;
+
+		/* Older hardware only uses 12 bits */
+		iga->offset.count = ARRAY_SIZE(iga2_offset) - 1;
+		iga->offset.regs = iga2_offset;
 
 		switch (dev->pdev->device) {
 		case PCI_DEVICE_ID_VIA_K8M800:
@@ -1060,6 +1053,7 @@ via_crtc_init(struct drm_device *dev, int index)
 			iga->fifo_high_threshold = 32;
 			iga->fifo_threshold = 64;
 			iga->fifo_max_depth = 96;
+			iga->offset.count++;
 			break;
 
 		// VX855
@@ -1067,6 +1061,7 @@ via_crtc_init(struct drm_device *dev, int index)
 			iga->fifo_high_threshold = iga->fifo_threshold = 160;
 			iga->display_queue_expire_num = 320;
 			iga->fifo_max_depth = 200;
+			iga->offset.count++;
 			break;
 
 		// VX900
@@ -1074,6 +1069,7 @@ via_crtc_init(struct drm_device *dev, int index)
 			iga->fifo_high_threshold = iga->fifo_threshold = 160;
 			iga->display_queue_expire_num = 320;
 			iga->fifo_max_depth = 192;
+			iga->offset.count++;
 		default:
 			break;
 		}
@@ -1136,6 +1132,9 @@ via_crtc_init(struct drm_device *dev, int index)
 
 		iga->fetch.count = ARRAY_SIZE(iga1_fetch_count);
 		iga->fetch.regs = iga1_fetch_count;
+
+		iga->offset.count = ARRAY_SIZE(iga1_offset);
+		iga->offset.regs = iga1_offset;
 
 		switch (dev->pdev->device) {
 		case PCI_DEVICE_ID_VIA_K8M800:

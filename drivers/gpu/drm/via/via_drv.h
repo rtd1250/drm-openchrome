@@ -101,7 +101,6 @@ struct via_crtc {
 	struct drm_crtc base;
 	struct ttm_bo_kmap_obj cursor_kmap;
 	struct crtc_timings timings;
-	struct vga_registers fetch;
 	unsigned int display_queue_expire_num;
 	unsigned int fifo_high_threshold;
 	unsigned int fifo_threshold;
@@ -110,7 +109,9 @@ struct via_crtc {
 	struct vga_registers high_threshold;
 	struct vga_registers threshold;
 	struct vga_registers fifo_depth;
-	uint32_t index;
+	struct vga_registers offset;
+	struct vga_registers fetch;
+	uint8_t index;
 };
 
 #define DISP_DI_NONE		0x00
