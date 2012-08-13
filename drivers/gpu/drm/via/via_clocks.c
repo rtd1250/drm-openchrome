@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 James Simmons <jsimmons@infradead.org>
+ * Copyright 2012 James Simmons <jsimmons@infradead.org>
  *
  * Based on code for the viafb driver.
  * Copyright 1998-2008 VIA Technologies, Inc. All Rights Reserved.
@@ -15,11 +15,6 @@
  * the implied warranty of MERCHANTABILITY or FITNESS FOR
  * A PARTICULAR PURPOSE.See the GNU General Public License
  * for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc.,
- * 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
 #include "drmP.h"

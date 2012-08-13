@@ -1,5 +1,5 @@
 /*
- * Copyright © 2011 James Simmons
+ * Copyright © 2012 James Simmons
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),

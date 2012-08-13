@@ -1,6 +1,6 @@
 /**************************************************************************
  *
- * Copyright (c) 2011 James Simmons <jsimmons@infradead.org>
+ * Copyright (c) 2012 James Simmons <jsimmons@infradead.org>
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
