@@ -38,6 +38,7 @@ void ttm_gem_free_object(struct drm_gem_object *obj)
 		ttm_bo_unref(&bo);
 	}
 	drm_gem_object_release(obj);
+	kfree(obj);
 }
 
 int ttm_mmap(struct file *filp, struct vm_area_struct *vma)
@@ -59,8 +60,7 @@ int ttm_mmap(struct file *filp, struct vm_area_struct *vma)
 struct drm_gem_object *
 ttm_gem_create(struct drm_device *dev, struct ttm_bo_device *bdev, int types,
 		bool interruptible, int byte_align, int page_align,
-		unsigned long start, unsigned long size,
-                void (*destroy) (struct ttm_buffer_object *))
+		unsigned long start, unsigned long size)
 {
 	struct ttm_buffer_object *bo = NULL;
 	struct drm_gem_object *obj;
@@ -75,7 +75,7 @@ ttm_gem_create(struct drm_device *dev, struct ttm_bo_device *bdev, int types,
 
 	ret = ttm_bo_allocate(bdev, size, ttm_bo_type_device, types,
 				byte_align, page_align, start, interruptible,
-				destroy, obj->filp, &bo);
+				obj->filp, &bo);
 	if (ret) {
 		DRM_ERROR("Failed to create buffer object\n");
 		kfree(obj);

@@ -122,8 +122,7 @@ via_allocate_pcie_gart_table(struct drm_via_private *dev_priv)
 
 	ret = ttm_bo_allocate(&dev_priv->bdev, size, ttm_bo_type_kernel,
 				TTM_PL_FLAG_VRAM | TTM_PL_FLAG_NO_EVICT,
-				1, PAGE_SIZE, 0, false, via_ttm_bo_destroy,
-				NULL, &bo);
+				1, PAGE_SIZE, 0, false, NULL, &bo);
 	if (unlikely(ret))
 		goto err;
 
@@ -168,8 +167,7 @@ via_init_vq(struct drm_via_private *dev_priv)
 	/* allocate vq bo */
 	ret = ttm_bo_allocate(&dev_priv->bdev, size, ttm_bo_type_kernel,
 				TTM_PL_FLAG_VRAM | TTM_PL_FLAG_NO_EVICT,
-				1, PAGE_SIZE, 0, false, via_ttm_bo_destroy,
-				NULL, &bo);
+				1, PAGE_SIZE, 0, false, NULL, &bo);
 	if (unlikely(ret))
 		goto err;
 
@@ -228,9 +226,7 @@ via_mmio_setup(struct drm_device *dev)
 		return ret;
 
 	ret = ttm_bo_allocate(&dev_priv->bdev, VIA_MMIO_REGSIZE, ttm_bo_type_kernel,
-				TTM_PL_FLAG_PRIV0, 1, PAGE_SIZE,
-				0, false, via_ttm_bo_destroy,
-				NULL, &bo);
+				TTM_PL_FLAG_PRIV0, 1, PAGE_SIZE, 0, false, NULL, &bo);
 	if (ret)
 		goto err;
 
@@ -420,8 +416,7 @@ static int via_dumb_create(struct drm_file *filp, struct drm_device *dev,
 	args->pitch = round_up(args->width * (args->bpp >> 3), 16);
 	args->size = args->pitch * args->height;
 	obj = ttm_gem_create(dev, &dev_priv->bdev, TTM_PL_FLAG_VRAM,
-				false, 16, PAGE_SIZE, 0, args->size,
-				via_ttm_bo_destroy);
+				false, 16, PAGE_SIZE, 0, args->size);
 	if (obj && obj->driver_private) {
 		ret = drm_gem_handle_create(filp, obj, &args->handle);
 		/* drop reference from allocate - handle holds it now */

@@ -430,12 +430,6 @@ static struct ttm_bo_driver via_bo_driver = {
 	.io_mem_free		= via_ttm_io_mem_free,
 };
 
-void
-via_ttm_bo_destroy(struct ttm_buffer_object *bo)
-{
-	kfree(bo);
-}
-
 int via_ttm_init(struct drm_via_private *dev_priv)
 {
 	int ret = ttm_global_init(&dev_priv->mem_global_ref,

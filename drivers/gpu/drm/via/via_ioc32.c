@@ -142,7 +142,7 @@ static int via_mem_alloc(struct drm_device *dev, void *data,
 	 */
 	obj = ttm_gem_create(dev, &dev_priv->bdev, type, false,
 				VIA_MM_ALIGN_SIZE, PAGE_SIZE, start,
-				mem->size, via_ttm_bo_destroy);
+				mem->size);
 	if (!obj)
 		return ret;
 
@@ -187,8 +187,7 @@ via_gem_alloc(struct drm_device *dev, void *data,
 	int ret = -ENOMEM;
 
 	obj = ttm_gem_create(dev, &dev_priv->bdev, args->domains, false,
-				args->alignment, PAGE_SIZE, 0, args->size,
-				via_ttm_bo_destroy);
+				args->alignment, PAGE_SIZE, 0, args->size);
 	if (obj && obj->driver_private) {
 		ret = drm_gem_handle_create(filp, obj, &args->handle);
 		/* drop reference from allocate - handle holds it now */

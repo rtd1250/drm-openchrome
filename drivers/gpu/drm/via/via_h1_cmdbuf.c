@@ -164,8 +164,7 @@ static int via_initialize(struct drm_device *dev,
 
 	ret = ttm_bo_allocate(&dev_priv->bdev, init->size, ttm_bo_type_kernel,
 				TTM_PL_FLAG_TT, VIA_MM_ALIGN_SIZE, PAGE_SIZE,
-				init->offset, false, via_ttm_bo_destroy,
-				NULL, &bo);
+				init->offset, false, NULL, &bo);
 	if (!ret) {
 		ret = ttm_bo_pin(bo, &dev_priv->dmabuf);
 		if (ret)

@@ -221,7 +221,6 @@ extern int via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **p
 extern void via_framebuffer_fini(struct drm_fb_helper *helper);
 
 extern int via_ttm_init(struct drm_via_private *dev_priv);
-extern void via_ttm_bo_destroy(struct ttm_buffer_object *bo);
 extern struct ttm_tt *via_sgdma_backend_init(struct ttm_bo_device *bdev, unsigned long size,
 					uint32_t page_flags, struct page *dummy_read_page);
 
@@ -238,7 +237,6 @@ extern int ttm_bo_allocate(struct ttm_bo_device *bdev, unsigned long size,
 				enum ttm_bo_type origin, int types,
 				uint32_t byte_align, uint32_t page_align,
 				unsigned long buffer_start, bool interruptible,
-				void (*destroy) (struct ttm_buffer_object *),
 				struct file *persistant_swap_storage,
 				struct ttm_buffer_object **p_bo);
 extern int ttm_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap);
@@ -251,8 +249,7 @@ extern struct drm_gem_object *ttm_gem_create(struct drm_device *dev,
 					struct ttm_bo_device *bdev, int type,
 					bool interruptible,
 					int byte_align, int page_align,
-					unsigned long start, unsigned long size,
-					void (*destroy) (struct ttm_buffer_object *));
+					unsigned long start, unsigned long size);
 
 extern int via_enable_vblank(struct drm_device *dev, int crtc);
 extern void via_disable_vblank(struct drm_device *dev, int crtc);

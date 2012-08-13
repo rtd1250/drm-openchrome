@@ -1015,7 +1015,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 	obj = drm_gem_object_alloc(helper->dev, size);
 	ret = ttm_bo_allocate(&dev_priv->bdev, size, ttm_bo_type_kernel,
 				TTM_PL_FLAG_VRAM, 1, PAGE_SIZE, 0, false,
-				via_ttm_bo_destroy, obj->filp, &kmap->bo);
+				obj->filp, &kmap->bo);
 	if (ret)
 		goto out_err;
 	obj->driver_private = kmap->bo;

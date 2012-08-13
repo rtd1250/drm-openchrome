@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 James Simmons
+ * Copyright (c) 2012 James Simmons
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -106,6 +106,15 @@ ttm_global_init(struct drm_global_reference *global_ref,
 	return rc;
 }
 
+static void
+ttm_buffer_object_destroy(struct ttm_buffer_object *bo)
+{
+	struct ttm_heap *heap = container_of(bo, struct ttm_heap, pbo);
+
+	kfree(heap);
+	heap = NULL;
+}
+
 int
 ttm_bo_allocate(struct ttm_bo_device *bdev,
 		unsigned long size,
@@ -115,7 +124,6 @@ ttm_bo_allocate(struct ttm_bo_device *bdev,
 		uint32_t page_align,
 		unsigned long buffer_start,
 		bool interruptible,
-		void (*destroy) (struct ttm_buffer_object *),
 		struct file *persistant_swap_storage,
 		struct ttm_buffer_object **p_bo)
 {
@@ -165,7 +173,7 @@ ttm_bo_allocate(struct ttm_bo_device *bdev,
 	ret = ttm_bo_init(bdev, bo, size, origin, placement,
 				page_align >> PAGE_SHIFT, buffer_start,
 				interruptible, persistant_swap_storage,
-				acc_size, NULL, destroy);
+				acc_size, NULL, ttm_buffer_object_destroy);
 	if (!ret)
 		*p_bo = bo;
 	else
