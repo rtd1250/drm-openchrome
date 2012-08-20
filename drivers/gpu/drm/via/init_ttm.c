@@ -29,8 +29,9 @@
 #define DRM_FILE_PAGE_OFFSET (0x100000000ULL >> PAGE_SHIFT)
 
 struct ttm_heap {
-        struct ttm_placement placement;
-        struct ttm_buffer_object pbo;
+	uint32_t busy_placements[TTM_NUM_MEM_TYPES];
+	uint32_t placements[TTM_NUM_MEM_TYPES];
+	struct ttm_buffer_object pbo;
 };
 
 static int
@@ -115,69 +116,79 @@ ttm_buffer_object_destroy(struct ttm_buffer_object *bo)
 	heap = NULL;
 }
 
+/*
+ * the buffer object domain
+ */
+void
+ttm_placement_from_domain(struct ttm_buffer_object *bo, struct ttm_placement *placement, u32 domains,
+                                struct ttm_bo_device *bdev)
+{
+	struct ttm_heap *heap = container_of(bo, struct ttm_heap, pbo);
+	int cnt = 0, i = 0;
+
+	if (!domains) domains = TTM_PL_FLAG_SYSTEM;
+
+	do {
+		int domain = (domains & (1 << i));
+
+		if (domain) {
+			heap->busy_placements[cnt] = (domain | bdev->man[i].default_caching);
+			heap->placements[cnt++] = (domain | bdev->man[i].available_caching);
+		}
+	} while (i++ < TTM_NUM_MEM_TYPES);
+
+	placement->num_busy_placement = placement->num_placement = cnt;
+	placement->busy_placement = heap->busy_placements;
+	placement->placement = heap->placements;
+	placement->fpfn = placement->lpfn = 0;
+}
+
 int
 ttm_bo_allocate(struct ttm_bo_device *bdev,
 		unsigned long size,
 		enum ttm_bo_type origin,
-		int types,
+		uint32_t domains,
 		uint32_t byte_align,
 		uint32_t page_align,
 		unsigned long buffer_start,
 		bool interruptible,
+		struct sg_table *sg,
 		struct file *persistant_swap_storage,
 		struct ttm_buffer_object **p_bo)
 {
-	uint32_t flags[TTM_NUM_MEM_TYPES], *ptr;
+	unsigned long acc_size = sizeof(struct ttm_heap);
 	struct ttm_buffer_object *bo = NULL;
-	struct ttm_placement *placement;
-	int cnt = 0, i = 0, ret;
-	unsigned long acc_size;
+	struct ttm_placement placement;
+	int cnt = 0, ret = -ENOMEM;
 	struct ttm_heap *heap;
-	char *p;
 
 	size = round_up(size, byte_align);
 	size = ALIGN(size, page_align);
 
-	do {
-		int type = (types & (1 << i));
+	heap = kzalloc(acc_size, GFP_KERNEL);
+	if (!heap)
+		return ret;
 
-		if (type)
-			flags[cnt++] = (type | bdev->man[i].available_caching);
-	} while (i++ < TTM_NUM_MEM_TYPES);
-
-	acc_size = sizeof(struct ttm_heap) + cnt * sizeof(uint32_t);
-	p = kzalloc(acc_size, GFP_KERNEL);
-	if (!p)
-		return -ENOMEM;
-
-	heap = (struct ttm_heap *) p;
 	bo = &heap->pbo;
-	placement = &heap->placement;
-	ptr = (uint32_t *) (p + sizeof(struct ttm_heap));
 
-	acc_size = ttm_bo_dma_acc_size(bdev, size, acc_size);
+	ttm_placement_from_domain(bo, &placement, domains, bdev);
 
 	/* Special work around for old driver's api */
 	if (buffer_start && cnt == 1) {
-		placement->fpfn = rounddown(buffer_start, page_align) >> PAGE_SHIFT;
-		placement->lpfn = placement->fpfn + (size >> PAGE_SHIFT);
+		placement.fpfn = rounddown(buffer_start, page_align) >> PAGE_SHIFT;
+		placement.lpfn = placement.fpfn + (size >> PAGE_SHIFT);
 		buffer_start = 0;
 	}
-	placement->num_placement = placement->num_busy_placement = cnt;
-	placement->busy_placement = ptr;
-	placement->placement = ptr;
 
-	for (i = 0; i < cnt; i++)
-		*ptr++ = flags[i];
-
-	ret = ttm_bo_init(bdev, bo, size, origin, placement,
+	ret = ttm_bo_init(bdev, bo, size, origin, &placement,
 				page_align >> PAGE_SHIFT, buffer_start,
 				interruptible, persistant_swap_storage,
-				acc_size, NULL, ttm_buffer_object_destroy);
+				ttm_bo_dma_acc_size(bdev, size, acc_size),
+				sg, ttm_buffer_object_destroy);
 	if (!ret)
 		*p_bo = bo;
 	else
-		kfree(p);
+		kfree(heap);
 	return ret;
 }
 
@@ -185,16 +196,17 @@ int
 ttm_bo_pin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
 {
 	struct ttm_heap *heap = container_of(bo, struct ttm_heap, pbo);
-	struct ttm_placement *placement = &heap->placement;
-	uint32_t *placements;
-	int ret, i;
+	struct ttm_placement placement;
+	int ret;
 
 	ret = ttm_bo_reserve(bo, true, false, false, 0);
 	if (!ret) {
-		placements = (uint32_t *) placement->placement;
-		for (i = 0; i < placement->num_placement; i++)
-			placements[i] |= TTM_PL_FLAG_NO_EVICT;
-		ret = ttm_bo_validate(bo, placement, false, false, false);
+		placement.placement = heap->placements;
+		placement.fpfn = placement.lpfn = 0;
+		placement.num_placement = 1;
+
+		heap->placements[0] = (bo->mem.placement | TTM_PL_FLAG_NO_EVICT);
+		ret = ttm_bo_validate(bo, &placement, false, false, false);
 		if (!ret && kmap)
 			ret = ttm_bo_kmap(bo, 0, bo->num_pages, kmap);
 		ttm_bo_unreserve(bo);
@@ -206,18 +218,20 @@ int
 ttm_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
 {
 	struct ttm_heap *heap = container_of(bo, struct ttm_heap, pbo);
-	struct ttm_placement *placement = &heap->placement;
-	uint32_t *placements;
-	int ret, i;
+	struct ttm_placement placement;
+	int ret;
 
 	ret = ttm_bo_reserve(bo, true, false, false, 0);
 	if (!ret) {
 		if (kmap)
 			ttm_bo_kunmap(kmap);
-		placements = (uint32_t *) placement->placement;
-		for (i = 0; i < placement->num_placement; i++)
-			placements[i] &= ~TTM_PL_FLAG_NO_EVICT;
-		ret = ttm_bo_validate(bo, placement, false, false, false);
+
+		placement.placement = heap->placements;
+		placement.fpfn = placement.lpfn = 0;
+		placement.num_placement = 1;
+
+		heap->placements[0] = (bo->mem.placement & ~TTM_PL_FLAG_NO_EVICT);
+		ret = ttm_bo_validate(bo, &placement, false, false, false);
 		ttm_bo_unreserve(bo);
 	}
 	return ret;

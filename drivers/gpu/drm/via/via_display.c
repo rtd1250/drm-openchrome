@@ -1229,7 +1229,7 @@ via_crtc_init(struct drm_device *dev, int index)
 
 	if (!ttm_bo_allocate(&dev_priv->bdev, cursor_size, ttm_bo_type_kernel,
 				TTM_PL_FLAG_VRAM, 16, PAGE_SIZE, 0, false,
-				NULL, &iga->cursor_kmap.bo)) {
+				NULL, NULL, &iga->cursor_kmap.bo)) {
 		if (ttm_bo_pin(iga->cursor_kmap.bo, &iga->cursor_kmap)) {
 			DRM_ERROR("failed to mmap the cursor\n");
 			ttm_bo_unref(&iga->cursor_kmap.bo);

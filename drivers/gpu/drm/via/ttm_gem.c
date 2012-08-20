@@ -74,7 +74,7 @@ ttm_gem_create(struct drm_device *dev, struct ttm_bo_device *bdev, int types,
 
 	ret = ttm_bo_allocate(bdev, size, ttm_bo_type_device, types,
 				byte_align, page_align, start, interruptible,
-				obj->filp, &bo);
+				NULL, obj->filp, &bo);
 	if (ret) {
 		DRM_ERROR("Failed to create buffer object\n");
 		kfree(obj);

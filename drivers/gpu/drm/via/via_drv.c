@@ -122,7 +122,7 @@ via_allocate_pcie_gart_table(struct drm_via_private *dev_priv)
 
 	ret = ttm_bo_allocate(&dev_priv->bdev, size, ttm_bo_type_kernel,
 				TTM_PL_FLAG_VRAM | TTM_PL_FLAG_NO_EVICT,
-				1, PAGE_SIZE, 0, false, NULL, &bo);
+				1, PAGE_SIZE, 0, false, NULL, NULL, &bo);
 	if (unlikely(ret))
 		goto err;
 
@@ -167,7 +167,7 @@ via_init_vq(struct drm_via_private *dev_priv)
 	/* allocate vq bo */
 	ret = ttm_bo_allocate(&dev_priv->bdev, size, ttm_bo_type_kernel,
 				TTM_PL_FLAG_VRAM | TTM_PL_FLAG_NO_EVICT,
-				1, PAGE_SIZE, 0, false, NULL, &bo);
+				1, PAGE_SIZE, 0, false, NULL, NULL, &bo);
 	if (unlikely(ret))
 		goto err;
 
@@ -226,7 +226,8 @@ via_mmio_setup(struct drm_device *dev)
 		return ret;
 
 	ret = ttm_bo_allocate(&dev_priv->bdev, VIA_MMIO_REGSIZE, ttm_bo_type_kernel,
-				TTM_PL_FLAG_PRIV0, 1, PAGE_SIZE, 0, false, NULL, &bo);
+				TTM_PL_FLAG_PRIV0, 1, PAGE_SIZE, 0, false,
+				NULL, NULL, &bo);
 	if (ret)
 		goto err;
 

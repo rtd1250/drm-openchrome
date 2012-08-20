@@ -191,25 +191,19 @@ int via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
 	return 0;
 }
 
-static void via_evict_flags(struct ttm_buffer_object *bo,
-				struct ttm_placement *placement)
+static void
+via_evict_flags(struct ttm_buffer_object *bo, struct ttm_placement *placement)
 {
-	static uint32_t flags;
-
-	placement->num_busy_placement = 1;
-	placement->num_placement = 1;
-
 	switch (bo->mem.mem_type) {
 	case TTM_PL_VRAM:
-		flags = TTM_PL_MASK_CACHING | TTM_PL_FLAG_TT;
+		ttm_placement_from_domain(bo, placement, TTM_PL_FLAG_TT | TTM_PL_FLAG_SYSTEM, bo->bdev);
 		break;
 
 	case TTM_PL_TT:
 	default:
-		flags = TTM_PL_MASK_CACHING | TTM_PL_FLAG_SYSTEM;
+		ttm_placement_from_domain(bo, placement, TTM_PL_FLAG_SYSTEM, bo->bdev);
 		break;
 	}
-	placement->busy_placement = placement->placement = &flags;
 }
 
 /* Move between GART and VRAM */
