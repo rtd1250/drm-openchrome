@@ -121,12 +121,12 @@ ttm_buffer_object_destroy(struct ttm_buffer_object *bo)
  */
 void
 ttm_placement_from_domain(struct ttm_buffer_object *bo, struct ttm_placement *placement, u32 domains,
-                                struct ttm_bo_device *bdev)
+				struct ttm_bo_device *bdev)
 {
 	struct ttm_heap *heap = container_of(bo, struct ttm_heap, pbo);
 	int cnt = 0, i = 0;
 
-	if (!domains) domains = TTM_PL_FLAG_SYSTEM;
+	if (!(domains & TTM_PL_MASK_MEM)) domains = TTM_PL_FLAG_SYSTEM;
 
 	do {
 		int domain = (domains & (1 << i));
@@ -159,14 +159,14 @@ ttm_bo_allocate(struct ttm_bo_device *bdev,
 	unsigned long acc_size = sizeof(struct ttm_heap);
 	struct ttm_buffer_object *bo = NULL;
 	struct ttm_placement placement;
-	int cnt = 0, ret = -ENOMEM;
 	struct ttm_heap *heap;
+	int ret = -ENOMEM;
 
 	size = round_up(size, byte_align);
 	size = ALIGN(size, page_align);
 
 	heap = kzalloc(acc_size, GFP_KERNEL);
-	if (!heap)
+	if (unlikely(!heap))
 		return ret;
 
 	bo = &heap->pbo;
@@ -174,7 +174,7 @@ ttm_bo_allocate(struct ttm_bo_device *bdev,
 	ttm_placement_from_domain(bo, &placement, domains, bdev);
 
 	/* Special work around for old driver's api */
-	if (buffer_start && cnt == 1) {
+	if (buffer_start && placement.num_placement == 1) {
 		placement.fpfn = rounddown(buffer_start, page_align) >> PAGE_SHIFT;
 		placement.lpfn = placement.fpfn + (size >> PAGE_SHIFT);
 		buffer_start = 0;
@@ -185,10 +185,10 @@ ttm_bo_allocate(struct ttm_bo_device *bdev,
 				interruptible, persistant_swap_storage,
 				ttm_bo_dma_acc_size(bdev, size, acc_size),
 				sg, ttm_buffer_object_destroy);
-	if (!ret)
-		*p_bo = bo;
-	else
+	if (unlikely(ret))
 		kfree(heap);
+	else
+		*p_bo = bo;
 	return ret;
 }
 
