@@ -32,6 +32,7 @@
 #include "intel_drv.h"
 #include "i915_drv.h"
 
+#ifdef CONFIG_PM
 static u32 calc_residency(struct drm_device *dev, const u32 reg)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
@@ -212,7 +213,7 @@ void i915_setup_sysfs(struct drm_device *dev)
 			DRM_ERROR("RC6 residency sysfs setup failed\n");
 	}
 
-	if (IS_IVYBRIDGE(dev)) {
+	if (HAS_L3_GPU_CACHE(dev)) {
 		ret = device_create_bin_file(&dev->primary->kdev, &dpf_attrs);
 		if (ret)
 			DRM_ERROR("l3 parity sysfs setup failed\n");
@@ -224,3 +225,14 @@ void i915_teardown_sysfs(struct drm_device *dev)
 	device_remove_bin_file(&dev->primary->kdev,  &dpf_attrs);
 	sysfs_unmerge_group(&dev->primary->kdev.kobj, &rc6_attr_group);
 }
+#else
+void i915_setup_sysfs(struct drm_device *dev)
+{
+	return;
+}
+
+void i915_teardown_sysfs(struct drm_device *dev)
+{
+	return;
+}
+#endif /* CONFIG_PM */

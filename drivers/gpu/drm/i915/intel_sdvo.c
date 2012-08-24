@@ -444,13 +444,16 @@ static bool intel_sdvo_write_cmd(struct intel_sdvo *intel_sdvo, u8 cmd,
 	struct i2c_msg *msgs;
 	int i, ret = true;
 
+        /* Would be simpler to allocate both in one go ? */        
 	buf = (u8 *)kzalloc(args_len * 2 + 2, GFP_KERNEL);
 	if (!buf)
 		return false;
 
 	msgs = kcalloc(args_len + 3, sizeof(*msgs), GFP_KERNEL);
-	if (!msgs)
+	if (!msgs) {
+	        kfree(buf);
 		return false;
+        }
 
 	intel_sdvo_debug_write(intel_sdvo, cmd, args, args_len);
 
@@ -1342,7 +1345,6 @@ intel_sdvo_tmds_sink_detect(struct drm_connector *connector)
 			}
 		} else
 			status = connector_status_disconnected;
-		connector->display_info.raw_edid = NULL;
 		kfree(edid);
 	}
 
@@ -1416,7 +1418,6 @@ intel_sdvo_detect(struct drm_connector *connector, bool force)
 			else
 				ret = connector_status_disconnected;
 
-			connector->display_info.raw_edid = NULL;
 			kfree(edid);
 		} else
 			ret = connector_status_connected;
@@ -1462,7 +1463,6 @@ static void intel_sdvo_get_ddc_modes(struct drm_connector *connector)
 			drm_add_edid_modes(connector, edid);
 		}
 
-		connector->display_info.raw_edid = NULL;
 		kfree(edid);
 	}
 }
@@ -1689,6 +1689,7 @@ static bool intel_sdvo_detect_hdmi_audio(struct drm_connector *connector)
 	edid = intel_sdvo_get_edid(connector);
 	if (edid != NULL && edid->input & DRM_EDID_INPUT_DIGITAL)
 		has_audio = drm_detect_monitor_audio(edid);
+	kfree(edid);
 
 	return has_audio;
 }
@@ -2078,8 +2079,7 @@ intel_sdvo_dvi_init(struct intel_sdvo *intel_sdvo, int device)
 		connector->connector_type = DRM_MODE_CONNECTOR_HDMIA;
 		intel_sdvo->is_hdmi = true;
 	}
-	intel_sdvo->base.clone_mask = ((1 << INTEL_SDVO_NON_TV_CLONE_BIT) |
-				       (1 << INTEL_ANALOG_CLONE_BIT));
+	intel_sdvo->base.cloneable = true;
 
 	intel_sdvo_connector_init(intel_sdvo_connector, intel_sdvo);
 	if (intel_sdvo->is_hdmi)
@@ -2110,7 +2110,7 @@ intel_sdvo_tv_init(struct intel_sdvo *intel_sdvo, int type)
 
 	intel_sdvo->is_tv = true;
 	intel_sdvo->base.needs_tv_clock = true;
-	intel_sdvo->base.clone_mask = 1 << INTEL_SDVO_TV_CLONE_BIT;
+	intel_sdvo->base.cloneable = false;
 
 	intel_sdvo_connector_init(intel_sdvo_connector, intel_sdvo);
 
@@ -2153,8 +2153,7 @@ intel_sdvo_analog_init(struct intel_sdvo *intel_sdvo, int device)
 		intel_sdvo_connector->output_flag = SDVO_OUTPUT_RGB1;
 	}
 
-	intel_sdvo->base.clone_mask = ((1 << INTEL_SDVO_NON_TV_CLONE_BIT) |
-				       (1 << INTEL_ANALOG_CLONE_BIT));
+	intel_sdvo->base.cloneable = true;
 
 	intel_sdvo_connector_init(intel_sdvo_connector,
 				  intel_sdvo);
@@ -2186,8 +2185,10 @@ intel_sdvo_lvds_init(struct intel_sdvo *intel_sdvo, int device)
 		intel_sdvo_connector->output_flag = SDVO_OUTPUT_LVDS1;
 	}
 
-	intel_sdvo->base.clone_mask = ((1 << INTEL_ANALOG_CLONE_BIT) |
-				       (1 << INTEL_SDVO_LVDS_CLONE_BIT));
+	/* SDVO LVDS is cloneable because the SDVO encoder does the upscaling,
+	 * as opposed to native LVDS, where we upscale with the panel-fitter
+	 * (and hence only the native LVDS resolution could be cloned). */
+	intel_sdvo->base.cloneable = true;
 
 	intel_sdvo_connector_init(intel_sdvo_connector, intel_sdvo);
 	if (!intel_sdvo_create_enhance_property(intel_sdvo, intel_sdvo_connector))
