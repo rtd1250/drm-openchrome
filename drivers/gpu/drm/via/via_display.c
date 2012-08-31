@@ -673,16 +673,16 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 
 	/* always set to 1 */
 	svga_wcrt_mask(VGABASE, 0x03, BIT(7), BIT(7));
-	/* line compare should set all bits = 1 (extend modes) */
+	/* bits 0 to 7 of line compare */
 	vga_wcrt(VGABASE, 0x18, 0xFF);
-	/* line compare should set all bits = 1 (extend modes) */
+	/* bit 8 of line compare */
 	svga_wcrt_mask(VGABASE, 0x07, BIT(4), BIT(4));
-	/* line compare should set all bits = 1 (extend modes) */
-	svga_wcrt_mask(VGABASE, 0x09, BIT(6), 0xFF);
-	/* line compare should set all bits = 1 (extend modes) */
+	/* bit 9 of line compare */
+	svga_wcrt_mask(VGABASE, 0x09, BIT(6), BIT(6));
+	/* bit 10 of line compare */
 	svga_wcrt_mask(VGABASE, 0x35, BIT(4), BIT(4));
-	/* line compare should set all bits = 1 (extend modes) */
-	svga_wcrt_mask(VGABASE, 0x33, 0x05, 0x06);
+	/* adjust hsync by one character - value 011 */
+	svga_wcrt_mask(VGABASE, 0x33, 0x06, 0x07);
 	/* extend mode always set to e3h */
 	vga_wcrt(VGABASE, 0x17, 0xE3);
 	/* extend mode always set to 0h */
