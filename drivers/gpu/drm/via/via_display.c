@@ -784,7 +784,7 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 
 	/* Load Fetch registers */
 	pitch = ALIGN((crtc->mode.hdisplay * fb->bits_per_pixel >> 3), 16) >> 4;
-	load_value_to_registers(VGABASE, &iga->fetch, pitch);
+	load_value_to_registers(VGABASE, &iga->fetch, pitch + 1);
 
 	if ((state == ENTER_ATOMIC_MODE_SET) ||
 	     crtc->fb->pitches[0] != fb->pitches[0]) {
