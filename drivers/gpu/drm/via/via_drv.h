@@ -242,7 +242,7 @@ extern int ttm_bo_allocate(struct ttm_bo_device *bdev, unsigned long size,
 				struct ttm_buffer_object **p_bo);
 extern void ttm_placement_from_domain(struct ttm_buffer_object *bo,
 				struct ttm_placement *placement, u32 domains,
-                                struct ttm_bo_device *bdev);
+				struct ttm_bo_device *bdev);
 extern int ttm_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap);
 extern int ttm_bo_pin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap);
 extern int ttm_mmap(struct file *filp, struct vm_area_struct *vma);

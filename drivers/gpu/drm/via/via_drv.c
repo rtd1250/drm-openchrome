@@ -35,8 +35,6 @@ static struct pci_device_id via_pci_table[] __devinitdata = {
 };
 MODULE_DEVICE_TABLE(pci, via_pci_table);
 
-static struct drm_driver via_driver;
-
 #if __OS_HAS_AGP
 
 #define VIA_AGP_MODE_MASK	0x17

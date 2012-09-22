@@ -56,8 +56,9 @@ regs_init(void __iomem *regs)
 void
 load_register_tables(void __iomem *regbase, struct vga_registers *regs)
 {
-	u8 port, cr_index, orig, reg_mask, data;
-	int i;
+	u8 cr_index, orig, reg_mask, data;
+	unsigned int i;
+	u16 port;
 
 	for (i = 0; i < regs->count; i++) {
 		reg_mask = regs->regs[i].start_bit;
