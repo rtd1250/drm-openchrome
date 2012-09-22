@@ -558,15 +558,19 @@ via_iga1_dpms(struct drm_crtc *crtc, int mode)
 	case DRM_MODE_DPMS_SUSPEND:
 	case DRM_MODE_DPMS_STANDBY:
 	case DRM_MODE_DPMS_OFF:
+		drm_vblank_pre_modeset(crtc->dev, 0);
 		/* turn off CRT screen (IGA1) */
 		svga_wseq_mask(VGABASE, 0x01, BIT(5), BIT(5));
-		drm_vblank_pre_modeset(crtc->dev, 0);
+		/* TV clock */
+		svga_wcrt_mask(VGABASE, 0x6B, 0x00, 0x0F);
 		break;
 
 	case DRM_MODE_DPMS_ON:
 		drm_vblank_post_modeset(crtc->dev, 0);
 		/* turn on CRT screen (IGA1) */
 		svga_wseq_mask(VGABASE, 0x01, 0x00, BIT(5));
+		/* disable simultaneous  */
+                svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(3));
 		break;
 	}
 }
@@ -580,18 +584,21 @@ via_iga2_dpms(struct drm_crtc *crtc, int mode)
 	case DRM_MODE_DPMS_SUSPEND:
 	case DRM_MODE_DPMS_STANDBY:
 	case DRM_MODE_DPMS_OFF:
-		/* turn off CRT screen (IGA2) */
-		svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(2));
-
-		disable_second_display_channel(dev_priv);
 		drm_vblank_pre_modeset(crtc->dev, 1);
+		/* turn off CRT screen (IGA2) */
+		svga_wcrt_mask(VGABASE, 0x6B, BIT(2), BIT(2));
+		disable_second_display_channel(dev_priv);
+		/* TV clock */
+		svga_wcrt_mask(VGABASE, 0x6B, 0x00, 0x0F);
 		break;
+
 	case DRM_MODE_DPMS_ON:
 		drm_vblank_post_modeset(crtc->dev, 1);
-		enable_second_display_channel(dev_priv);
-
 		/* turn on CRT screen (IGA2) */
-		svga_wcrt_mask(VGABASE, 0x6B, BIT(2), BIT(2));
+		enable_second_display_channel(dev_priv);
+		svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(2));
+		/* disable simultaneous  */
+                svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(3));
 		break;
 	}
 }
