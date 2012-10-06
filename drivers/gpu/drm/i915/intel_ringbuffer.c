@@ -218,6 +218,11 @@ gen6_render_ring_flush(struct intel_ring_buffer *ring,
 	u32 scratch_addr = pc->gtt_offset + 128;
 	int ret;
 
+	/* Force SNB workarounds for PIPE_CONTROL flushes */
+	ret = intel_emit_post_sync_nonzero_flush(ring);
+	if (ret)
+		return ret;
+
 	/* Just flush everything.  Experiments have shown that reducing the
 	 * number of bits based on the write domains has little performance
 	 * impact.
@@ -258,17 +263,80 @@ gen6_render_ring_flush(struct intel_ring_buffer *ring,
 }
 
 static int
-gen6_render_ring_flush__wa(struct intel_ring_buffer *ring,
-			   u32 invalidate_domains, u32 flush_domains)
+gen7_render_ring_cs_stall_wa(struct intel_ring_buffer *ring)
 {
 	int ret;
 
-	/* Force SNB workarounds for PIPE_CONTROL flushes */
-	ret = intel_emit_post_sync_nonzero_flush(ring);
+	ret = intel_ring_begin(ring, 4);
 	if (ret)
 		return ret;
 
-	return gen6_render_ring_flush(ring, invalidate_domains, flush_domains);
+	intel_ring_emit(ring, GFX_OP_PIPE_CONTROL(4));
+	intel_ring_emit(ring, PIPE_CONTROL_CS_STALL |
+			      PIPE_CONTROL_STALL_AT_SCOREBOARD);
+	intel_ring_emit(ring, 0);
+	intel_ring_emit(ring, 0);
+	intel_ring_advance(ring);
+
+	return 0;
+}
+
+static int
+gen7_render_ring_flush(struct intel_ring_buffer *ring,
+		       u32 invalidate_domains, u32 flush_domains)
+{
+	u32 flags = 0;
+	struct pipe_control *pc = ring->private;
+	u32 scratch_addr = pc->gtt_offset + 128;
+	int ret;
+
+	/*
+	 * Ensure that any following seqno writes only happen when the render
+	 * cache is indeed flushed.
+	 *
+	 * Workaround: 4th PIPE_CONTROL command (except the ones with only
+	 * read-cache invalidate bits set) must have the CS_STALL bit set. We
+	 * don't try to be clever and just set it unconditionally.
+	 */
+	flags |= PIPE_CONTROL_CS_STALL;
+
+	/* Just flush everything.  Experiments have shown that reducing the
+	 * number of bits based on the write domains has little performance
+	 * impact.
+	 */
+	if (flush_domains) {
+		flags |= PIPE_CONTROL_RENDER_TARGET_CACHE_FLUSH;
+		flags |= PIPE_CONTROL_DEPTH_CACHE_FLUSH;
+	}
+	if (invalidate_domains) {
+		flags |= PIPE_CONTROL_TLB_INVALIDATE;
+		flags |= PIPE_CONTROL_INSTRUCTION_CACHE_INVALIDATE;
+		flags |= PIPE_CONTROL_TEXTURE_CACHE_INVALIDATE;
+		flags |= PIPE_CONTROL_VF_CACHE_INVALIDATE;
+		flags |= PIPE_CONTROL_CONST_CACHE_INVALIDATE;
+		flags |= PIPE_CONTROL_STATE_CACHE_INVALIDATE;
+		/*
+		 * TLB invalidate requires a post-sync write.
+		 */
+		flags |= PIPE_CONTROL_QW_WRITE;
+
+		/* Workaround: we must issue a pipe_control with CS-stall bit
+		 * set before a pipe_control command that has the state cache
+		 * invalidate bit set. */
+		gen7_render_ring_cs_stall_wa(ring);
+	}
+
+	ret = intel_ring_begin(ring, 4);
+	if (ret)
+		return ret;
+
+	intel_ring_emit(ring, GFX_OP_PIPE_CONTROL(4));
+	intel_ring_emit(ring, flags);
+	intel_ring_emit(ring, scratch_addr | PIPE_CONTROL_GLOBAL_GTT);
+	intel_ring_emit(ring, 0);
+	intel_ring_advance(ring);
+
+	return 0;
 }
 
 static void ring_write_tail(struct intel_ring_buffer *ring,
@@ -391,12 +459,12 @@ init_pipe_control(struct intel_ring_buffer *ring)
 
 	i915_gem_object_set_cache_level(obj, I915_CACHE_LLC);
 
-	ret = i915_gem_object_pin(obj, 4096, true);
+	ret = i915_gem_object_pin(obj, 4096, true, false);
 	if (ret)
 		goto err_unref;
 
 	pc->gtt_offset = obj->gtt_offset;
-	pc->cpu_page =  kmap(obj->pages[0]);
+	pc->cpu_page =  kmap(sg_page(obj->pages->sgl));
 	if (pc->cpu_page == NULL)
 		goto err_unpin;
 
@@ -423,7 +491,8 @@ cleanup_pipe_control(struct intel_ring_buffer *ring)
 		return;
 
 	obj = pc->obj;
-	kunmap(obj->pages[0]);
+
+	kunmap(sg_page(obj->pages->sgl));
 	i915_gem_object_unpin(obj);
 	drm_gem_object_unreference(&obj->base);
 
@@ -958,7 +1027,7 @@ static void cleanup_status_page(struct intel_ring_buffer *ring)
 	if (obj == NULL)
 		return;
 
-	kunmap(obj->pages[0]);
+	kunmap(sg_page(obj->pages->sgl));
 	i915_gem_object_unpin(obj);
 	drm_gem_object_unreference(&obj->base);
 	ring->status_page.obj = NULL;
@@ -979,13 +1048,13 @@ static int init_status_page(struct intel_ring_buffer *ring)
 
 	i915_gem_object_set_cache_level(obj, I915_CACHE_LLC);
 
-	ret = i915_gem_object_pin(obj, 4096, true);
+	ret = i915_gem_object_pin(obj, 4096, true, false);
 	if (ret != 0) {
 		goto err_unref;
 	}
 
 	ring->status_page.gfx_addr = obj->gtt_offset;
-	ring->status_page.page_addr = kmap(obj->pages[0]);
+	ring->status_page.page_addr = kmap(sg_page(obj->pages->sgl));
 	if (ring->status_page.page_addr == NULL) {
 		ret = -ENOMEM;
 		goto err_unpin;
@@ -1036,7 +1105,7 @@ static int intel_init_ring_buffer(struct drm_device *dev,
 
 	ring->obj = obj;
 
-	ret = i915_gem_object_pin(obj, PAGE_SIZE, true);
+	ret = i915_gem_object_pin(obj, PAGE_SIZE, true, false);
 	if (ret)
 		goto err_unref;
 
@@ -1385,9 +1454,9 @@ int intel_init_render_ring_buffer(struct drm_device *dev)
 
 	if (INTEL_INFO(dev)->gen >= 6) {
 		ring->add_request = gen6_add_request;
-		ring->flush = gen6_render_ring_flush;
+		ring->flush = gen7_render_ring_flush;
 		if (INTEL_INFO(dev)->gen == 6)
-			ring->flush = gen6_render_ring_flush__wa;
+			ring->flush = gen6_render_ring_flush;
 		ring->irq_get = gen6_ring_get_irq;
 		ring->irq_put = gen6_ring_put_irq;
 		ring->irq_enable_mask = GT_USER_INTERRUPT;

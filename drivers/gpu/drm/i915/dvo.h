@@ -58,13 +58,12 @@ struct intel_dvo_dev_ops {
 	void (*create_resources)(struct intel_dvo_device *dvo);
 
 	/*
-	 * Turn on/off output or set intermediate power levels if available.
+	 * Turn on/off output.
 	 *
-	 * Unsupported intermediate modes drop to the lower power setting.
-	 * If the  mode is DPMSModeOff, the output must be disabled,
-	 * as the DPLL may be disabled afterwards.
+	 * Because none of our dvo drivers support an intermediate power levels,
+	 * we don't expose this in the interfac.
 	 */
-	void (*dpms)(struct intel_dvo_device *dvo, int mode);
+	void (*dpms)(struct intel_dvo_device *dvo, bool enable);
 
 	/*
 	 * Callback for testing a video mode for a given output.
@@ -114,6 +113,12 @@ struct intel_dvo_dev_ops {
 	 * Probe for a connected output, and return detect_status.
 	 */
 	enum drm_connector_status (*detect)(struct intel_dvo_device *dvo);
+
+	/*
+	 * Probe the current hw status, returning true if the connected output
+	 * is active.
+	 */
+	bool (*get_hw_state)(struct intel_dvo_device *dev);
 
 	/**
 	 * Query the device for the modes it provides.

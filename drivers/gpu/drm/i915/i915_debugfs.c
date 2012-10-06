@@ -118,6 +118,8 @@ describe_obj(struct seq_file *m, struct drm_i915_gem_object *obj)
 		   obj->madv == I915_MADV_DONTNEED ? " purgeable" : "");
 	if (obj->base.name)
 		seq_printf(m, " (name: %d)", obj->base.name);
+	if (obj->pin_count)
+		seq_printf(m, " (pinned x %d)", obj->pin_count);
 	if (obj->fence_reg != I915_FENCE_REG_NONE)
 		seq_printf(m, " (fence: %d)", obj->fence_reg);
 	if (obj->gtt_space != NULL)
@@ -197,8 +199,8 @@ static int i915_gem_object_info(struct seq_file *m, void* data)
 	struct drm_info_node *node = (struct drm_info_node *) m->private;
 	struct drm_device *dev = node->minor->dev;
 	struct drm_i915_private *dev_priv = dev->dev_private;
-	u32 count, mappable_count;
-	size_t size, mappable_size;
+	u32 count, mappable_count, purgeable_count;
+	size_t size, mappable_size, purgeable_size;
 	struct drm_i915_gem_object *obj;
 	int ret;
 
@@ -211,7 +213,7 @@ static int i915_gem_object_info(struct seq_file *m, void* data)
 		   dev_priv->mm.object_memory);
 
 	size = count = mappable_size = mappable_count = 0;
-	count_objects(&dev_priv->mm.gtt_list, gtt_list);
+	count_objects(&dev_priv->mm.bound_list, gtt_list);
 	seq_printf(m, "%u [%u] objects, %zu [%zu] bytes in gtt\n",
 		   count, mappable_count, size, mappable_size);
 
@@ -225,8 +227,16 @@ static int i915_gem_object_info(struct seq_file *m, void* data)
 	seq_printf(m, "  %u [%u] inactive objects, %zu [%zu] bytes\n",
 		   count, mappable_count, size, mappable_size);
 
+	size = count = purgeable_size = purgeable_count = 0;
+	list_for_each_entry(obj, &dev_priv->mm.unbound_list, gtt_list) {
+		size += obj->base.size, ++count;
+		if (obj->madv == I915_MADV_DONTNEED)
+			purgeable_size += obj->base.size, ++purgeable_count;
+	}
+	seq_printf(m, "%u unbound objects, %zu bytes\n", count, size);
+
 	size = count = mappable_size = mappable_count = 0;
-	list_for_each_entry(obj, &dev_priv->mm.gtt_list, gtt_list) {
+	list_for_each_entry(obj, &dev_priv->mm.bound_list, gtt_list) {
 		if (obj->fault_mappable) {
 			size += obj->gtt_space->size;
 			++count;
@@ -235,7 +245,13 @@ static int i915_gem_object_info(struct seq_file *m, void* data)
 			mappable_size += obj->gtt_space->size;
 			++mappable_count;
 		}
+		if (obj->madv == I915_MADV_DONTNEED) {
+			purgeable_size += obj->base.size;
+			++purgeable_count;
+		}
 	}
+	seq_printf(m, "%u purgeable objects, %zu bytes\n",
+		   purgeable_count, purgeable_size);
 	seq_printf(m, "%u pinned mappable objects, %zu bytes\n",
 		   mappable_count, mappable_size);
 	seq_printf(m, "%u fault mappable objects, %zu bytes\n",
@@ -264,7 +280,7 @@ static int i915_gem_gtt_info(struct seq_file *m, void* data)
 		return ret;
 
 	total_obj_size = total_gtt_size = count = 0;
-	list_for_each_entry(obj, &dev_priv->mm.gtt_list, gtt_list) {
+	list_for_each_entry(obj, &dev_priv->mm.bound_list, gtt_list) {
 		if (list == PINNED_LIST && obj->pin_count == 0)
 			continue;
 
@@ -337,40 +353,22 @@ static int i915_gem_request_info(struct seq_file *m, void *data)
 	struct drm_info_node *node = (struct drm_info_node *) m->private;
 	struct drm_device *dev = node->minor->dev;
 	drm_i915_private_t *dev_priv = dev->dev_private;
+	struct intel_ring_buffer *ring;
 	struct drm_i915_gem_request *gem_request;
-	int ret, count;
+	int ret, count, i;
 
 	ret = mutex_lock_interruptible(&dev->struct_mutex);
 	if (ret)
 		return ret;
 
 	count = 0;
-	if (!list_empty(&dev_priv->ring[RCS].request_list)) {
-		seq_printf(m, "Render requests:\n");
+	for_each_ring(ring, dev_priv, i) {
+		if (list_empty(&ring->request_list))
+			continue;
+
+		seq_printf(m, "%s requests:\n", ring->name);
 		list_for_each_entry(gem_request,
-				    &dev_priv->ring[RCS].request_list,
-				    list) {
-			seq_printf(m, "    %d @ %d\n",
-				   gem_request->seqno,
-				   (int) (jiffies - gem_request->emitted_jiffies));
-		}
-		count++;
-	}
-	if (!list_empty(&dev_priv->ring[VCS].request_list)) {
-		seq_printf(m, "BSD requests:\n");
-		list_for_each_entry(gem_request,
-				    &dev_priv->ring[VCS].request_list,
-				    list) {
-			seq_printf(m, "    %d @ %d\n",
-				   gem_request->seqno,
-				   (int) (jiffies - gem_request->emitted_jiffies));
-		}
-		count++;
-	}
-	if (!list_empty(&dev_priv->ring[BCS].request_list)) {
-		seq_printf(m, "BLT requests:\n");
-		list_for_each_entry(gem_request,
-				    &dev_priv->ring[BCS].request_list,
+				    &ring->request_list,
 				    list) {
 			seq_printf(m, "    %d @ %d\n",
 				   gem_request->seqno,
@@ -400,14 +398,15 @@ static int i915_gem_seqno_info(struct seq_file *m, void *data)
 	struct drm_info_node *node = (struct drm_info_node *) m->private;
 	struct drm_device *dev = node->minor->dev;
 	drm_i915_private_t *dev_priv = dev->dev_private;
+	struct intel_ring_buffer *ring;
 	int ret, i;
 
 	ret = mutex_lock_interruptible(&dev->struct_mutex);
 	if (ret)
 		return ret;
 
-	for (i = 0; i < I915_NUM_RINGS; i++)
-		i915_ring_seqno_info(m, &dev_priv->ring[i]);
+	for_each_ring(ring, dev_priv, i)
+		i915_ring_seqno_info(m, ring);
 
 	mutex_unlock(&dev->struct_mutex);
 
@@ -420,6 +419,7 @@ static int i915_interrupt_info(struct seq_file *m, void *data)
 	struct drm_info_node *node = (struct drm_info_node *) m->private;
 	struct drm_device *dev = node->minor->dev;
 	drm_i915_private_t *dev_priv = dev->dev_private;
+	struct intel_ring_buffer *ring;
 	int ret, i, pipe;
 
 	ret = mutex_lock_interruptible(&dev->struct_mutex);
@@ -497,13 +497,13 @@ static int i915_interrupt_info(struct seq_file *m, void *data)
 	}
 	seq_printf(m, "Interrupts received: %d\n",
 		   atomic_read(&dev_priv->irq_received));
-	for (i = 0; i < I915_NUM_RINGS; i++) {
+	for_each_ring(ring, dev_priv, i) {
 		if (IS_GEN6(dev) || IS_GEN7(dev)) {
-			seq_printf(m, "Graphics Interrupt mask (%s):	%08x\n",
-				   dev_priv->ring[i].name,
-				   I915_READ_IMR(&dev_priv->ring[i]));
+			seq_printf(m,
+				   "Graphics Interrupt mask (%s):	%08x\n",
+				   ring->name, I915_READ_IMR(ring));
 		}
-		i915_ring_seqno_info(m, &dev_priv->ring[i]);
+		i915_ring_seqno_info(m, ring);
 	}
 	mutex_unlock(&dev->struct_mutex);
 
@@ -526,7 +526,8 @@ static int i915_gem_fence_regs_info(struct seq_file *m, void *data)
 	for (i = 0; i < dev_priv->num_fence_regs; i++) {
 		struct drm_i915_gem_object *obj = dev_priv->fence_regs[i].obj;
 
-		seq_printf(m, "Fenced object[%2d] = ", i);
+		seq_printf(m, "Fence %d, pin count = %d, object = ",
+			   i, dev_priv->fence_regs[i].pin_count);
 		if (obj == NULL)
 			seq_printf(m, "unused");
 		else
@@ -645,10 +646,9 @@ static void i915_ring_error_state(struct seq_file *m,
 	seq_printf(m, "  IPEIR: 0x%08x\n", error->ipeir[ring]);
 	seq_printf(m, "  IPEHR: 0x%08x\n", error->ipehr[ring]);
 	seq_printf(m, "  INSTDONE: 0x%08x\n", error->instdone[ring]);
-	if (ring == RCS && INTEL_INFO(dev)->gen >= 4) {
-		seq_printf(m, "  INSTDONE1: 0x%08x\n", error->instdone1);
+	if (ring == RCS && INTEL_INFO(dev)->gen >= 4)
 		seq_printf(m, "  BBADDR: 0x%08llx\n", error->bbaddr);
-	}
+
 	if (INTEL_INFO(dev)->gen >= 4)
 		seq_printf(m, "  INSTPS: 0x%08x\n", error->instps[ring]);
 	seq_printf(m, "  INSTPM: 0x%08x\n", error->instpm[ring]);
@@ -697,10 +697,16 @@ static int i915_error_state(struct seq_file *m, void *unused)
 	for (i = 0; i < dev_priv->num_fence_regs; i++)
 		seq_printf(m, "  fence[%d] = %08llx\n", i, error->fence[i]);
 
+	for (i = 0; i < ARRAY_SIZE(error->extra_instdone); i++)
+		seq_printf(m, "  INSTDONE_%d: 0x%08x\n", i, error->extra_instdone[i]);
+
 	if (INTEL_INFO(dev)->gen >= 6) {
 		seq_printf(m, "ERROR: 0x%08x\n", error->error);
 		seq_printf(m, "DONE_REG: 0x%08x\n", error->done_reg);
 	}
+
+	if (INTEL_INFO(dev)->gen == 7)
+		seq_printf(m, "ERR_INT: 0x%08x\n", error->err_int);
 
 	for_each_ring(ring, dev_priv, i)
 		i915_ring_error_state(m, dev, error, i);
@@ -908,7 +914,7 @@ static int i915_cur_delayinfo(struct seq_file *m, void *unused)
 		seq_printf(m, "Render p-state limit: %d\n",
 			   rp_state_limits & 0xff);
 		seq_printf(m, "CAGF: %dMHz\n", ((rpstat & GEN6_CAGF_MASK) >>
-						GEN6_CAGF_SHIFT) * 50);
+						GEN6_CAGF_SHIFT) * GT_FREQUENCY_MULTIPLIER);
 		seq_printf(m, "RP CUR UP EI: %dus\n", rpupei &
 			   GEN6_CURICONT_MASK);
 		seq_printf(m, "RP CUR UP: %dus\n", rpcurup &
@@ -924,15 +930,15 @@ static int i915_cur_delayinfo(struct seq_file *m, void *unused)
 
 		max_freq = (rp_state_cap & 0xff0000) >> 16;
 		seq_printf(m, "Lowest (RPN) frequency: %dMHz\n",
-			   max_freq * 50);
+			   max_freq * GT_FREQUENCY_MULTIPLIER);
 
 		max_freq = (rp_state_cap & 0xff00) >> 8;
 		seq_printf(m, "Nominal (RP1) frequency: %dMHz\n",
-			   max_freq * 50);
+			   max_freq * GT_FREQUENCY_MULTIPLIER);
 
 		max_freq = rp_state_cap & 0xff;
 		seq_printf(m, "Max non-overclocked (RP0) frequency: %dMHz\n",
-			   max_freq * 50);
+			   max_freq * GT_FREQUENCY_MULTIPLIER);
 	} else {
 		seq_printf(m, "no P-state info available\n");
 	}
@@ -1286,7 +1292,7 @@ static int i915_ring_freq_table(struct seq_file *m, void *unused)
 			continue;
 		}
 		ia_freq = I915_READ(GEN6_PCODE_DATA);
-		seq_printf(m, "%d\t\t%d\n", gpu_freq * 50, ia_freq * 100);
+		seq_printf(m, "%d\t\t%d\n", gpu_freq * GT_FREQUENCY_MULTIPLIER, ia_freq * 100);
 	}
 
 	mutex_unlock(&dev->struct_mutex);
@@ -1507,9 +1513,7 @@ static int i915_ppgtt_info(struct seq_file *m, void *data)
 	if (INTEL_INFO(dev)->gen == 6)
 		seq_printf(m, "GFX_MODE: 0x%08x\n", I915_READ(GFX_MODE));
 
-	for (i = 0; i < I915_NUM_RINGS; i++) {
-		ring = &dev_priv->ring[i];
-
+	for_each_ring(ring, dev_priv, i) {
 		seq_printf(m, "%s\n", ring->name);
 		if (INTEL_INFO(dev)->gen == 7)
 			seq_printf(m, "GFX_MODE: 0x%08x\n", I915_READ(RING_MODE_GEN7(ring)));
@@ -1713,7 +1717,7 @@ i915_max_freq_read(struct file *filp,
 		return ret;
 
 	len = snprintf(buf, sizeof(buf),
-		       "max freq: %d\n", dev_priv->rps.max_delay * 50);
+		       "max freq: %d\n", dev_priv->rps.max_delay * GT_FREQUENCY_MULTIPLIER);
 	mutex_unlock(&dev->struct_mutex);
 
 	if (len > sizeof(buf))
@@ -1756,9 +1760,9 @@ i915_max_freq_write(struct file *filp,
 	/*
 	 * Turbo will still be enabled, but won't go above the set value.
 	 */
-	dev_priv->rps.max_delay = val / 50;
+	dev_priv->rps.max_delay = val / GT_FREQUENCY_MULTIPLIER;
 
-	gen6_set_rps(dev, val / 50);
+	gen6_set_rps(dev, val / GT_FREQUENCY_MULTIPLIER);
 	mutex_unlock(&dev->struct_mutex);
 
 	return cnt;
@@ -1789,7 +1793,7 @@ i915_min_freq_read(struct file *filp, char __user *ubuf, size_t max,
 		return ret;
 
 	len = snprintf(buf, sizeof(buf),
-		       "min freq: %d\n", dev_priv->rps.min_delay * 50);
+		       "min freq: %d\n", dev_priv->rps.min_delay * GT_FREQUENCY_MULTIPLIER);
 	mutex_unlock(&dev->struct_mutex);
 
 	if (len > sizeof(buf))
@@ -1830,9 +1834,9 @@ i915_min_freq_write(struct file *filp, const char __user *ubuf, size_t cnt,
 	/*
 	 * Turbo will still be enabled, but won't go below the set value.
 	 */
-	dev_priv->rps.min_delay = val / 50;
+	dev_priv->rps.min_delay = val / GT_FREQUENCY_MULTIPLIER;
 
-	gen6_set_rps(dev, val / 50);
+	gen6_set_rps(dev, val / GT_FREQUENCY_MULTIPLIER);
 	mutex_unlock(&dev->struct_mutex);
 
 	return cnt;

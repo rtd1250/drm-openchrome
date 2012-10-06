@@ -235,10 +235,10 @@ static int i915_initialize(struct drm_device * dev, drm_i915_init_t * init)
 		}
 	}
 
-	dev_priv->cpp = init->cpp;
-	dev_priv->back_offset = init->back_offset;
-	dev_priv->front_offset = init->front_offset;
-	dev_priv->current_page = 0;
+	dev_priv->dri1.cpp = init->cpp;
+	dev_priv->dri1.back_offset = init->back_offset;
+	dev_priv->dri1.front_offset = init->front_offset;
+	dev_priv->dri1.current_page = 0;
 	if (master_priv->sarea_priv)
 		master_priv->sarea_priv->pf_current_page = 0;
 
@@ -575,7 +575,7 @@ static int i915_dispatch_flip(struct drm_device * dev)
 
 	DRM_DEBUG_DRIVER("%s: page=%d pfCurrentPage=%d\n",
 			  __func__,
-			 dev_priv->current_page,
+			 dev_priv->dri1.current_page,
 			 master_priv->sarea_priv->pf_current_page);
 
 	i915_kernel_lost_context(dev);
@@ -589,12 +589,12 @@ static int i915_dispatch_flip(struct drm_device * dev)
 
 	OUT_RING(CMD_OP_DISPLAYBUFFER_INFO | ASYNC_FLIP);
 	OUT_RING(0);
-	if (dev_priv->current_page == 0) {
-		OUT_RING(dev_priv->back_offset);
-		dev_priv->current_page = 1;
+	if (dev_priv->dri1.current_page == 0) {
+		OUT_RING(dev_priv->dri1.back_offset);
+		dev_priv->dri1.current_page = 1;
 	} else {
-		OUT_RING(dev_priv->front_offset);
-		dev_priv->current_page = 0;
+		OUT_RING(dev_priv->dri1.front_offset);
+		dev_priv->dri1.current_page = 0;
 	}
 	OUT_RING(0);
 
@@ -613,7 +613,7 @@ static int i915_dispatch_flip(struct drm_device * dev)
 		ADVANCE_LP_RING();
 	}
 
-	master_priv->sarea_priv->pf_current_page = dev_priv->current_page;
+	master_priv->sarea_priv->pf_current_page = dev_priv->dri1.current_page;
 	return 0;
 }
 
@@ -1011,6 +1011,9 @@ static int i915_getparam(struct drm_device *dev, void *data,
 		break;
 	case I915_PARAM_HAS_SEMAPHORES:
 		value = i915_semaphore_is_enabled(dev);
+		break;
+	case I915_PARAM_HAS_PRIME_VMAP_FLUSH:
+		value = 1;
 		break;
 	default:
 		DRM_DEBUG_DRIVER("Unknown parameter %d\n",
@@ -1458,7 +1461,7 @@ int i915_driver_load(struct drm_device *dev, unsigned long flags)
 {
 	struct drm_i915_private *dev_priv;
 	struct intel_device_info *info;
-	int ret = 0, mmio_bar;
+	int ret = 0, mmio_bar, mmio_size;
 	uint32_t aperture_size;
 
 	info = (struct intel_device_info *) flags;
@@ -1523,7 +1526,19 @@ int i915_driver_load(struct drm_device *dev, unsigned long flags)
 		dma_set_coherent_mask(&dev->pdev->dev, DMA_BIT_MASK(32));
 
 	mmio_bar = IS_GEN2(dev) ? 1 : 0;
-	dev_priv->regs = pci_iomap(dev->pdev, mmio_bar, 0);
+	/* Before gen4, the registers and the GTT are behind different BARs.
+	 * However, from gen4 onwards, the registers and the GTT are shared
+	 * in the same BAR, so we want to restrict this ioremap from
+	 * clobbering the GTT which we want ioremap_wc instead. Fortunately,
+	 * the register BAR remains the same size for all the earlier
+	 * generations up to Ironlake.
+	 */
+	if (info->gen < 5)
+		mmio_size = 512*1024;
+	else
+		mmio_size = 2*1024*1024;
+
+	dev_priv->regs = pci_iomap(dev->pdev, mmio_bar, mmio_size);
 	if (!dev_priv->regs) {
 		DRM_ERROR("failed to map registers\n");
 		ret = -EIO;
@@ -1555,11 +1570,9 @@ int i915_driver_load(struct drm_device *dev, unsigned long flags)
 	 *
 	 * All tasks on the workqueue are expected to acquire the dev mutex
 	 * so there is no point in running more than one instance of the
-	 * workqueue at any time: max_active = 1 and NON_REENTRANT.
+	 * workqueue at any time.  Use an ordered one.
 	 */
-	dev_priv->wq = alloc_workqueue("i915",
-				       WQ_UNBOUND | WQ_NON_REENTRANT,
-				       1);
+	dev_priv->wq = alloc_ordered_workqueue("i915", 0);
 	if (dev_priv->wq == NULL) {
 		DRM_ERROR("Failed to create our workqueue.\n");
 		ret = -ENOMEM;
@@ -1606,6 +1619,7 @@ int i915_driver_load(struct drm_device *dev, unsigned long flags)
 	spin_lock_init(&dev_priv->irq_lock);
 	spin_lock_init(&dev_priv->error_lock);
 	spin_lock_init(&dev_priv->rps.lock);
+	spin_lock_init(&dev_priv->dpio_lock);
 
 	if (IS_IVYBRIDGE(dev) || IS_HASWELL(dev))
 		dev_priv->num_pipe = 3;
@@ -1854,8 +1868,8 @@ struct drm_ioctl_desc i915_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(I915_GEM_PIN, i915_gem_pin_ioctl, DRM_AUTH|DRM_ROOT_ONLY|DRM_UNLOCKED),
 	DRM_IOCTL_DEF_DRV(I915_GEM_UNPIN, i915_gem_unpin_ioctl, DRM_AUTH|DRM_ROOT_ONLY|DRM_UNLOCKED),
 	DRM_IOCTL_DEF_DRV(I915_GEM_BUSY, i915_gem_busy_ioctl, DRM_AUTH|DRM_UNLOCKED),
-	DRM_IOCTL_DEF_DRV(I915_GEM_SET_CACHEING, i915_gem_set_cacheing_ioctl, DRM_UNLOCKED),
-	DRM_IOCTL_DEF_DRV(I915_GEM_GET_CACHEING, i915_gem_get_cacheing_ioctl, DRM_UNLOCKED),
+	DRM_IOCTL_DEF_DRV(I915_GEM_SET_CACHING, i915_gem_set_caching_ioctl, DRM_UNLOCKED),
+	DRM_IOCTL_DEF_DRV(I915_GEM_GET_CACHING, i915_gem_get_caching_ioctl, DRM_UNLOCKED),
 	DRM_IOCTL_DEF_DRV(I915_GEM_THROTTLE, i915_gem_throttle_ioctl, DRM_AUTH|DRM_UNLOCKED),
 	DRM_IOCTL_DEF_DRV(I915_GEM_ENTERVT, i915_gem_entervt_ioctl, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY|DRM_UNLOCKED),
 	DRM_IOCTL_DEF_DRV(I915_GEM_LEAVEVT, i915_gem_leavevt_ioctl, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY|DRM_UNLOCKED),

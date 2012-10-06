@@ -600,6 +600,9 @@ static const struct file_operations via_driver_fops = {
 	.mmap = ttm_mmap,
 	.poll = drm_poll,
 	.fasync = drm_fasync,
+#ifdef CONFIG_COMPAT
+	.compat_ioctl = drm_compat_ioctl,
+#endif
 	.llseek = noop_llseek,
 };
 

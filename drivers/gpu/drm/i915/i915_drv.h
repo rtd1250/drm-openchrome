@@ -196,9 +196,10 @@ struct drm_i915_error_state {
 	u32 cpu_ring_head[I915_NUM_RINGS];
 	u32 cpu_ring_tail[I915_NUM_RINGS];
 	u32 error; /* gen6+ */
+	u32 err_int; /* gen7 */
 	u32 instpm[I915_NUM_RINGS];
 	u32 instps[I915_NUM_RINGS];
-	u32 instdone1;
+	u32 extra_instdone[I915_NUM_INSTDONE_REG];
 	u32 seqno[I915_NUM_RINGS];
 	u64 bbaddr;
 	u32 fault_reg[I915_NUM_RINGS];
@@ -240,7 +241,6 @@ struct drm_i915_error_state {
 };
 
 struct drm_i915_display_funcs {
-	void (*dpms)(struct drm_crtc *crtc, int mode);
 	bool (*fbc_enabled)(struct drm_device *dev);
 	void (*enable_fbc)(struct drm_crtc *crtc, unsigned long interval);
 	void (*disable_fbc)(struct drm_device *dev);
@@ -256,6 +256,8 @@ struct drm_i915_display_funcs {
 			     struct drm_display_mode *adjusted_mode,
 			     int x, int y,
 			     struct drm_framebuffer *old_fb);
+	void (*crtc_enable)(struct drm_crtc *crtc);
+	void (*crtc_disable)(struct drm_crtc *crtc);
 	void (*off)(struct drm_crtc *crtc);
 	void (*write_eld)(struct drm_connector *connector,
 			  struct drm_crtc *crtc);
@@ -428,12 +430,6 @@ typedef struct drm_i915_private {
 
 	struct resource mch_res;
 
-	unsigned int cpp;
-	int back_offset;
-	int front_offset;
-	int current_page;
-	int page_flipping;
-
 	atomic_t irq_received;
 
 	/* protects the irq masks */
@@ -451,7 +447,6 @@ typedef struct drm_i915_private {
 	u32 hotplug_supported_mask;
 	struct work_struct hotplug_work;
 
-	unsigned int sr01, adpa, ppcr, dvob, dvoc, lvds;
 	int num_pipe;
 	int num_pch_pll;
 
@@ -460,8 +455,7 @@ typedef struct drm_i915_private {
 	struct timer_list hangcheck_timer;
 	int hangcheck_count;
 	uint32_t last_acthd[I915_NUM_RINGS];
-	uint32_t last_instdone;
-	uint32_t last_instdone1;
+	uint32_t prev_instdone[I915_NUM_INSTDONE_REG];
 
 	unsigned int stop_rings;
 
@@ -692,7 +686,13 @@ typedef struct drm_i915_private {
 		struct drm_mm gtt_space;
 		/** List of all objects in gtt_space. Used to restore gtt
 		 * mappings on resume */
-		struct list_head gtt_list;
+		struct list_head bound_list;
+		/**
+		 * List of objects which are not bound to the GTT (thus
+		 * are idle and not used by the GPU) but still have
+		 * (presumably uncached) pages still attached.
+		 */
+		struct list_head unbound_list;
 
 		/** Usable portion of the GTT for GEM */
 		unsigned long gtt_start;
@@ -790,6 +790,12 @@ typedef struct drm_i915_private {
 	struct {
 		unsigned allow_batchbuffer : 1;
 		u32 __iomem *gfx_hws_cpu_addr;
+
+		unsigned int cpp;
+		int back_offset;
+		int front_offset;
+		int current_page;
+		int page_flipping;
 	} dri1;
 
 	/* Kernel Modesetting */
@@ -834,22 +840,26 @@ typedef struct drm_i915_private {
 		u8 max_delay;
 	} rps;
 
+	/* ilk-only ips/rps state. Everything in here is protected by the global
+	 * mchdev_lock in intel_pm.c */
+	struct {
+		u8 cur_delay;
+		u8 min_delay;
+		u8 max_delay;
+		u8 fmax;
+		u8 fstart;
 
-	u8 cur_delay;
-	u8 min_delay;
-	u8 max_delay;
-	u8 fmax;
-	u8 fstart;
+		u64 last_count1;
+		unsigned long last_time1;
+		unsigned long chipset_power;
+		u64 last_count2;
+		struct timespec last_time2;
+		unsigned long gfx_power;
+		u8 corr;
 
-	u64 last_count1;
-	unsigned long last_time1;
-	unsigned long chipset_power;
-	u64 last_count2;
-	struct timespec last_time2;
-	unsigned long gfx_power;
-	int c_m;
-	int r_t;
-	u8 corr;
+		int c_m;
+		int r_t;
+	} ips;
 
 	enum no_fbc_reason no_fbc_reason;
 
@@ -889,8 +899,28 @@ enum i915_cache_level {
 	I915_CACHE_LLC_MLC, /* gen6+, in docs at least! */
 };
 
+struct drm_i915_gem_object_ops {
+	/* Interface between the GEM object and its backing storage.
+	 * get_pages() is called once prior to the use of the associated set
+	 * of pages before to binding them into the GTT, and put_pages() is
+	 * called after we no longer need them. As we expect there to be
+	 * associated cost with migrating pages between the backing storage
+	 * and making them available for the GPU (e.g. clflush), we may hold
+	 * onto the pages after they are no longer referenced by the GPU
+	 * in case they may be used again shortly (for example migrating the
+	 * pages to a different memory domain within the GTT). put_pages()
+	 * will therefore most likely be called when the object itself is
+	 * being released or under memory pressure (where we attempt to
+	 * reap pages for the shrinker).
+	 */
+	int (*get_pages)(struct drm_i915_gem_object *);
+	void (*put_pages)(struct drm_i915_gem_object *);
+};
+
 struct drm_i915_gem_object {
 	struct drm_gem_object base;
+
+	const struct drm_i915_gem_object_ops *ops;
 
 	/** Current space allocated to this object in the GTT, if any. */
 	struct drm_mm_node *gtt_space;
@@ -976,17 +1006,12 @@ struct drm_i915_gem_object {
 
 	unsigned int has_aliasing_ppgtt_mapping:1;
 	unsigned int has_global_gtt_mapping:1;
+	unsigned int has_dma_mapping:1;
 
-	struct page **pages;
-
-	/**
-	 * DMAR support
-	 */
-	struct scatterlist *sg_list;
-	int num_sg;
+	struct sg_table *pages;
+	int pages_pin_count;
 
 	/* prime dma-buf support */
-	struct sg_table *sg_table;
 	void *dma_buf_vmapping;
 	int vmapping_count;
 
@@ -1153,6 +1178,8 @@ struct drm_i915_file_private {
 
 #define HAS_L3_GPU_CACHE(dev) (IS_IVYBRIDGE(dev) || IS_HASWELL(dev))
 
+#define GT_FREQUENCY_MULTIPLIER 50
+
 #include "i915_trace.h"
 
 /**
@@ -1274,10 +1301,10 @@ int i915_gem_unpin_ioctl(struct drm_device *dev, void *data,
 			 struct drm_file *file_priv);
 int i915_gem_busy_ioctl(struct drm_device *dev, void *data,
 			struct drm_file *file_priv);
-int i915_gem_get_cacheing_ioctl(struct drm_device *dev, void *data,
-				struct drm_file *file);
-int i915_gem_set_cacheing_ioctl(struct drm_device *dev, void *data,
-				struct drm_file *file);
+int i915_gem_get_caching_ioctl(struct drm_device *dev, void *data,
+			       struct drm_file *file);
+int i915_gem_set_caching_ioctl(struct drm_device *dev, void *data,
+			       struct drm_file *file);
 int i915_gem_throttle_ioctl(struct drm_device *dev, void *data,
 			    struct drm_file *file_priv);
 int i915_gem_madvise_ioctl(struct drm_device *dev, void *data,
@@ -1296,19 +1323,41 @@ int i915_gem_wait_ioctl(struct drm_device *dev, void *data,
 			struct drm_file *file_priv);
 void i915_gem_load(struct drm_device *dev);
 int i915_gem_init_object(struct drm_gem_object *obj);
+void i915_gem_object_init(struct drm_i915_gem_object *obj,
+			 const struct drm_i915_gem_object_ops *ops);
 struct drm_i915_gem_object *i915_gem_alloc_object(struct drm_device *dev,
 						  size_t size);
 void i915_gem_free_object(struct drm_gem_object *obj);
 int __must_check i915_gem_object_pin(struct drm_i915_gem_object *obj,
 				     uint32_t alignment,
-				     bool map_and_fenceable);
+				     bool map_and_fenceable,
+				     bool nonblocking);
 void i915_gem_object_unpin(struct drm_i915_gem_object *obj);
 int __must_check i915_gem_object_unbind(struct drm_i915_gem_object *obj);
 void i915_gem_release_mmap(struct drm_i915_gem_object *obj);
 void i915_gem_lastclose(struct drm_device *dev);
 
-int i915_gem_object_get_pages_gtt(struct drm_i915_gem_object *obj,
-				  gfp_t gfpmask);
+int __must_check i915_gem_object_get_pages(struct drm_i915_gem_object *obj);
+static inline struct page *i915_gem_object_get_page(struct drm_i915_gem_object *obj, int n)
+{
+	struct scatterlist *sg = obj->pages->sgl;
+	while (n >= SG_MAX_SINGLE_ALLOC) {
+		sg = sg_chain_ptr(sg + SG_MAX_SINGLE_ALLOC - 1);
+		n -= SG_MAX_SINGLE_ALLOC - 1;
+	}
+	return sg_page(sg+n);
+}
+static inline void i915_gem_object_pin_pages(struct drm_i915_gem_object *obj)
+{
+	BUG_ON(obj->pages == NULL);
+	obj->pages_pin_count++;
+}
+static inline void i915_gem_object_unpin_pages(struct drm_i915_gem_object *obj)
+{
+	BUG_ON(obj->pages_pin_count == 0);
+	obj->pages_pin_count--;
+}
+
 int __must_check i915_mutex_lock_interruptible(struct drm_device *dev);
 int i915_gem_object_sync(struct drm_i915_gem_object *obj,
 			 struct intel_ring_buffer *to);
@@ -1449,8 +1498,9 @@ void i915_gem_init_global_gtt(struct drm_device *dev,
 int __must_check i915_gem_evict_something(struct drm_device *dev, int min_size,
 					  unsigned alignment,
 					  unsigned cache_level,
-					  bool mappable);
-int i915_gem_evict_everything(struct drm_device *dev, bool purgeable_only);
+					  bool mappable,
+					  bool nonblock);
+int i915_gem_evict_everything(struct drm_device *dev);
 
 /* i915_gem_stolen.c */
 int i915_gem_init_stolen(struct drm_device *dev);
@@ -1539,6 +1589,7 @@ extern void intel_modeset_init(struct drm_device *dev);
 extern void intel_modeset_gem_init(struct drm_device *dev);
 extern void intel_modeset_cleanup(struct drm_device *dev);
 extern int intel_modeset_vga_set_state(struct drm_device *dev, bool state);
+extern void intel_modeset_setup_hw_state(struct drm_device *dev);
 extern bool intel_fbc_enabled(struct drm_device *dev);
 extern void intel_disable_fbc(struct drm_device *dev);
 extern bool ironlake_set_drps(struct drm_device *dev, u8 val);

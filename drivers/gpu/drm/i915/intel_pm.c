@@ -31,6 +31,8 @@
 #include "../../../platform/x86/intel_ips.h"
 #include <linux/module.h>
 
+#define FORCEWAKE_ACK_TIMEOUT_MS 2
+
 /* FBC, or Frame Buffer Compression, is a technique employed to compress the
  * framebuffer contents in-memory, aiming at reducing the required bandwidth
  * during in-memory transfers and, therefore, reduce the power packet.
@@ -593,7 +595,7 @@ static void i915_ironlake_get_mem_freq(struct drm_device *dev)
 		break;
 	}
 
-	dev_priv->r_t = dev_priv->mem_freq;
+	dev_priv->ips.r_t = dev_priv->mem_freq;
 
 	switch (csipll & 0x3ff) {
 	case 0x00c:
@@ -625,11 +627,11 @@ static void i915_ironlake_get_mem_freq(struct drm_device *dev)
 	}
 
 	if (dev_priv->fsb_freq == 3200) {
-		dev_priv->c_m = 0;
+		dev_priv->ips.c_m = 0;
 	} else if (dev_priv->fsb_freq > 3200 && dev_priv->fsb_freq <= 4800) {
-		dev_priv->c_m = 1;
+		dev_priv->ips.c_m = 1;
 	} else {
-		dev_priv->c_m = 2;
+		dev_priv->ips.c_m = 2;
 	}
 }
 
@@ -2138,7 +2140,7 @@ intel_alloc_context_page(struct drm_device *dev)
 		return NULL;
 	}
 
-	ret = i915_gem_object_pin(ctx, 4096, true);
+	ret = i915_gem_object_pin(ctx, 4096, true, false);
 	if (ret) {
 		DRM_ERROR("failed to pin power context: %d\n", ret);
 		goto err_unref;
@@ -2162,12 +2164,6 @@ err_unref:
 
 /**
  * Lock protecting IPS related data structures
- *   - i915_mch_dev
- *   - dev_priv->max_delay
- *   - dev_priv->min_delay
- *   - dev_priv->fmax
- *   - dev_priv->gpu_busy
- *   - dev_priv->gfx_power
  */
 DEFINE_SPINLOCK(mchdev_lock);
 
@@ -2230,12 +2226,12 @@ static void ironlake_enable_drps(struct drm_device *dev)
 	vstart = (I915_READ(PXVFREQ_BASE + (fstart * 4)) & PXVFREQ_PX_MASK) >>
 		PXVFREQ_PX_SHIFT;
 
-	dev_priv->fmax = fmax; /* IPS callback will increase this */
-	dev_priv->fstart = fstart;
+	dev_priv->ips.fmax = fmax; /* IPS callback will increase this */
+	dev_priv->ips.fstart = fstart;
 
-	dev_priv->max_delay = fstart;
-	dev_priv->min_delay = fmin;
-	dev_priv->cur_delay = fstart;
+	dev_priv->ips.max_delay = fstart;
+	dev_priv->ips.min_delay = fmin;
+	dev_priv->ips.cur_delay = fstart;
 
 	DRM_DEBUG_DRIVER("fmax: %d, fmin: %d, fstart: %d\n",
 			 fmax, fmin, fstart);
@@ -2258,11 +2254,11 @@ static void ironlake_enable_drps(struct drm_device *dev)
 
 	ironlake_set_drps(dev, fstart);
 
-	dev_priv->last_count1 = I915_READ(0x112e4) + I915_READ(0x112e8) +
+	dev_priv->ips.last_count1 = I915_READ(0x112e4) + I915_READ(0x112e8) +
 		I915_READ(0x112e0);
-	dev_priv->last_time1 = jiffies_to_msecs(jiffies);
-	dev_priv->last_count2 = I915_READ(0x112f4);
-	getrawmonotonic(&dev_priv->last_time2);
+	dev_priv->ips.last_time1 = jiffies_to_msecs(jiffies);
+	dev_priv->ips.last_count2 = I915_READ(0x112f4);
+	getrawmonotonic(&dev_priv->ips.last_time2);
 
 	spin_unlock_irq(&mchdev_lock);
 }
@@ -2284,7 +2280,7 @@ static void ironlake_disable_drps(struct drm_device *dev)
 	I915_WRITE(DEIMR, I915_READ(DEIMR) | DE_PCU_EVENT);
 
 	/* Go back to the starting frequency */
-	ironlake_set_drps(dev, dev_priv->fstart);
+	ironlake_set_drps(dev, dev_priv->ips.fstart);
 	mdelay(1);
 	rgvswctl |= MEMCTL_CMD_STS;
 	I915_WRITE(MEMSWCTL, rgvswctl);
@@ -2328,6 +2324,8 @@ void gen6_set_rps(struct drm_device *dev, u8 val)
 	u32 limits = gen6_rps_limits(dev_priv, &val);
 
 	WARN_ON(!mutex_is_locked(&dev->struct_mutex));
+	WARN_ON(val > dev_priv->rps.max_delay);
+	WARN_ON(val < dev_priv->rps.min_delay);
 
 	if (val == dev_priv->rps.cur_delay)
 		return;
@@ -2342,7 +2340,11 @@ void gen6_set_rps(struct drm_device *dev, u8 val)
 	 */
 	I915_WRITE(GEN6_RP_INTERRUPT_LIMITS, limits);
 
+	POSTING_READ(GEN6_RPNSWREQ);
+
 	dev_priv->rps.cur_delay = val;
+
+	trace_intel_gpu_freq_change(val * 50);
 }
 
 static void gen6_disable_rps(struct drm_device *dev)
@@ -2372,6 +2374,11 @@ int intel_enable_rc6(const struct drm_device *dev)
 		return i915_enable_rc6;
 
 	if (INTEL_INFO(dev)->gen == 5) {
+#ifdef CONFIG_INTEL_IOMMU
+		/* Disable rc6 on ilk if VT-d is on. */
+		if (intel_iommu_gfx_mapped)
+			return false;
+#endif
 		DRM_DEBUG_DRIVER("Ironlake: only RC6 available\n");
 		return INTEL_RC6_ENABLE;
 	}
@@ -2482,17 +2489,10 @@ static void gen6_enable_rps(struct drm_device *dev)
 		   dev_priv->rps.max_delay << 24 |
 		   dev_priv->rps.min_delay << 16);
 
-	if (IS_HASWELL(dev)) {
-		I915_WRITE(GEN6_RP_UP_THRESHOLD, 59400);
-		I915_WRITE(GEN6_RP_DOWN_THRESHOLD, 245000);
-		I915_WRITE(GEN6_RP_UP_EI, 66000);
-		I915_WRITE(GEN6_RP_DOWN_EI, 350000);
-	} else {
-		I915_WRITE(GEN6_RP_UP_THRESHOLD, 10000);
-		I915_WRITE(GEN6_RP_DOWN_THRESHOLD, 1000000);
-		I915_WRITE(GEN6_RP_UP_EI, 100000);
-		I915_WRITE(GEN6_RP_DOWN_EI, 5000000);
-	}
+	I915_WRITE(GEN6_RP_UP_THRESHOLD, 59400);
+	I915_WRITE(GEN6_RP_DOWN_THRESHOLD, 245000);
+	I915_WRITE(GEN6_RP_UP_EI, 66000);
+	I915_WRITE(GEN6_RP_DOWN_EI, 350000);
 
 	I915_WRITE(GEN6_RP_IDLE_HYSTERSIS, 10);
 	I915_WRITE(GEN6_RP_CONTROL,
@@ -2734,7 +2734,7 @@ static const struct cparams {
 	{ 0, 800, 231, 23784 },
 };
 
-unsigned long i915_chipset_val(struct drm_i915_private *dev_priv)
+static unsigned long __i915_chipset_val(struct drm_i915_private *dev_priv)
 {
 	u64 total_count, diff, ret;
 	u32 count1, count2, count3, m = 0, c = 0;
@@ -2743,7 +2743,7 @@ unsigned long i915_chipset_val(struct drm_i915_private *dev_priv)
 
 	assert_spin_locked(&mchdev_lock);
 
-	diff1 = now - dev_priv->last_time1;
+	diff1 = now - dev_priv->ips.last_time1;
 
 	/* Prevent division-by-zero if we are asking too fast.
 	 * Also, we don't get interesting results if we are polling
@@ -2751,7 +2751,7 @@ unsigned long i915_chipset_val(struct drm_i915_private *dev_priv)
 	 * in such cases.
 	 */
 	if (diff1 <= 10)
-		return dev_priv->chipset_power;
+		return dev_priv->ips.chipset_power;
 
 	count1 = I915_READ(DMIEC);
 	count2 = I915_READ(DDREC);
@@ -2760,16 +2760,16 @@ unsigned long i915_chipset_val(struct drm_i915_private *dev_priv)
 	total_count = count1 + count2 + count3;
 
 	/* FIXME: handle per-counter overflow */
-	if (total_count < dev_priv->last_count1) {
-		diff = ~0UL - dev_priv->last_count1;
+	if (total_count < dev_priv->ips.last_count1) {
+		diff = ~0UL - dev_priv->ips.last_count1;
 		diff += total_count;
 	} else {
-		diff = total_count - dev_priv->last_count1;
+		diff = total_count - dev_priv->ips.last_count1;
 	}
 
 	for (i = 0; i < ARRAY_SIZE(cparams); i++) {
-		if (cparams[i].i == dev_priv->c_m &&
-		    cparams[i].t == dev_priv->r_t) {
+		if (cparams[i].i == dev_priv->ips.c_m &&
+		    cparams[i].t == dev_priv->ips.r_t) {
 			m = cparams[i].m;
 			c = cparams[i].c;
 			break;
@@ -2780,12 +2780,28 @@ unsigned long i915_chipset_val(struct drm_i915_private *dev_priv)
 	ret = ((m * diff) + c);
 	ret = div_u64(ret, 10);
 
-	dev_priv->last_count1 = total_count;
-	dev_priv->last_time1 = now;
+	dev_priv->ips.last_count1 = total_count;
+	dev_priv->ips.last_time1 = now;
 
-	dev_priv->chipset_power = ret;
+	dev_priv->ips.chipset_power = ret;
 
 	return ret;
+}
+
+unsigned long i915_chipset_val(struct drm_i915_private *dev_priv)
+{
+	unsigned long val;
+
+	if (dev_priv->info->gen != 5)
+		return 0;
+
+	spin_lock_irq(&mchdev_lock);
+
+	val = __i915_chipset_val(dev_priv);
+
+	spin_unlock_irq(&mchdev_lock);
+
+	return val;
 }
 
 unsigned long i915_mch_val(struct drm_i915_private *dev_priv)
@@ -2954,7 +2970,7 @@ static void __i915_update_gfx_val(struct drm_i915_private *dev_priv)
 	assert_spin_locked(&mchdev_lock);
 
 	getrawmonotonic(&now);
-	diff1 = timespec_sub(now, dev_priv->last_time2);
+	diff1 = timespec_sub(now, dev_priv->ips.last_time2);
 
 	/* Don't divide by 0 */
 	diffms = diff1.tv_sec * 1000 + diff1.tv_nsec / 1000000;
@@ -2963,20 +2979,20 @@ static void __i915_update_gfx_val(struct drm_i915_private *dev_priv)
 
 	count = I915_READ(GFXEC);
 
-	if (count < dev_priv->last_count2) {
-		diff = ~0UL - dev_priv->last_count2;
+	if (count < dev_priv->ips.last_count2) {
+		diff = ~0UL - dev_priv->ips.last_count2;
 		diff += count;
 	} else {
-		diff = count - dev_priv->last_count2;
+		diff = count - dev_priv->ips.last_count2;
 	}
 
-	dev_priv->last_count2 = count;
-	dev_priv->last_time2 = now;
+	dev_priv->ips.last_count2 = count;
+	dev_priv->ips.last_time2 = now;
 
 	/* More magic constants... */
 	diff = diff * 1181;
 	diff = div_u64(diff, diffms * 10);
-	dev_priv->gfx_power = diff;
+	dev_priv->ips.gfx_power = diff;
 }
 
 void i915_update_gfx_val(struct drm_i915_private *dev_priv)
@@ -2991,7 +3007,7 @@ void i915_update_gfx_val(struct drm_i915_private *dev_priv)
 	spin_unlock_irq(&mchdev_lock);
 }
 
-unsigned long i915_gfx_val(struct drm_i915_private *dev_priv)
+static unsigned long __i915_gfx_val(struct drm_i915_private *dev_priv)
 {
 	unsigned long t, corr, state1, corr2, state2;
 	u32 pxvid, ext_v;
@@ -3018,14 +3034,30 @@ unsigned long i915_gfx_val(struct drm_i915_private *dev_priv)
 
 	corr = corr * ((150142 * state1) / 10000 - 78642);
 	corr /= 100000;
-	corr2 = (corr * dev_priv->corr);
+	corr2 = (corr * dev_priv->ips.corr);
 
 	state2 = (corr2 * state1) / 10000;
 	state2 /= 100; /* convert to mW */
 
 	__i915_update_gfx_val(dev_priv);
 
-	return dev_priv->gfx_power + state2;
+	return dev_priv->ips.gfx_power + state2;
+}
+
+unsigned long i915_gfx_val(struct drm_i915_private *dev_priv)
+{
+	unsigned long val;
+
+	if (dev_priv->info->gen != 5)
+		return 0;
+
+	spin_lock_irq(&mchdev_lock);
+
+	val = __i915_gfx_val(dev_priv);
+
+	spin_unlock_irq(&mchdev_lock);
+
+	return val;
 }
 
 /**
@@ -3044,8 +3076,8 @@ unsigned long i915_read_mch_val(void)
 		goto out_unlock;
 	dev_priv = i915_mch_dev;
 
-	chipset_val = i915_chipset_val(dev_priv);
-	graphics_val = i915_gfx_val(dev_priv);
+	chipset_val = __i915_chipset_val(dev_priv);
+	graphics_val = __i915_gfx_val(dev_priv);
 
 	ret = chipset_val + graphics_val;
 
@@ -3073,8 +3105,8 @@ bool i915_gpu_raise(void)
 	}
 	dev_priv = i915_mch_dev;
 
-	if (dev_priv->max_delay > dev_priv->fmax)
-		dev_priv->max_delay--;
+	if (dev_priv->ips.max_delay > dev_priv->ips.fmax)
+		dev_priv->ips.max_delay--;
 
 out_unlock:
 	spin_unlock_irq(&mchdev_lock);
@@ -3101,8 +3133,8 @@ bool i915_gpu_lower(void)
 	}
 	dev_priv = i915_mch_dev;
 
-	if (dev_priv->max_delay < dev_priv->min_delay)
-		dev_priv->max_delay++;
+	if (dev_priv->ips.max_delay < dev_priv->ips.min_delay)
+		dev_priv->ips.max_delay++;
 
 out_unlock:
 	spin_unlock_irq(&mchdev_lock);
@@ -3156,9 +3188,9 @@ bool i915_gpu_turbo_disable(void)
 	}
 	dev_priv = i915_mch_dev;
 
-	dev_priv->max_delay = dev_priv->fstart;
+	dev_priv->ips.max_delay = dev_priv->ips.fstart;
 
-	if (!ironlake_set_drps(dev_priv->dev, dev_priv->fstart))
+	if (!ironlake_set_drps(dev_priv->dev, dev_priv->ips.fstart))
 		ret = false;
 
 out_unlock:
@@ -3273,7 +3305,7 @@ static void intel_init_emon(struct drm_device *dev)
 
 	lcfuse = I915_READ(LCFUSE02);
 
-	dev_priv->corr = (lcfuse & LCFUSE_HIV_MASK);
+	dev_priv->ips.corr = (lcfuse & LCFUSE_HIV_MASK);
 }
 
 void intel_disable_gt_powersave(struct drm_device *dev)
@@ -3727,6 +3759,9 @@ static void gen3_init_clock_gating(struct drm_device *dev)
 
 	if (IS_PINEVIEW(dev))
 		I915_WRITE(ECOSKPD, _MASKED_BIT_ENABLE(ECO_GATING_CX_ONLY));
+
+	/* IIR "flip pending" means done if this bit is set */
+	I915_WRITE(ECOSKPD, _MASKED_BIT_DISABLE(ECO_FLIP_DONE));
 }
 
 static void i85x_init_clock_gating(struct drm_device *dev)
@@ -3968,14 +4003,16 @@ static void __gen6_gt_force_wake_get(struct drm_i915_private *dev_priv)
 	else
 		forcewake_ack = FORCEWAKE_ACK;
 
-	if (wait_for_atomic_us((I915_READ_NOTRACE(forcewake_ack) & 1) == 0, 500))
-		DRM_ERROR("Force wake wait timed out\n");
+	if (wait_for_atomic((I915_READ_NOTRACE(forcewake_ack) & 1) == 0,
+			    FORCEWAKE_ACK_TIMEOUT_MS))
+		DRM_ERROR("Timed out waiting for forcewake old ack to clear.\n");
 
 	I915_WRITE_NOTRACE(FORCEWAKE, 1);
-	POSTING_READ(FORCEWAKE);
+	POSTING_READ(ECOBUS); /* something from same cacheline, but !FORCEWAKE */
 
-	if (wait_for_atomic_us((I915_READ_NOTRACE(forcewake_ack) & 1), 500))
-		DRM_ERROR("Force wake wait timed out\n");
+	if (wait_for_atomic((I915_READ_NOTRACE(forcewake_ack) & 1),
+			    FORCEWAKE_ACK_TIMEOUT_MS))
+		DRM_ERROR("Timed out waiting for forcewake to ack request.\n");
 
 	__gen6_gt_wait_for_thread_c0(dev_priv);
 }
@@ -3989,14 +4026,16 @@ static void __gen6_gt_force_wake_mt_get(struct drm_i915_private *dev_priv)
 	else
 		forcewake_ack = FORCEWAKE_MT_ACK;
 
-	if (wait_for_atomic_us((I915_READ_NOTRACE(forcewake_ack) & 1) == 0, 500))
-		DRM_ERROR("Force wake wait timed out\n");
+	if (wait_for_atomic((I915_READ_NOTRACE(forcewake_ack) & 1) == 0,
+			    FORCEWAKE_ACK_TIMEOUT_MS))
+		DRM_ERROR("Timed out waiting for forcewake old ack to clear.\n");
 
 	I915_WRITE_NOTRACE(FORCEWAKE_MT, _MASKED_BIT_ENABLE(1));
-	POSTING_READ(FORCEWAKE_MT);
+	POSTING_READ(ECOBUS); /* something from same cacheline, but !FORCEWAKE */
 
-	if (wait_for_atomic_us((I915_READ_NOTRACE(forcewake_ack) & 1), 500))
-		DRM_ERROR("Force wake wait timed out\n");
+	if (wait_for_atomic((I915_READ_NOTRACE(forcewake_ack) & 1),
+			    FORCEWAKE_ACK_TIMEOUT_MS))
+		DRM_ERROR("Timed out waiting for forcewake to ack request.\n");
 
 	__gen6_gt_wait_for_thread_c0(dev_priv);
 }
@@ -4029,14 +4068,14 @@ void gen6_gt_check_fifodbg(struct drm_i915_private *dev_priv)
 static void __gen6_gt_force_wake_put(struct drm_i915_private *dev_priv)
 {
 	I915_WRITE_NOTRACE(FORCEWAKE, 0);
-	POSTING_READ(FORCEWAKE);
+	/* gen6_gt_check_fifodbg doubles as the POSTING_READ */
 	gen6_gt_check_fifodbg(dev_priv);
 }
 
 static void __gen6_gt_force_wake_mt_put(struct drm_i915_private *dev_priv)
 {
 	I915_WRITE_NOTRACE(FORCEWAKE_MT, _MASKED_BIT_DISABLE(1));
-	POSTING_READ(FORCEWAKE_MT);
+	/* gen6_gt_check_fifodbg doubles as the POSTING_READ */
 	gen6_gt_check_fifodbg(dev_priv);
 }
 
@@ -4075,24 +4114,24 @@ int __gen6_gt_wait_for_fifo(struct drm_i915_private *dev_priv)
 
 static void vlv_force_wake_get(struct drm_i915_private *dev_priv)
 {
-	/* Already awake? */
-	if ((I915_READ(0x130094) & 0xa1) == 0xa1)
-		return;
+	if (wait_for_atomic((I915_READ_NOTRACE(FORCEWAKE_ACK_VLV) & 1) == 0,
+			    FORCEWAKE_ACK_TIMEOUT_MS))
+		DRM_ERROR("Timed out waiting for forcewake old ack to clear.\n");
 
-	I915_WRITE_NOTRACE(FORCEWAKE_VLV, 0xffffffff);
-	POSTING_READ(FORCEWAKE_VLV);
+	I915_WRITE_NOTRACE(FORCEWAKE_VLV, _MASKED_BIT_ENABLE(1));
 
-	if (wait_for_atomic_us((I915_READ_NOTRACE(FORCEWAKE_ACK_VLV) & 1), 500))
-		DRM_ERROR("Force wake wait timed out\n");
+	if (wait_for_atomic((I915_READ_NOTRACE(FORCEWAKE_ACK_VLV) & 1),
+			    FORCEWAKE_ACK_TIMEOUT_MS))
+		DRM_ERROR("Timed out waiting for forcewake to ack request.\n");
 
 	__gen6_gt_wait_for_thread_c0(dev_priv);
 }
 
 static void vlv_force_wake_put(struct drm_i915_private *dev_priv)
 {
-	I915_WRITE_NOTRACE(FORCEWAKE_VLV, 0xffff0000);
-	/* FIXME: confirm VLV behavior with Punit folks */
-	POSTING_READ(FORCEWAKE_VLV);
+	I915_WRITE_NOTRACE(FORCEWAKE_VLV, _MASKED_BIT_DISABLE(1));
+	/* The below doubles as a POSTING_READ */
+	gen6_gt_check_fifodbg(dev_priv);
 }
 
 void intel_gt_init(struct drm_device *dev)
