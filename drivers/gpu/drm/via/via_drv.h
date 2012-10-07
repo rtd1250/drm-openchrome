@@ -34,6 +34,11 @@
 #define DRIVER_MINOR		0
 #define DRIVER_PATCHLEVEL	0
 
+#include <linux/module.h>
+#include <linux/i2c.h>
+#include <linux/i2c-algo-bit.h>
+#include <linux/via-core.h>
+
 #include "ttm/ttm_bo_api.h"
 #include "ttm/ttm_bo_driver.h"
 #include "ttm/ttm_placement.h"
@@ -41,17 +46,13 @@
 #include "ttm/ttm_module.h"
 #include "ttm/ttm_page_alloc.h"
 
-#include <video/vga.h>
-#include "crtc_hw.h"
-#include <linux/module.h>
-#include <linux/i2c.h>
-#include <linux/i2c-algo-bit.h>
-#include <linux/via-core.h>
+#include "drmP.h"
 
 #include "via_regs.h"
 #include "via_drm.h"
 #include "via_verifier.h"
 #include "via_dmabuffer.h"
+#include "via_display.h"
 
 #define VIA_MM_ALIGN_SIZE 16
 
@@ -81,6 +82,11 @@ struct sgdma_tt {
         unsigned long offset;
 };
 
+struct via_state {
+	struct vga_regset crt_regs[256];
+	struct vga_regset seq_regs[256];
+};
+
 enum via_engine {
 	VIA_ENG_H1 = 0,
 	VIA_ENG_H2,
@@ -89,86 +95,60 @@ enum via_engine {
 	VIA_ENG_H6S2
 };
 
-struct via_i2c {
-	struct drm_via_private *dev_priv;
-	struct via_port_cfg *adap_cfg;
-	struct i2c_algo_bit_data algo;
-	struct i2c_adapter adapter;
-	u16 i2c_port;
-};
-
-struct via_crtc {
-	struct drm_crtc base;
-	struct ttm_bo_kmap_obj cursor_kmap;
-	struct crtc_timings timings;
-	unsigned int display_queue_expire_num;
-	unsigned int fifo_high_threshold;
-	unsigned int fifo_threshold;
-	unsigned int fifo_max_depth;
-	struct vga_registers display_queue;
-	struct vga_registers high_threshold;
-	struct vga_registers threshold;
-	struct vga_registers fifo_depth;
-	struct vga_registers offset;
-	struct vga_registers fetch;
-	uint8_t index;
-};
-
-#define DISP_DI_NONE		0x00
-#define DISP_DI_DVP0		BIT(0)
-#define DISP_DI_DVP1		BIT(1)
-#define DISP_DI_DFPL		BIT(2)
-#define DISP_DI_DFPH		BIT(3)
-#define DISP_DI_DFP		BIT(4)
-#define DISP_DI_DAC		BIT(5)
-
-struct via_encoder {
-	struct drm_encoder base;
-	int diPort;
-};
-
 struct drm_via_private {
 	struct drm_global_reference mem_global_ref;
 	struct ttm_bo_global_ref bo_global_ref;
 	struct ttm_bo_device bdev;
 	struct drm_device *dev;
 	int revision;
-	drm_via_sarea_t *sarea_priv;
-	drm_local_map_t *sarea;
-	struct drm_fb_helper *helper;
-	u8 vram_type;
-	wait_queue_head_t decoder_queue[VIA_NR_XVMC_LOCKS];
+
 	struct ttm_bo_kmap_obj dmabuf;
 	struct ttm_bo_kmap_obj mmio;
 	struct ttm_bo_kmap_obj gart;
 	struct ttm_bo_kmap_obj vq;
+
+	struct drm_fb_helper *helper;
+	u8 vram_type;
+
+	struct via_state pm_cache;
+
 	enum via_engine engine_type;
+	struct drm_via_state hc_state;
 	unsigned int dma_low;
 	unsigned int dma_high;
 	unsigned int dma_offset;
 	uint32_t dma_wrap;
 	void __iomem *last_pause_ptr;
 	void __iomem *hw_addr_ptr;
+
 	struct timeval last_vblank;
 	int last_vblank_valid;
 	unsigned usec_per_vblank;
-	struct drm_via_state hc_state;
+
 	char pci_buf[VIA_PCI_BUF_SIZE];
 	const uint32_t *fire_offsets[VIA_FIRE_BUF_SIZE];
 	uint32_t num_fire_offsets;
+
 	drm_via_irq_t via_irqs[VIA_NUM_IRQS];
 	unsigned num_irqs;
 	maskarray_t *irq_masks;
 	uint32_t irq_enable_mask;
 	uint32_t irq_pending_mask;
 	int *irq_map;
+
 	unsigned int idle_fault;
 	unsigned long vram_offset;
 	unsigned long agp_offset;
 	drm_via_blitq_t blit_queues[VIA_NUM_BLIT_ENGINES];
 	uint32_t dma_diff;
+
+	wait_queue_head_t decoder_queue[VIA_NR_XVMC_LOCKS];
+
 	struct via_crtc iga[2];
 	struct via_i2c i2c_par[5];
+
+	drm_via_sarea_t *sarea_priv;
+	drm_local_map_t *sarea;
 };
 
 #define VIA_MEM_NONE		0x00
@@ -204,6 +184,8 @@ struct drm_via_private {
 extern struct drm_ioctl_desc via_ioctls[];
 extern int via_max_ioctl;
 
+extern void via_engine_init(struct drm_device *dev);
+
 extern int via_dma_init(struct drm_device *dev, void *data, struct drm_file *file_priv);
 extern int via_flush_ioctl(struct drm_device *dev, void *data, struct drm_file *file_priv);
 extern int via_dispatch_cmdbuffer(struct drm_device *dev, drm_via_cmdbuffer_t *cmd);
@@ -217,8 +199,6 @@ extern int via_dma_blit(struct drm_device *dev, void *data, struct drm_file *fil
 extern int via_wait_idle(struct drm_via_private *dev_priv);
 
 extern int via_detect_vram(struct drm_device *dev);
-extern int via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **ptr);
-extern void via_framebuffer_fini(struct drm_fb_helper *helper);
 
 extern int via_ttm_init(struct drm_via_private *dev_priv);
 extern struct ttm_tt *via_sgdma_backend_init(struct ttm_bo_device *bdev, unsigned long size,
@@ -245,6 +225,10 @@ extern void ttm_placement_from_domain(struct ttm_buffer_object *bo,
 				struct ttm_bo_device *bdev);
 extern int ttm_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap);
 extern int ttm_bo_pin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap);
+extern int ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev, unsigned long size,
+				uint32_t alignment, uint32_t domain,
+				struct ttm_bo_kmap_obj *kmap);
+
 extern int ttm_mmap(struct file *filp, struct vm_area_struct *vma);
 
 extern int ttm_gem_init_object(struct drm_gem_object *obj);
@@ -272,19 +256,5 @@ extern void via_release_futex(struct drm_via_private *dev_priv, int context);
 
 extern void via_dmablit_handler(struct drm_device *dev, int engine, int from_irq);
 extern void via_init_dmablit(struct drm_device *dev);
-
-extern void via_modeset_fini(struct drm_device *dev);
-extern int via_modeset_init(struct drm_device *dev);
-
-extern void via_i2c_exit(struct drm_device *dev);
-extern int via_i2c_init(struct drm_device *dev);
-extern int via_get_edid_modes(struct drm_connector *connector);
-extern void via_set_pll(struct drm_crtc *crtc, struct drm_display_mode *mode);
-
-extern struct drm_encoder* via_best_encoder(struct drm_connector *connector);
-extern void via_diport_set_source(struct drm_encoder *encoder);
-
-extern void via_analog_init(struct drm_device *dev);
-extern void via_lvds_init(struct drm_device *dev);
 
 #endif

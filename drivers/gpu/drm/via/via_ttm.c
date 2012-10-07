@@ -55,7 +55,7 @@ via_ttm_tt_populate(struct ttm_tt *ttm)
 
 #if __OS_HAS_AGP
 	if (drm_pci_device_is_agp(dev_priv->dev))
-		return ttm_agp_tt_populate(ttm);	
+		return ttm_agp_tt_populate(ttm);
 #endif
 
 #ifdef CONFIG_SWIOTLB

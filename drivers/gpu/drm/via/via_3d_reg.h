@@ -32,6 +32,7 @@
 #define HC_Para_MASK            0x00ffffff
 #define HC_SubA_MASK            0xff000000
 #define HC_SubA_SHIFT           24
+
 /* Transmission Setting
  */
 #define HC_REG_TRANS_SET        0x003c

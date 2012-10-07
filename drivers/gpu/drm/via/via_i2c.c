@@ -20,11 +20,6 @@
 #include <linux/spinlock.h>
 #include <asm/olpc.h>
 
-#include "drm.h"
-#include "drmP.h"
-#include "drm_crtc.h"
-#include "drm_crtc_helper.h"
-
 #include "via_drv.h"
 
 /*
@@ -112,16 +107,6 @@ static void via_i2c_setsda(void *data, int state)
 	vga_wseq(VGABASE, adap_data->ioport_index, val);
 }
 
-int via_get_edid_modes(struct drm_connector *connector)
-{
-	struct edid *edid = NULL;
-
-	if (connector->edid_blob_ptr)
-		edid = (struct edid *) connector->edid_blob_ptr->data;
-
-	return drm_add_edid_modes(connector, edid);
-}
-
 static int create_i2c_bus(struct drm_device *dev, struct via_i2c *i2c_par)
 {
 	struct i2c_adapter *adapter = &i2c_par->adapter;
@@ -149,23 +134,6 @@ static int create_i2c_bus(struct drm_device *dev, struct via_i2c *i2c_par)
 	udelay(20);
 
 	return i2c_bit_add_bus(adapter);
-}
-
-struct drm_encoder*
-via_best_encoder(struct drm_connector *connector)
-{
-	int enc_id = connector->encoder_ids[0];
-	struct drm_encoder *encoder = NULL;
-	struct drm_mode_object *obj;
-
-	/* pick the encoder ids */
-	if (enc_id) {
-		obj = drm_mode_object_find(connector->dev, enc_id, DRM_MODE_OBJECT_ENCODER);
-		if (!obj)
-			return NULL;
-		encoder = obj_to_encoder(obj);
-	}
-	return encoder;
 }
 
 int via_i2c_init(struct drm_device *dev)
