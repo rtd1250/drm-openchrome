@@ -452,55 +452,58 @@ void via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 }
 
 static void
-via_iga1_dpms(struct drm_crtc *crtc, int mode)
+drm_mode_crtc_load_lut(struct drm_crtc *crtc)
 {
-	struct drm_via_private *dev_priv = crtc->dev->dev_private;
+	int size = crtc->gamma_size * sizeof(uint16_t);
+	void *r_base, *g_base, *b_base;
 
-	switch (mode) {
-	case DRM_MODE_DPMS_SUSPEND:
-	case DRM_MODE_DPMS_STANDBY:
-	case DRM_MODE_DPMS_OFF:
-		drm_vblank_pre_modeset(crtc->dev, 0);
-		/* turn off CRT screen (IGA1) */
-		svga_wseq_mask(VGABASE, 0x01, BIT(5), BIT(5));
-		/* TV clock */
-		svga_wcrt_mask(VGABASE, 0x6B, 0x00, 0x0F);
-		break;
-
-	case DRM_MODE_DPMS_ON:
-		drm_vblank_post_modeset(crtc->dev, 0);
-		/* turn on CRT screen (IGA1) */
-		svga_wseq_mask(VGABASE, 0x01, 0x00, BIT(5));
-		/* disable simultaneous  */
-                svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(3));
-		break;
+	if (size) {
+		r_base = crtc->gamma_store;
+		g_base = r_base + size;
+		b_base = g_base + size;
+		crtc->funcs->gamma_set(crtc, r_base, g_base, b_base,
+					0, crtc->gamma_size);
 	}
 }
 
 static void
-via_iga2_dpms(struct drm_crtc *crtc, int mode)
+via_crtc_dpms(struct drm_crtc *crtc, int mode)
 {
+	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 
 	switch (mode) {
 	case DRM_MODE_DPMS_SUSPEND:
 	case DRM_MODE_DPMS_STANDBY:
 	case DRM_MODE_DPMS_OFF:
-		drm_vblank_pre_modeset(crtc->dev, 1);
-		/* turn off CRT screen (IGA2) */
-		svga_wcrt_mask(VGABASE, 0x6B, BIT(2), BIT(2));
-		disable_second_display_channel(dev_priv);
-		/* TV clock */
-		svga_wcrt_mask(VGABASE, 0x6B, 0x00, 0x0F);
+		drm_vblank_pre_modeset(crtc->dev, iga->index);
+		if (iga->index) {
+			/* turn off CRT screen (IGA2) */
+			svga_wcrt_mask(VGABASE, 0x6B, BIT(2), BIT(2));
+			disable_second_display_channel(dev_priv);
+			/* clear for TV clock */
+			svga_wcrt_mask(VGABASE, 0x6C, 0x00, 0x0F);
+		} else {
+			/* turn off CRT screen (IGA1) */
+			svga_wseq_mask(VGABASE, 0x01, BIT(5), BIT(5));
+			/* clear for TV clock */
+			svga_wcrt_mask(VGABASE, 0x6C, 0x00, 0xF0);
+		}
 		break;
 
 	case DRM_MODE_DPMS_ON:
-		drm_vblank_post_modeset(crtc->dev, 1);
-		/* turn on CRT screen (IGA2) */
-		enable_second_display_channel(dev_priv);
-		svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(2));
+		drm_vblank_post_modeset(crtc->dev, iga->index);
+		if (iga->index) {
+			/* turn on CRT screen (IGA2) */
+			enable_second_display_channel(dev_priv);
+			svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(2));
+		} else {
+			/* turn on CRT screen (IGA1) */
+			svga_wseq_mask(VGABASE, 0x01, 0x00, BIT(5));
+		}
 		/* disable simultaneous  */
-                svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(3));
+		svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(3));
+		drm_mode_crtc_load_lut(crtc);
 		break;
 	}
 }
@@ -508,34 +511,23 @@ via_iga2_dpms(struct drm_crtc *crtc, int mode)
 static void
 via_crtc_prepare(struct drm_crtc *crtc)
 {
-	struct drm_crtc_helper_funcs *crtc_funcs;
-
 	/* Turn off the cursor */
 	via_hide_cursor(crtc);
 
 	/* Blank the screen */
-	if (crtc->enabled) {
-		crtc_funcs = crtc->helper_private;
-		crtc_funcs->dpms(crtc, DRM_MODE_DPMS_OFF);
-	}
-
-	/* Once VQ is working it will have to be disabled here */
+	if (crtc->enabled)
+		via_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
 }
 
 static void
 via_crtc_commit(struct drm_crtc *crtc)
 {
-	struct drm_crtc_helper_funcs *crtc_funcs;
-
 	/* Turn on the cursor */
 	via_show_cursor(crtc);
 
 	/* Turn on the monitor */
-	if (crtc->enabled) {
-		crtc_funcs = crtc->helper_private;
-
-		crtc_funcs->dpms(crtc, DRM_MODE_DPMS_ON);
-	}
+	if (crtc->enabled)
+		via_crtc_dpms(crtc, DRM_MODE_DPMS_ON);
 }
 
 static bool
@@ -758,23 +750,8 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	return 0;
 }
 
-static void
-drm_mode_crtc_load_lut(struct drm_crtc *crtc)
-{
-	int size = crtc->gamma_size * sizeof(uint16_t);
-	void *r_base, *g_base, *b_base;
-
-	if (size) {
-		r_base = crtc->gamma_store;
-		g_base = r_base + size;
-		b_base = g_base + size;
-		crtc->funcs->gamma_set(crtc, r_base, g_base, b_base,
-					0, crtc->gamma_size);
-	}
-}
-
 static const struct drm_crtc_helper_funcs via_iga1_helper_funcs = {
-	.dpms = via_iga1_dpms,
+	.dpms = via_crtc_dpms,
 	.prepare = via_crtc_prepare,
 	.commit = via_crtc_commit,
 	.mode_fixup = via_crtc_mode_fixup,
@@ -785,7 +762,7 @@ static const struct drm_crtc_helper_funcs via_iga1_helper_funcs = {
 };
 
 static const struct drm_crtc_helper_funcs via_iga2_helper_funcs = {
-	.dpms = via_iga2_dpms,
+	.dpms = via_crtc_dpms,
 	.prepare = via_crtc_prepare,
 	.commit = via_crtc_commit,
 	.mode_fixup = via_crtc_mode_fixup,
@@ -801,7 +778,8 @@ via_crtc_init(struct drm_device *dev, int index)
 	struct drm_via_private *dev_priv = dev->dev_private;
 	struct via_crtc *iga = &dev_priv->iga[index];
 	struct drm_crtc *crtc = &iga->base;
-	int cursor_size = 64 * 64 * 4;
+	int cursor_size = 64 * 64 * 4, i;
+	u16 *gamma;
 
 	iga->index = index;
 	if (index) {
@@ -1088,6 +1066,13 @@ via_crtc_init(struct drm_device *dev, int index)
 		}
 	}
 	drm_mode_crtc_set_gamma_size(crtc, 256);
+	gamma = crtc->gamma_store;
+
+	for (i = 0; i < 256; i++) {
+		gamma[i] = i << 8 | i;
+		gamma[i+256] = i << 8 | i;
+		gamma[i+512] = i << 8 | i;
+	}
 
 	if (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266 ||
 	    dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)
