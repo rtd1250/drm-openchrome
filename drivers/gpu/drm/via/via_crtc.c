@@ -81,7 +81,7 @@ via_show_cursor(struct drm_crtc *crtc)
 }
 
 static int
-via_iga_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
+via_crtc_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
 			uint32_t handle, uint32_t width, uint32_t height)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
@@ -136,8 +136,9 @@ via_iga_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
 }
 
 static int
-via_iga1_cursor_move(struct drm_crtc *crtc, int x, int y)
+via_crtc_cursor_move(struct drm_crtc *crtc, int x, int y)
 {
+	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	unsigned char xoff = 0, yoff = 0;
 	int xpos = x, ypos = y;
@@ -152,30 +153,13 @@ via_iga1_cursor_move(struct drm_crtc *crtc, int x, int y)
 		ypos = 0;
 	}
 
-	VIA_WRITE(PRIM_HI_POSSTART, ((xpos << 16) | (ypos & 0x07ff)));
-	VIA_WRITE(PRIM_HI_CENTEROFFSET, ((xoff << 16) | (yoff & 0x07ff)));
-	return 0;
-}
-
-static int
-via_iga2_cursor_move(struct drm_crtc *crtc, int x, int y)
-{
-	struct drm_via_private *dev_priv = crtc->dev->dev_private;
-	unsigned char xoff = 0, yoff = 0;
-	int xpos = x, ypos = y;
-
-	if (x < 0) {
-		xoff = (-x) & 0xFF;
-		xpos = 0;
+	if (iga->index) {
+		VIA_WRITE(HI_POSSTART, ((xpos << 16) | (ypos & 0x07ff)));
+		VIA_WRITE(HI_CENTEROFFSET, ((xoff << 16) | (yoff & 0x07ff)));
+	} else {
+		VIA_WRITE(PRIM_HI_POSSTART, ((xpos << 16) | (ypos & 0x07ff)));
+		VIA_WRITE(PRIM_HI_CENTEROFFSET, ((xoff << 16) | (yoff & 0x07ff)));
 	}
-
-	if (y < 0) {
-		yoff = (-y) & 0xFF;
-		ypos = 0;
-	}
-
-	VIA_WRITE(HI_POSSTART, ((xpos << 16) | (ypos & 0x07ff)));
-	VIA_WRITE(HI_CENTEROFFSET, ((xoff << 16) | (yoff & 0x07ff)));
 	return 0;
 }
 
@@ -306,16 +290,16 @@ via_crtc_destroy(struct drm_crtc *crtc)
 }
 
 static const struct drm_crtc_funcs via_iga1_funcs = {
-	.cursor_set = via_iga_cursor_set,
-	.cursor_move = via_iga1_cursor_move,
+	.cursor_set = via_crtc_cursor_set,
+	.cursor_move = via_crtc_cursor_move,
 	.gamma_set = via_iga1_gamma_set,
 	.set_config = drm_crtc_helper_set_config,
 	.destroy = via_crtc_destroy,
 };
 
 static const struct drm_crtc_funcs via_iga2_funcs = {
-	.cursor_set = via_iga_cursor_set,
-	.cursor_move = via_iga2_cursor_move,
+	.cursor_set = via_crtc_cursor_set,
+	.cursor_move = via_crtc_cursor_move,
 	.gamma_set = via_iga2_gamma_set,
 	.set_config = drm_crtc_helper_set_config,
 	.destroy = via_crtc_destroy,
