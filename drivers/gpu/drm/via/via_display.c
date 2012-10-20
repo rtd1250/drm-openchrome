@@ -25,6 +25,83 @@
 #include "drmP.h"
 #include "via_drv.h"
 
+void
+via_diport_set_source(struct drm_encoder *encoder)
+{
+	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
+	struct drm_via_private *dev_priv = encoder->dev->dev_private;
+	struct via_crtc *iga = NULL;
+	u8 value = 0;
+
+	if (!encoder->crtc)
+		return;
+
+	iga = container_of(encoder->crtc, struct via_crtc, base);
+	if (iga->index)
+		value = BIT(4);
+
+	switch (enc->diPort) {
+	case DISP_DI_DVP0:
+		svga_wcrt_mask(VGABASE, 0x96, value, BIT(4));
+		/* enable dvp0 under CX700 */
+		if (encoder->dev->pdev->device == PCI_DEVICE_ID_VIA_VT3157)
+			svga_wcrt_mask(VGABASE, 0x91, BIT(5), BIT(5));
+		break;
+
+	case DISP_DI_DVP1:
+		svga_wcrt_mask(VGABASE, 0x9B, value, BIT(4));
+		/* The xorg driver enables this for CX700 and up. Does
+		 * DVI exist for pre CX700 hardware?
+		 */
+		svga_wcrt_mask(VGABASE, 0xD3, 0x00, BIT(5));
+		break;
+
+	case DISP_DI_DFPH:
+		/*
+		 * Port 96 is used on newer hardware for the TDMS. Older
+		 * hardware uses it for the LVDS.
+		 */
+		if (encoder->encoder_type == DRM_MODE_CONNECTOR_LVDS)
+			svga_wcrt_mask(VGABASE, 0x96, value, BIT(4));
+		svga_wcrt_mask(VGABASE, 0x97, value, BIT(4));
+		break;
+
+	case DISP_DI_DFPL:
+		/* Like DFPH port 9B is used on newer hardware for the TDMS. */
+		if (encoder->encoder_type == DRM_MODE_CONNECTOR_LVDS)
+			svga_wcrt_mask(VGABASE, 0x9B, value, BIT(4));
+		svga_wcrt_mask(VGABASE, 0x99, value, BIT(4));
+		break;
+
+	case DISP_DI_DFP:
+		svga_wcrt_mask(VGABASE, 0x97, value, BIT(4));
+		svga_wcrt_mask(VGABASE, 0x99, value, BIT(4));
+		break;
+
+	/* For TTL Type LCD */
+	case (DISP_DI_DFPL + DISP_DI_DVP1):
+		svga_wcrt_mask(VGABASE, 0x99, value, BIT(4));
+		svga_wcrt_mask(VGABASE, 0x9B, value, BIT(4));
+		break;
+
+	/* For 409 TTL Type LCD */
+	case (DISP_DI_DFPH + DISP_DI_DFPL + DISP_DI_DVP1):
+		svga_wcrt_mask(VGABASE, 0x97, value, BIT(4));
+		svga_wcrt_mask(VGABASE, 0x99, value, BIT(4));
+		svga_wcrt_mask(VGABASE, 0x9B, value, BIT(4));
+		break;
+
+	case DISP_DI_NONE:
+		if (iga->index) value = BIT(6);
+
+		svga_wseq_mask(VGABASE, 0x16, value, BIT(6));
+		break;
+
+	default:
+		break;
+	}
+}
+
 struct drm_encoder*
 via_best_encoder(struct drm_connector *connector)
 {
