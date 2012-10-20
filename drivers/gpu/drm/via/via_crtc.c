@@ -322,12 +322,12 @@ static const struct drm_crtc_funcs via_iga2_funcs = {
 };
 
 static void
-via_load_fifo_reg(struct via_crtc *iga, struct drm_display_mode *mode)
+via_load_fifo_regs(struct via_crtc *iga, struct drm_display_mode *mode)
 {
-	struct drm_device *dev = iga->base.dev;
-	int queue_expire_num = iga->display_queue_expire_num, reg_value;
+	u32 queue_expire_num = iga->display_queue_expire_num, reg_value;
+	struct drm_via_private *dev_priv = iga->base.dev->dev_private;
 	int hor_active = mode->hdisplay, ver_active = mode->vdisplay;
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct drm_device *dev = iga->base.dev;
 
 	/* If resolution > 1280x1024, expire length = 64, else
 	   expire length = 128 */
@@ -336,11 +336,11 @@ via_load_fifo_reg(struct via_crtc *iga, struct drm_display_mode *mode)
 	    ((hor_active > 1280) && (ver_active > 1024)))
 		queue_expire_num = 16;
 
-        if (!iga->index) {
+	if (!iga->index) {
 		/* Set IGA1 Display FIFO Depth Select */
 		reg_value = IGA1_FIFO_DEPTH_SELECT_FORMULA(iga->fifo_max_depth);
 		load_value_to_registers(VGABASE, &iga->fifo_depth, reg_value);
-        } else {
+	} else {
 		/* Set IGA2 Display FIFO Depth Select */
 		reg_value = IGA2_FIFO_DEPTH_SELECT_FORMULA(iga->fifo_max_depth);
 		if (dev->pdev->device == PCI_DEVICE_ID_VIA_K8M800)
@@ -361,11 +361,12 @@ via_load_fifo_reg(struct via_crtc *iga, struct drm_display_mode *mode)
 	load_value_to_registers(VGABASE, &iga->display_queue, reg_value);
 }
 
+/* Load CRTC timing registers */
 void via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 {
+	struct drm_via_private *dev_priv = iga->base.dev->dev_private;
 	struct drm_device *dev = iga->base.dev;
-	struct drm_via_private *dev_priv = dev->dev_private;
-	int reg_value = 0;
+	u32 reg_value = 0;
 
 	if (!iga->index) {
 		if (dev->pdev->device == PCI_DEVICE_ID_VIA_VX900) {
@@ -411,7 +412,6 @@ void via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 
 		reg_value = IGA1_VER_SYNC_END_FORMULA(mode->crtc_vsync_end);
 		load_value_to_registers(VGABASE, &iga->timings.vsync_end, reg_value);
-
 	} else {
 		reg_value = IGA2_HOR_TOTAL_FORMULA(mode->crtc_htotal);
 		load_value_to_registers(VGABASE, &iga->timings.htotal, reg_value);
@@ -539,8 +539,8 @@ via_crtc_mode_fixup(struct drm_crtc *crtc, const struct drm_display_mode *mode,
 
 static int
 via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
-		struct drm_display_mode *adjusted_mode,
-		int x, int y, struct drm_framebuffer *old_fb)
+			struct drm_display_mode *adjusted_mode,
+			int x, int y, struct drm_framebuffer *old_fb)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
@@ -570,7 +570,7 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
         }
 
 	/* Write CRTC */
-	via_load_crtc_timing(iga, mode);
+	via_load_crtc_timing(iga, adjusted_mode);
 
 	via_lock_crt(VGABASE);
 	svga_wcrt_mask(VGABASE, 0x17, BIT(7), BIT(7));
@@ -578,7 +578,7 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 	/* Load FIFO */
 	if ((dev->pdev->device != PCI_DEVICE_ID_VIA_CLE266) &&
 	    (dev->pdev->device != PCI_DEVICE_ID_VIA_KM400)) {
-		via_load_fifo_reg(iga, mode);
+		via_load_fifo_regs(iga, adjusted_mode);
 	} else if (adjusted_mode->hdisplay == 1024 &&
 		   adjusted_mode->vdisplay == 768) {
 		/* Update Patch Register */
@@ -588,7 +588,7 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 	vga_r(VGABASE, VGA_IS1_RC);
 	vga_w(VGABASE, VGA_ATT_IW, 0x20);
 
-	via_set_pll(crtc, mode);
+	via_set_pll(crtc, adjusted_mode);
 
 	return crtc_funcs->mode_set_base(crtc, crtc->x, crtc->y, old_fb);
 }
