@@ -177,13 +177,13 @@ via_iga1_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green, u16 *blue,
 	if (crtc->fb->bits_per_pixel == 8) {
 		/* Prepare for initialize IGA1's LUT: */
 		vga_wseq(VGABASE, 0x1A, sr1a & 0xFE);
-		/* Change to Primary Display's LUT. */
+		/* Change to Primary Display's LUT */
 		val = vga_rseq(VGABASE, 0x1B);
 		vga_wseq(VGABASE, 0x1B, val);
 		val = vga_rcrt(VGABASE, 0x67);
 		vga_wcrt(VGABASE, 0x67, val);
 
-		/* Fill in IGA1's LUT. */
+		/* Fill in IGA1's LUT */
 		for (i = start; i < end; i++) {
 			/* Bit mask of palette */
 			vga_w(VGABASE, VGA_PEL_MSK, 0xFF);
@@ -193,17 +193,17 @@ via_iga1_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green, u16 *blue,
 			vga_w(VGABASE, VGA_PEL_D, blue[i] >> 8);
 		}
 		/* enable LUT */
-		vga_wseq(VGABASE, 0x1B, BIT(0));
-		/*  Disable gamma in case it was enabled previously */
-		vga_wcrt(VGABASE, 0x33, BIT(7));
-		/* access Primary Display's LUT. */
+		svga_wseq_mask(VGABASE, 0x1B, 0x00, BIT(0));
+		/* Disable gamma in case it was enabled previously */
+		svga_wcrt_mask(VGABASE, 0x33, 0x00, BIT(7));
+		/* access Primary Display's LUT */
 		vga_wseq(VGABASE, 0x1A, sr1a & 0xFE);
 	} else {
 		/* Enable Gamma */
-		vga_wcrt(VGABASE, 0x80, BIT(7));
-		vga_wseq(VGABASE, 0x00, BIT(0));
+		svga_wcrt_mask(VGABASE, 0x33, BIT(7), BIT(7));
+		svga_wseq_mask(VGABASE, 0x1A, 0x00, BIT(0));
 
-		/* Fill in IGA1's gamma. */
+		/* Fill in IGA1's gamma */
 		for (i = start; i < end; i++) {
 			/* bit mask of palette */
 			vga_w(VGABASE, VGA_PEL_MSK, 0xFF);
@@ -217,27 +217,27 @@ via_iga1_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green, u16 *blue,
 }
 
 static void
-via_iga2_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
-			u16 *blue, uint32_t start, uint32_t size)
+via_iga2_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green, u16 *blue,
+			uint32_t start, uint32_t size)
 {
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	int end = (start + size > 256) ? 256 : start + size, i;
-	u8 val, sr1a = vga_rseq(VGABASE, 0x1A);
+	u8 sr1a = vga_rseq(VGABASE, 0x1A);
 
 	if (!crtc->enabled || !crtc->fb)
 		return;
 
 	if (crtc->fb->bits_per_pixel == 8) {
 		/* Change Shadow to Secondary Display's LUT */
-		vga_wseq(VGABASE, 0x1A, sr1a | 0x01);
-
+		svga_wseq_mask(VGABASE, 0x1A, BIT(0), BIT(0));
 		/* Enable Secondary Display Engine */
-		val = (vga_rseq(VGABASE, 0x1B) | 0x80);
-		vga_wseq(VGABASE, 0x1B, val);
-
+		svga_wseq_mask(VGABASE, 0x1B, BIT(7), BIT(7));
 		/* Second Display Color Depth, 8bpp */
-		val = (vga_rcrt(VGABASE, 0x67) & 0x3F);
-		vga_wcrt(VGABASE, 0x67, val);
+		svga_wcrt_mask(VGABASE, 0x67, 0x3F, 0x3F);
+
+		/* Enable second display channel just in case. */
+		if (!(vga_rcrt(VGABASE, 0x6A) & BIT(7)))
+			svga_wcrt_mask(VGABASE, 0x6A, BIT(7), BIT(7));
 
 		/* Fill in IGA2's LUT */
 		for (i = start; i < end; i++) {
@@ -248,22 +248,26 @@ via_iga2_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
 			vga_w(VGABASE, VGA_PEL_D, green[i] >> 8);
 			vga_w(VGABASE, VGA_PEL_D, blue[i] >> 8);
 		}
-		/*  Disable gamma in case it was enabled previously */
-		val = (vga_rcrt(VGABASE, 0x6A) & ~BIT(1));
-		vga_wcrt(VGABASE, 0x6A, val);
+		/* Disable gamma in case it was enabled previously */
+		svga_wcrt_mask(VGABASE, 0x6A, 0x00, BIT(1));
 
-		/* access Primary Display's LUT. */
+		/* access Primary Display's LUT */
 		vga_wseq(VGABASE, 0x1A, sr1a & 0xFE);
 	} else {
+		svga_wseq_mask(VGABASE, 0x1A, BIT(0), BIT(0));
 		/* Enable Gamma */
-		vga_wseq(VGABASE, 0x1A, sr1a | BIT(0));
-		val = (vga_rcrt(VGABASE, 0x6A) | BIT(1));
-		vga_wcrt(VGABASE, 0x6A, val);
+		svga_wcrt_mask(VGABASE, 0x6A, BIT(1), BIT(1));
 
-		if (!(val & BIT(7)))
+		/* Before we fill the second LUT, we have to enable
+		 * second display channel. If it's enabled before,
+		 * we don't need to do that, or else the secondary
+		 * display will be dark for about 1 sec and then be
+		 * turned on again.
+		 */
+		if (!(vga_rcrt(VGABASE, 0x6A) & BIT(7)))
 			enable_second_display_channel(dev_priv);
 
-		/* Fill in IGA1's gamma. */
+		/* Fill in IGA2's gamma */
 		for (i = start; i < end; i++) {
 			/* bit mask of palette */
 			vga_w(VGABASE, VGA_PEL_MSK, 0xFF);
@@ -272,9 +276,9 @@ via_iga2_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
 			vga_w(VGABASE, VGA_PEL_D, green[i] >> 8);
 			vga_w(VGABASE, VGA_PEL_D, blue[i] >> 8);
 		}
+		/* access Primary Display's LUT */
+		vga_wseq(VGABASE, 0x1A, sr1a);
 	}
-	/* access Primary Display's LUT. */
-	vga_wseq(VGABASE, 0x1A, sr1a);
 }
 
 static void
