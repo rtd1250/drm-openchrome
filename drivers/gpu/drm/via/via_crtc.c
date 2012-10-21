@@ -578,7 +578,7 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 
 	via_set_pll(crtc, adjusted_mode);
 
-	return crtc_funcs->mode_set_base(crtc, crtc->x, crtc->y, old_fb);
+	return crtc_funcs->mode_set_base(crtc, x, y, old_fb);
 }
 
 static int
@@ -602,8 +602,17 @@ via_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 	bo = obj->driver_private;
 
 	ret = ttm_bo_pin(bo, NULL);
-	if (likely(ret == 0))
-		ret = crtc_funcs->mode_set_base_atomic(crtc, new_fb, x, y, state);
+	if (unlikely(ret)) {
+		DRM_DEBUG("failed to pin FB\n");
+		return ret;
+	}
+
+	ret = crtc_funcs->mode_set_base_atomic(crtc, new_fb, x, y, state);
+	if (unlikely(ret)) {
+		DRM_DEBUG("failed to set new framebuffer\n");
+		ttm_bo_unpin(bo, NULL);
+		return ret;
+	}
 
 	/* Free the old framebuffer if it exist */
 	if (old_fb) {
@@ -626,7 +635,6 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	struct drm_gem_object *obj = fb->helper_private;
 	struct ttm_buffer_object *bo = obj->driver_private;
 	u32 pitch = (x * fb->bits_per_pixel) >> 3, addr;
-	u8 value;
 
 	/*if ((state == ENTER_ATOMIC_MODE_SET) && (fb != crtc->fb))
 		disable_accel(dev);
@@ -634,17 +642,17 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 		restore_accel(dev);*/
 
 	/* Set the framebuffer offset */
-	pitch += (y * fb->pitches[0]);
+	pitch += y * fb->pitches[0];
 	addr = round_up(bo->offset + pitch, 16) >> 1;
 
 	vga_wcrt(VGABASE, 0x0D, addr & 0xFF);
 	vga_wcrt(VGABASE, 0x0C, (addr >> 8) & 0xFF);
+	/* Yes order of setting these registers matters on some hardware */
+	svga_wcrt_mask(VGABASE, 0x48, ((addr >> 24) & 0x1F), 0x1F);
 	vga_wcrt(VGABASE, 0x34, (addr >> 16) & 0xFF);
-	value = (vga_rcrt(VGABASE, 0x48) & ~0x1F);
-	vga_wcrt(VGABASE, 0x48, ((addr >> 24) & 0x1F) | value);
 
-	/* Load Fetch registers */
-	pitch = ALIGN((crtc->mode.hdisplay * fb->bits_per_pixel >> 3), 16) >> 4;
+	/* Load fetch count registers */
+	pitch = ALIGN(crtc->mode.hdisplay * fb->bits_per_pixel >> 3, 16) >> 4;
 	load_value_to_registers(VGABASE, &iga->fetch, pitch + 1);
 
 	if ((state == ENTER_ATOMIC_MODE_SET) ||
@@ -656,28 +664,33 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 					ALIGN(fb->pitches[0], 16) >> 3);
 	}
 
+	/* Load color depth registers */
 	if ((state == ENTER_ATOMIC_MODE_SET) || crtc->fb->depth != fb->depth) {
+		/* Bit 7 set LUT bit size to 8 bit. Bit 5 enables wrap around
+		 * and bit 1 enables extended display mode */
+		u8 value = BIT(7) | BIT(5) | BIT(1);
+
 		switch (fb->depth) {
 		case 8:
-			value = 0x00;
 			break;
 		case 15:
-			value = 0x04;
+			value |= BIT(2);
 			break;
 		case 16:
-			value = 0x14;
+			/* Bit 4 is for 555/565 selection */
+			value |= BIT(4) | BIT(2);
 			break;
 		case 24:
-			value = 0x0C;
+			value |= BIT(3) | BIT(2);
 			break;
 		case 32:
-			value = 0x08;
+			value |= BIT(3);
 			break;
 		default:
 			DRM_ERROR("Unsupported depth: %d\n", fb->depth);
 			return -EINVAL;
 		}
-		svga_wseq_mask(VGABASE, 0x15, value, 0x1C);
+		svga_wseq_mask(VGABASE, 0x15, value, 0xFE);
 	}
 	return 0;
 }
@@ -697,16 +710,17 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	pitch += y * fb->pitches[0];
 	addr = round_up(bo->offset + pitch, 16);
 
-	/* Secondary display supports only quadword aligned memory */
-	vga_wcrt(VGABASE, 0x62, (addr >> 2) & 0xfe);
-	vga_wcrt(VGABASE, 0x63, (addr >> 10) & 0xff);
-	vga_wcrt(VGABASE, 0x64, (addr >> 18) & 0xff);
-	value = (vga_rcrt(VGABASE, 0xA3) & ~0x07);
-	vga_wcrt(VGABASE, 0xA3, ((addr >> 26) & 0x07) | value);
+	/* Bits 9 to 3 of the frame buffer go into bits 7 to 1
+	 * of the register. Bit 0 is for setting tile mode or
+	 * linear mode. A value of zero sets it to linear mode */
+	vga_wcrt(VGABASE, 0x62, ((addr >> 3) & 0x7F) << 1);
+	vga_wcrt(VGABASE, 0x63, (addr >> 10) & 0xFF);
+	vga_wcrt(VGABASE, 0x64, (addr >> 18) & 0xFF);
+	svga_wcrt_mask(VGABASE, 0xA3, ((addr >> 26) & 0x07), 0x07);
 
-	/* Load Fetch registers */
-	pitch = ALIGN((crtc->mode.hdisplay * fb->bits_per_pixel >> 3), 16) >> 4;
-	load_value_to_registers(VGABASE, &iga->fetch, pitch);
+	/* Load fetch count registers */
+	pitch = ALIGN(crtc->mode.hdisplay * fb->bits_per_pixel >> 3, 16) >> 4;
+	load_value_to_registers(VGABASE, &iga->fetch, pitch + 1);
 
 	if ((state == ENTER_ATOMIC_MODE_SET) ||
 	     crtc->fb->pitches[0] != fb->pitches[0]) {
@@ -715,25 +729,26 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 					ALIGN(fb->pitches[0], 16) >> 3);
 	}
 
+	/* Load color depth registers */
 	if ((state == ENTER_ATOMIC_MODE_SET) || crtc->fb->depth != fb->depth) {
 		switch (fb->depth) {
 		case 8:
 			value = 0x00;
 			break;
 		case 16:
-			value = 0x40;
+			value = BIT(6);
 			break;
 		case 24:
-			value = 0xC0;
+			value = BIT(7) | BIT(6);
 			break;
 		case 32:
-			value = 0x80;
+			value = BIT(7);
 			break;
 		default:
 			DRM_ERROR("Unsupported depth: %d\n", fb->depth);
 			return -EINVAL;
 		}
-		svga_wseq_mask(VGABASE, 0x67, value, 0xC0);
+		svga_wcrt_mask(VGABASE, 0x67, value, BIT(7) | BIT(6));
 	}
 	return 0;
 }
