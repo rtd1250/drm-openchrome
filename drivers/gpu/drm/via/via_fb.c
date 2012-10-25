@@ -684,7 +684,7 @@ vx900_mem_type(struct drm_via_private *dev_priv, struct pci_dev *fn3)
 		default:
 			break;
 		}
-	break;
+		break;
 	}
 	return ret;
 }
@@ -830,7 +830,7 @@ int via_detect_vram(struct drm_device *dev)
 		vram_size = (1 << ((size & 0x70) >> 4)) << 22;
 
 		ret = vx900_mem_type(dev_priv, fn3);
-		if  (ret)
+		if (ret)
 			goto out_err;
 		break;
 
@@ -1013,12 +1013,15 @@ via_fb_probe(struct drm_fb_helper *helper,
 	size = ALIGN(size, PAGE_SIZE);
 
 	obj = drm_gem_object_alloc(helper->dev, size);
+	if (unlikely(IS_ERR(obj))) {
+		ret = PTR_ERR(obj);
+		goto out_err;
+	}
 	ret = ttm_bo_allocate(&dev_priv->bdev, size, ttm_bo_type_kernel,
 				TTM_PL_FLAG_VRAM, 1, PAGE_SIZE, 0, false,
 				NULL, obj->filp, &kmap->bo);
 	if (ret)
 		goto out_err;
-	obj->driver_private = kmap->bo;
 
 	ret = ttm_bo_pin(kmap->bo, kmap);
 	if (ret)
@@ -1027,6 +1030,8 @@ via_fb_probe(struct drm_fb_helper *helper,
 	ret = drm_framebuffer_init(helper->dev, fb, &via_fb_funcs);
 	if (ret)
 		goto out_err;
+
+	obj->driver_private = kmap->bo;
 	fb->helper_private = obj;
 
 	drm_helper_mode_fill_fb_struct(fb, &mode_cmd);
@@ -1051,8 +1056,17 @@ via_fb_probe(struct drm_fb_helper *helper,
 	ret = 1;
 out_err:
 	if (ret < 0) {
-		if (obj)
-			fb->dev->driver->gem_free_object(obj);
+		if (kmap->bo) {
+			ttm_bo_unpin(kmap->bo, kmap);
+			ttm_bo_unref(&kmap->bo);
+			helper->helper_private = NULL;
+		}
+
+		if (obj) {
+			drm_gem_object_unreference_unlocked(obj);
+			helper->fb->helper_private = NULL;
+		}
+
 		if (ptr)
 			kfree(ptr);
 	}
@@ -1183,22 +1197,28 @@ void via_framebuffer_fini(struct drm_fb_helper *helper)
 	struct fb_info *info = helper->fbdev;
 	struct drm_gem_object *obj;
 
-	drm_fb_helper_fini(helper);
+	if (info) {
+		unregister_framebuffer(info);
+		if (info->cmap.len)
+			fb_dealloc_cmap(&info->cmap);
+		if (info->apertures)
+			kfree(info->apertures);
 
-	unregister_framebuffer(info);
-	if (info->cmap.len)
-		fb_dealloc_cmap(&info->cmap);
-	if (info->apertures)
-		kfree(info->apertures);
+		framebuffer_release(info);
+		helper->fbdev = NULL;
+	}
 
 	if (kmap) {
 		ttm_bo_unpin(kmap->bo, kmap);
 		ttm_bo_unref(&kmap->bo);
+		helper->helper_private = NULL;
 	}
 
 	obj = helper->fb->helper_private;
-	helper->fb->dev->driver->gem_free_object(obj);
+	if (obj) {
+		drm_gem_object_unreference_unlocked(obj);
+		helper->fb->helper_private = NULL;
+	}
+	drm_fb_helper_fini(helper);
 	drm_framebuffer_cleanup(helper->fb);
-
-	framebuffer_release(info);
 }

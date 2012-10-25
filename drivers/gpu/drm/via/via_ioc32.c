@@ -143,8 +143,8 @@ static int via_mem_alloc(struct drm_device *dev, void *data,
 	obj = ttm_gem_create(dev, &dev_priv->bdev, type, false,
 				VIA_MM_ALIGN_SIZE, PAGE_SIZE, start,
 				mem->size);
-	if (!obj)
-		return ret;
+	if (IS_ERR(obj))
+		return PTR_ERR(obj);
 
 	bo = obj->driver_private;
 	if (bo) {

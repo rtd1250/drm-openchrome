@@ -23,11 +23,17 @@
 #include "drmP.h"
 #include "via_drv.h"
 
+/*
+ * initialize the gem buffer object
+ */
 int ttm_gem_init_object(struct drm_gem_object *obj)
 {
 	return 0;
 }
 
+/*
+ * free the gem buffer object
+ */
 void ttm_gem_free_object(struct drm_gem_object *obj)
 {
 	struct ttm_buffer_object *bo = obj->driver_private;
@@ -40,6 +46,9 @@ void ttm_gem_free_object(struct drm_gem_object *obj)
 	kfree(obj);
 }
 
+/*
+ * file operation mmap
+ */
 int ttm_mmap(struct file *filp, struct vm_area_struct *vma)
 {
 	struct drm_via_private *dev_priv;
@@ -70,15 +79,15 @@ ttm_gem_create(struct drm_device *dev, struct ttm_bo_device *bdev, int types,
 
 	obj = drm_gem_object_alloc(dev, size);
 	if (!obj)
-		return NULL;
+		return ERR_PTR(-ENOMEM);
 
 	ret = ttm_bo_allocate(bdev, size, ttm_bo_type_device, types,
 				byte_align, page_align, start, interruptible,
 				NULL, obj->filp, &bo);
 	if (ret) {
 		DRM_ERROR("Failed to create buffer object\n");
-		kfree(obj);
-		return NULL;
+		drm_gem_object_unreference_unlocked(obj);
+		return ERR_PTR(ret);
 	}
 	obj->driver_private = bo;
 	return obj;

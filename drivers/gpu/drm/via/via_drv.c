@@ -194,17 +194,18 @@ static int via_dumb_create(struct drm_file *filp, struct drm_device *dev,
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
 	struct drm_gem_object *obj;
-	int ret = -ENOMEM;
+	int ret;
 
 	args->pitch = round_up(args->width * (args->bpp >> 3), 16);
 	args->size = args->pitch * args->height;
 	obj = ttm_gem_create(dev, &dev_priv->bdev, TTM_PL_FLAG_VRAM,
 				false, 16, PAGE_SIZE, 0, args->size);
-	if (obj && obj->driver_private) {
-		ret = drm_gem_handle_create(filp, obj, &args->handle);
-		/* drop reference from allocate - handle holds it now */
-		drm_gem_object_unreference_unlocked(obj);
-	}
+	if (IS_ERR(obj))
+		return PTR_ERR(obj);
+
+	ret = drm_gem_handle_create(filp, obj, &args->handle);
+	/* drop reference from allocate - handle holds it now */
+	drm_gem_object_unreference_unlocked(obj);
 	return ret;
 }
 
