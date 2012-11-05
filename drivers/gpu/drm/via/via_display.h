@@ -93,7 +93,8 @@ extern void via_i2c_exit(struct drm_device *dev);
 extern int via_i2c_init(struct drm_device *dev);
 
 /* clock */
-extern void via_set_pll(struct drm_crtc *crtc, struct drm_display_mode *mode);
+extern u32 via_get_clk_value(struct drm_device *dev, u32 clk);
+extern void via_set_vclock(struct drm_crtc *crtc, u32 clk);
 
 /* framebuffers */
 extern int via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **ptr);

@@ -576,8 +576,12 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 	vga_r(VGABASE, VGA_IS1_RC);
 	vga_w(VGABASE, VGA_ATT_IW, 0x20);
 
-	via_set_pll(crtc, adjusted_mode);
+	if (adjusted_mode->clock) {
+		u32 clock = adjusted_mode->clock * 1000, pll_regs;
 
+		pll_regs = via_get_clk_value(crtc->dev, clock);
+		via_set_vclock(crtc, pll_regs);
+	}
 	return crtc_funcs->mode_set_base(crtc, x, y, old_fb);
 }
 
