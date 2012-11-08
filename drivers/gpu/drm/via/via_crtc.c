@@ -45,22 +45,6 @@ static struct vga_regset vpit_table[] = {
 	{ VGA_GFX_I, 0x08, 0xFF, 0xFF }
 };
 
-static inline void
-enable_second_display_channel(struct drm_via_private *dev_priv)
-{
-	svga_wcrt_mask(VGABASE, 0x6A, 0x00, BIT(6));
-	svga_wcrt_mask(VGABASE, 0x6A, BIT(7), BIT(7));
-	svga_wcrt_mask(VGABASE, 0x6A, BIT(6), BIT(6));
-}
-
-static inline void
-disable_second_display_channel(struct drm_via_private *dev_priv)
-{
-	svga_wcrt_mask(VGABASE, 0x6A, 0x00, BIT(6));
-	svga_wcrt_mask(VGABASE, 0x6A, 0x00, BIT(7));
-	svga_wcrt_mask(VGABASE, 0x6A, BIT(6), BIT(6));
-}
-
 static void
 via_hide_cursor(struct drm_crtc *crtc)
 {
@@ -253,7 +237,7 @@ via_iga2_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green, u16 *blue,
 
 		/* Enable second display channel just in case. */
 		if (!(vga_rcrt(VGABASE, 0x6A) & BIT(7)))
-			svga_wcrt_mask(VGABASE, 0x6A, BIT(7), BIT(7));
+			enable_second_display_channel(VGABASE);
 
 		/* Fill in IGA2's LUT */
 		for (i = start; i < end; i++) {
@@ -281,7 +265,7 @@ via_iga2_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green, u16 *blue,
 		 * turned on again.
 		 */
 		if (!(vga_rcrt(VGABASE, 0x6A) & BIT(7)))
-			enable_second_display_channel(dev_priv);
+			enable_second_display_channel(VGABASE);
 
 		/* Fill in IGA2's gamma */
 		for (i = start; i < end; i++) {
@@ -516,11 +500,12 @@ via_crtc_dpms(struct drm_crtc *crtc, int mode)
 	case DRM_MODE_DPMS_SUSPEND:
 	case DRM_MODE_DPMS_STANDBY:
 	case DRM_MODE_DPMS_OFF:
-		drm_vblank_pre_modeset(crtc->dev, iga->index);
+		if (crtc->dev->num_crtcs)
+			drm_vblank_pre_modeset(crtc->dev, iga->index);
 		if (iga->index) {
 			/* turn off CRT screen (IGA2) */
 			svga_wcrt_mask(VGABASE, 0x6B, BIT(2), BIT(2));
-			disable_second_display_channel(dev_priv);
+			disable_second_display_channel(VGABASE);
 			/* clear for TV clock */
 			svga_wcrt_mask(VGABASE, 0x6C, 0x00, 0x0F);
 		} else {
@@ -532,10 +517,11 @@ via_crtc_dpms(struct drm_crtc *crtc, int mode)
 		break;
 
 	case DRM_MODE_DPMS_ON:
-		drm_vblank_post_modeset(crtc->dev, iga->index);
+		if (crtc->dev->num_crtcs)
+			drm_vblank_post_modeset(crtc->dev, iga->index);
 		if (iga->index) {
 			/* turn on CRT screen (IGA2) */
-			enable_second_display_channel(dev_priv);
+			enable_second_display_channel(VGABASE);
 			svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(2));
 		} else {
 			/* turn on CRT screen (IGA1) */
@@ -625,6 +611,20 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 
 	/* Relock */
 	via_lock_crtc(VGABASE);
+
+	/* interlace setting */
+	if (adjusted_mode->flags & DRM_MODE_FLAG_INTERLACE) {
+		if (iga->index)
+			svga_wcrt_mask(VGABASE, 0x67, BIT(5), BIT(5));
+		else
+			svga_wcrt_mask(VGABASE, 0x33, BIT(6), BIT(6));
+	} else {
+		/* non-interlace, clear interlace setting. */
+		if (iga->index)
+			svga_wcrt_mask(VGABASE, 0x67, 0, BIT(5));
+		else
+			svga_wcrt_mask(VGABASE, 0x33, 0, BIT(6));
+	}
 
 	/* Load FIFO */
 	if ((dev->pdev->device != PCI_DEVICE_ID_VIA_CLE266) &&
@@ -857,7 +857,7 @@ via_crtc_init(struct drm_device *dev, int index)
 
 		/* Always start off IGA2 disabled until we detected something
 		   attached to it */
-		disable_second_display_channel(dev_priv);
+		disable_second_display_channel(VGABASE);
 
 		iga->timings.htotal.count = ARRAY_SIZE(iga2_hor_total);
 		iga->timings.htotal.regs = iga2_hor_total;
