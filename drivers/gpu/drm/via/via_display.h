@@ -67,13 +67,13 @@ struct via_encoder {
 };
 
 static inline void
-via_lock_crt(void __iomem *regs)
+via_lock_crtc(void __iomem *regs)
 {
 	svga_wcrt_mask(regs, 0x11, BIT(7), BIT(7));
 }
 
 static inline void
-via_unlock_crt(void __iomem *regs, int pci_id)
+via_unlock_crtc(void __iomem *regs, int pci_id)
 {
 	u8 mask = BIT(0);
 

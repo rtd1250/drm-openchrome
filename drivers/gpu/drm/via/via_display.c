@@ -167,7 +167,7 @@ via_init_crtc_regs(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
 
-        via_unlock_crt(VGABASE, dev->pdev->device);
+        via_unlock_crtc(VGABASE, dev->pdev->device);
 
 	/* always set to 1 */
 	svga_wcrt_mask(VGABASE, 0x03, BIT(7), BIT(7));
@@ -197,7 +197,7 @@ via_init_crtc_regs(struct drm_device *dev)
 	    (dev_priv->revision == CLE266_REVISION_AX))
 		svga_wseq_mask(VGABASE, 0x1A, BIT(1), BIT(1));
 
-        via_lock_crt(VGABASE);
+        via_lock_crtc(VGABASE);
 }
 
 static void

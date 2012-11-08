@@ -29,6 +29,22 @@
 #include "via_drv.h"
 #include "via_disp_reg.h"
 
+static struct vga_regset vpit_table[] = {
+	{ VGA_SEQ_I, 0x01, 0xFF, 0x01 },
+	{ VGA_SEQ_I, 0x02, 0xFF, 0x0F },
+	{ VGA_SEQ_I, 0x03, 0xFF, 0x00 },
+	{ VGA_SEQ_I, 0x04, 0xFF, 0x0E },
+	{ VGA_GFX_I, 0x00, 0xFF, 0x00 },
+	{ VGA_GFX_I, 0x01, 0xFF, 0x00 },
+	{ VGA_GFX_I, 0x02, 0xFF, 0x00 },
+	{ VGA_GFX_I, 0x03, 0xFF, 0x00 },
+	{ VGA_GFX_I, 0x04, 0xFF, 0x00 },
+	{ VGA_GFX_I, 0x05, 0xFF, 0x00 },
+	{ VGA_GFX_I, 0x06, 0xFF, 0x05 },
+	{ VGA_GFX_I, 0x07, 0xFF, 0x0F },
+	{ VGA_GFX_I, 0x08, 0xFF, 0xFF }
+};
+
 static inline void
 enable_second_display_channel(struct drm_via_private *dev_priv)
 {
@@ -310,6 +326,42 @@ static const struct drm_crtc_funcs via_iga2_funcs = {
 };
 
 static void
+via_load_vpit_regs(struct drm_via_private *dev_priv)
+{
+	u8 ar[] = {
+		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+		0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+		0x01, 0x00, 0x0F, 0x00
+	};
+	struct vga_registers vpit_regs;
+	unsigned int i = 0;
+	u8 reg_value = 0;
+
+	/* Enable changing the palette registers */
+	reg_value = vga_r(VGABASE, VGA_IS1_RC);
+	vga_w(VGABASE, VGA_ATT_W, 0x00);
+
+	/* Write Misc register */
+	vga_w(VGABASE, VGA_MIS_W, 0xCF);
+
+	/* Fill VPIT registers */
+	vpit_regs.count = ARRAY_SIZE(vpit_table);
+	vpit_regs.regs = vpit_table;
+	load_register_tables(VGABASE, &vpit_regs);
+
+	/* Write Attribute Controller */
+	for (i = 0; i < 0x14; i++) {
+		reg_value = vga_r(VGABASE, VGA_IS1_RC);
+		vga_w(VGABASE, VGA_ATT_W, i);
+		vga_w(VGABASE, VGA_ATT_W, ar[i]);
+	}
+
+	/* Disable changing the palette registers */
+	reg_value = vga_r(VGABASE, VGA_IS1_RC);
+	vga_w(VGABASE, VGA_ATT_W, BIT(5));
+}
+
+static void
 via_load_fifo_regs(struct via_crtc *iga, struct drm_display_mode *mode)
 {
 	u32 queue_expire_num = iga->display_queue_expire_num, reg_value;
@@ -533,35 +585,46 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
-	struct drm_framebuffer *fb = crtc->fb;
 	struct drm_device *dev = crtc->dev;
 
-	if (!fb)
-		fb = old_fb;
+	/* Load standard registers */
+	via_load_vpit_regs(dev_priv);
 
-	vga_r(VGABASE, VGA_IS1_RC);
-	vga_w(VGABASE, VGA_ATT_IW, 0x00);
+	/* Unlock */
+	via_unlock_crtc(VGABASE, dev->pdev->device);
 
-	/* Write Misc Register */
-	vga_w(VGABASE, VGA_MIS_W, 0xC7);
-
-	svga_wseq_mask(VGABASE, 0x15, 0xA2, 0xA2);
-
-	regs_init(VGABASE);
-
-	via_unlock_crt(VGABASE, dev->pdev->device);
-
+	/* IGA1 reset */
 	if (!iga->index) {
-		vga_wcrt(VGABASE, 0x09, 0x00);	/*initial CR09=0 */
-		svga_wcrt_mask(VGABASE, 0x11, 0x00, 0x70);
-		svga_wcrt_mask(VGABASE, 0x17, 0x00, BIT(7));
-        }
+		vga_wcrt(VGABASE, 0x09, 0x00);	/* initial CR09=0 */
+		svga_wcrt_mask(VGABASE, 0x11, 0x00, BIT(6));
+	}
 
 	/* Write CRTC */
 	via_load_crtc_timing(iga, adjusted_mode);
 
-	via_lock_crt(VGABASE);
-	svga_wcrt_mask(VGABASE, 0x17, BIT(7), BIT(7));
+	/* Patch the IGA1 ECK clock */
+	if (!iga->index) {
+		u8 reg_value = 0;
+
+		switch (adjusted_mode->crtc_htotal % 8) {
+		case 0:
+		default:
+			break;
+		case 2:
+			reg_value = BIT(7);
+			break;
+		case 4:
+			reg_value = BIT(6);
+			break;
+		case 6:
+			reg_value = BIT(3);
+			break;
+		}
+		svga_wcrt_mask(VGABASE, 0x47, reg_value, BIT(7) | BIT(6) | BIT(3));
+	}
+
+	/* Relock */
+	via_lock_crtc(VGABASE);
 
 	/* Load FIFO */
 	if ((dev->pdev->device != PCI_DEVICE_ID_VIA_CLE266) &&
@@ -573,9 +636,8 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 		svga_wseq_mask(VGABASE, 0x16, 0x0C, 0xBF);
 		vga_wseq(VGABASE, 0x18, 0x4C);
 	}
-	vga_r(VGABASE, VGA_IS1_RC);
-	vga_w(VGABASE, VGA_ATT_IW, 0x20);
 
+	/* Set PLL */
 	if (adjusted_mode->clock) {
 		u32 clock = adjusted_mode->clock * 1000, pll_regs;
 

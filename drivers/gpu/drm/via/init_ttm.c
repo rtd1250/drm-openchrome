@@ -245,7 +245,7 @@ ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev, unsigned long size,
 	int ret = ttm_bo_allocate(bdev, size, ttm_bo_type_kernel, domain,
 					alignment, PAGE_SIZE, 0, false, NULL,
 					NULL, &kmap->bo);
-        if (likely(!ret)) {
+	if (likely(!ret)) {
 		ret = ttm_bo_pin(kmap->bo, kmap);
 		if (unlikely(ret)) {
 			DRM_ERROR("failed to mmap the buffer\n");

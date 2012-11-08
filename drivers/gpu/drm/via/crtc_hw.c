@@ -25,34 +25,12 @@
 #include <video/vga.h>
 #include "crtc_hw.h"
 
-void
-regs_init(void __iomem *regs)
-{
-	int i;
-
-	vga_wseq(regs, 0x1, 0x01);
-	vga_wseq(regs, 0x2, 0x0f);
-	vga_wseq(regs, 0x3, 0x00);
-	vga_wseq(regs, 0x4, 0x0e);
-
-	for (i = 0; i < 0x5; i++)
-		vga_wgfx(regs, i, 0x00);
-
-	vga_wgfx(regs, 0x05, 0x40);
-	vga_wgfx(regs, 0x06, 0x05);
-	vga_wgfx(regs, 0x07, 0x0f);
-	vga_wgfx(regs, 0x08, 0xff);
-
-	for (i = 0; i < 0x10; i++)
-		vga_wattr(regs, i, i);
-
-	vga_r(regs, VGA_IS1_RC);
-	vga_wattr(regs, 0x10, 0x41);
-	vga_wattr(regs, 0x11, 0xff);
-	vga_wattr(regs, 0x12, 0x0f);
-	vga_wattr(regs, 0x13, 0x00);
-}
-
+/*
+ * load_register_table enables the ability to set entire
+ * tables of registers. For each register defined by the
+ * port and the index for that register is programmed
+ * with a masked value.
+ */
 void
 load_register_tables(void __iomem *regbase, struct vga_registers *regs)
 {
@@ -72,6 +50,13 @@ load_register_tables(void __iomem *regbase, struct vga_registers *regs)
 	}
 }
 
+/*
+ * Due to the limitation of how much data you can write to a single
+ * register we run into data that can't be written in only one register.
+ * So load_value_to_register was developed to be able to define register
+ * tables that can load different bit ranges of the data to different
+ * registers.
+ */
 void
 load_value_to_registers(void __iomem *regbase, struct vga_registers *regs,
 			unsigned int value)

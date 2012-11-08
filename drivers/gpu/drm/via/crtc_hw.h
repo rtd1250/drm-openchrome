@@ -19,17 +19,17 @@
  * DEALINGS IN THE SOFTWARE.
  *
  * Authors:
- *      James Simmons <jsimmons@infradead.org>
+ *	James Simmons <jsimmons@infradead.org>
  */
 
 #ifndef __CRTC_HW_H__
 #define __CRTC_HW_H__
 
 struct vga_regset {
-	u16 ioport;
-	u8 io_addr;
-	u8 start_bit;
-	u8 end_bit;
+	u16	ioport;
+	u8	io_addr;
+	u8	start_bit;
+	u8	end_bit;
 };
 
 struct vga_registers {
@@ -74,7 +74,6 @@ static inline void svga_wcrt_mask(void __iomem *regbase, u8 index, u8 data, u8 m
 	vga_wcrt(regbase, index, (data & mask) | (vga_rcrt(regbase, index) & ~mask));
 }
 
-extern void regs_init(void __iomem *regs);
 extern void load_register_tables(void __iomem *regbase, struct vga_registers *regs);
 extern void load_value_to_registers(void __iomem *regbase, struct vga_registers *regs,
 					unsigned int value);
