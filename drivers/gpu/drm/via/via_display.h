@@ -117,7 +117,8 @@ extern void via_crtc_init(struct drm_device *dev, int index);
 
 /* encoders */
 extern struct drm_encoder* via_best_encoder(struct drm_connector *connector);
-extern void via_diport_set_source(struct drm_encoder *encoder);
+extern void via_encoder_disable(struct drm_encoder *encoder);
+extern void via_encoder_commit(struct drm_encoder *encoder);
 
 /* outputs */
 extern int via_get_edid_modes(struct drm_connector *connector);
