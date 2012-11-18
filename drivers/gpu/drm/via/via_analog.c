@@ -23,12 +23,6 @@
  * Authors:
  *	James Simmons <jsimmons@infradead.org>
  */
-
-#include "drmP.h"
-#include "drm.h"
-#include "drm_crtc.h"
-#include "drm_crtc_helper.h"
-
 #include "via_drv.h"
 
 /*
@@ -110,32 +104,32 @@ static const struct drm_encoder_helper_funcs via_dac_enc_helper_funcs = {
 static enum drm_connector_status
 via_analog_detect(struct drm_connector *connector, bool force)
 {
-	struct drm_device *dev = connector->dev;
-	struct drm_via_private *dev_priv = dev->dev_private;
-	struct via_i2c *i2c = &dev_priv->i2c_par[0];
-	struct i2c_adapter *adapter = NULL;
+	struct via_connector *con = container_of(connector, struct via_connector, base);
+	enum drm_connector_status ret = connector_status_disconnected;
+	struct i2c_adapter *adapter = &con->ddc_bus->adapter;
 	struct edid *edid = NULL;
 
 	drm_mode_connector_update_edid_property(connector, edid);
-
-	adapter = &i2c->adapter;
 	if (adapter) {
 		edid = drm_get_edid(connector, adapter);
 		if (edid) {
 			drm_mode_connector_update_edid_property(connector, edid);
 			kfree(edid);
-			return connector_status_connected;
+			ret = connector_status_connected;
 		}
 	}
-	return connector_status_unknown;
+	return ret;
 }
 
 static void
 via_analog_destroy(struct drm_connector *connector)
 {
+	struct via_connector *con = container_of(connector, struct via_connector, base);
+
+	drm_mode_connector_update_edid_property(connector, NULL);
 	drm_sysfs_connector_remove(connector);
 	drm_connector_cleanup(connector);
-	kfree(connector);
+	kfree(con);
 }
 
 static int
@@ -188,27 +182,30 @@ static const struct drm_connector_helper_funcs via_analog_connector_helper_funcs
 	.best_encoder = via_best_encoder,
 };
 
-void via_analog_init(struct drm_device *dev)
+void
+via_analog_init(struct drm_device *dev)
 {
-	struct drm_connector *connector;
+	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_connector *con;
 	struct via_encoder *enc;
 	void *par;
 
-	par = kzalloc(sizeof(*enc) + sizeof(*connector), GFP_KERNEL);
+	par = kzalloc(sizeof(*enc) + sizeof(*con), GFP_KERNEL);
 	if (!par) {
 		DRM_ERROR("Failed to allocate connector and encoder\n");
 		return;
 	}
-	connector = par + sizeof(*enc);
+	con = par + sizeof(*enc);
 	enc = par;
 
 	/* Piece together our connector */
-	drm_connector_init(dev, connector, &via_analog_connector_funcs,
+	con->ddc_bus = &dev_priv->i2c_par[VIA_PORT_26];
+	drm_connector_init(dev, &con->base, &via_analog_connector_funcs,
 				DRM_MODE_CONNECTOR_VGA);
-	drm_connector_helper_add(connector, &via_analog_connector_helper_funcs);
+	drm_connector_helper_add(&con->base, &via_analog_connector_helper_funcs);
 
-	connector->interlace_allowed = true;
-	connector->doublescan_allowed = false;
+	con->base.interlace_allowed = true;
+	con->base.doublescan_allowed = false;
 
 	/* Setup the encoders and attach them */
 	drm_encoder_init(dev, &enc->base, &via_dac_enc_funcs, DRM_MODE_ENCODER_DAC);
@@ -217,7 +214,7 @@ void via_analog_init(struct drm_device *dev)
 	enc->base.possible_crtcs = BIT(1) | BIT(0);
 	enc->diPort = DISP_DI_DAC;
 
-	drm_mode_connector_attach_encoder(connector, &enc->base);
+	drm_mode_connector_attach_encoder(&con->base, &enc->base);
 
-	drm_sysfs_connector_add(connector);
+	drm_sysfs_connector_add(&con->base);
 }

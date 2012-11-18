@@ -26,6 +26,10 @@
 #include <video/vga.h>
 #include "crtc_hw.h"
 
+#include "drmP.h"
+#include "drm.h"
+#include "drm_crtc.h"
+#include "drm_crtc_helper.h"
 #include "drm_fb_helper.h"
 
 struct via_i2c {
@@ -53,6 +57,11 @@ struct via_crtc {
 	uint8_t index;
 };
 
+struct via_connector {
+	struct drm_connector base;
+	struct via_i2c *ddc_bus;
+};
+
 #define DISP_DI_NONE		0x00
 #define DISP_DI_DVP0		BIT(0)
 #define DISP_DI_DVP1		BIT(1)
@@ -63,6 +72,7 @@ struct via_crtc {
 
 struct via_encoder {
 	struct drm_encoder base;
+	uint32_t flags;
 	int diPort;
 };
 
