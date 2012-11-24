@@ -357,5 +357,5 @@ void via_modeset_fini(struct drm_device *dev)
 
 	drm_mode_config_cleanup(dev);
 
-	via_i2c_exit(dev);
+	via_i2c_exit();
 }

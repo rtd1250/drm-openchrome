@@ -32,14 +32,6 @@
 #include "drm_crtc_helper.h"
 #include "drm_fb_helper.h"
 
-struct via_i2c {
-	struct drm_via_private *dev_priv;
-	struct via_port_cfg *adap_cfg;
-	struct i2c_algo_bit_data algo;
-	struct i2c_adapter adapter;
-	u16 i2c_port;
-};
-
 struct via_crtc {
 	struct drm_crtc base;
 	struct ttm_bo_kmap_obj cursor_kmap;
@@ -59,7 +51,7 @@ struct via_crtc {
 
 struct via_connector {
 	struct drm_connector base;
-	struct via_i2c *ddc_bus;
+	struct i2c_adapter *ddc_bus;
 };
 
 #define DISP_DI_NONE		0x00
@@ -111,8 +103,9 @@ extern int via_modeset_init(struct drm_device *dev);
 extern void via_modeset_fini(struct drm_device *dev);
 
 /* i2c */
-extern void via_i2c_exit(struct drm_device *dev);
+extern struct i2c_adapter *via_find_ddc_bus(int port);
 extern int via_i2c_init(struct drm_device *dev);
+extern void via_i2c_exit(void);
 
 /* clock */
 extern u32 via_get_clk_value(struct drm_device *dev, u32 clk);

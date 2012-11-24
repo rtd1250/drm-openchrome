@@ -35,9 +35,6 @@
 #define DRIVER_PATCHLEVEL	0
 
 #include <linux/module.h>
-#include <linux/i2c.h>
-#include <linux/i2c-algo-bit.h>
-#include <linux/via-core.h>
 
 #include "ttm/ttm_bo_api.h"
 #include "ttm/ttm_bo_driver.h"
@@ -145,7 +142,6 @@ struct drm_via_private {
 	wait_queue_head_t decoder_queue[VIA_NR_XVMC_LOCKS];
 
 	struct via_crtc iga[2];
-	struct via_i2c i2c_par[5];
 
 	drm_via_sarea_t *sarea_priv;
 	drm_local_map_t *sarea;

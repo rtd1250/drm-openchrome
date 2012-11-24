@@ -106,12 +106,11 @@ via_analog_detect(struct drm_connector *connector, bool force)
 {
 	struct via_connector *con = container_of(connector, struct via_connector, base);
 	enum drm_connector_status ret = connector_status_disconnected;
-	struct i2c_adapter *adapter = &con->ddc_bus->adapter;
 	struct edid *edid = NULL;
 
 	drm_mode_connector_update_edid_property(connector, edid);
-	if (adapter) {
-		edid = drm_get_edid(connector, adapter);
+	if (con->ddc_bus) {
+		edid = drm_get_edid(connector, con->ddc_bus);
 		if (edid) {
 			drm_mode_connector_update_edid_property(connector, edid);
 			kfree(edid);
@@ -185,7 +184,6 @@ static const struct drm_connector_helper_funcs via_analog_connector_helper_funcs
 void
 via_analog_init(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
 	struct via_connector *con;
 	struct via_encoder *enc;
 	void *par;
@@ -199,7 +197,7 @@ via_analog_init(struct drm_device *dev)
 	enc = par;
 
 	/* Piece together our connector */
-	con->ddc_bus = &dev_priv->i2c_par[VIA_PORT_26];
+	con->ddc_bus = via_find_ddc_bus(0x26);
 	drm_connector_init(dev, &con->base, &via_analog_connector_funcs,
 				DRM_MODE_CONNECTOR_VGA);
 	drm_connector_helper_add(&con->base, &via_analog_connector_helper_funcs);
