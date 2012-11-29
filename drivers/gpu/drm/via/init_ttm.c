@@ -150,7 +150,6 @@ ttm_bo_allocate(struct ttm_bo_device *bdev,
 		uint32_t domains,
 		uint32_t byte_align,
 		uint32_t page_align,
-		unsigned long buffer_start,
 		bool interruptible,
 		struct sg_table *sg,
 		struct file *persistant_swap_storage,
@@ -173,15 +172,8 @@ ttm_bo_allocate(struct ttm_bo_device *bdev,
 
 	ttm_placement_from_domain(bo, &placement, domains, bdev);
 
-	/* Special work around for old driver's api */
-	if (buffer_start && placement.num_placement == 1) {
-		placement.fpfn = rounddown(buffer_start, page_align) >> PAGE_SHIFT;
-		placement.lpfn = placement.fpfn + (size >> PAGE_SHIFT);
-		buffer_start = 0;
-	}
-
 	ret = ttm_bo_init(bdev, bo, size, origin, &placement,
-				page_align >> PAGE_SHIFT, buffer_start,
+				page_align >> PAGE_SHIFT,
 				interruptible, persistant_swap_storage,
 				ttm_bo_dma_acc_size(bdev, size, acc_size),
 				sg, ttm_buffer_object_destroy);
@@ -243,7 +235,7 @@ ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev, unsigned long size,
 				struct ttm_bo_kmap_obj *kmap)
 {
 	int ret = ttm_bo_allocate(bdev, size, ttm_bo_type_kernel, domain,
-					alignment, PAGE_SIZE, 0, false, NULL,
+					alignment, PAGE_SIZE, false, NULL,
 					NULL, &kmap->bo);
 	if (likely(!ret)) {
 		ret = ttm_bo_pin(kmap->bo, kmap);

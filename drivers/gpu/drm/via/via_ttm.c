@@ -20,7 +20,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
-#include "drmP.h"
+#include <linux/dma-mapping.h>
 #ifdef CONFIG_SWIOTLB
 #include <linux/swiotlb.h>
 #endif
@@ -31,10 +31,10 @@ static struct ttm_tt *
 via_ttm_tt_create(struct ttm_bo_device *bdev, unsigned long size,
 			uint32_t page_flags, struct page *dummy_read_page)
 {
+#if __OS_HAS_AGP
 	struct drm_via_private *dev_priv =
 		container_of(bdev, struct drm_via_private, bdev);
 
-#if __OS_HAS_AGP
 	if (drm_pci_device_is_agp(dev_priv->dev))
 		return ttm_agp_tt_create(bdev, dev_priv->dev->agp->bridge,
 					size, page_flags, dummy_read_page);
@@ -48,8 +48,8 @@ via_ttm_tt_populate(struct ttm_tt *ttm)
 	struct sgdma_tt *dma_tt = (struct sgdma_tt *) ttm;
 	struct ttm_dma_tt *sgdma = &dma_tt->sgdma;
 	struct ttm_bo_device *bdev = ttm->bdev;
-        struct drm_via_private *dev_priv =
-                container_of(bdev, struct drm_via_private, bdev);
+	struct drm_via_private *dev_priv =
+		container_of(bdev, struct drm_via_private, bdev);
 	struct drm_device *dev = dev_priv->dev;
 	unsigned int i;
 	int ret = 0;
@@ -94,8 +94,8 @@ via_ttm_tt_unpopulate(struct ttm_tt *ttm)
 	struct sgdma_tt *dma_tt = (struct sgdma_tt *) ttm;
 	struct ttm_dma_tt *sgdma = &dma_tt->sgdma;
 	struct ttm_bo_device *bdev = ttm->bdev;
-        struct drm_via_private *dev_priv =
-                container_of(bdev, struct drm_via_private, bdev);
+	struct drm_via_private *dev_priv =
+		container_of(bdev, struct drm_via_private, bdev);
 	struct drm_device *dev = dev_priv->dev;
 	unsigned int i;
 
@@ -123,7 +123,8 @@ via_ttm_tt_unpopulate(struct ttm_tt *ttm)
 	ttm_pool_unpopulate(ttm);
 }
 
-int via_invalidate_caches(struct ttm_bo_device *bdev, uint32_t flags)
+static int
+via_invalidate_caches(struct ttm_bo_device *bdev, uint32_t flags)
 {
 	/*
 	 * FIXME: Invalidate texture caches here.
@@ -131,8 +132,9 @@ int via_invalidate_caches(struct ttm_bo_device *bdev, uint32_t flags)
 	return 0;
 }
 
-int via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
-                      struct ttm_mem_type_manager *man)
+static int
+via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
+		struct ttm_mem_type_manager *man)
 {
 #if __OS_HAS_AGP
 	struct drm_via_private *dev_priv =
@@ -226,8 +228,8 @@ via_move_blit(struct ttm_buffer_object *bo, bool evict,
 
 	//ret = via_copy(rdev, old_start, new_start, new_mem->num_pages, fence);
 
-	return ttm_bo_move_accel_cleanup(bo, fence, NULL, evict,
-					no_wait_reserve, no_wait_gpu, new_mem);
+	return ttm_bo_move_accel_cleanup(bo, fence, evict, no_wait_reserve,
+					no_wait_gpu, new_mem);
 }
 
 static int
@@ -313,10 +315,10 @@ out_cleanup:
 	return ret;
 }
 
-static int via_bo_move(struct ttm_buffer_object *bo,
-			bool evict, bool interruptible,
-			bool no_wait_reserve, bool no_wait_gpu,
-			struct ttm_mem_reg *new_mem)
+static int
+via_bo_move(struct ttm_buffer_object *bo, bool evict, bool interruptible,
+		bool no_wait_reserve, bool no_wait_gpu,
+		struct ttm_mem_reg *new_mem)
 {
 	struct ttm_mem_reg *old_mem = &bo->mem;
 	int ret = 0;
@@ -353,7 +355,8 @@ static int via_bo_move(struct ttm_buffer_object *bo,
 	return ret;
 }
 
-static int via_ttm_io_mem_reserve(struct ttm_bo_device *bdev, struct ttm_mem_reg *mem)
+static int
+via_ttm_io_mem_reserve(struct ttm_bo_device *bdev, struct ttm_mem_reg *mem)
 {
 	struct drm_via_private *dev_priv =
 		container_of(bdev, struct drm_via_private, bdev);
@@ -389,7 +392,7 @@ static int via_ttm_io_mem_reserve(struct ttm_bo_device *bdev, struct ttm_mem_reg
 		break;
 
 	case TTM_PL_VRAM:
-		if (dev->pci_device == 0x7122)
+		if (dev->pci_device == PCI_DEVICE_ID_VIA_VX900)
 			mem->bus.base = pci_resource_start(dev->pdev, 2);
 		else
 			mem->bus.base = pci_resource_start(dev->pdev, 0);
@@ -411,9 +414,9 @@ static int via_verify_access(struct ttm_buffer_object *bo, struct file *filp)
 }
 
 static struct ttm_bo_driver via_bo_driver = {
-	.ttm_tt_create          = via_ttm_tt_create,
-	.ttm_tt_populate        = via_ttm_tt_populate,
-	.ttm_tt_unpopulate      = via_ttm_tt_unpopulate,
+	.ttm_tt_create		= via_ttm_tt_create,
+	.ttm_tt_populate	= via_ttm_tt_populate,
+	.ttm_tt_unpopulate	= via_ttm_tt_unpopulate,
 	.invalidate_caches	= via_invalidate_caches,
 	.init_mem_type		= via_init_mem_type,
 	.evict_flags		= via_evict_flags,

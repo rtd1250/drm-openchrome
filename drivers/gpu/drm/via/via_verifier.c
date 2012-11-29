@@ -27,10 +27,11 @@
  * Don't run this code directly on an AGP buffer. Due to cache problems it will
  * be very slow.
  */
+#include <drm/drmP.h>
+#include <drm/via_drm.h>
 
 #include "via_3d_reg.h"
-#include "drmP.h"
-#include "drm.h"
+#include "via_verifier.h"
 #include "via_drv.h"
 
 enum verifier_state {

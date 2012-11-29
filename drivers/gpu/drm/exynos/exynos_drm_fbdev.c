@@ -26,10 +26,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "drmP.h"
-#include "drm_crtc.h"
-#include "drm_fb_helper.h"
-#include "drm_crtc_helper.h"
+#include <drm/drmP.h>
+#include <drm/drm_crtc.h>
+#include <drm/drm_fb_helper.h>
+#include <drm/drm_crtc_helper.h>
 
 #include "exynos_drm_drv.h"
 #include "exynos_drm_fb.h"
@@ -78,6 +78,9 @@ static int exynos_drm_fbdev_update(struct drm_fb_helper *helper,
 		DRM_LOG_KMS("buffer is null.\n");
 		return -EFAULT;
 	}
+
+	/* buffer count to framebuffer always is 1 at booting time. */
+	exynos_drm_fb_set_buf_cnt(fb, 1);
 
 	offset = fbi->var.xoffset * (fb->bits_per_pixel >> 3);
 	offset += fbi->var.yoffset * fb->pitches[0];

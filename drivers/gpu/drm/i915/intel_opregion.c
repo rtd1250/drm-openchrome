@@ -31,8 +31,8 @@
 #include <linux/acpi_io.h>
 #include <acpi/video.h>
 
-#include "drmP.h"
-#include "i915_drm.h"
+#include <drm/drmP.h>
+#include <drm/i915_drm.h>
 #include "i915_drv.h"
 #include "intel_drv.h"
 
@@ -153,6 +153,8 @@ static u32 asle_set_backlight(struct drm_device *dev, u32 bclp)
 	struct drm_i915_private *dev_priv = dev->dev_private;
 	struct opregion_asle __iomem *asle = dev_priv->opregion.asle;
 	u32 max;
+
+	DRM_DEBUG_DRIVER("bclp = 0x%08x\n", bclp);
 
 	if (!(bclp & ASLE_BCLP_VALID))
 		return ASLE_BACKLIGHT_FAILED;

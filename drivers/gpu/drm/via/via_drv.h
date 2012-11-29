@@ -25,7 +25,6 @@
 #define _VIA_DRV_H_
 
 #define DRIVER_AUTHOR		"Various"
-
 #define DRIVER_NAME		"via"
 #define DRIVER_DESC		"VIA Unichrome / Pro"
 #define DRIVER_DATE		"20110221"
@@ -43,10 +42,10 @@
 #include "ttm/ttm_module.h"
 #include "ttm/ttm_page_alloc.h"
 
-#include "drmP.h"
+#include <drm/drmP.h>
+#include <drm/via_drm.h>
 
 #include "via_regs.h"
-#include "via_drm.h"
 #include "via_verifier.h"
 #include "via_dmabuffer.h"
 #include "via_display.h"
@@ -212,8 +211,7 @@ extern void ttm_global_fini(struct drm_global_reference *global_ref,
 extern int ttm_bo_allocate(struct ttm_bo_device *bdev, unsigned long size,
 				enum ttm_bo_type origin, int types,
 				uint32_t byte_align, uint32_t page_align,
-				unsigned long buffer_start, bool interruptible,
-				struct sg_table *sg,
+				bool interruptible, struct sg_table *sg,
 				struct file *persistant_swap_storage,
 				struct ttm_buffer_object **p_bo);
 extern void ttm_placement_from_domain(struct ttm_buffer_object *bo,
@@ -233,7 +231,7 @@ extern struct drm_gem_object *ttm_gem_create(struct drm_device *dev,
 					struct ttm_bo_device *bdev, int type,
 					bool interruptible,
 					int byte_align, int page_align,
-					unsigned long start, unsigned long size);
+					unsigned long size);
 
 extern int via_enable_vblank(struct drm_device *dev, int crtc);
 extern void via_disable_vblank(struct drm_device *dev, int crtc);

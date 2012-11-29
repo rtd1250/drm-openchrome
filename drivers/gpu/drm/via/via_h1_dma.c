@@ -34,7 +34,7 @@
  * the same DMA mappings?
  */
 
-#include "drmP.h"
+#include <drm/drmP.h>
 #include "via_drv.h"
 #include "via_dmabuffer.h"
 

@@ -25,7 +25,7 @@
 /*
  * Authors: Dave Airlie <airlied@redhat.com>
  */
-#include "drmP.h"
+#include <drm/drmP.h>
 #include "mgag200_drv.h"
 #include <ttm/ttm_page_alloc.h>
 
@@ -355,7 +355,7 @@ int mgag200_bo_create(struct drm_device *dev, int size, int align,
 
 	ret = ttm_bo_init(&mdev->ttm.bdev, &mgabo->bo, size,
 			  ttm_bo_type_device, &mgabo->placement,
-			  align >> PAGE_SHIFT, 0, false, NULL, acc_size,
+			  align >> PAGE_SHIFT, false, NULL, acc_size,
 			  NULL, mgag200_bo_ttm_destroy);
 	if (ret)
 		return ret;

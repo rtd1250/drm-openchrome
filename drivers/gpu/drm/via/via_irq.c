@@ -35,8 +35,7 @@
  * The refresh rate is also calculated for video playback sync purposes.
  */
 
-#include "drmP.h"
-#include "drm.h"
+#include <drm/drmP.h>
 #include "via_drv.h"
 
 /* VIA_REG_INTERRUPT */

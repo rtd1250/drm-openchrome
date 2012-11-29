@@ -28,8 +28,8 @@
  * Authors: Thomas Hellstrom <thellstrom-at-vmware-dot-com>
  */
 
-#include "ttm/ttm_bo_driver.h"
-#include "ttm/ttm_placement.h"
+#include <drm/ttm/ttm_bo_driver.h>
+#include <drm/ttm/ttm_placement.h>
 #include <linux/io.h>
 #include <linux/highmem.h>
 #include <linux/wait.h>
@@ -611,7 +611,6 @@ EXPORT_SYMBOL(ttm_bo_kunmap);
 
 int ttm_bo_move_accel_cleanup(struct ttm_buffer_object *bo,
 			      void *sync_obj,
-			      void *sync_obj_arg,
 			      bool evict, bool no_wait_reserve,
 			      bool no_wait_gpu,
 			      struct ttm_mem_reg *new_mem)
@@ -630,7 +629,6 @@ int ttm_bo_move_accel_cleanup(struct ttm_buffer_object *bo,
 		bo->sync_obj = NULL;
 	}
 	bo->sync_obj = driver->sync_obj_ref(sync_obj);
-	bo->sync_obj_arg = sync_obj_arg;
 	if (evict) {
 		ret = ttm_bo_wait(bo, false, false, false);
 		spin_unlock(&bdev->fence_lock);

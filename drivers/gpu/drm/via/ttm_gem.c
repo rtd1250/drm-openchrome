@@ -68,7 +68,7 @@ int ttm_mmap(struct file *filp, struct vm_area_struct *vma)
 struct drm_gem_object *
 ttm_gem_create(struct drm_device *dev, struct ttm_bo_device *bdev, int types,
 		bool interruptible, int byte_align, int page_align,
-		unsigned long start, unsigned long size)
+		unsigned long size)
 {
 	struct ttm_buffer_object *bo = NULL;
 	struct drm_gem_object *obj;
@@ -82,7 +82,7 @@ ttm_gem_create(struct drm_device *dev, struct ttm_bo_device *bdev, int types,
 		return ERR_PTR(-ENOMEM);
 
 	ret = ttm_bo_allocate(bdev, size, ttm_bo_type_device, types,
-				byte_align, page_align, start, interruptible,
+				byte_align, page_align, interruptible,
 				NULL, obj->filp, &bo);
 	if (ret) {
 		DRM_ERROR("Failed to create buffer object\n");

@@ -27,13 +27,12 @@
 #include <linux/dmi.h>
 #include <linux/i2c.h>
 #include <linux/slab.h>
-#include "drmP.h"
-#include "drm.h"
-#include "drm_crtc.h"
-#include "drm_crtc_helper.h"
-#include "drm_edid.h"
+#include <drm/drmP.h>
+#include <drm/drm_crtc.h>
+#include <drm/drm_crtc_helper.h>
+#include <drm/drm_edid.h>
 #include "intel_drv.h"
-#include "i915_drm.h"
+#include <drm/i915_drm.h>
 #include "i915_drv.h"
 
 /* Here's the desired hotplug mode */
@@ -220,29 +219,22 @@ static void intel_crt_mode_set(struct drm_encoder *encoder,
 		intel_encoder_to_crt(to_intel_encoder(encoder));
 	struct intel_crtc *intel_crtc = to_intel_crtc(crtc);
 	struct drm_i915_private *dev_priv = dev->dev_private;
-	int dpll_md_reg;
-	u32 adpa, dpll_md;
+	u32 adpa;
 
-	dpll_md_reg = DPLL_MD(intel_crtc->pipe);
+	if (HAS_PCH_SPLIT(dev))
+		adpa = ADPA_HOTPLUG_BITS;
+	else
+		adpa = 0;
 
-	/*
-	 * Disable separate mode multiplier used when cloning SDVO to CRT
-	 * XXX this needs to be adjusted when we really are cloning
-	 */
-	if (INTEL_INFO(dev)->gen >= 4 && !HAS_PCH_SPLIT(dev)) {
-		dpll_md = I915_READ(dpll_md_reg);
-		I915_WRITE(dpll_md_reg,
-			   dpll_md & ~DPLL_MD_UDI_MULTIPLIER_MASK);
-	}
-
-	adpa = ADPA_HOTPLUG_BITS;
 	if (adjusted_mode->flags & DRM_MODE_FLAG_PHSYNC)
 		adpa |= ADPA_HSYNC_ACTIVE_HIGH;
 	if (adjusted_mode->flags & DRM_MODE_FLAG_PVSYNC)
 		adpa |= ADPA_VSYNC_ACTIVE_HIGH;
 
 	/* For CPT allow 3 pipe config, for others just use A or B */
-	if (HAS_PCH_CPT(dev))
+	if (HAS_PCH_LPT(dev))
+		; /* Those bits don't exist here */
+	else if (HAS_PCH_CPT(dev))
 		adpa |= PORT_TRANS_SEL_CPT(intel_crtc->pipe);
 	else if (intel_crtc->pipe == 0)
 		adpa |= ADPA_PIPE_A_SELECT;
@@ -415,12 +407,16 @@ static int intel_crt_ddc_get_modes(struct drm_connector *connector,
 				struct i2c_adapter *adapter)
 {
 	struct edid *edid;
+	int ret;
 
 	edid = intel_crt_get_edid(connector, adapter);
 	if (!edid)
 		return 0;
 
-	return intel_connector_update_modes(connector, edid);
+	ret = intel_connector_update_modes(connector, edid);
+	kfree(edid);
+
+	return ret;
 }
 
 static bool intel_crt_detect_ddc(struct drm_connector *connector)
@@ -658,10 +654,22 @@ static int intel_crt_set_property(struct drm_connector *connector,
 static void intel_crt_reset(struct drm_connector *connector)
 {
 	struct drm_device *dev = connector->dev;
+	struct drm_i915_private *dev_priv = dev->dev_private;
 	struct intel_crt *crt = intel_attached_crt(connector);
 
-	if (HAS_PCH_SPLIT(dev))
+	if (HAS_PCH_SPLIT(dev)) {
+		u32 adpa;
+
+		adpa = I915_READ(PCH_ADPA);
+		adpa &= ~ADPA_CRT_HOTPLUG_MASK;
+		adpa |= ADPA_HOTPLUG_BITS;
+		I915_WRITE(PCH_ADPA, adpa);
+		POSTING_READ(PCH_ADPA);
+
+		DRM_DEBUG_KMS("pch crt adpa set to 0x%x\n", adpa);
 		crt->force_hotplug_required = 1;
+	}
+
 }
 
 /*
@@ -743,7 +751,7 @@ void intel_crt_init(struct drm_device *dev)
 
 	crt->base.type = INTEL_OUTPUT_ANALOG;
 	crt->base.cloneable = true;
-	if (IS_HASWELL(dev))
+	if (IS_HASWELL(dev) || IS_I830(dev))
 		crt->base.crtc_mask = (1 << 0);
 	else
 		crt->base.crtc_mask = (1 << 0) | (1 << 1) | (1 << 2);
@@ -763,7 +771,10 @@ void intel_crt_init(struct drm_device *dev)
 
 	crt->base.disable = intel_disable_crt;
 	crt->base.enable = intel_enable_crt;
-	crt->base.get_hw_state = intel_crt_get_hw_state;
+	if (IS_HASWELL(dev))
+		crt->base.get_hw_state = intel_ddi_get_hw_state;
+	else
+		crt->base.get_hw_state = intel_crt_get_hw_state;
 	intel_connector->get_hw_state = intel_connector_get_hw_state;
 
 	drm_encoder_helper_add(&crt->base.base, &crt_encoder_funcs);
@@ -780,18 +791,6 @@ void intel_crt_init(struct drm_device *dev)
 	 * Configure the automatic hotplug detection stuff
 	 */
 	crt->force_hotplug_required = 0;
-	if (HAS_PCH_SPLIT(dev)) {
-		u32 adpa;
-
-		adpa = I915_READ(PCH_ADPA);
-		adpa &= ~ADPA_CRT_HOTPLUG_MASK;
-		adpa |= ADPA_HOTPLUG_BITS;
-		I915_WRITE(PCH_ADPA, adpa);
-		POSTING_READ(PCH_ADPA);
-
-		DRM_DEBUG_KMS("pch crt adpa set to 0x%x\n", adpa);
-		crt->force_hotplug_required = 1;
-	}
 
 	dev_priv->hotplug_supported_mask |= CRT_HOTPLUG_INT_STATUS;
 }

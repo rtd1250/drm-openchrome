@@ -1018,7 +1018,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 		goto out_err;
 	}
 	ret = ttm_bo_allocate(&dev_priv->bdev, size, ttm_bo_type_kernel,
-				TTM_PL_FLAG_VRAM, 1, PAGE_SIZE, 0, false,
+				TTM_PL_FLAG_VRAM, 1, PAGE_SIZE, false,
 				NULL, obj->filp, &kmap->bo);
 	if (ret)
 		goto out_err;

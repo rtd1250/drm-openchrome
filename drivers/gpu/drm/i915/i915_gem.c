@@ -25,9 +25,8 @@
  *
  */
 
-#include "drmP.h"
-#include "drm.h"
-#include "i915_drm.h"
+#include <drm/drmP.h>
+#include <drm/i915_drm.h>
 #include "i915_drv.h"
 #include "i915_trace.h"
 #include "intel_drv.h"
@@ -846,12 +845,12 @@ out:
 		 * domain anymore. */
 		if (obj->base.write_domain != I915_GEM_DOMAIN_CPU) {
 			i915_gem_clflush_object(obj);
-			intel_gtt_chipset_flush();
+			i915_gem_chipset_flush(dev);
 		}
 	}
 
 	if (needs_clflush_after)
-		intel_gtt_chipset_flush();
+		i915_gem_chipset_flush(dev);
 
 	return ret;
 }
@@ -1400,10 +1399,18 @@ out:
 	case 0:
 	case -ERESTARTSYS:
 	case -EINTR:
+	case -EBUSY:
+		/*
+		 * EBUSY is ok: this just means that another thread
+		 * already did the job.
+		 */
 		return VM_FAULT_NOPAGE;
 	case -ENOMEM:
 		return VM_FAULT_OOM;
+	case -ENOSPC:
+		return VM_FAULT_SIGBUS;
 	default:
+		WARN_ONCE(ret, "unhandled error in i915_gem_fault: %i\n", ret);
 		return VM_FAULT_SIGBUS;
 	}
 }
@@ -1817,10 +1824,11 @@ i915_gem_object_get_pages_gtt(struct drm_i915_gem_object *obj)
 		sg_set_page(sg, page, PAGE_SIZE, 0);
 	}
 
+	obj->pages = st;
+
 	if (i915_gem_object_needs_bit17_swizzle(obj))
 		i915_gem_object_do_bit_17_swizzle(obj);
 
-	obj->pages = st;
 	return 0;
 
 err_pages:
@@ -1950,11 +1958,12 @@ i915_gem_next_request_seqno(struct intel_ring_buffer *ring)
 int
 i915_add_request(struct intel_ring_buffer *ring,
 		 struct drm_file *file,
-		 struct drm_i915_gem_request *request)
+		 u32 *out_seqno)
 {
 	drm_i915_private_t *dev_priv = ring->dev->dev_private;
-	uint32_t seqno;
+	struct drm_i915_gem_request *request;
 	u32 request_ring_position;
+	u32 seqno;
 	int was_empty;
 	int ret;
 
@@ -1969,11 +1978,9 @@ i915_add_request(struct intel_ring_buffer *ring,
 	if (ret)
 		return ret;
 
-	if (request == NULL) {
-		request = kmalloc(sizeof(*request), GFP_KERNEL);
-		if (request == NULL)
-			return -ENOMEM;
-	}
+	request = kmalloc(sizeof(*request), GFP_KERNEL);
+	if (request == NULL)
+		return -ENOMEM;
 
 	seqno = i915_gem_next_request_seqno(ring);
 
@@ -2015,16 +2022,18 @@ i915_add_request(struct intel_ring_buffer *ring,
 	if (!dev_priv->mm.suspended) {
 		if (i915_enable_hangcheck) {
 			mod_timer(&dev_priv->hangcheck_timer,
-				  jiffies +
-				  msecs_to_jiffies(DRM_I915_HANGCHECK_PERIOD));
+				  round_jiffies_up(jiffies + DRM_I915_HANGCHECK_JIFFIES));
 		}
 		if (was_empty) {
 			queue_delayed_work(dev_priv->wq,
-					   &dev_priv->mm.retire_work, HZ);
+					   &dev_priv->mm.retire_work,
+					   round_jiffies_up_relative(HZ));
 			intel_mark_busy(dev_priv->dev);
 		}
 	}
 
+	if (out_seqno)
+		*out_seqno = seqno;
 	return 0;
 }
 
@@ -2209,7 +2218,8 @@ i915_gem_retire_work_handler(struct work_struct *work)
 
 	/* Come back later if the device is busy... */
 	if (!mutex_trylock(&dev->struct_mutex)) {
-		queue_delayed_work(dev_priv->wq, &dev_priv->mm.retire_work, HZ);
+		queue_delayed_work(dev_priv->wq, &dev_priv->mm.retire_work,
+				   round_jiffies_up_relative(HZ));
 		return;
 	}
 
@@ -2227,7 +2237,8 @@ i915_gem_retire_work_handler(struct work_struct *work)
 	}
 
 	if (!dev_priv->mm.suspended && !idle)
-		queue_delayed_work(dev_priv->wq, &dev_priv->mm.retire_work, HZ);
+		queue_delayed_work(dev_priv->wq, &dev_priv->mm.retire_work,
+				   round_jiffies_up_relative(HZ));
 	if (idle)
 		intel_mark_idle(dev);
 
@@ -3050,7 +3061,7 @@ i915_gem_object_flush_cpu_write_domain(struct drm_i915_gem_object *obj)
 		return;
 
 	i915_gem_clflush_object(obj);
-	intel_gtt_chipset_flush();
+	i915_gem_chipset_flush(obj->base.dev);
 	old_write_domain = obj->base.write_domain;
 	obj->base.write_domain = 0;
 
@@ -3218,10 +3229,6 @@ int i915_gem_set_caching_ioctl(struct drm_device *dev, void *data,
 	enum i915_cache_level level;
 	int ret;
 
-	ret = i915_mutex_lock_interruptible(dev);
-	if (ret)
-		return ret;
-
 	switch (args->caching) {
 	case I915_CACHING_NONE:
 		level = I915_CACHE_NONE;
@@ -3232,6 +3239,10 @@ int i915_gem_set_caching_ioctl(struct drm_device *dev, void *data,
 	default:
 		return -EINVAL;
 	}
+
+	ret = i915_mutex_lock_interruptible(dev);
+	if (ret)
+		return ret;
 
 	obj = to_intel_bo(drm_gem_object_lookup(dev, file, args->handle));
 	if (&obj->base == NULL) {
@@ -3823,7 +3834,7 @@ void i915_gem_l3_remap(struct drm_device *dev)
 	if (!IS_IVYBRIDGE(dev))
 		return;
 
-	if (!dev_priv->mm.l3_remap_info)
+	if (!dev_priv->l3_parity.remap_info)
 		return;
 
 	misccpctl = I915_READ(GEN7_MISCCPCTL);
@@ -3832,12 +3843,12 @@ void i915_gem_l3_remap(struct drm_device *dev)
 
 	for (i = 0; i < GEN7_L3LOG_SIZE; i += 4) {
 		u32 remap = I915_READ(GEN7_L3LOG_BASE + i);
-		if (remap && remap != dev_priv->mm.l3_remap_info[i/4])
+		if (remap && remap != dev_priv->l3_parity.remap_info[i/4])
 			DRM_DEBUG("0x%x was already programmed to %x\n",
 				  GEN7_L3LOG_BASE + i, remap);
-		if (remap && !dev_priv->mm.l3_remap_info[i/4])
+		if (remap && !dev_priv->l3_parity.remap_info[i/4])
 			DRM_DEBUG_DRIVER("Clearing remapped register\n");
-		I915_WRITE(GEN7_L3LOG_BASE + i, dev_priv->mm.l3_remap_info[i/4]);
+		I915_WRITE(GEN7_L3LOG_BASE + i, dev_priv->l3_parity.remap_info[i/4]);
 	}
 
 	/* Make sure all the writes land before disabling dop clock gating */
@@ -3867,68 +3878,6 @@ void i915_gem_init_swizzling(struct drm_device *dev)
 		I915_WRITE(ARB_MODE, _MASKED_BIT_ENABLE(ARB_MODE_SWIZZLE_IVB));
 }
 
-void i915_gem_init_ppgtt(struct drm_device *dev)
-{
-	drm_i915_private_t *dev_priv = dev->dev_private;
-	uint32_t pd_offset;
-	struct intel_ring_buffer *ring;
-	struct i915_hw_ppgtt *ppgtt = dev_priv->mm.aliasing_ppgtt;
-	uint32_t __iomem *pd_addr;
-	uint32_t pd_entry;
-	int i;
-
-	if (!dev_priv->mm.aliasing_ppgtt)
-		return;
-
-
-	pd_addr = dev_priv->mm.gtt->gtt + ppgtt->pd_offset/sizeof(uint32_t);
-	for (i = 0; i < ppgtt->num_pd_entries; i++) {
-		dma_addr_t pt_addr;
-
-		if (dev_priv->mm.gtt->needs_dmar)
-			pt_addr = ppgtt->pt_dma_addr[i];
-		else
-			pt_addr = page_to_phys(ppgtt->pt_pages[i]);
-
-		pd_entry = GEN6_PDE_ADDR_ENCODE(pt_addr);
-		pd_entry |= GEN6_PDE_VALID;
-
-		writel(pd_entry, pd_addr + i);
-	}
-	readl(pd_addr);
-
-	pd_offset = ppgtt->pd_offset;
-	pd_offset /= 64; /* in cachelines, */
-	pd_offset <<= 16;
-
-	if (INTEL_INFO(dev)->gen == 6) {
-		uint32_t ecochk, gab_ctl, ecobits;
-
-		ecobits = I915_READ(GAC_ECO_BITS); 
-		I915_WRITE(GAC_ECO_BITS, ecobits | ECOBITS_PPGTT_CACHE64B);
-
-		gab_ctl = I915_READ(GAB_CTL);
-		I915_WRITE(GAB_CTL, gab_ctl | GAB_CTL_CONT_AFTER_PAGEFAULT);
-
-		ecochk = I915_READ(GAM_ECOCHK);
-		I915_WRITE(GAM_ECOCHK, ecochk | ECOCHK_SNB_BIT |
-				       ECOCHK_PPGTT_CACHE64B);
-		I915_WRITE(GFX_MODE, _MASKED_BIT_ENABLE(GFX_PPGTT_ENABLE));
-	} else if (INTEL_INFO(dev)->gen >= 7) {
-		I915_WRITE(GAM_ECOCHK, ECOCHK_PPGTT_CACHE64B);
-		/* GFX_MODE is per-ring on gen7+ */
-	}
-
-	for_each_ring(ring, dev_priv, i) {
-		if (INTEL_INFO(dev)->gen >= 7)
-			I915_WRITE(RING_MODE_GEN7(ring),
-				   _MASKED_BIT_ENABLE(GFX_PPGTT_ENABLE));
-
-		I915_WRITE(RING_PP_DIR_DCLV(ring), PP_DIR_DCLV_2G);
-		I915_WRITE(RING_PP_DIR_BASE(ring), pd_offset);
-	}
-}
-
 static bool
 intel_enable_blt(struct drm_device *dev)
 {
@@ -3951,8 +3900,11 @@ i915_gem_init_hw(struct drm_device *dev)
 	drm_i915_private_t *dev_priv = dev->dev_private;
 	int ret;
 
-	if (!intel_enable_gtt())
+	if (INTEL_INFO(dev)->gen < 6 && !intel_enable_gtt())
 		return -EIO;
+
+	if (IS_HASWELL(dev) && (I915_READ(0x120010) == 1))
+		I915_WRITE(0x9008, I915_READ(0x9008) | 0xf0000);
 
 	i915_gem_l3_remap(dev);
 
@@ -4093,7 +4045,6 @@ i915_gem_entervt_ioctl(struct drm_device *dev, void *data,
 	}
 
 	BUG_ON(!list_empty(&dev_priv->mm.active_list));
-	BUG_ON(!list_empty(&dev_priv->mm.inactive_list));
 	mutex_unlock(&dev->struct_mutex);
 
 	ret = drm_irq_install(dev);
@@ -4284,7 +4235,7 @@ void i915_gem_detach_phys_object(struct drm_device *dev,
 			page_cache_release(page);
 		}
 	}
-	intel_gtt_chipset_flush();
+	i915_gem_chipset_flush(dev);
 
 	obj->phys_obj->cur_obj = NULL;
 	obj->phys_obj = NULL;
@@ -4371,7 +4322,7 @@ i915_gem_phys_pwrite(struct drm_device *dev,
 			return -EFAULT;
 	}
 
-	intel_gtt_chipset_flush();
+	i915_gem_chipset_flush(dev);
 	return 0;
 }
 

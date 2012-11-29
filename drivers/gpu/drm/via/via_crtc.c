@@ -21,9 +21,9 @@
  * Authors:
  *	James Simmons <jsimmons@infradead.org>
  */
-
+#include <drm/drm_mode.h>
 #include "drmP.h"
-#include "drm_mode.h"
+#include "drm_crtc.h"
 #include "drm_crtc_helper.h"
 
 #include "via_drv.h"

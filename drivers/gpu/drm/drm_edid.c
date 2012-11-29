@@ -31,8 +31,8 @@
 #include <linux/slab.h>
 #include <linux/i2c.h>
 #include <linux/module.h>
-#include "drmP.h"
-#include "drm_edid.h"
+#include <drm/drmP.h>
+#include <drm/drm_edid.h>
 #include "drm_edid_modes.h"
 
 #define version_greater(edid, maj, min) \
@@ -307,12 +307,9 @@ drm_do_probe_ddc_edid(struct i2c_adapter *adapter, unsigned char *buf,
 
 static bool drm_edid_is_zero(u8 *in_edid, int length)
 {
-	int i;
-	u32 *raw_edid = (u32 *)in_edid;
+	if (memchr_inv(in_edid, 0, length))
+		return false;
 
-	for (i = 0; i < length / 4; i++)
-		if (*(raw_edid + i) != 0)
-			return false;
 	return true;
 }
 
@@ -395,13 +392,14 @@ out:
  * \param adapter : i2c device adaptor
  * \return 1 on success
  */
-static bool
+bool
 drm_probe_ddc(struct i2c_adapter *adapter)
 {
 	unsigned char out;
 
 	return (drm_do_probe_ddc_edid(adapter, &out, 0, 1) == 0);
 }
+EXPORT_SYMBOL(drm_probe_ddc);
 
 /**
  * drm_get_edid - get EDID data, if available
@@ -1515,6 +1513,26 @@ u8 *drm_find_cea_extension(struct edid *edid)
 }
 EXPORT_SYMBOL(drm_find_cea_extension);
 
+/*
+ * Looks for a CEA mode matching given drm_display_mode.
+ * Returns its CEA Video ID code, or 0 if not found.
+ */
+u8 drm_match_cea_mode(struct drm_display_mode *to_match)
+{
+	struct drm_display_mode *cea_mode;
+	u8 mode;
+
+	for (mode = 0; mode < drm_num_cea_modes; mode++) {
+		cea_mode = (struct drm_display_mode *)&edid_cea_modes[mode];
+
+		if (drm_mode_equal(to_match, cea_mode))
+			return mode + 1;
+	}
+	return 0;
+}
+EXPORT_SYMBOL(drm_match_cea_mode);
+
+
 static int
 do_cea_modes (struct drm_connector *connector, u8 *db, u8 len)
 {
@@ -1621,7 +1639,7 @@ parse_hdmi_vsdb(struct drm_connector *connector, const u8 *db)
 	if (len >= 12)
 		connector->audio_latency[1] = db[12];
 
-	DRM_LOG_KMS("HDMI: DVI dual %d, "
+	DRM_DEBUG_KMS("HDMI: DVI dual %d, "
 		    "max TMDS clock %d, "
 		    "latency present %d %d, "
 		    "video latency %d %d, "

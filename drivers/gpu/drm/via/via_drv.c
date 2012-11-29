@@ -21,9 +21,14 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
-#include "drmP.h"
+
+#include <linux/module.h>
+
+#include <drm/drmP.h>
+#include <drm/via_drm.h>
 #include "via_drv.h"
-#include "drm_pciids.h"
+
+#include <drm/drm_pciids.h>
 
 int via_modeset = 0;
 
@@ -143,8 +148,8 @@ via_mmio_setup(struct drm_device *dev)
 		return ret;
 
 	ret = ttm_bo_allocate(&dev_priv->bdev, VIA_MMIO_REGSIZE, ttm_bo_type_kernel,
-				TTM_PL_FLAG_PRIV0, 1, PAGE_SIZE, 0, false,
-				NULL, NULL, &bo);
+				TTM_PL_FLAG_PRIV0, 1, PAGE_SIZE, false, NULL,
+				NULL, &bo);
 	if (ret)
 		goto err;
 
@@ -199,7 +204,7 @@ static int via_dumb_create(struct drm_file *filp, struct drm_device *dev,
 	args->pitch = round_up(args->width * (args->bpp >> 3), 16);
 	args->size = args->pitch * args->height;
 	obj = ttm_gem_create(dev, &dev_priv->bdev, TTM_PL_FLAG_VRAM,
-				false, 16, PAGE_SIZE, 0, args->size);
+				false, 16, PAGE_SIZE, args->size);
 	if (IS_ERR(obj))
 		return PTR_ERR(obj);
 

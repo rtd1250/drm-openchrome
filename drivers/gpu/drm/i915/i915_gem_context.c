@@ -85,8 +85,8 @@
  *
  */
 
-#include "drmP.h"
-#include "i915_drm.h"
+#include <drm/drmP.h>
+#include <drm/i915_drm.h>
 #include "i915_drv.h"
 
 /* This is a HW constraint. The value below is the largest known requirement
@@ -146,7 +146,7 @@ create_hw_context(struct drm_device *dev,
 	struct i915_hw_context *ctx;
 	int ret, id;
 
-	ctx = kzalloc(sizeof(struct drm_i915_file_private), GFP_KERNEL);
+	ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);
 	if (ctx == NULL)
 		return ERR_PTR(-ENOMEM);
 
@@ -328,7 +328,7 @@ mi_set_context(struct intel_ring_buffer *ring,
 	 * itlb_before_ctx_switch.
 	 */
 	if (IS_GEN6(ring->dev) && ring->itlb_before_ctx_switch) {
-		ret = ring->flush(ring, 0, 0);
+		ret = ring->flush(ring, I915_GEM_GPU_DOMAINS, 0);
 		if (ret)
 			return ret;
 	}
