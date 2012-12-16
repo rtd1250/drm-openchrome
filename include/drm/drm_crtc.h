@@ -920,12 +920,6 @@ extern void drm_mode_set_crtcinfo(struct drm_display_mode *p,
 extern void drm_mode_connector_list_update(struct drm_connector *connector);
 extern int drm_mode_connector_update_edid_property(struct drm_connector *connector,
 						struct edid *edid);
-extern int drm_connector_property_set_value(struct drm_connector *connector,
-					 struct drm_property *property,
-					 uint64_t value);
-extern int drm_connector_property_get_value(struct drm_connector *connector,
-					 struct drm_property *property,
-					 uint64_t *value);
 extern int drm_object_property_set_value(struct drm_mode_object *obj,
 					 struct drm_property *property,
 					 uint64_t val);
@@ -947,8 +941,6 @@ extern int drmfb_remove(struct drm_device *dev, struct drm_framebuffer *fb);
 extern void drm_crtc_probe_connector_modes(struct drm_device *dev, int maxX, int maxY);
 extern bool drm_crtc_in_use(struct drm_crtc *crtc);
 
-extern void drm_connector_attach_property(struct drm_connector *connector,
-					  struct drm_property *property, uint64_t init_val);
 extern void drm_object_attach_property(struct drm_mode_object *obj,
 				       struct drm_property *property,
 				       uint64_t init_val);
@@ -1055,6 +1047,7 @@ extern struct drm_display_mode *drm_gtf_mode_complex(struct drm_device *dev,
 				int GTF_2C, int GTF_K, int GTF_2J);
 extern int drm_add_modes_noedid(struct drm_connector *connector,
 				int hdisplay, int vdisplay);
+extern uint8_t drm_mode_cea_vic(const struct drm_display_mode *mode);
 
 extern int drm_edid_header_is_valid(const u8 *raw_edid);
 extern bool drm_edid_block_valid(u8 *raw_edid, int block, bool print_bad_edid);

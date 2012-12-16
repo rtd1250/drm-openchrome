@@ -197,6 +197,7 @@ struct drm_i915_error_state {
 	u32 instdone[I915_NUM_RINGS];
 	u32 acthd[I915_NUM_RINGS];
 	u32 semaphore_mboxes[I915_NUM_RINGS][I915_NUM_RINGS - 1];
+	u32 semaphore_seqno[I915_NUM_RINGS][I915_NUM_RINGS - 1];
 	u32 rc_psmi[I915_NUM_RINGS]; /* sleep state */
 	/* our own tracking of ring head and tail */
 	u32 cpu_ring_head[I915_NUM_RINGS];
@@ -381,6 +382,11 @@ enum intel_pch {
 	PCH_LPT,	/* Lynxpoint PCH */
 };
 
+enum intel_sbi_destination {
+	SBI_ICLK,
+	SBI_MPHY,
+};
+
 #define QUIRK_PIPEA_FORCE (1<<0)
 #define QUIRK_LVDS_SSC_DISABLE (1<<1)
 #define QUIRK_INVERT_BRIGHTNESS (1<<2)
@@ -402,7 +408,6 @@ struct i915_suspend_saved_registers {
 	u32 saveDSPACNTR;
 	u32 saveDSPBCNTR;
 	u32 saveDSPARB;
-	u32 saveHWS;
 	u32 savePIPEACONF;
 	u32 savePIPEBCONF;
 	u32 savePIPEASRC;
@@ -738,6 +743,7 @@ typedef struct drm_i915_private {
 
 	/* PCH chipset type */
 	enum intel_pch pch_type;
+	unsigned short pch_id;
 
 	unsigned long quirks;
 
@@ -908,6 +914,8 @@ typedef struct drm_i915_private {
 
 	bool hw_contexts_disabled;
 	uint32_t hw_context_size;
+
+	bool fdi_rx_polarity_reversed;
 
 	struct i915_suspend_saved_registers regfile;
 
@@ -1161,6 +1169,8 @@ struct drm_i915_file_private {
 #define IS_VALLEYVIEW(dev)	(INTEL_INFO(dev)->is_valleyview)
 #define IS_HASWELL(dev)	(INTEL_INFO(dev)->is_haswell)
 #define IS_MOBILE(dev)		(INTEL_INFO(dev)->is_mobile)
+#define IS_ULT(dev)		(IS_HASWELL(dev) && \
+				 ((dev)->pci_device & 0xFF00) == 0x0A00)
 
 /*
  * The genX designation typically refers to the render engine, so render
@@ -1205,6 +1215,13 @@ struct drm_i915_file_private {
 #define I915_HAS_FBC(dev) (INTEL_INFO(dev)->has_fbc)
 
 #define HAS_PIPE_CONTROL(dev) (INTEL_INFO(dev)->gen >= 5)
+
+#define INTEL_PCH_DEVICE_ID_MASK		0xff00
+#define INTEL_PCH_IBX_DEVICE_ID_TYPE		0x3b00
+#define INTEL_PCH_CPT_DEVICE_ID_TYPE		0x1c00
+#define INTEL_PCH_PPT_DEVICE_ID_TYPE		0x1e00
+#define INTEL_PCH_LPT_DEVICE_ID_TYPE		0x8c00
+#define INTEL_PCH_LPT_LP_DEVICE_ID_TYPE		0x9c00
 
 #define INTEL_PCH_TYPE(dev) (((struct drm_i915_private *)(dev)->dev_private)->pch_type)
 #define HAS_PCH_LPT(dev) (INTEL_PCH_TYPE(dev) == PCH_LPT)
@@ -1408,8 +1425,7 @@ int __must_check i915_mutex_lock_interruptible(struct drm_device *dev);
 int i915_gem_object_sync(struct drm_i915_gem_object *obj,
 			 struct intel_ring_buffer *to);
 void i915_gem_object_move_to_active(struct drm_i915_gem_object *obj,
-				    struct intel_ring_buffer *ring,
-				    u32 seqno);
+				    struct intel_ring_buffer *ring);
 
 int i915_gem_dumb_create(struct drm_file *file_priv,
 			 struct drm_device *dev,
@@ -1427,7 +1443,7 @@ i915_seqno_passed(uint32_t seq1, uint32_t seq2)
 	return (int32_t)(seq1 - seq2) >= 0;
 }
 
-u32 i915_gem_next_request_seqno(struct intel_ring_buffer *ring);
+extern int i915_gem_get_seqno(struct drm_device *dev, u32 *seqno);
 
 int __must_check i915_gem_object_get_fence(struct drm_i915_gem_object *obj);
 int __must_check i915_gem_object_put_fence(struct drm_i915_gem_object *obj);
@@ -1541,7 +1557,7 @@ void i915_gem_init_global_gtt(struct drm_device *dev,
 			      unsigned long end);
 int i915_gem_gtt_init(struct drm_device *dev);
 void i915_gem_gtt_fini(struct drm_device *dev);
-extern inline void i915_gem_chipset_flush(struct drm_device *dev)
+static inline void i915_gem_chipset_flush(struct drm_device *dev)
 {
 	if (INTEL_INFO(dev)->gen < 6)
 		intel_gtt_chipset_flush();
@@ -1643,11 +1659,12 @@ extern void intel_modeset_init(struct drm_device *dev);
 extern void intel_modeset_gem_init(struct drm_device *dev);
 extern void intel_modeset_cleanup(struct drm_device *dev);
 extern int intel_modeset_vga_set_state(struct drm_device *dev, bool state);
-extern void intel_modeset_setup_hw_state(struct drm_device *dev);
+extern void intel_modeset_setup_hw_state(struct drm_device *dev,
+					 bool force_restore);
 extern bool intel_fbc_enabled(struct drm_device *dev);
 extern void intel_disable_fbc(struct drm_device *dev);
 extern bool ironlake_set_drps(struct drm_device *dev, u8 val);
-extern void ironlake_init_pch_refclk(struct drm_device *dev);
+extern void intel_init_pch_refclk(struct drm_device *dev);
 extern void gen6_set_rps(struct drm_device *dev, u8 val);
 extern void intel_detect_pch(struct drm_device *dev);
 extern int intel_trans_dp_port_sel(struct drm_crtc *crtc);

@@ -143,7 +143,7 @@ static void intel_crt_dpms(struct drm_connector *connector, int mode)
 	int old_dpms;
 
 	/* PCH platforms and VLV only support on/off. */
-	if (INTEL_INFO(dev)->gen < 5 && mode != DRM_MODE_DPMS_ON)
+	if (INTEL_INFO(dev)->gen >= 5 && mode != DRM_MODE_DPMS_ON)
 		mode = DRM_MODE_DPMS_OFF;
 
 	if (mode == connector->dpms)
@@ -196,6 +196,11 @@ static int intel_crt_mode_valid(struct drm_connector *connector,
 	else
 		max_clock = 400000;
 	if (mode->clock > max_clock)
+		return MODE_CLOCK_HIGH;
+
+	/* The FDI receiver on LPT only supports 8bpc and only has 2 lanes. */
+	if (HAS_PCH_LPT(dev) &&
+	    (ironlake_get_lanes_required(mode->clock, 270000, 24) > 2))
 		return MODE_CLOCK_HIGH;
 
 	return MODE_OK;
@@ -751,7 +756,7 @@ void intel_crt_init(struct drm_device *dev)
 
 	crt->base.type = INTEL_OUTPUT_ANALOG;
 	crt->base.cloneable = true;
-	if (IS_HASWELL(dev) || IS_I830(dev))
+	if (IS_I830(dev))
 		crt->base.crtc_mask = (1 << 0);
 	else
 		crt->base.crtc_mask = (1 << 0) | (1 << 1) | (1 << 2);
@@ -793,4 +798,12 @@ void intel_crt_init(struct drm_device *dev)
 	crt->force_hotplug_required = 0;
 
 	dev_priv->hotplug_supported_mask |= CRT_HOTPLUG_INT_STATUS;
+
+	/*
+	 * TODO: find a proper way to discover whether we need to set the
+	 * polarity reversal bit or not, instead of relying on the BIOS.
+	 */
+	if (HAS_PCH_LPT(dev))
+		dev_priv->fdi_rx_polarity_reversed =
+		     !!(I915_READ(_FDI_RXA_CTL) & FDI_RX_POLARITY_REVERSED_LPT);
 }

@@ -1325,10 +1325,11 @@ static void valleyview_update_wm(struct drm_device *dev)
 		   (planeb_wm << DSPFW_PLANEB_SHIFT) |
 		   planea_wm);
 	I915_WRITE(DSPFW2,
-		   (I915_READ(DSPFW2) & DSPFW_CURSORA_MASK) |
+		   (I915_READ(DSPFW2) & ~DSPFW_CURSORA_MASK) |
 		   (cursora_wm << DSPFW_CURSORA_SHIFT));
 	I915_WRITE(DSPFW3,
-		   (I915_READ(DSPFW3) | (cursor_sr << DSPFW_CURSOR_SR_SHIFT)));
+		   (I915_READ(DSPFW3) & ~DSPFW_CURSOR_SR_MASK) |
+		   (cursor_sr << DSPFW_CURSOR_SR_SHIFT));
 }
 
 static void g4x_update_wm(struct drm_device *dev)
@@ -1374,11 +1375,11 @@ static void g4x_update_wm(struct drm_device *dev)
 		   (planeb_wm << DSPFW_PLANEB_SHIFT) |
 		   planea_wm);
 	I915_WRITE(DSPFW2,
-		   (I915_READ(DSPFW2) & DSPFW_CURSORA_MASK) |
+		   (I915_READ(DSPFW2) & ~DSPFW_CURSORA_MASK) |
 		   (cursora_wm << DSPFW_CURSORA_SHIFT));
 	/* HPLL off in SR has some issues on G4x... disable it */
 	I915_WRITE(DSPFW3,
-		   (I915_READ(DSPFW3) & ~DSPFW_HPLL_SR_EN) |
+		   (I915_READ(DSPFW3) & ~(DSPFW_HPLL_SR_EN | DSPFW_CURSOR_SR_MASK)) |
 		   (cursor_sr << DSPFW_CURSOR_SR_SHIFT));
 }
 
@@ -2378,15 +2379,9 @@ int intel_enable_rc6(const struct drm_device *dev)
 	if (i915_enable_rc6 >= 0)
 		return i915_enable_rc6;
 
-	if (INTEL_INFO(dev)->gen == 5) {
-#ifdef CONFIG_INTEL_IOMMU
-		/* Disable rc6 on ilk if VT-d is on. */
-		if (intel_iommu_gfx_mapped)
-			return false;
-#endif
-		DRM_DEBUG_DRIVER("Ironlake: only RC6 available\n");
-		return INTEL_RC6_ENABLE;
-	}
+	/* Disable RC6 on Ironlake */
+	if (INTEL_INFO(dev)->gen == 5)
+		return 0;
 
 	if (IS_HASWELL(dev)) {
 		DRM_DEBUG_DRIVER("Haswell: only RC6 available\n");
@@ -2552,7 +2547,8 @@ static void gen6_update_ring_freq(struct drm_device *dev)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
 	int min_freq = 15;
-	int gpu_freq, ia_freq, max_ia_freq;
+	int gpu_freq;
+	unsigned int ia_freq, max_ia_freq;
 	int scaling_factor = 180;
 
 	WARN_ON(!mutex_is_locked(&dev_priv->rps.hw_lock));
@@ -2652,6 +2648,7 @@ static void ironlake_enable_rc6(struct drm_device *dev)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
 	struct intel_ring_buffer *ring = &dev_priv->ring[RCS];
+	bool was_interruptible;
 	int ret;
 
 	/* rc6 disabled by default due to repeated reports of hanging during
@@ -2666,6 +2663,9 @@ static void ironlake_enable_rc6(struct drm_device *dev)
 	if (ret)
 		return;
 
+	was_interruptible = dev_priv->mm.interruptible;
+	dev_priv->mm.interruptible = false;
+
 	/*
 	 * GPU can automatically power down the render unit if given a page
 	 * to save state.
@@ -2673,6 +2673,7 @@ static void ironlake_enable_rc6(struct drm_device *dev)
 	ret = intel_ring_begin(ring, 6);
 	if (ret) {
 		ironlake_teardown_rc6(dev);
+		dev_priv->mm.interruptible = was_interruptible;
 		return;
 	}
 
@@ -2693,7 +2694,8 @@ static void ironlake_enable_rc6(struct drm_device *dev)
 	 * does an implicit flush, combined with MI_FLUSH above, it should be
 	 * safe to assume that renderctx is valid
 	 */
-	ret = intel_wait_ring_idle(ring);
+	ret = intel_ring_idle(ring);
+	dev_priv->mm.interruptible = was_interruptible;
 	if (ret) {
 		DRM_ERROR("failed to enable ironlake power power savings\n");
 		ironlake_teardown_rc6(dev);
@@ -3445,6 +3447,11 @@ static void cpt_init_clock_gating(struct drm_device *dev)
 	I915_WRITE(SOUTH_DSPCLK_GATE_D, PCH_DPLSUNIT_CLOCK_GATE_DISABLE);
 	I915_WRITE(SOUTH_CHICKEN2, I915_READ(SOUTH_CHICKEN2) |
 		   DPLS_EDP_PPS_FIX_DIS);
+	/* The below fixes the weird display corruption, a few pixels shifted
+	 * downward, on (only) LVDS of some HP laptops with IVY.
+	 */
+	for_each_pipe(pipe)
+		I915_WRITE(TRANS_CHICKEN2(pipe), TRANS_CHICKEN2_TIMING_OVERRIDE);
 	/* WADP0ClockGatingDisable */
 	for_each_pipe(pipe) {
 		I915_WRITE(TRANS_CHICKEN1(pipe),
@@ -3518,6 +3525,7 @@ static void gen6_init_clock_gating(struct drm_device *dev)
 		   ILK_DPARBUNIT_CLOCK_GATE_ENABLE  |
 		   ILK_DPFDUNIT_CLOCK_GATE_ENABLE);
 
+	/* WaMbcDriverBootEnable */
 	I915_WRITE(GEN6_MBCTL, I915_READ(GEN6_MBCTL) |
 		   GEN6_MBCTL_ENABLE_BOOT_FETCH);
 
@@ -3546,6 +3554,20 @@ static void gen7_setup_fixed_func_scheduler(struct drm_i915_private *dev_priv)
 	reg |= GEN7_FF_DS_SCHED_HW;
 
 	I915_WRITE(GEN7_FF_THREAD_MODE, reg);
+}
+
+static void lpt_init_clock_gating(struct drm_device *dev)
+{
+	struct drm_i915_private *dev_priv = dev->dev_private;
+
+	/*
+	 * TODO: this bit should only be enabled when really needed, then
+	 * disabled when not needed anymore in order to save power.
+	 */
+	if (dev_priv->pch_id == INTEL_PCH_LPT_LP_DEVICE_ID_TYPE)
+		I915_WRITE(SOUTH_DSPCLK_GATE_D,
+			   I915_READ(SOUTH_DSPCLK_GATE_D) |
+			   PCH_LP_PARTITION_LEVEL_DISABLE);
 }
 
 static void haswell_init_clock_gating(struct drm_device *dev)
@@ -3590,6 +3612,10 @@ static void haswell_init_clock_gating(struct drm_device *dev)
 	I915_WRITE(CACHE_MODE_1,
 		   _MASKED_BIT_ENABLE(PIXEL_SUBSPAN_COLLECT_OPT_DISABLE));
 
+	/* WaMbcDriverBootEnable */
+	I915_WRITE(GEN6_MBCTL, I915_READ(GEN6_MBCTL) |
+		   GEN6_MBCTL_ENABLE_BOOT_FETCH);
+
 	/* XXX: This is a workaround for early silicon revisions and should be
 	 * removed later.
 	 */
@@ -3599,6 +3625,7 @@ static void haswell_init_clock_gating(struct drm_device *dev)
 			WM_DBG_DISALLOW_SPRITE |
 			WM_DBG_DISALLOW_MAXFIFO);
 
+	lpt_init_clock_gating(dev);
 }
 
 static void ivybridge_init_clock_gating(struct drm_device *dev)
@@ -3680,6 +3707,7 @@ static void ivybridge_init_clock_gating(struct drm_device *dev)
 		intel_flush_display_plane(dev_priv, pipe);
 	}
 
+	/* WaMbcDriverBootEnable */
 	I915_WRITE(GEN6_MBCTL, I915_READ(GEN6_MBCTL) |
 		   GEN6_MBCTL_ENABLE_BOOT_FETCH);
 
@@ -3745,6 +3773,7 @@ static void valleyview_init_clock_gating(struct drm_device *dev)
 		   I915_READ(GEN7_SQ_CHICKEN_MBCUNIT_CONFIG) |
 		   GEN7_SQ_CHICKEN_MBCUNIT_SQINTMOB);
 
+	/* WaMbcDriverBootEnable */
 	I915_WRITE(GEN6_MBCTL, I915_READ(GEN6_MBCTL) |
 		   GEN6_MBCTL_ENABLE_BOOT_FETCH);
 
