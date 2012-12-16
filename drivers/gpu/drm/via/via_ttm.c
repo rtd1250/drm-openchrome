@@ -214,10 +214,8 @@ via_evict_flags(struct ttm_buffer_object *bo, struct ttm_placement *placement)
 
 /* Move between GART and VRAM */
 static int
-via_move_blit(struct ttm_buffer_object *bo, bool evict,
-		bool no_wait_reserve, bool no_wait_gpu,
-		struct ttm_mem_reg *new_mem,
-		struct ttm_mem_reg *old_mem)
+via_move_blit(struct ttm_buffer_object *bo, bool evict, bool no_wait_gpu,
+		struct ttm_mem_reg *new_mem, struct ttm_mem_reg *old_mem)
 {
 	unsigned long old_start, new_start;
 	void *fence = NULL;
@@ -228,14 +226,12 @@ via_move_blit(struct ttm_buffer_object *bo, bool evict,
 
 	//ret = via_copy(rdev, old_start, new_start, new_mem->num_pages, fence);
 
-	return ttm_bo_move_accel_cleanup(bo, fence, evict, no_wait_reserve,
-					no_wait_gpu, new_mem);
+	return ttm_bo_move_accel_cleanup(bo, fence, evict, no_wait_gpu, new_mem);
 }
 
 static int
 via_move_from_vram(struct ttm_buffer_object *bo, bool interruptible,
-			bool no_wait_reserve, bool no_wait_gpu,
-			struct ttm_mem_reg *new_mem)
+			bool no_wait_gpu, struct ttm_mem_reg *new_mem)
 {
 	struct ttm_mem_reg *old_mem = &bo->mem;
 	struct ttm_mem_reg tmp_mem;
@@ -253,7 +249,7 @@ via_move_from_vram(struct ttm_buffer_object *bo, bool interruptible,
 	placement.busy_placement = &placements;
 	placements = TTM_PL_MASK_CACHING | TTM_PL_FLAG_TT;
 	ret = ttm_bo_mem_space(bo, &placement, &tmp_mem,
-				interruptible, no_wait_reserve, no_wait_gpu);
+				interruptible, no_wait_gpu);
 	if (unlikely(ret))
 		return ret;
 
@@ -267,12 +263,12 @@ via_move_from_vram(struct ttm_buffer_object *bo, bool interruptible,
 		goto out_cleanup;
 
 	/* Move from the VRAM to GART space */
-	ret = via_move_blit(bo, true, no_wait_reserve, no_wait_gpu, &tmp_mem, old_mem);
+	ret = via_move_blit(bo, true, no_wait_gpu, &tmp_mem, old_mem);
 	if (unlikely(ret))
 		goto out_cleanup;
 
 	/* Expose the GART region to the system memory */
-	ret = ttm_bo_move_ttm(bo, true, no_wait_reserve, no_wait_gpu, new_mem);
+	ret = ttm_bo_move_ttm(bo, true, no_wait_gpu, new_mem);
 out_cleanup:
 	ttm_bo_mem_put(bo, &tmp_mem);
 	return ret;
@@ -280,8 +276,7 @@ out_cleanup:
 
 static int
 via_move_to_vram(struct ttm_buffer_object *bo, bool interruptible,
-		bool no_wait_reserve, bool no_wait_gpu,
-		struct ttm_mem_reg *new_mem)
+			bool no_wait_gpu, struct ttm_mem_reg *new_mem)
 {
 	struct ttm_mem_reg *old_mem = &bo->mem;
 	struct ttm_mem_reg tmp_mem;
@@ -299,17 +294,17 @@ via_move_to_vram(struct ttm_buffer_object *bo, bool interruptible,
 	placement.busy_placement = &placements;
 	placements = TTM_PL_MASK_CACHING | TTM_PL_FLAG_TT;
 	ret = ttm_bo_mem_space(bo, &placement, &tmp_mem,
-				interruptible, no_wait_reserve, no_wait_gpu);
+				interruptible, no_wait_gpu);
 	if (unlikely(ret))
 		return ret;
 
 	/* Expose the GART region to the system memory */
-	ret = ttm_bo_move_ttm(bo, true, no_wait_reserve, no_wait_gpu, &tmp_mem);
+	ret = ttm_bo_move_ttm(bo, true, no_wait_gpu, &tmp_mem);
 	if (unlikely(ret))
 		goto out_cleanup;
 
 	/* Move from the GART to VRAM */
-	ret = via_move_blit(bo, true, no_wait_reserve, no_wait_gpu, new_mem, old_mem);
+	ret = via_move_blit(bo, true, no_wait_gpu, new_mem, old_mem);
 out_cleanup:
 	ttm_bo_mem_put(bo, &tmp_mem);
 	return ret;
@@ -317,8 +312,7 @@ out_cleanup:
 
 static int
 via_bo_move(struct ttm_buffer_object *bo, bool evict, bool interruptible,
-		bool no_wait_reserve, bool no_wait_gpu,
-		struct ttm_mem_reg *new_mem)
+		bool no_wait_gpu, struct ttm_mem_reg *new_mem)
 {
 	struct ttm_mem_reg *old_mem = &bo->mem;
 	int ret = 0;
@@ -338,19 +332,15 @@ via_bo_move(struct ttm_buffer_object *bo, bool evict, bool interruptible,
 
 	/* Accelerated copy involving the VRAM. */
 	if (new_mem->mem_type == TTM_PL_SYSTEM) {
-		ret = via_move_from_vram(bo, interruptible, no_wait_reserve,
-					no_wait_gpu, new_mem);
+		ret = via_move_from_vram(bo, interruptible, no_wait_gpu, new_mem);
 	} else if (old_mem->mem_type == TTM_PL_SYSTEM) {
-		ret = via_move_to_vram(bo, interruptible, no_wait_reserve,
-					no_wait_gpu, new_mem);
+		ret = via_move_to_vram(bo, interruptible, no_wait_gpu, new_mem);
 	} else {
-		ret = via_move_blit(bo, evict, no_wait_reserve,
-					no_wait_gpu, new_mem, old_mem);
+		ret = via_move_blit(bo, evict, no_wait_gpu, new_mem, old_mem);
 	}
 
 	if (ret) {
-		ret = ttm_bo_move_memcpy(bo, evict, no_wait_reserve,
-					no_wait_gpu, new_mem);
+		ret = ttm_bo_move_memcpy(bo, evict, no_wait_gpu, new_mem);
 	}
 	return ret;
 }

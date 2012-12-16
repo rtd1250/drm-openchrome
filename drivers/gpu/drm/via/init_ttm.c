@@ -198,7 +198,7 @@ ttm_bo_pin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
 		placement.num_placement = 1;
 
 		heap->placements[0] = (bo->mem.placement | TTM_PL_FLAG_NO_EVICT);
-		ret = ttm_bo_validate(bo, &placement, false, false, false);
+		ret = ttm_bo_validate(bo, &placement, false, false);
 		if (!ret && kmap)
 			ret = ttm_bo_kmap(bo, 0, bo->num_pages, kmap);
 		ttm_bo_unreserve(bo);
@@ -223,7 +223,7 @@ ttm_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
 		placement.num_placement = 1;
 
 		heap->placements[0] = (bo->mem.placement & ~TTM_PL_FLAG_NO_EVICT);
-		ret = ttm_bo_validate(bo, &placement, false, false, false);
+		ret = ttm_bo_validate(bo, &placement, false, false);
 		ttm_bo_unreserve(bo);
 	}
 	return ret;
