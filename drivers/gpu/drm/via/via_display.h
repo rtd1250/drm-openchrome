@@ -121,7 +121,8 @@ extern struct drm_encoder* via_best_encoder(struct drm_connector *connector);
 extern void via_encoder_disable(struct drm_encoder *encoder);
 extern void via_encoder_commit(struct drm_encoder *encoder);
 
-/* outputs */
+/* connectors */
+extern void via_connector_destroy(struct drm_connector *connector);
 extern int via_get_edid_modes(struct drm_connector *connector);
 
 extern void via_analog_init(struct drm_device *dev);

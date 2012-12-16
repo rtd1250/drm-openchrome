@@ -221,13 +221,22 @@ via_best_encoder(struct drm_connector *connector)
 	return encoder;
 }
 
+void
+via_connector_destroy(struct drm_connector *connector)
+{
+	struct via_connector *con = container_of(connector, struct via_connector, base);
+
+	drm_mode_connector_update_edid_property(connector, NULL);
+	drm_sysfs_connector_remove(connector);
+	drm_connector_cleanup(connector);
+	kfree(con);
+}
+
 int
 via_get_edid_modes(struct drm_connector *connector)
 {
-	struct edid *edid = NULL;
-
-	if (connector->edid_blob_ptr)
-		edid = (struct edid *) connector->edid_blob_ptr->data;
+	struct via_connector *con = container_of(connector, struct via_connector, base);
+	struct edid *edid = drm_get_edid(&con->base, con->ddc_bus);
 
 	return drm_add_edid_modes(connector, edid);
 }
