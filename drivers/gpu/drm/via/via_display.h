@@ -117,6 +117,9 @@ extern void via_framebuffer_fini(struct drm_fb_helper *helper);
 extern void via_crtc_init(struct drm_device *dev, int index);
 
 /* encoders */
+extern void via_set_sync_polarity(struct drm_encoder *encoder,
+				struct drm_display_mode *mode,
+				struct drm_display_mode *adjusted_mode);
 extern struct drm_encoder* via_best_encoder(struct drm_connector *connector);
 extern void via_encoder_disable(struct drm_encoder *encoder);
 extern void via_encoder_commit(struct drm_encoder *encoder);

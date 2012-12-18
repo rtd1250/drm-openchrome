@@ -77,26 +77,11 @@ via_dac_prepare(struct drm_encoder *encoder)
 	encoder_funcs->dpms(encoder, DRM_MODE_DPMS_OFF);
 }
 
-static void
-via_dac_mode_set(struct drm_encoder *encoder,
-		       struct drm_display_mode *mode,
-		       struct drm_display_mode *adjusted_mode)
-{
-	struct drm_via_private *dev_priv = encoder->dev->dev_private;
-	u8 polarity = 0;
-
-	if (adjusted_mode->flags & DRM_MODE_FLAG_NHSYNC)
-		polarity |= BIT(6);
-	if (adjusted_mode->flags & DRM_MODE_FLAG_NVSYNC)
-		polarity |= BIT(7);
-	svga_wmisc_mask(VGABASE, polarity, BIT(7) | BIT(6));
-}
-
 static const struct drm_encoder_helper_funcs via_dac_enc_helper_funcs = {
 	.dpms = via_dac_dpms,
 	.mode_fixup = via_dac_mode_fixup,
 	.prepare = via_dac_prepare,
-	.mode_set = via_dac_mode_set,
+	.mode_set = via_set_sync_polarity,
 	.commit = via_encoder_commit,
 	.disable = via_encoder_disable,
 };

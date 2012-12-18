@@ -136,7 +136,7 @@ via_encoder_commit(struct drm_encoder *encoder)
 		break;
 
 	default:
-		DRM_DEBUG("Unsupported DIPort.\n");
+		DRM_ERROR("Unsupported DIPort.\n");
 		break;
 	}
 
@@ -162,19 +162,19 @@ via_encoder_disable(struct drm_encoder *encoder)
 
 	switch (enc->diPort) {
 	case DISP_DI_DVP0:
-		svga_wseq_mask(VGABASE, 0x1E, 0x00, BIT(6) | BIT(7));
+		svga_wseq_mask(VGABASE, 0x1E, 0x00, BIT(7) | BIT(6));
 		break;
 
 	case DISP_DI_DVP1:
-		svga_wseq_mask(VGABASE, 0x1E, 0x00, BIT(4) | BIT(5));
+		svga_wseq_mask(VGABASE, 0x1E, 0x00, BIT(5) | BIT(4));
 		break;
 
 	case DISP_DI_DFPH:
-		svga_wseq_mask(VGABASE, 0x2A, 0x00, BIT(2) | BIT(3));
+		svga_wseq_mask(VGABASE, 0x2A, 0x00, BIT(3) | BIT(2));
 		break;
 
 	case DISP_DI_DFPL:
-		svga_wseq_mask(VGABASE, 0x2A, 0x00, BIT(0) | BIT(1));
+		svga_wseq_mask(VGABASE, 0x2A, 0x00, BIT(1) | BIT(0));
 		break;
 
 	case DISP_DI_DFP:
@@ -184,12 +184,12 @@ via_encoder_disable(struct drm_encoder *encoder)
 
 	/* TTL LCD, Quanta case */
 	case DISP_DI_DFPL + DISP_DI_DVP1:
-		svga_wseq_mask(VGABASE, 0x1E, 0x00, BIT(4) | BIT(5));
-		svga_wseq_mask(VGABASE, 0x2A, 0x00, BIT(0) | BIT(1));
+		svga_wseq_mask(VGABASE, 0x1E, 0x00, BIT(5) | BIT(4));
+		svga_wseq_mask(VGABASE, 0x2A, 0x00, BIT(1) | BIT(0));
 		break;
 
 	case DISP_DI_DFPH + DISP_DI_DFPL + DISP_DI_DVP1:
-		svga_wseq_mask(VGABASE, 0x1E, 0x00, BIT(4) | BIT(5));
+		svga_wseq_mask(VGABASE, 0x1E, 0x00, BIT(5) | BIT(4));
 		svga_wseq_mask(VGABASE, 0x2A, 0x00,
 				BIT(3) | BIT(2) | BIT(1) | BIT(0));
 		break;
@@ -199,12 +199,52 @@ via_encoder_disable(struct drm_encoder *encoder)
 		break;
 
 	default:
-		DRM_DEBUG("Unsupported DIPort.\n");
+		DRM_ERROR("Unsupported DIPort.\n");
 		break;
 	}
 }
 
-struct drm_encoder*
+void
+via_set_sync_polarity(struct drm_encoder *encoder, struct drm_display_mode *mode,
+			struct drm_display_mode *adjusted_mode)
+{
+	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
+	struct drm_via_private *dev_priv = encoder->dev->dev_private;
+	u8 syncreg = 0;
+
+	if (adjusted_mode->flags & DRM_MODE_FLAG_NVSYNC)
+		syncreg |= BIT(6);
+	if (adjusted_mode->flags & DRM_MODE_FLAG_NHSYNC)
+		syncreg |= BIT(5);
+
+	switch (enc->diPort) {
+	case DISP_DI_DAC:
+		svga_wmisc_mask(VGABASE, (syncreg << 1), BIT(7) | BIT(6));
+		break;
+
+	case DISP_DI_DVP0:
+		svga_wcrt_mask(VGABASE, 0x96, syncreg, BIT(6) | BIT(5));
+		break;
+
+	case DISP_DI_DVP1:
+		svga_wcrt_mask(VGABASE, 0x9B, syncreg, BIT(6) | BIT(5));
+		break;
+
+	case DISP_DI_DFPH:
+		svga_wcrt_mask(VGABASE, 0x97, syncreg, BIT(6) | BIT(5));
+		break;
+
+	case DISP_DI_DFPL:
+		svga_wcrt_mask(VGABASE, 0x99, syncreg, BIT(6) | BIT(5));
+		break;
+
+	default:
+		DRM_ERROR("No DIPort.\n");
+		break;
+	}
+}
+
+struct drm_encoder *
 via_best_encoder(struct drm_connector *connector)
 {
 	int enc_id = connector->encoder_ids[0];
@@ -213,12 +253,21 @@ via_best_encoder(struct drm_connector *connector)
 
 	/* pick the encoder ids */
 	if (enc_id) {
-		obj = drm_mode_object_find(connector->dev, enc_id, DRM_MODE_OBJECT_ENCODER);
-		if (!obj)
-			return NULL;
-		encoder = obj_to_encoder(obj);
+		obj = drm_mode_object_find(connector->dev, enc_id,
+						DRM_MODE_OBJECT_ENCODER);
+		if (obj)
+			encoder = obj_to_encoder(obj);
 	}
 	return encoder;
+}
+
+int
+via_get_edid_modes(struct drm_connector *connector)
+{
+	struct via_connector *con = container_of(connector, struct via_connector, base);
+	struct edid *edid = drm_get_edid(&con->base, con->ddc_bus);
+
+	return drm_add_edid_modes(connector, edid);
 }
 
 void
@@ -230,15 +279,6 @@ via_connector_destroy(struct drm_connector *connector)
 	drm_sysfs_connector_remove(connector);
 	drm_connector_cleanup(connector);
 	kfree(con);
-}
-
-int
-via_get_edid_modes(struct drm_connector *connector)
-{
-	struct via_connector *con = container_of(connector, struct via_connector, base);
-	struct edid *edid = drm_get_edid(&con->base, con->ddc_bus);
-
-	return drm_add_edid_modes(connector, edid);
 }
 
 static void
@@ -278,7 +318,7 @@ via_init_crtc_regs(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
 
-        via_unlock_crtc(VGABASE, dev->pdev->device);
+	via_unlock_crtc(VGABASE, dev->pdev->device);
 
 	/* always set to 1 */
 	svga_wcrt_mask(VGABASE, 0x03, BIT(7), BIT(7));
@@ -308,7 +348,7 @@ via_init_crtc_regs(struct drm_device *dev)
 	    (dev_priv->revision == CLE266_REVISION_AX))
 		svga_wseq_mask(VGABASE, 0x1A, BIT(1), BIT(1));
 
-        via_lock_crtc(VGABASE);
+	via_lock_crtc(VGABASE);
 }
 
 static void
