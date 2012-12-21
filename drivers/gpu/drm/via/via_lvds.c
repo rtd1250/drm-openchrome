@@ -1,0 +1,746 @@
+/*
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sub license,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the
+ * next paragraph) shall be included in all copies or substantial portions
+ * of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHOR(S) OR COPYRIGHT HOLDER(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ */
+#include <linux/dmi.h>
+#include <asm/olpc.h>
+
+#include "via_drv.h"
+
+/* Encoder flags for LVDS */
+#define LVDS_DUAL_CHANNEL	1
+
+/* caculate the cetering timing using mode and adjusted_mode */
+static void
+via_centering_timing(const struct drm_display_mode *mode,
+			struct drm_display_mode *adjusted_mode)
+{
+	int panel_hsync_time = adjusted_mode->hsync_end -
+		adjusted_mode->hsync_start;
+	int panel_vsync_time = adjusted_mode->vsync_end -
+		adjusted_mode->vsync_start;
+	int panel_hblank_start = adjusted_mode->hdisplay;
+	int panel_vbank_start = adjusted_mode->vdisplay;
+	int hborder = (adjusted_mode->hdisplay - mode->hdisplay) / 2;
+	int vborder = (adjusted_mode->vdisplay - mode->vdisplay) / 2;
+	int new_hblank_start = hborder + mode->hdisplay;
+	int new_vblank_start = vborder + mode->vdisplay;
+
+	adjusted_mode->hdisplay = mode->hdisplay;
+	adjusted_mode->hsync_start = (adjusted_mode->hsync_start -
+		panel_hblank_start) + new_hblank_start;
+	adjusted_mode->hsync_end = adjusted_mode->hsync_start +
+		panel_hsync_time;
+	adjusted_mode->vdisplay = mode->vdisplay;
+	adjusted_mode->vsync_start = (adjusted_mode->vsync_start -
+		panel_vbank_start) + new_vblank_start;
+	adjusted_mode->vsync_end = adjusted_mode->vsync_start +
+		panel_vsync_time;
+	/* Adjust Crtc H and V */
+	adjusted_mode->crtc_hdisplay = adjusted_mode->hdisplay;
+	adjusted_mode->crtc_hblank_start = new_hblank_start;
+	adjusted_mode->crtc_hblank_end = adjusted_mode->crtc_htotal - hborder;
+	adjusted_mode->crtc_hsync_start = adjusted_mode->hsync_start;
+	adjusted_mode->crtc_hsync_end = adjusted_mode->hsync_end;
+	adjusted_mode->crtc_vdisplay = adjusted_mode->vdisplay;
+	adjusted_mode->crtc_vblank_start = new_vblank_start;
+	adjusted_mode->crtc_vblank_end = adjusted_mode->crtc_vtotal - vborder;
+	adjusted_mode->crtc_vsync_start = adjusted_mode->vsync_start;
+	adjusted_mode->crtc_vsync_end = adjusted_mode->vsync_end;
+}
+
+static void
+via_enable_internal_lvds(struct drm_encoder *encoder)
+{
+	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
+	struct drm_via_private *dev_priv = encoder->dev->dev_private;
+	struct drm_device *dev = encoder->dev;
+
+	/* Turn on LCD panel */
+	if ((enc->diPort & DISP_DI_DFPL) || (enc->diPort == DISP_DI_DVP1)) {
+		/* Software control power sequence */
+		if ((dev->pci_device == PCI_DEVICE_ID_VIA_VT1122) ||
+		    (dev->pci_device == PCI_DEVICE_ID_VIA_CLE266)) {
+			/* Software control power sequence ON */
+			svga_wcrt_mask(VGABASE, 0x91, 0x00, BIT(7));
+			svga_wcrt_mask(VGABASE, 0x91, BIT(0), BIT(0));
+			/* Delay td0 msec. */
+			mdelay(200);
+			/* VDD ON */
+			svga_wcrt_mask(VGABASE, 0x91, BIT(4), BIT(4));
+			/* Delay td1 msec. */
+			mdelay(25);
+			/* DATA ON */
+			svga_wcrt_mask(VGABASE, 0x91, BIT(3), BIT(3));
+			/* VEE ON (unused on vt3353) */
+			svga_wcrt_mask(VGABASE, 0x91, BIT(2), BIT(2));
+			/* Delay td3 msec. */
+			mdelay(250);
+			/* Back-Light ON */
+			svga_wcrt_mask(VGABASE, 0x91, BIT(1), BIT(1));
+		} else {
+			/* Use first power sequence control: *
+			 * Use hardware control power sequence. */
+			svga_wcrt_mask(VGABASE, 0x91, 0x00, BIT(0));
+			/* Turn on back light and panel path. */
+			svga_wcrt_mask(VGABASE, 0x91, 0x00, BIT(7) | BIT(6));
+			/* Turn on hardware power sequence. */
+			svga_wcrt_mask(VGABASE, 0x6A, BIT(3), BIT(3));
+		}
+	}
+
+	if (enc->diPort & DISP_DI_DFPH) {
+		if ((dev->pci_device == PCI_DEVICE_ID_VIA_VT1122) ||
+		    (dev->pci_device == PCI_DEVICE_ID_VIA_CLE266)) {
+			/* Software control power sequence ON */
+			svga_wcrt_mask(VGABASE, 0xD4, 0x00, BIT(1));
+			svga_wcrt_mask(VGABASE, 0xD3, BIT(0), BIT(0));
+			/* Delay td0 msec. */
+			mdelay(200);
+			/* VDD ON */
+			svga_wcrt_mask(VGABASE, 0xD3, BIT(4), BIT(4));
+			/* Delay td1 msec. */
+			mdelay(25);
+			/* DATA ON */
+			svga_wcrt_mask(VGABASE, 0xD3, BIT(3), BIT(3));
+			/* VEE ON (unused on vt3353) */
+			svga_wcrt_mask(VGABASE, 0xD3, BIT(2), BIT(2));
+			/* Delay td3 msec. */
+			mdelay(250);
+			/* Back-Light ON */
+			svga_wcrt_mask(VGABASE, 0xD3, BIT(1), BIT(1));
+		} else {
+			/* Use hardware control power sequence. */
+			svga_wcrt_mask(VGABASE, 0xD3, 0x00, BIT(0));
+			/* Turn on back light and panel path. */
+			svga_wcrt_mask(VGABASE, 0xD3, 0x00, BIT(7) | BIT(6));
+			/* Turn on hardware power sequence. */
+			svga_wcrt_mask(VGABASE, 0xD4, BIT(1), BIT(1));
+		}
+	}
+
+	/* Power on LVDS channel. */
+	if (enc->flags & LVDS_DUAL_CHANNEL) {
+		/* For high resolution LCD (internal),
+		 * power on both LVDS0 and LVDS1 */
+		svga_wcrt_mask(VGABASE, 0xD2, 0x00, BIT(7) | BIT(6));
+	} else {
+		if (enc->diPort & DISP_DI_DFPL)
+			svga_wcrt_mask(VGABASE, 0xD2, 0x00, BIT(7));
+		else if (enc->diPort & DISP_DI_DFPH)
+			svga_wcrt_mask(VGABASE, 0xD2, 0x00, BIT(6));
+		else
+			DRM_ERROR("invalid diPort\n");
+	}
+}
+
+static void
+via_disable_internal_lvds(struct drm_encoder *encoder)
+{
+	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
+	struct drm_via_private *dev_priv = encoder->dev->dev_private;
+	struct drm_device *dev = encoder->dev;
+
+	/* Turn off LCD panel */
+	if ((enc->diPort & DISP_DI_DFPL) || (enc->diPort == DISP_DI_DVP1)) {
+		/* Set LCD software power sequence off */
+		if ((dev->pci_device == PCI_DEVICE_ID_VIA_VT1122) ||
+		    (dev->pci_device == PCI_DEVICE_ID_VIA_CLE266)) {
+			/* Back-Light OFF */
+			svga_wcrt_mask(VGABASE, 0x91, 0x00, BIT(1));
+			/* Delay td3 msec. */
+			mdelay(250);
+			/* VEE OFF (unused on vt3353) */
+			svga_wcrt_mask(VGABASE, 0x91, 0x00, BIT(2));
+			/* DATA OFF */
+			svga_wcrt_mask(VGABASE, 0x91, 0x00, BIT(3));
+			/* Delay td1 msec. */
+			mdelay(25);
+			/* VDD OFF */
+			svga_wcrt_mask(VGABASE, 0x91, 0x00, BIT(4));
+		} else {
+			/* Use first power sequence control: *
+			 * Turn off power sequence. */
+			svga_wcrt_mask(VGABASE, 0x6A, 0x00, BIT(3));
+
+			/* Turn off back light and panel path. */
+			svga_wcrt_mask(VGABASE, 0x91, 0xC0, BIT(7) | BIT(6));
+		}
+	}
+
+	if (enc->diPort & DISP_DI_DFPH) {
+		/* Set LCD software power sequence off */
+		if ((dev->pci_device == PCI_DEVICE_ID_VIA_VT1122) ||
+		    (dev->pci_device == PCI_DEVICE_ID_VIA_CLE266)) {
+			/* Back-Light OFF */
+			svga_wcrt_mask(VGABASE, 0xD3, 0x00, BIT(1));
+			/* Delay td3 msec. */
+			mdelay(250);
+			/* VEE OFF */
+			svga_wcrt_mask(VGABASE, 0xD3, 0x00, BIT(2));
+			/* DATA OFF */
+			svga_wcrt_mask(VGABASE, 0xD3, 0x00, BIT(3));
+			/* Delay td1 msec. */
+			mdelay(25);
+			/* VDD OFF */
+			svga_wcrt_mask(VGABASE, 0xD3, 0x00, BIT(4));
+		} else {
+			/* Use second power sequence control: *
+			 * Turn off power sequence. */
+			svga_wcrt_mask(VGABASE, 0xD4, 0x00, BIT(1));
+			/* Turn off back light and panel path. */
+			svga_wcrt_mask(VGABASE, 0xD3, 0xC0, BIT(7) | BIT(6));
+		}
+	}
+
+	/* Power off LVDS channel. */
+	if (enc->flags & LVDS_DUAL_CHANNEL) {
+		/* For high resolution LCD (internal) we
+		 * power off both LVDS0 and LVDS1 */
+		svga_wcrt_mask(VGABASE, 0xD2, 0xC0, BIT(7) | BIT(6));
+	} else {
+		if (enc->diPort & DISP_DI_DFPL)
+			svga_wcrt_mask(VGABASE, 0xD2, BIT(7), BIT(7));
+		else if (enc->diPort & DISP_DI_DFPH)
+			svga_wcrt_mask(VGABASE, 0xD2, BIT(6), BIT(6));
+		else
+			DRM_ERROR("invalid diPort\n");
+	}
+}
+
+static void
+via_lvds_dpms(struct drm_encoder *encoder, int mode)
+{
+	struct drm_via_private *dev_priv = encoder->dev->dev_private;
+	struct drm_device *dev = encoder->dev;
+	struct via_crtc *iga = NULL;
+
+	switch (mode) {
+	case DRM_MODE_DPMS_ON:
+		if (encoder->crtc == NULL)
+			return;
+		iga = container_of(encoder->crtc, struct via_crtc, base);
+
+		/* when using the EPIA-EX board, if we do not set this bit,
+		 * light LCD will failed in nonRandR structure,
+		 * So, when light LCD this bit is always setted */
+		svga_wcrt_mask(VGABASE, 0x6A, BIT(3), BIT(3));
+
+		if (dev_priv->spread_spectrum) {
+			if ((dev->pci_device == PCI_DEVICE_ID_VIA_VT1122) ||
+			    (dev->pci_device == PCI_DEVICE_ID_VIA_VX875) ||
+			    (dev->pci_device == PCI_DEVICE_ID_VIA_VX900)) {
+				/* GPIO-4/5 are used for spread spectrum,
+				 * we must clear SR3D[7:6] to disable
+				 * GPIO-4/5 output */
+				svga_wseq_mask(VGABASE, 0x3D, BIT(0), 0xC1);
+			} else {
+				svga_wseq_mask(VGABASE, 0x2C, BIT(0), BIT(0));
+			}
+			svga_wseq_mask(VGABASE, 0x1E, BIT(3), BIT(3));
+		}
+		via_enable_internal_lvds(encoder);
+		break;
+
+	case DRM_MODE_DPMS_STANDBY:
+	case DRM_MODE_DPMS_SUSPEND:
+	case DRM_MODE_DPMS_OFF:
+		via_disable_internal_lvds(encoder);
+		break;
+	}
+}
+
+static bool
+via_lvds_mode_fixup(struct drm_encoder *encoder,
+			const struct drm_display_mode *mode,
+			struct drm_display_mode *adjusted_mode)
+{
+	struct drm_property *prop = encoder->dev->mode_config.scaling_mode_property;
+	struct via_crtc *iga = container_of(encoder->crtc, struct via_crtc, base);
+	struct drm_display_mode *native_mode = NULL, *tmp, *t;
+	struct drm_connector *connector = NULL, *con;
+	u64 scale_mode = DRM_MODE_SCALE_CENTER;
+	struct drm_device *dev = encoder->dev;
+
+	list_for_each_entry(con, &dev->mode_config.connector_list, head) {
+		if (encoder ==  con->encoder) {
+			connector = con;
+			break;
+		}
+	}
+
+	if (!connector) {
+		DRM_INFO("LVDS encoder is not used by any connector\n");
+		return false;
+	}
+
+	list_for_each_entry_safe(tmp, t, &connector->modes, head) {
+		if (tmp->type & (DRM_MODE_TYPE_PREFERRED | DRM_MODE_TYPE_DRIVER)) {
+			native_mode = tmp;
+			break;
+		}
+	}
+
+	if (!native_mode) {
+		DRM_INFO("No native mode for LVDS\n");
+		return false;
+	}
+
+	drm_object_property_get_value(&connector->base, prop, &scale_mode);
+
+	if ((mode->hdisplay != native_mode->hdisplay) ||
+	    (mode->vdisplay != native_mode->vdisplay)) {
+		if (scale_mode == DRM_MODE_SCALE_NONE)
+			return false;
+		drm_mode_copy(adjusted_mode, native_mode);
+	}
+	drm_mode_set_crtcinfo(adjusted_mode, 0);
+
+	iga->scaling_mode = VIA_NO_SCALING;
+	/* Take care of 410 downscaling */
+	if ((mode->hdisplay > native_mode->hdisplay) ||
+	    (mode->vdisplay > native_mode->vdisplay)) {
+		iga->scaling_mode = VIA_SHRINK;
+	} else {
+		if (!iga->index || scale_mode == DRM_MODE_SCALE_CENTER) {
+			/* Do centering according to mode and adjusted_mode */
+			via_centering_timing(mode, adjusted_mode);
+		} else {
+			if (mode->hdisplay < native_mode->hdisplay)
+				iga->scaling_mode |= VIA_HOR_EXPAND;
+			if (mode->vdisplay < native_mode->vdisplay)
+				iga->scaling_mode |= VIA_VER_EXPAND;
+		}
+	}
+	return true;
+}
+
+const struct drm_encoder_helper_funcs via_lvds_helper_funcs = {
+	.dpms = via_lvds_dpms,
+	.mode_fixup = via_lvds_mode_fixup,
+	.mode_set = via_set_sync_polarity,
+	.prepare = via_encoder_prepare,
+	.commit = via_encoder_commit,
+	.disable = via_encoder_disable,
+};
+
+const struct drm_encoder_funcs via_lvds_enc_funcs = {
+	.destroy = drm_encoder_cleanup,
+};
+
+/* detect this connector connect status */
+static enum drm_connector_status
+via_lcd_detect(struct drm_connector *connector,  bool force)
+{
+	struct via_connector *con = container_of(connector, struct via_connector, base);
+	struct edid *edid = drm_get_edid(&con->base, con->ddc_bus);
+
+	if (edid) {
+		drm_mode_connector_update_edid_property(&con->base, edid);
+		kfree(edid);
+		return connector_status_connected;
+	} else {
+		if (!list_empty(&connector->probed_modes))
+			return connector_status_connected;
+	}
+	return connector_status_disconnected;
+}
+
+static int
+via_lcd_set_property(struct drm_connector *connector,
+			struct drm_property *property, uint64_t value)
+{
+	struct drm_via_private *dev_priv = connector->dev->dev_private;
+	struct drm_device *dev = connector->dev;
+	uint64_t orig;
+	int ret;
+
+	ret = drm_object_property_get_value(&connector->base, property, &orig);
+	if (!ret && (orig != value)) {
+		if (property == dev->mode_config.dithering_mode_property) {
+			u8 reg_value;
+
+			switch (value) {
+			case DRM_MODE_DITHERING_AUTO:
+			case DRM_MODE_DITHERING_ON:
+				reg_value = BIT(0);
+				break;
+
+			case DRM_MODE_DITHERING_OFF:
+				reg_value = 0x00;
+				break;
+
+			default:
+				return -EINVAL;
+			}
+			svga_wcrt_mask(VGABASE, 0x88, reg_value, BIT(0));
+
+		} else if (property == dev->mode_config.scaling_mode_property) {
+			switch (value) {
+			case DRM_MODE_SCALE_NONE:
+				break;
+
+			case DRM_MODE_SCALE_CENTER:
+				break;
+
+			case DRM_MODE_SCALE_ASPECT:
+				break;
+
+			case DRM_MODE_SCALE_FULLSCREEN:
+				break;
+
+			default:
+				return -EINVAL;
+			}
+		}
+	}
+	return 0;
+}
+
+struct drm_connector_funcs via_lcd_connector_funcs = {
+	.dpms = drm_helper_connector_dpms,
+	.detect = via_lcd_detect,
+	.fill_modes = drm_helper_probe_single_connector_modes,
+	.set_property = via_lcd_set_property,
+	.destroy = via_connector_destroy,
+};
+
+int via_lcd_get_modes(struct drm_connector *connector)
+{
+	int count = via_get_edid_modes(connector);
+
+	if (!count) {
+		struct drm_display_mode *tmp, *t;
+
+		list_for_each_entry_safe(tmp, t, &connector->probed_modes, head)
+			count++;
+	}
+	return count;
+}
+
+int via_lcd_mode_valid(struct drm_connector *connector,
+                struct drm_display_mode *mode)
+{
+	struct drm_property *prop = connector->dev->mode_config.scaling_mode_property;
+	struct drm_display_mode *native_mode = NULL, *tmp, *t;
+	struct drm_device *dev = connector->dev;
+	u64 scale_mode = DRM_MODE_SCALE_CENTER;
+
+	list_for_each_entry_safe(tmp, t, &connector->modes, head) {
+		if (tmp->type & (DRM_MODE_TYPE_PREFERRED | DRM_MODE_TYPE_DRIVER)) {
+			native_mode = tmp;
+			break;
+		}
+	}
+
+	drm_object_property_get_value(&connector->base, prop, &scale_mode);
+
+	if ((scale_mode == DRM_MODE_SCALE_NONE) &&
+	    ((mode->hdisplay != native_mode->hdisplay) ||
+	     (mode->vdisplay != native_mode->vdisplay)))
+		return MODE_PANEL;
+
+	/* Don't support mode larger than physical size */
+	if (dev->pci_device != PCI_DEVICE_ID_VIA_VX900) {
+		if (mode->hdisplay > native_mode->hdisplay)
+			return MODE_PANEL;
+		if (mode->vdisplay > native_mode->vdisplay)
+			return MODE_PANEL;
+	} else {
+		/* HW limitation 410 only can
+		 * do <= 1.33 scaling */
+		if (mode->hdisplay * 100 > native_mode->hdisplay * 133)
+			return MODE_PANEL;
+		if (mode->vdisplay * 100 > native_mode->vdisplay * 133)
+			return MODE_PANEL;
+
+		/* Now we can not support H V different scale */
+		if ((mode->hdisplay > native_mode->hdisplay) &&
+		    (mode->vdisplay < native_mode->vdisplay))
+			return MODE_PANEL;
+		if ((mode->hdisplay < native_mode->hdisplay) &&
+		    (mode->vdisplay > native_mode->vdisplay))
+			return MODE_PANEL;
+	}
+	return MODE_OK;
+}
+
+struct drm_connector_helper_funcs via_lcd_connector_helper_funcs = {
+	.get_modes = via_lcd_get_modes,
+	.mode_valid = via_lcd_mode_valid,
+	.best_encoder = via_best_encoder,
+};
+
+static int __init via_ttl_lvds_dmi_callback(const struct dmi_system_id *id)
+{
+	DRM_INFO("LVDS is TTL type for %s\n", id->ident);
+	return 1;
+}
+
+static const struct dmi_system_id via_ttl_lvds[] = {
+	{
+		.callback = via_ttl_lvds_dmi_callback,
+		.ident = "VIA Quanta Netbook",
+		.matches = {
+			DMI_MATCH(DMI_SYS_VENDOR, "QCI"),
+			DMI_MATCH(DMI_PRODUCT_VERSION, "VT6413A"),
+		},
+	},
+
+	{ }
+};
+
+void
+via_lvds_init(struct drm_device *dev)
+{
+	struct drm_via_private *dev_priv = dev->dev_private;
+	bool dual_channel = false, is_msb = false;
+	uint64_t dither = DRM_MODE_DITHERING_OFF;
+	struct via_connector *con;
+	struct via_encoder *enc;
+	struct edid *edid;
+	u8 reg_value;
+
+	con = kzalloc(sizeof(*con), GFP_KERNEL);
+	if (!con) {
+		DRM_INFO("allocate the connector error\n");
+		return;
+	}
+	con->base.interlace_allowed = false;
+	con->base.doublescan_allowed = false;
+	drm_connector_init(dev, &con->base, &via_lcd_connector_funcs,
+				DRM_MODE_CONNECTOR_LVDS);
+	drm_connector_helper_add(&con->base, &via_lcd_connector_helper_funcs);
+
+	switch (dev->pci_device) {
+	case PCI_DEVICE_ID_VIA_VX875:
+	case PCI_DEVICE_ID_VIA_VX900:
+		con->ddc_bus = via_find_ddc_bus(0x2C);
+		break;
+	default:
+		con->ddc_bus = via_find_ddc_bus(0x31);
+		break;
+	}
+
+	edid = drm_get_edid(&con->base, con->ddc_bus);
+	if (!edid) {
+		struct drm_display_mode *native_mode = NULL;
+
+		/* OLPC is very special */
+		if (machine_is_olpc()) {
+			native_mode = drm_mode_create(dev);
+
+			native_mode->clock = 56519;
+			native_mode->hdisplay = 1200;
+			native_mode->hsync_start = 1211;
+			native_mode->hsync_end = 1243;
+			native_mode->htotal = 1264;
+			native_mode->hskew = 0;
+			native_mode->vdisplay = 900;
+			native_mode->vsync_start = 901;
+			native_mode->vsync_end = 911;
+			native_mode->vtotal = 912;
+			native_mode->vscan = 0;
+			native_mode->vrefresh = 50;
+			native_mode->hsync = 0;
+		} else {
+			int hdisplay = 0, vdisplay = 0;
+
+			/* First we have to make sure a LVDS is present */
+			reg_value = (vga_rcrt(VGABASE, 0x3B) & BIT(1));
+			if (!reg_value)
+				goto no_device;
+
+			/* If no edid then we detect the mode using
+			 * the scratch pad registers. */
+			reg_value = (vga_rcrt(VGABASE, 0x3F) & 0x0F);
+
+			DRM_DEBUG("panel index %x detected\n", reg_value);
+			switch (reg_value) {
+			case 0x00:
+				hdisplay = 640;
+				vdisplay = 480;
+				break;
+
+			case 0x01:
+				hdisplay = 800;
+				vdisplay = 600;
+				break;
+
+			case 0x02:
+				hdisplay = 1024;
+				vdisplay = 768;
+				break;
+
+			case 0x03:
+				hdisplay = 1152;
+				vdisplay = 864;
+				break;
+
+			case 0x04:
+				dual_channel = true;
+				hdisplay = 1280;
+				vdisplay = 1024;
+				break;
+
+			case 0x05:
+				dual_channel = true;
+				hdisplay = 1400;
+				vdisplay = 1050;
+				break;
+
+			case 0x06:
+				dual_channel = true;
+				hdisplay = 1600;
+				vdisplay = 1200;
+				break;
+
+			case 0x08:
+				hdisplay = 800;
+				vdisplay = 480;
+				break;
+
+			case 0x09:
+				dual_channel = true;
+				hdisplay = 1024;
+				vdisplay = 768;
+				break;
+
+			case 0x0A:
+				hdisplay = 1368;
+				vdisplay = 768;
+				break;
+
+			case 0x0B:
+				dual_channel = true;
+				hdisplay = 1024;
+				vdisplay = 768;
+				break;
+
+			case 0x0D:
+				dual_channel = true;
+				hdisplay = 1280;
+				vdisplay = 1024;
+				break;
+
+			case 0x0E:
+				dual_channel = true;
+				hdisplay = 1400;
+				vdisplay = 1050;
+				break;
+
+			case 0x0F:
+				dual_channel = true;
+				hdisplay = 1600;
+				vdisplay = 1200;
+				break;
+
+			default:
+				break;
+			}
+
+			if (hdisplay && vdisplay)
+				native_mode = drm_cvt_mode(dev, hdisplay, vdisplay,
+							60, false, false, false);
+
+			if (reg_value < 0x0A)
+				dither = DRM_MODE_DITHERING_ON;
+		}
+		if (!native_mode)
+			goto no_device;
+
+		native_mode->type = DRM_MODE_TYPE_PREFERRED | DRM_MODE_TYPE_DRIVER;
+		drm_mode_set_name(native_mode);
+		drm_mode_probed_add(&con->base, native_mode);
+	} else {
+		drm_mode_connector_update_edid_property(&con->base, edid);
+		kfree(edid);
+
+		/* 00 LVDS1 + LVDS2  10 = Dual channel. Other are reserved */
+		if ((vga_rseq(VGABASE, 0x13) >> 6) == 2)
+			dual_channel = true;
+	}
+
+	drm_mode_create_scaling_mode_property(dev);
+	drm_object_attach_property(&con->base.base,
+					dev->mode_config.scaling_mode_property,
+					DRM_MODE_SCALE_CENTER);
+
+	drm_mode_create_dithering_property(dev);
+	drm_object_attach_property(&con->base.base,
+					dev->mode_config.dithering_mode_property,
+					dither);
+	via_lcd_set_property(&con->base, dev->mode_config.dithering_mode_property,
+				dither);
+
+	drm_sysfs_connector_add(&con->base);
+
+	/* Now setup the encoder */
+	enc = kzalloc(sizeof(*enc), GFP_KERNEL);
+	if (!enc) {
+		DRM_INFO("allocate the encoder error\n");
+		goto no_device;
+	}
+	enc->base.possible_crtcs = BIT(1) | BIT(0);
+
+	switch (dev->pci_device) {
+	case PCI_DEVICE_ID_VIA_CLE266:
+		enc->diPort = DISP_DI_DVP1;
+		break;
+
+	case PCI_DEVICE_ID_VIA_VX875:
+	case PCI_DEVICE_ID_VIA_VX900:
+		enc->diPort = DISP_DI_DFPL;
+		break;
+
+	default:
+		enc->diPort = DISP_DI_DFPH;
+		break;
+	}
+
+	/* There has to be a way to detect TTL LVDS
+	 * For now we use the DMI to handle this */
+	if (dmi_check_system(via_ttl_lvds))
+		enc->diPort = DISP_DI_DFPL | DISP_DI_DVP1;
+
+	reg_value = 0x00;
+	if (enc->diPort == DISP_DI_DFPH) {
+		if (!is_msb)
+			reg_value = BIT(0);
+		svga_wcrt_mask(VGABASE, 0xD2, reg_value, BIT(0));
+	} else if (enc->diPort == DISP_DI_DFPL) {
+		if (!is_msb)
+			reg_value = BIT(1);
+		svga_wcrt_mask(VGABASE, 0xD2, reg_value, BIT(1));
+	}
+
+	if (dual_channel)
+		enc->flags |= LVDS_DUAL_CHANNEL;
+
+	drm_encoder_init(dev, &enc->base, &via_lvds_enc_funcs,
+				DRM_MODE_ENCODER_LVDS);
+	drm_encoder_helper_add(&enc->base, &via_lvds_helper_funcs);
+
+	drm_mode_connector_attach_encoder(&con->base, &enc->base);
+	return;
+
+no_device:
+	drm_connector_cleanup(&con->base);
+	kfree(con);
+}

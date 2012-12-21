@@ -244,6 +244,14 @@ via_set_sync_polarity(struct drm_encoder *encoder, struct drm_display_mode *mode
 	}
 }
 
+void
+via_encoder_prepare(struct drm_encoder *encoder)
+{
+	struct drm_encoder_helper_funcs *encoder_funcs = encoder->helper_private;
+
+	encoder_funcs->dpms(encoder, DRM_MODE_DPMS_OFF);
+}
+
 struct drm_encoder *
 via_best_encoder(struct drm_connector *connector)
 {
@@ -279,6 +287,61 @@ via_connector_destroy(struct drm_connector *connector)
 	drm_sysfs_connector_remove(connector);
 	drm_connector_cleanup(connector);
 	kfree(con);
+}
+
+/* Power sequence relations */
+struct td_timer {
+	struct vga_regset tdRegs[2];
+};
+
+static struct td_timer td_timer_regs[] = {
+	/* td_timer0 */
+	{ { { VGA_CRT_IC, 0x8B, 0, 7 }, { VGA_CRT_IC, 0x8F, 0, 3 } } },
+	/* td_timer1 */
+	{ { { VGA_CRT_IC, 0x8C, 0, 7 }, { VGA_CRT_IC, 0x8F, 4, 7 } } },
+	/* td_timer2 */
+	{ { { VGA_CRT_IC, 0x8D, 0, 7 }, { VGA_CRT_IC, 0x90, 0, 3 } } },
+	/* td_timer3 */
+	{ { { VGA_CRT_IC, 0x8E, 0, 7 }, { VGA_CRT_IC, 0x90, 4, 7 } } }
+};
+
+/*
+ * Function Name:  via_init_td_timing_regs
+ * Description: Init TD timing register (power sequence)
+ */
+static void
+via_init_td_timing_regs(struct drm_device *dev)
+{
+	struct drm_via_private *dev_priv = dev->dev_private;
+	unsigned int td_timer[4] = { 500, 50, 0, 510 }, i;
+	struct vga_registers timings;
+	u32 reg_value;
+
+	/* Fill primary power sequence */
+	for (i = 0; i < 4; i++) {
+		/* Calculate TD Timer, every step is 572.1uSec */
+		reg_value = td_timer[i] * 10000 / 5721;
+
+		timings.count = ARRAY_SIZE(td_timer_regs[i].tdRegs);
+		timings.regs = td_timer_regs[i].tdRegs;
+		load_value_to_registers(VGABASE, &timings, reg_value);
+	}
+
+	/* Note: VT3353 have two hardware power sequences
+	 * other chips only have one hardware power sequence */
+	if (dev->pci_device == PCI_DEVICE_ID_VIA_VT1122) {
+		/* set CRD4[0] to "1" to select 2nd LCD power sequence. */
+		svga_wcrt_mask(VGABASE, 0xD4, BIT(0), BIT(0));
+		/* Fill secondary power sequence */
+		for (i = 0; i < 4; i++) {
+			/* Calculate TD Timer, every step is 572.1uSec */
+			reg_value = td_timer[i] * 10000 / 5721;
+
+			timings.count = ARRAY_SIZE(td_timer_regs[i].tdRegs);
+			timings.regs = td_timer_regs[i].tdRegs;
+			load_value_to_registers(VGABASE, &timings, reg_value);
+		}
+	}
 }
 
 static void
@@ -355,9 +418,29 @@ static void
 via_display_init(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
+	u8 index = 0x3D, value;
+
+	/* Check if spread spectrum is enable */
+	if (dev->pci_device == PCI_DEVICE_ID_VIA_VX900)
+		index = 0x2C;
+
+	value = vga_rseq(VGABASE, 0x1E);
+	if (value & BIT(3)) {
+		value = vga_rseq(VGABASE, index);
+		vga_wseq(VGABASE, index, value & 0xFE);
+
+		value = vga_rseq(VGABASE, 0x1E);
+		vga_wseq(VGABASE, 0x1E, value & 0xF7);
+
+		dev_priv->spread_spectrum = true;
+	} else
+		dev_priv->spread_spectrum = false;
 
 	/* load fixed CRTC timing registers */
 	via_init_crtc_regs(dev);
+
+	/* 3. Init TD timing register (power sequence) */
+	via_init_td_timing_regs(dev);
 
 	/* I/O address bit to be 1. Enable access */
 	/* to frame buffer at A0000-BFFFFh */
@@ -391,6 +474,8 @@ via_modeset_init(struct drm_device *dev)
 	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_VT3157) &&
 	    (dev_priv->revision == CX700_REVISION_700M))
 		via_analog_init(dev);
+
+	via_lvds_init(dev);
 
 	/*
 	 * Set up the framebuffer device

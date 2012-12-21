@@ -69,19 +69,11 @@ via_dac_mode_fixup(struct drm_encoder *encoder,
 	return true;
 }
 
-static void
-via_dac_prepare(struct drm_encoder *encoder)
-{
-	struct drm_encoder_helper_funcs *encoder_funcs = encoder->helper_private;
-
-	encoder_funcs->dpms(encoder, DRM_MODE_DPMS_OFF);
-}
-
 static const struct drm_encoder_helper_funcs via_dac_enc_helper_funcs = {
 	.dpms = via_dac_dpms,
 	.mode_fixup = via_dac_mode_fixup,
-	.prepare = via_dac_prepare,
 	.mode_set = via_set_sync_polarity,
+	.prepare = via_encoder_prepare,
 	.commit = via_encoder_commit,
 	.disable = via_encoder_disable,
 };

@@ -30,6 +30,27 @@
 #include "drm_crtc_helper.h"
 #include "drm_fb_helper.h"
 
+/* IGA Scaling disable */
+#define VIA_NO_SCALING	0
+
+/* IGA Scaling down */
+#define VIA_HOR_SHRINK	BIT(0)
+#define VIA_VER_SHRINK	BIT(1)
+#define VIA_SHRINK	(BIT(0) | BIT(1))
+
+/* IGA Scaling up */
+#define VIA_HOR_EXPAND	BIT(2)
+#define VIA_VER_EXPAND	BIT(3)
+#define VIA_EXPAND	(BIT(2) | BIT(3))
+
+/* Define IGA Scaling up/down status :  Horizontal or Vertical  */
+/* Is IGA Hor scaling up/down status */
+#define	HOR_SCALE	BIT(0)
+/* Is IGA Ver scaling up/down status */
+#define	VER_SCALE	BIT(1)
+/* Is IGA Hor and Ver scaling up/down status */
+#define	HOR_VER_SCALE	(BIT(0) | BIT(1))
+
 struct via_crtc {
 	struct drm_crtc base;
 	struct ttm_bo_kmap_obj cursor_kmap;
@@ -44,6 +65,7 @@ struct via_crtc {
 	struct vga_registers fifo_depth;
 	struct vga_registers offset;
 	struct vga_registers fetch;
+	int scaling_mode;
 	uint8_t index;
 };
 
@@ -121,6 +143,7 @@ extern void via_set_sync_polarity(struct drm_encoder *encoder,
 				struct drm_display_mode *mode,
 				struct drm_display_mode *adjusted_mode);
 extern struct drm_encoder* via_best_encoder(struct drm_connector *connector);
+extern void via_encoder_prepare(struct drm_encoder *encoder);
 extern void via_encoder_disable(struct drm_encoder *encoder);
 extern void via_encoder_commit(struct drm_encoder *encoder);
 

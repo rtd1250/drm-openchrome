@@ -214,6 +214,24 @@ static struct vga_regset iga2_fetch_count[] __devinitdata = {
 	{ VGA_CRT_IC, 0x67, 2, 3 }
 };
 
+/************************************************/
+/*********** IGA Scaling Factor Registers *******/
+/************************************************/
+#define LCD_HOR_SCALE_FACTOR_FORMULA(x, y)	(((x - 1) * 4096) / (y - 1))
+#define LCD_VER_SCALE_FACTOR_FORMULA(x, y)	(((x - 1) * 2048) / (y - 1))
+
+static struct vga_regset lcd_hor_scaling[] = {
+	{ VGA_CRT_IC, 0x9F, 0, 1 },
+	{ VGA_CRT_IC, 0x77, 0, 7 },
+	{ VGA_CRT_IC, 0x79, 4, 5 }
+};
+
+static struct vga_regset lcd_ver_scaling[] = {
+	{ VGA_CRT_IC, 0x79, 3, 3 },
+	{ VGA_CRT_IC, 0x78, 0, 7 },
+	{ VGA_CRT_IC, 0x79, 6, 7 }
+};
+
 /***********************************************/
 /*********** CRTC timing register **************/
 /***********************************************/
@@ -269,7 +287,7 @@ static struct vga_regset iga2_fetch_count[] __devinitdata = {
 #define IGA1_PIXELTIMING_VER_SYNC_START_FORMULA(x)	(x - 1)
 #define IGA1_PIXELTIMING_VER_SYNC_END_FORMULA(x)	(x - 1)
 
-#define IGA1_PIXELTIMING_HVSYNC_OFFSET_END_FORMULA(x,y)	\
+#define IGA1_PIXELTIMING_HVSYNC_OFFSET_END_FORMULA(x, y)	\
 	((x / 2) - 1 - (x - y))
 
 /************************************************/

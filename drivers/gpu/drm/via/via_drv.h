@@ -141,6 +141,7 @@ struct drm_via_private {
 	wait_queue_head_t decoder_queue[VIA_NR_XVMC_LOCKS];
 
 	struct via_crtc iga[2];
+	bool spread_spectrum;
 
 	drm_via_sarea_t *sarea_priv;
 	drm_local_map_t *sarea;

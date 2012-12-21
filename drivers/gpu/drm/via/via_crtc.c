@@ -475,6 +475,328 @@ void via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 	}
 }
 
+/*
+ * This function changes the destination of scaling up/down
+ * and CRTC timing registers
+ * crtc : which IGA
+ * scale_type : upscaling(VIA_EXPAND) or downscaling(VIA_SHRINK)
+ */
+void via_set_scale_path(struct drm_crtc *crtc, u32 scale_type)
+{
+	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
+	struct drm_via_private *dev_priv = crtc->dev->dev_private;
+	u8 reg_cr_fd = vga_rcrt(VGABASE, 0xFD);
+	struct drm_device *dev = crtc->dev;
+
+	if (!iga->index)
+		/* register reuse: select IGA1 path */
+		reg_cr_fd |= BIT(7);
+	else
+		/* register reuse: select IGA2 path */
+		reg_cr_fd &= ~BIT(7);
+
+	/* only IGA1 up scaling need to clear this bit CRFD.5. */
+	if (dev->pci_device == PCI_DEVICE_ID_VIA_VX900) {
+		if (!iga->index && ((VIA_HOR_EXPAND & scale_type) ||
+			(VIA_VER_EXPAND & scale_type)))
+			reg_cr_fd &= ~BIT(5);
+	}
+
+	/* CRFD.0 = 0 : common IGA2, = 1 : downscaling IGA */
+	switch (scale_type) {
+	case VIA_NO_SCALING:
+	case VIA_EXPAND:
+	case VIA_HOR_EXPAND:
+	case VIA_VER_EXPAND:
+		/* register reuse: as common IGA2 */
+		reg_cr_fd &= ~BIT(0);
+		break;
+
+	case VIA_SHRINK:
+		/* register reuse: as downscaling IGA */
+		reg_cr_fd |= BIT(0);
+		break;
+
+	default:
+		break;
+	}
+	vga_wcrt(VGABASE, 0xFD, reg_cr_fd);
+}
+
+/* disable IGA scaling */
+static void
+via_disable_iga_scaling(struct drm_crtc *crtc)
+{
+	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
+	struct drm_via_private *dev_priv = crtc->dev->dev_private;
+
+	if (iga->index) {
+		/* IGA2 scalings disable */
+		via_set_scale_path(crtc, VIA_SHRINK);
+		/* disable IGA down scaling and buffer sharing. */
+		svga_wcrt_mask(VGABASE, 0x89, 0x00, BIT(7) | BIT(0));
+		/* Horizontal and Vertical scaling disable */
+		svga_wcrt_mask(VGABASE, 0xA2, 0x00, BIT(7) | BIT(3));
+
+		/* Disable scale up as well */
+		via_set_scale_path(crtc, VIA_EXPAND);
+		/* disable IGA up scaling */
+		svga_wcrt_mask(VGABASE, 0x79, 0, BIT(0));
+		/* Horizontal and Vertical scaling disable */
+		svga_wcrt_mask(VGABASE, 0xA2, 0x00, BIT(7) | BIT(3));
+	} else {
+		/* IGA1 scalings disable */
+		via_set_scale_path(crtc, VIA_SHRINK);
+		/* disable IGA down scaling and buffer sharing. */
+		svga_wcrt_mask(VGABASE, 0x89, 0x00, BIT(7) | BIT(0));
+		/* Horizontal and Vertical scaling disable */
+		svga_wcrt_mask(VGABASE, 0xA2, 0x00, BIT(7) | BIT(3));
+
+		/* Disable scale up as well */
+		via_set_scale_path(crtc, VIA_EXPAND);
+		/* disable IGA up scaling */
+		svga_wcrt_mask(VGABASE, 0x79, 0, BIT(0));
+		/* Horizontal and Vertical scaling disable */
+		svga_wcrt_mask(VGABASE, 0xA2, 0x00, BIT(7) | BIT(3));
+	}
+}
+
+/*
+ * Enable IGA scale functions.
+ *
+ * input : iga_path =	IGA1 or IGA2 or
+ *			IGA1+IGA2
+ *
+ * scale_type	=	VIA_HOR_EXPAND or VIA_VER_EXPAND or VIA_EXPAND or
+ *			VIA_SHRINK or VIA_SHRINK + VIA_EXPAND
+ */
+bool
+via_set_iga_scale_function(struct drm_crtc *crtc, u32 scale_type)
+{
+	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
+	struct drm_via_private *dev_priv = crtc->dev->dev_private;
+
+	if (!(scale_type & (VIA_SHRINK + VIA_EXPAND)))
+		return false;
+
+	if (iga->index) {
+		/* IGA2 scalings enable */
+		if (VIA_SHRINK & scale_type) {
+			via_set_scale_path(crtc, VIA_SHRINK);
+			/* Horizontal and Vertical scaling enable */
+			svga_wcrt_mask(VGABASE, 0xA2,
+					BIT(7) | BIT(3), BIT(7) | BIT(3));
+			/* enable IGA down scaling */
+			svga_wcrt_mask(VGABASE, 0x89, BIT(0), BIT(0));
+			/* hor and ver scaling : Interpolation */
+			svga_wcrt_mask(VGABASE, 0x79,
+					BIT(2) | BIT(1), BIT(2) | BIT(1));
+		}
+
+		if (VIA_EXPAND & scale_type) {
+			via_set_scale_path(crtc, VIA_EXPAND);
+			/* enable IGA up scaling */
+			svga_wcrt_mask(VGABASE, 0x79, BIT(0), BIT(0));
+		}
+
+		if ((VIA_EXPAND & scale_type) == VIA_EXPAND) {
+			/* Horizontal and Vertical scaling enable */
+			svga_wcrt_mask(VGABASE, 0xA2, BIT(7) | BIT(3),
+					BIT(7) | BIT(3));
+			/* hor and ver scaling : Interpolation */
+			svga_wcrt_mask(VGABASE, 0x79, BIT(2) | BIT(1),
+					BIT(2) | BIT(1));
+		} else if (VIA_HOR_EXPAND & scale_type) {
+			/* Horizontal scaling disable */
+			svga_wcrt_mask(VGABASE, 0xA2, BIT(7), BIT(7));
+			/* hor scaling : Interpolation */
+			svga_wcrt_mask(VGABASE, 0x79, BIT(1), BIT(1));
+		} else if (VIA_VER_EXPAND & scale_type) {
+			/* Vertical scaling disable */
+			svga_wcrt_mask(VGABASE, 0xA2, BIT(3), BIT(3));
+			/* ver scaling : Interpolation */
+			svga_wcrt_mask(VGABASE, 0x79, BIT(2), BIT(2));
+		}
+	} else {
+		/* IGA1 scalings enable */
+		if (VIA_SHRINK & scale_type) {
+			via_set_scale_path(crtc, VIA_SHRINK);
+
+			/* Horizontal and Vertical scaling enable */
+			svga_wcrt_mask(VGABASE, 0xA2,
+					BIT(7) | BIT(3), BIT(7) | BIT(3));
+			/* enable IGA down scaling */
+			svga_wcrt_mask(VGABASE, 0x89, BIT(0), BIT(0));
+			/* hor and ver scaling : Interpolation */
+			svga_wcrt_mask(VGABASE, 0x79,
+					BIT(2) | BIT(1), BIT(2) | BIT(1));
+		}
+
+		if (VIA_EXPAND & scale_type) {
+			via_set_scale_path(crtc, VIA_EXPAND);
+			/* enable IGA up scaling */
+			svga_wcrt_mask(VGABASE, 0x79, BIT(0), BIT(0));
+		}
+
+		if ((VIA_EXPAND & scale_type) == VIA_EXPAND) {
+			/* Horizontal and Vertical scaling enable */
+			svga_wcrt_mask(VGABASE, 0xA2,
+					BIT(7) | BIT(3), BIT(7) | BIT(3));
+			/* hor and ver scaling : Interpolation */
+			svga_wcrt_mask(VGABASE, 0x79,
+					BIT(2) | BIT(1), BIT(2) | BIT(1));
+		} else if (VIA_HOR_EXPAND & scale_type) {
+			/* Horizontal scaling disable */
+			svga_wcrt_mask(VGABASE, 0xA2, BIT(7), BIT(7));
+			/* hor scaling : Interpolation */
+			svga_wcrt_mask(VGABASE, 0x79, BIT(1), BIT(1));
+		} else if (VIA_VER_EXPAND & scale_type) {
+			/* Vertical scaling disable */
+			svga_wcrt_mask(VGABASE, 0xA2, BIT(3), BIT(3));
+			/* ver scaling : Interpolation */
+			svga_wcrt_mask(VGABASE, 0x79, BIT(2), BIT(2));
+		}
+	}
+	return true;
+}
+
+/*
+ * 1. get scale factors from source and dest H & V size
+ * 2. load scale factors into registers
+ * 3. enable H or V scale ( set CRA2 bit7 or bit3 )
+ */
+bool
+via_load_iga_scale_factor_regs(struct drm_via_private *dev_priv,
+				struct drm_display_mode *mode,
+				struct drm_display_mode *adjusted_mode,
+				u32 scale_type, u32 is_hor_or_ver)
+{
+	u32 dst_hor_regs = adjusted_mode->crtc_hdisplay;
+	u32 dst_ver_regs = adjusted_mode->crtc_vdisplay;
+	u32 src_hor_regs = mode->crtc_hdisplay;
+	u32 src_ver_regs = mode->crtc_vdisplay;
+	u32 hor_factor = 0, ver_factor = 0;
+	struct vga_registers reg;
+
+	if ((0 == src_hor_regs) || (0 == src_ver_regs) ||
+		(0 == dst_hor_regs) || (0 == dst_ver_regs))
+		return false;
+
+	if (VIA_EXPAND == scale_type) {
+		if (HOR_SCALE & is_hor_or_ver) {
+			hor_factor = ((src_hor_regs - 1) * 4096) /
+				(dst_hor_regs - 1);
+			reg.count = ARRAY_SIZE(lcd_hor_scaling);
+			reg.regs = lcd_hor_scaling;
+			load_value_to_registers(VGABASE, &reg, hor_factor);
+			/* Horizontal scaling enable */
+			svga_wcrt_mask(VGABASE, 0xA2, BIT(7), BIT(7));
+		}
+
+		if (VER_SCALE & is_hor_or_ver) {
+			ver_factor = ((src_ver_regs - 1) * 2048) /
+				(dst_ver_regs - 1);
+			reg.count = ARRAY_SIZE(lcd_ver_scaling);
+			reg.regs = lcd_ver_scaling;
+			load_value_to_registers(VGABASE, &reg, ver_factor);
+			/* Vertical scaling enable */
+			svga_wcrt_mask(VGABASE, 0xA2, BIT(3), BIT(3));
+		}
+
+	} else if (VIA_SHRINK == scale_type) {
+
+		if (src_hor_regs > dst_hor_regs)
+			hor_factor =
+				((src_hor_regs - dst_hor_regs) * 4096) /
+				dst_hor_regs;
+
+		if (src_ver_regs > dst_ver_regs)
+			ver_factor =
+				((src_ver_regs - dst_ver_regs) * 2048) /
+				dst_ver_regs;
+
+		reg.count = ARRAY_SIZE(lcd_hor_scaling);
+		reg.regs = lcd_hor_scaling;
+		load_value_to_registers(VGABASE, &reg, hor_factor);
+
+		reg.count = ARRAY_SIZE(lcd_ver_scaling);
+		reg.regs = lcd_ver_scaling;
+		load_value_to_registers(VGABASE, &reg, ver_factor);
+
+		/* set buffer sharing enable bit . */
+		if (hor_factor || ver_factor) {
+			if (dst_hor_regs > 1024)
+				svga_wcrt_mask(VGABASE, 0x89,
+					BIT(7), BIT(7));
+			else
+				svga_wcrt_mask(VGABASE, 0x89,
+					0x00, BIT(7));
+		}
+
+		if (hor_factor)
+			/* CRA2[7]:1 Enable Hor scaling
+			CRA2[6]:1 Linear Mode */
+			svga_wcrt_mask(VGABASE, 0xA2, BIT(7) | BIT(6),
+				BIT(7) | BIT(6));
+		else
+			svga_wcrt_mask(VGABASE, 0xA2, 0, BIT(7));
+
+		if (ver_factor)
+			svga_wcrt_mask(VGABASE, 0xA2, BIT(3), BIT(3));
+		else
+			svga_wcrt_mask(VGABASE, 0xA2, 0, BIT(3));
+	}
+	return true;
+}
+
+void
+via_set_iga2_downscale_source_timing(struct drm_crtc *crtc,
+					struct drm_display_mode *mode,
+					struct drm_display_mode *adjusted_mode)
+{
+	unsigned int viewx = adjusted_mode->hdisplay, viewy = adjusted_mode->vdisplay;
+	unsigned int srcx = mode->crtc_hdisplay, srcy = mode->crtc_vdisplay;
+	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
+	struct drm_display_mode *src_timing;
+
+	src_timing = drm_mode_duplicate(crtc->dev, adjusted_mode);
+	/* derived source timing */
+	if (srcx <= viewx) {
+		src_timing->crtc_htotal = adjusted_mode->crtc_htotal;
+		src_timing->crtc_hdisplay = adjusted_mode->crtc_hdisplay;
+	} else {
+		unsigned int htotal = adjusted_mode->crtc_htotal - adjusted_mode->crtc_hdisplay;
+
+		src_timing->crtc_htotal = htotal + srcx;
+		src_timing->crtc_hdisplay = srcx;
+	}
+	src_timing->crtc_hblank_start = src_timing->crtc_hdisplay;
+	src_timing->crtc_hblank_end = src_timing->crtc_htotal;
+	src_timing->crtc_hsync_start = src_timing->crtc_hdisplay + 2;
+	src_timing->crtc_hsync_end = src_timing->crtc_hsync_start + 1;
+
+	if (srcy <= viewy) {
+		src_timing->crtc_vtotal = adjusted_mode->crtc_vtotal;
+		src_timing->crtc_vdisplay = adjusted_mode->crtc_vdisplay;
+	} else {
+		unsigned int vtotal = adjusted_mode->crtc_vtotal - adjusted_mode->crtc_vdisplay;
+
+		src_timing->crtc_vtotal = vtotal + srcy;
+		src_timing->crtc_vdisplay = srcy;
+	}
+	src_timing->crtc_vblank_start = src_timing->crtc_vdisplay;
+	src_timing->crtc_vblank_end = src_timing->crtc_vtotal;
+	src_timing->crtc_vsync_start = src_timing->crtc_vdisplay + 2;
+	src_timing->crtc_vsync_end = src_timing->crtc_vsync_start + 1;
+
+	via_set_scale_path(crtc, VIA_NO_SCALING);
+	/* load src timing */
+	via_load_crtc_timing(iga, src_timing);
+
+	/* Cleanup up source timings */
+	drm_mode_destroy(crtc->dev, src_timing);
+}
+
 static void
 drm_mode_crtc_load_lut(struct drm_crtc *crtc)
 {
@@ -585,28 +907,97 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 		svga_wcrt_mask(VGABASE, 0x11, 0x00, BIT(6));
 	}
 
-	/* Write CRTC */
-	via_load_crtc_timing(iga, adjusted_mode);
+	/* disable IGA scales first */
+	via_disable_iga_scaling(crtc);
 
-	/* Patch the IGA1 ECK clock */
-	if (!iga->index) {
-		u8 reg_value = 0;
+	/* Load crtc timing and IGA scaling */
+	if (iga->scaling_mode & VIA_SHRINK) {
+		/* I. down scaling */
+		if (iga->index) {
+			/* enable IGA2 down scaling and set Interpolation */
+			via_set_iga_scale_function(crtc, VIA_SHRINK);
 
-		switch (adjusted_mode->crtc_htotal % 8) {
-		case 0:
-		default:
-			break;
-		case 2:
-			reg_value = BIT(7);
-			break;
-		case 4:
-			reg_value = BIT(6);
-			break;
-		case 6:
-			reg_value = BIT(3);
-			break;
+			/* load hor and ver downscaling factor */
+			/**
+			 * interlace modes scaling support(example 1080I):
+			 * we should use mode->crtc_vdisplay here,
+			 * because crtc_vdisplay=540, vdisplay=1080,
+			 * we need 540 here, not 1080.
+			 */
+			via_load_iga_scale_factor_regs(dev_priv, mode,
+							adjusted_mode,
+							VIA_SHRINK,
+							HOR_VER_SCALE);
+			/* load src timing to timing registers */
+			/**
+			 * interlace modes scaling support(example 1080I):
+			 * we should use mode->crtc_vdisplay here,
+			 * because crtc_vdisplay=540, vdisplay=1080,
+			 * we need 540 here, not 1080.
+			 */
+			via_set_iga2_downscale_source_timing(crtc, mode,
+								adjusted_mode);
+
+			/* Download dst timing */
+			via_set_scale_path(crtc, VIA_SHRINK);
+			via_load_crtc_timing(iga, adjusted_mode);
+			/* very necessary to set IGA to none scaling status */
+			/* need to fix why so need. */
+			via_set_scale_path(crtc, VIA_NO_SCALING);
+		} else {
+			/* IGA1 downscaling not supported */
 		}
-		svga_wcrt_mask(VGABASE, 0x47, reg_value, BIT(7) | BIT(6) | BIT(3));
+	} else {
+		/* when not down scaling, we only need load one timing. */
+		via_load_crtc_timing(iga, adjusted_mode);
+
+		/* Patch the IGA1 ECK clock */
+		if (!iga->index) {
+			u8 reg_value = 0;
+
+			switch (adjusted_mode->crtc_htotal % 8) {
+			case 0:
+			default:
+				break;
+			case 2:
+				reg_value = BIT(7);
+				break;
+			case 4:
+				reg_value = BIT(6);
+				break;
+			case 6:
+				reg_value = BIT(3);
+				break;
+			}
+			svga_wcrt_mask(VGABASE, 0x47, reg_value, BIT(7) | BIT(6) | BIT(3));
+		}
+
+		/* II. up scaling */
+		if (iga->scaling_mode & VIA_EXPAND) {
+			if (iga->index) {
+				/* Horizontal scaling */
+				if (iga->scaling_mode & VIA_HOR_EXPAND) {
+					via_set_iga_scale_function(crtc,
+								VIA_HOR_EXPAND);
+					via_load_iga_scale_factor_regs(dev_priv,
+							mode, adjusted_mode,
+							VIA_EXPAND, HOR_SCALE);
+				}
+
+				/* Vertical scaling */
+				if (iga->scaling_mode & VIA_VER_EXPAND) {
+					via_set_iga_scale_function(crtc,
+								VIA_VER_EXPAND);
+					via_load_iga_scale_factor_regs(dev_priv,
+							mode, adjusted_mode,
+							VIA_EXPAND, VER_SCALE);
+				}
+			} else {
+				/* IGA1 Upscaling not supported */
+			}
+		} else {
+			/* III. no scaling */
+		}
 	}
 
 	/* Relock */
@@ -641,6 +1032,8 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 	if (adjusted_mode->clock) {
 		u32 clock = adjusted_mode->clock * 1000, pll_regs;
 
+		if (iga->scaling_mode & VIA_SHRINK)
+			clock *= 2;
 		pll_regs = via_get_clk_value(crtc->dev, clock);
 		via_set_vclock(crtc, pll_regs);
 	}
