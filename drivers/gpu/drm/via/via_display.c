@@ -238,6 +238,12 @@ via_set_sync_polarity(struct drm_encoder *encoder, struct drm_display_mode *mode
 		svga_wcrt_mask(VGABASE, 0x99, syncreg, BIT(6) | BIT(5));
 		break;
 
+	/* For TTL Type LCD */
+	case (DISP_DI_DFPL + DISP_DI_DVP1):
+		svga_wcrt_mask(VGABASE, 0x99, syncreg, BIT(6) | BIT(5));
+		svga_wcrt_mask(VGABASE, 0x9B, syncreg, BIT(6) | BIT(5));
+		break;
+
 	default:
 		DRM_ERROR("No DIPort.\n");
 		break;
@@ -420,7 +426,7 @@ via_display_init(struct drm_device *dev)
 	struct drm_via_private *dev_priv = dev->dev_private;
 	u8 index = 0x3D, value;
 
-	/* Check if spread spectrum is enable */
+	/* Check if spread spectrum is enabled */
 	if (dev->pci_device == PCI_DEVICE_ID_VIA_VX900)
 		index = 0x2C;
 
@@ -436,10 +442,10 @@ via_display_init(struct drm_device *dev)
 	} else
 		dev_priv->spread_spectrum = false;
 
-	/* load fixed CRTC timing registers */
+	/* Load fixed CRTC timing registers */
 	via_init_crtc_regs(dev);
 
-	/* 3. Init TD timing register (power sequence) */
+	/* Init TD timing register (power sequence) */
 	via_init_td_timing_regs(dev);
 
 	/* I/O address bit to be 1. Enable access */

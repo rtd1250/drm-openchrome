@@ -74,7 +74,6 @@ via_enable_internal_lvds(struct drm_encoder *encoder)
 
 	/* Turn on LCD panel */
 	if ((enc->diPort & DISP_DI_DFPL) || (enc->diPort == DISP_DI_DVP1)) {
-		/* Software control power sequence */
 		if ((dev->pci_device == PCI_DEVICE_ID_VIA_VT1122) ||
 		    (dev->pci_device == PCI_DEVICE_ID_VIA_CLE266)) {
 			/* Software control power sequence ON */
@@ -356,7 +355,9 @@ via_lcd_detect(struct drm_connector *connector,  bool force)
 		kfree(edid);
 		return connector_status_connected;
 	} else {
-		if (!list_empty(&connector->probed_modes))
+		struct drm_via_private *dev_priv = connector->dev->dev_private;
+
+		if (vga_rcrt(VGABASE, 0x3B) & BIT(1))
 			return connector_status_connected;
 	}
 	return connector_status_disconnected;
@@ -421,21 +422,142 @@ struct drm_connector_funcs via_lcd_connector_funcs = {
 	.destroy = via_connector_destroy,
 };
 
-int via_lcd_get_modes(struct drm_connector *connector)
+static int
+via_lcd_get_modes(struct drm_connector *connector)
 {
 	int count = via_get_edid_modes(connector);
 
+	/* If no edid then we detect the mode using
+	 * the scratch pad registers. */
 	if (!count) {
-		struct drm_display_mode *tmp, *t;
+		struct drm_display_mode *native_mode = NULL;
+		struct drm_device *dev = connector->dev;
 
-		list_for_each_entry_safe(tmp, t, &connector->probed_modes, head)
-			count++;
+		/* OLPC is very special */
+		if (machine_is_olpc()) {
+			native_mode = drm_mode_create(dev);
+
+			native_mode->clock = 56519;
+			native_mode->hdisplay = 1200;
+			native_mode->hsync_start = 1211;
+			native_mode->hsync_end = 1243;
+			native_mode->htotal = 1264;
+			native_mode->hskew = 0;
+			native_mode->vdisplay = 900;
+			native_mode->vsync_start = 901;
+			native_mode->vsync_end = 911;
+			native_mode->vtotal = 912;
+			native_mode->vscan = 0;
+			native_mode->vrefresh = 50;
+			native_mode->hsync = 0;
+		} else {
+			struct drm_via_private *dev_priv = dev->dev_private;
+			u8 reg_value = (vga_rcrt(VGABASE, 0x3F) & 0x0F);
+			int hdisplay = 0, vdisplay = 0;
+
+			switch (reg_value) {
+			case 0x00:
+				hdisplay = 640;
+				vdisplay = 480;
+				break;
+
+			case 0x01:
+				hdisplay = 800;
+				vdisplay = 600;
+				break;
+
+			case 0x02:
+				hdisplay = 1024;
+				vdisplay = 768;
+				break;
+
+			case 0x03:
+				hdisplay = 1280;
+				vdisplay = 768;
+				break;
+
+			case 0x04:
+				hdisplay = 1280;
+				vdisplay = 1024;
+				break;
+
+			case 0x05:
+				hdisplay = 1400;
+				vdisplay = 1050;
+				break;
+
+			case 0x06:
+				hdisplay = 1440;
+				vdisplay = 900;
+				break;
+
+			case 0x07:
+				hdisplay = 1280;
+				vdisplay = 800;
+				break;
+
+			case 0x08:
+				hdisplay = 800;
+				vdisplay = 480;
+				break;
+
+			case 0x09:
+				hdisplay = 1024;
+				vdisplay = 600;
+				break;
+
+			case 0x0A:
+				hdisplay = 1366;
+				vdisplay = 768;
+				break;
+
+			case 0x0B:
+				hdisplay = 1600;
+				vdisplay = 1200;
+				break;
+
+			case 0x0C:
+				hdisplay = 1280;
+				vdisplay = 768;
+				break;
+
+			case 0x0D:
+				hdisplay = 1280;
+				vdisplay = 1024;
+				break;
+
+			case 0x0E:
+				hdisplay = 1600;
+				vdisplay = 1200;
+				break;
+
+			case 0x0F:
+				hdisplay = 480;
+				vdisplay = 640;
+				break;
+
+			default:
+				break;
+			}
+
+			if (hdisplay && vdisplay)
+				native_mode = drm_cvt_mode(dev, hdisplay, vdisplay,
+							60, false, false, false);
+		}
+
+		if (native_mode) {
+			native_mode->type = DRM_MODE_TYPE_PREFERRED | DRM_MODE_TYPE_DRIVER;
+			drm_mode_set_name(native_mode);
+			drm_mode_probed_add(connector, native_mode);
+			count = 1;
+		}
 	}
 	return count;
 }
 
-int via_lcd_mode_valid(struct drm_connector *connector,
-                struct drm_display_mode *mode)
+static int
+via_lcd_mode_valid(struct drm_connector *connector,
+			struct drm_display_mode *mode)
 {
 	struct drm_property *prop = connector->dev->mode_config.scaling_mode_property;
 	struct drm_display_mode *native_mode = NULL, *tmp, *t;
@@ -474,6 +596,7 @@ int via_lcd_mode_valid(struct drm_connector *connector,
 		if ((mode->hdisplay > native_mode->hdisplay) &&
 		    (mode->vdisplay < native_mode->vdisplay))
 			return MODE_PANEL;
+
 		if ((mode->hdisplay < native_mode->hdisplay) &&
 		    (mode->vdisplay > native_mode->vdisplay))
 			return MODE_PANEL;
@@ -516,17 +639,20 @@ via_lvds_init(struct drm_device *dev)
 	struct via_encoder *enc;
 	struct edid *edid;
 	u8 reg_value;
+	void *par;
 
-	con = kzalloc(sizeof(*con), GFP_KERNEL);
-	if (!con) {
-		DRM_INFO("allocate the connector error\n");
+	par = kzalloc(sizeof(*enc) + sizeof(*con), GFP_KERNEL);
+	if (!par) {
+		DRM_INFO("Failed to allocate LVDS output\n");
 		return;
 	}
-	con->base.interlace_allowed = false;
-	con->base.doublescan_allowed = false;
+	con = par + sizeof(*enc);
+	enc = par;
+
 	drm_connector_init(dev, &con->base, &via_lcd_connector_funcs,
 				DRM_MODE_CONNECTOR_LVDS);
 	drm_connector_helper_add(&con->base, &via_lcd_connector_helper_funcs);
+	drm_sysfs_connector_add(&con->base);
 
 	switch (dev->pci_device) {
 	case PCI_DEVICE_ID_VIA_VX875:
@@ -540,28 +666,7 @@ via_lvds_init(struct drm_device *dev)
 
 	edid = drm_get_edid(&con->base, con->ddc_bus);
 	if (!edid) {
-		struct drm_display_mode *native_mode = NULL;
-
-		/* OLPC is very special */
-		if (machine_is_olpc()) {
-			native_mode = drm_mode_create(dev);
-
-			native_mode->clock = 56519;
-			native_mode->hdisplay = 1200;
-			native_mode->hsync_start = 1211;
-			native_mode->hsync_end = 1243;
-			native_mode->htotal = 1264;
-			native_mode->hskew = 0;
-			native_mode->vdisplay = 900;
-			native_mode->vsync_start = 901;
-			native_mode->vsync_end = 911;
-			native_mode->vtotal = 912;
-			native_mode->vscan = 0;
-			native_mode->vrefresh = 50;
-			native_mode->hsync = 0;
-		} else {
-			int hdisplay = 0, vdisplay = 0;
-
+		if (!machine_is_olpc()) {
 			/* First we have to make sure a LVDS is present */
 			reg_value = (vga_rcrt(VGABASE, 0x3B) & BIT(1));
 			if (!reg_value)
@@ -571,111 +676,36 @@ via_lvds_init(struct drm_device *dev)
 			 * the scratch pad registers. */
 			reg_value = (vga_rcrt(VGABASE, 0x3F) & 0x0F);
 
-			DRM_DEBUG("panel index %x detected\n", reg_value);
 			switch (reg_value) {
-			case 0x00:
-				hdisplay = 640;
-				vdisplay = 480;
-				break;
-
-			case 0x01:
-				hdisplay = 800;
-				vdisplay = 600;
-				break;
-
-			case 0x02:
-				hdisplay = 1024;
-				vdisplay = 768;
-				break;
-
-			case 0x03:
-				hdisplay = 1152;
-				vdisplay = 864;
-				break;
-
 			case 0x04:
-				dual_channel = true;
-				hdisplay = 1280;
-				vdisplay = 1024;
-				break;
-
 			case 0x05:
-				dual_channel = true;
-				hdisplay = 1400;
-				vdisplay = 1050;
-				break;
-
 			case 0x06:
-				dual_channel = true;
-				hdisplay = 1600;
-				vdisplay = 1200;
-				break;
-
-			case 0x08:
-				hdisplay = 800;
-				vdisplay = 480;
-				break;
-
 			case 0x09:
-				dual_channel = true;
-				hdisplay = 1024;
-				vdisplay = 768;
-				break;
-
-			case 0x0A:
-				hdisplay = 1368;
-				vdisplay = 768;
-				break;
-
 			case 0x0B:
-				dual_channel = true;
-				hdisplay = 1024;
-				vdisplay = 768;
-				break;
-
 			case 0x0D:
-				dual_channel = true;
-				hdisplay = 1280;
-				vdisplay = 1024;
-				break;
-
 			case 0x0E:
-				dual_channel = true;
-				hdisplay = 1400;
-				vdisplay = 1050;
-				break;
-
 			case 0x0F:
 				dual_channel = true;
-				hdisplay = 1600;
-				vdisplay = 1200;
 				break;
 
 			default:
 				break;
 			}
 
-			if (hdisplay && vdisplay)
-				native_mode = drm_cvt_mode(dev, hdisplay, vdisplay,
-							60, false, false, false);
+			DRM_DEBUG("panel index %x detected\n", reg_value);
 
 			if (reg_value < 0x0A)
 				dither = DRM_MODE_DITHERING_ON;
 		}
-		if (!native_mode)
-			goto no_device;
-
-		native_mode->type = DRM_MODE_TYPE_PREFERRED | DRM_MODE_TYPE_DRIVER;
-		drm_mode_set_name(native_mode);
-		drm_mode_probed_add(&con->base, native_mode);
 	} else {
-		drm_mode_connector_update_edid_property(&con->base, edid);
-		kfree(edid);
-
 		/* 00 LVDS1 + LVDS2  10 = Dual channel. Other are reserved */
 		if ((vga_rseq(VGABASE, 0x13) >> 6) == 2)
 			dual_channel = true;
+
+		kfree(edid);
 	}
+	con->base.doublescan_allowed = false;
+	con->base.interlace_allowed = false;
 
 	drm_mode_create_scaling_mode_property(dev);
 	drm_object_attach_property(&con->base.base,
@@ -689,14 +719,11 @@ via_lvds_init(struct drm_device *dev)
 	via_lcd_set_property(&con->base, dev->mode_config.dithering_mode_property,
 				dither);
 
-	drm_sysfs_connector_add(&con->base);
-
 	/* Now setup the encoder */
-	enc = kzalloc(sizeof(*enc), GFP_KERNEL);
-	if (!enc) {
-		DRM_INFO("allocate the encoder error\n");
-		goto no_device;
-	}
+	drm_encoder_init(dev, &enc->base, &via_lvds_enc_funcs,
+				DRM_MODE_ENCODER_LVDS);
+	drm_encoder_helper_add(&enc->base, &via_lvds_helper_funcs);
+
 	enc->base.possible_crtcs = BIT(1) | BIT(0);
 
 	switch (dev->pci_device) {
@@ -733,14 +760,11 @@ via_lvds_init(struct drm_device *dev)
 	if (dual_channel)
 		enc->flags |= LVDS_DUAL_CHANNEL;
 
-	drm_encoder_init(dev, &enc->base, &via_lvds_enc_funcs,
-				DRM_MODE_ENCODER_LVDS);
-	drm_encoder_helper_add(&enc->base, &via_lvds_helper_funcs);
-
+	/* Put it all together */
 	drm_mode_connector_attach_encoder(&con->base, &enc->base);
 	return;
 
 no_device:
 	drm_connector_cleanup(&con->base);
-	kfree(con);
+	kfree(par);
 }

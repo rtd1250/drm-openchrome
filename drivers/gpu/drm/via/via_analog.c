@@ -163,22 +163,22 @@ via_analog_init(struct drm_device *dev)
 	enc = par;
 
 	/* Piece together our connector */
-	con->ddc_bus = via_find_ddc_bus(0x26);
 	drm_connector_init(dev, &con->base, &via_analog_connector_funcs,
 				DRM_MODE_CONNECTOR_VGA);
 	drm_connector_helper_add(&con->base, &via_analog_connector_helper_funcs);
+	drm_sysfs_connector_add(&con->base);
 
-	con->base.interlace_allowed = true;
+	con->ddc_bus = via_find_ddc_bus(0x26);
 	con->base.doublescan_allowed = false;
+	con->base.interlace_allowed = true;
 
 	/* Setup the encoders and attach them */
 	drm_encoder_init(dev, &enc->base, &via_dac_enc_funcs, DRM_MODE_ENCODER_DAC);
 	drm_encoder_helper_add(&enc->base, &via_dac_enc_helper_funcs);
-	enc->base.possible_clones = 0;
+
 	enc->base.possible_crtcs = BIT(1) | BIT(0);
+	enc->base.possible_clones = 0;
 	enc->diPort = DISP_DI_DAC;
 
 	drm_mode_connector_attach_encoder(&con->base, &enc->base);
-
-	drm_sysfs_connector_add(&con->base);
 }
