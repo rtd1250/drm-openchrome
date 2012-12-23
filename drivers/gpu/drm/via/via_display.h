@@ -133,7 +133,7 @@ extern void via_set_vclock(struct drm_crtc *crtc, u32 clk);
 
 /* framebuffers */
 extern int via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **ptr);
-extern void via_framebuffer_fini(struct drm_fb_helper *helper);
+extern void via_framebuffer_fini(struct drm_device *dev);
 
 /* crtc */
 extern void via_crtc_init(struct drm_device *dev, int index);

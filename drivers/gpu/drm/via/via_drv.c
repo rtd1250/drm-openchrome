@@ -274,10 +274,19 @@ static int via_driver_unload(struct drm_device *dev)
 		ttm_bo_unref(&bo);
 	}
 
-	ttm_bo_clean_mm(&dev_priv->bdev, TTM_PL_PRIV0);
-	ttm_bo_clean_mm(&dev_priv->bdev, TTM_PL_VRAM);
-	ttm_bo_clean_mm(&dev_priv->bdev, TTM_PL_TT);
+	/* mtrr delete the vram */
+	if (drm_core_has_MTRR(dev) && (dev_priv->vram_mtrr >= 0)) {
+		int size = dev_priv->bdev.man[TTM_PL_VRAM].size;
+		unsigned long long vram_start;
 
+		if (dev->pci_device == PCI_DEVICE_ID_VIA_VX900)
+			vram_start = pci_resource_start(dev->pdev, 2);
+		else
+			vram_start = pci_resource_start(dev->pdev, 0);
+		mtrr_del(dev_priv->vram_mtrr, vram_start, size);
+	}
+
+	ttm_bo_device_release(&dev_priv->bdev);
 	ttm_global_fini(&dev_priv->mem_global_ref,
 			&dev_priv->bo_global_ref,
 			&dev_priv->bdev);

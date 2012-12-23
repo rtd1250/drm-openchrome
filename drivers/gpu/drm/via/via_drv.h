@@ -104,6 +104,7 @@ struct drm_via_private {
 	struct ttm_bo_kmap_obj vq;
 
 	struct drm_fb_helper *helper;
+	int vram_mtrr;
 	u8 vram_type;
 
 	struct via_state pm_cache;

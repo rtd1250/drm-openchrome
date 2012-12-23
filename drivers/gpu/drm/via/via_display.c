@@ -491,10 +491,7 @@ via_modeset_init(struct drm_device *dev)
 
 void via_modeset_fini(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
-
-	via_framebuffer_fini(dev_priv->helper);
-
+	via_framebuffer_fini(dev);
 	drm_mode_config_cleanup(dev);
 
 	via_i2c_exit();

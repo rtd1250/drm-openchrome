@@ -22,8 +22,6 @@
  */
 #include "drmP.h"
 #include "via_drv.h"
-
-#include "drm_pciids.h"
 #include "drm_fb_helper.h"
 #include "drm_crtc_helper.h"
 
@@ -898,6 +896,11 @@ int via_detect_vram(struct drm_device *dev)
 		break;
 	}
 
+	/* Add an MTRR for the VRAM */
+	if (drm_core_has_MTRR(dev))
+		dev_priv->vram_mtrr = mtrr_add(vram_start, vram_size,
+						MTRR_TYPE_WRCOMB, 1);
+
 	ret = ttm_bo_init_mm(&dev_priv->bdev, TTM_PL_VRAM, vram_size >> PAGE_SHIFT);
 	if (!ret) {
 		DRM_INFO("Detected %llu MB of %s Video RAM at physical address 0x%08llx.\n",
@@ -931,6 +934,7 @@ via_user_framebuffer_destroy(struct drm_framebuffer *fb)
 		fb->helper_private = NULL;
 	}
 	drm_framebuffer_cleanup(fb);
+	kfree(fb);
 }
 
 static const struct drm_framebuffer_funcs via_fb_funcs = {
@@ -941,6 +945,9 @@ static const struct drm_framebuffer_funcs via_fb_funcs = {
 static void
 via_output_poll_changed(struct drm_device *dev)
 {
+	struct drm_via_private *dev_priv = dev->dev_private;
+
+	drm_fb_helper_hotplug_event(dev_priv->helper);
 }
 
 static struct drm_framebuffer *
@@ -954,7 +961,8 @@ via_user_framebuffer_create(struct drm_device *dev,
 
 	obj = drm_gem_object_lookup(dev, file_priv, mode_cmd->handles[0]);
 	if (obj ==  NULL) {
-		DRM_ERROR("No GEM object available to create framebuffer\n");
+		DRM_ERROR("No GEM object found for handle 0x%08X\n",
+				mode_cmd->handles[0]);
 		return ERR_PTR(-ENOENT);
 	}
 
@@ -1009,7 +1017,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 							sizes->surface_depth);
 	mode_cmd.pitches[0] = (mode_cmd.width * sizes->surface_bpp >> 3);
 	mode_cmd.pitches[0] = round_up(mode_cmd.pitches[0], 16);
-	size= mode_cmd.pitches[0] * mode_cmd.height;
+	size = mode_cmd.pitches[0] * mode_cmd.height;
 	size = ALIGN(size, PAGE_SIZE);
 
 	obj = drm_gem_object_alloc(helper->dev, size);
@@ -1020,15 +1028,15 @@ via_fb_probe(struct drm_fb_helper *helper,
 	ret = ttm_bo_allocate(&dev_priv->bdev, size, ttm_bo_type_kernel,
 				TTM_PL_FLAG_VRAM, 1, PAGE_SIZE, false,
 				NULL, obj->filp, &kmap->bo);
-	if (ret)
+	if (unlikely(ret))
 		goto out_err;
 
 	ret = ttm_bo_pin(kmap->bo, kmap);
-	if (ret)
+	if (unlikely(ret))
 		goto out_err;
 
 	ret = drm_framebuffer_init(helper->dev, fb, &via_fb_funcs);
-	if (ret)
+	if (unlikely(ret))
 		goto out_err;
 
 	obj->driver_private = kmap->bo;
@@ -1040,13 +1048,15 @@ via_fb_probe(struct drm_fb_helper *helper,
 
 	info->fix.smem_start = kmap->bo->mem.bus.base +
 				kmap->bo->mem.bus.offset;
-	info->fix.smem_len = kmap->bo->num_pages << PAGE_SHIFT;
-	info->screen_size = kmap->bo->num_pages << PAGE_SHIFT;
+	info->fix.smem_len = info->screen_size = size;
 	info->screen_base = kmap->virtual;
 
+	/* setup aperture base/size for takeover (vesafb, efifb etc) */
 	ap = alloc_apertures(1);
-	if (!ap)
+	if (!ap) {
+		drm_framebuffer_cleanup(fb);
 		goto out_err;
+	}
 	ap->ranges[0].size = kmap->bo->bdev->man[kmap->bo->mem.mem_type].size;
 	ap->ranges[0].base = kmap->bo->mem.bus.base;
 	info->apertures = ap;
@@ -1066,9 +1076,7 @@ out_err:
 			drm_gem_object_unreference_unlocked(obj);
 			helper->fb->helper_private = NULL;
 		}
-
-		if (ptr)
-			kfree(ptr);
+		kfree(ptr);
 	}
 	return ret;
 }
@@ -1078,12 +1086,32 @@ static void
 via_fb_gamma_set(struct drm_crtc *crtc, u16 red, u16 green,
 		u16 blue, int regno)
 {
+	int size = crtc->gamma_size * sizeof(uint16_t);
+	u16 *r_base, *g_base, *b_base;
+
+	r_base = crtc->gamma_store;
+	g_base = r_base + size;
+	b_base = g_base + size;
+
+	r_base[regno] = red;
+	g_base[regno] = green;
+	b_base[regno] = blue;
 }
 
 static void
 via_fb_gamma_get(struct drm_crtc *crtc, u16 *red, u16 *green,
 		u16 *blue, int regno)
 {
+	int size = crtc->gamma_size * sizeof(uint16_t);
+	u16 *r_base, *g_base, *b_base;
+
+	r_base = crtc->gamma_store;
+	g_base = r_base + size;
+	b_base = g_base + size;
+
+	*red = r_base[regno];
+	*green = g_base[regno];
+	*blue = b_base[regno];
 }
 
 static struct drm_fb_helper_funcs via_fb_helper_funcs = {
@@ -1092,7 +1120,8 @@ static struct drm_fb_helper_funcs via_fb_helper_funcs = {
 	.fb_probe = via_fb_probe,
 };
 
-int drmfb_helper_pan_display(struct fb_var_screeninfo *var,
+int
+drmfb_helper_pan_display(struct fb_var_screeninfo *var,
 				struct fb_info *info)
 {
 	struct drm_fb_helper *fb_helper = info->par;
@@ -1130,20 +1159,21 @@ int drmfb_helper_pan_display(struct fb_var_screeninfo *var,
 }
 
 static struct fb_ops viafb_ops = {
-	.owner = THIS_MODULE,
-	.fb_check_var = drm_fb_helper_check_var,
-	.fb_set_par = drm_fb_helper_set_par,
-	.fb_fillrect = cfb_fillrect,
-	.fb_copyarea = cfb_copyarea,
-	.fb_imageblit = cfb_imageblit,
-	.fb_pan_display = drmfb_helper_pan_display,
-	.fb_blank = drm_fb_helper_blank,
-	.fb_setcmap = drm_fb_helper_setcmap,
-	.fb_debug_enter = drm_fb_helper_debug_enter,
-	.fb_debug_leave = drm_fb_helper_debug_leave,
+	.owner		= THIS_MODULE,
+	.fb_check_var	= drm_fb_helper_check_var,
+	.fb_set_par	= drm_fb_helper_set_par,
+	.fb_fillrect	= cfb_fillrect,
+	.fb_copyarea	= cfb_copyarea,
+	.fb_imageblit	= cfb_imageblit,
+	.fb_pan_display	= drmfb_helper_pan_display,
+	.fb_blank	= drm_fb_helper_blank,
+	.fb_setcmap	= drm_fb_helper_setcmap,
+	.fb_debug_enter	= drm_fb_helper_debug_enter,
+	.fb_debug_leave	= drm_fb_helper_debug_leave,
 };
 
-int via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **ptr)
+int
+via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **ptr)
 {
 	struct drm_fb_helper *helper;
 	struct fb_info *info;
@@ -1152,8 +1182,10 @@ int via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **ptr)
 	dev->mode_config.funcs = (void *)&via_mode_funcs;
 
 	info = framebuffer_alloc(sizeof(*helper), dev->dev);
-	if (!info)
+	if (!info) {
+		DRM_ERROR("allocate fb_info error\n");
 		return ret;
+	}
 
 	helper = info->par;
 	helper->fbdev = info;
@@ -1187,12 +1219,15 @@ int via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **ptr)
 	*ptr = helper;
 out_err:
 	if (ret)
-		kfree(info);
+		framebuffer_release(info);
 	return ret;
 }
 
-void via_framebuffer_fini(struct drm_fb_helper *helper)
+void
+via_framebuffer_fini(struct drm_device *dev)
 {
+	struct drm_via_private *dev_priv = dev->dev_private;
+	struct drm_fb_helper *helper = dev_priv->helper;
 	struct ttm_bo_kmap_obj *kmap = helper->helper_private;
 	struct fb_info *info = helper->fbdev;
 	struct drm_gem_object *obj;
@@ -1221,4 +1256,7 @@ void via_framebuffer_fini(struct drm_fb_helper *helper)
 	}
 	drm_fb_helper_fini(helper);
 	drm_framebuffer_cleanup(helper->fb);
+
+	kfree(dev_priv->helper);
+	dev_priv->helper = NULL;
 }
