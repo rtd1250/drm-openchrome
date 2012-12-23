@@ -765,6 +765,7 @@ via_lvds_init(struct drm_device *dev)
 	return;
 
 no_device:
+	drm_sysfs_connector_remove(&con->base);
 	drm_connector_cleanup(&con->base);
 	kfree(par);
 }
