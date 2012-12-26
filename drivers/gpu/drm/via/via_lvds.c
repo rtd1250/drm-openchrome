@@ -144,8 +144,6 @@ via_enable_internal_lvds(struct drm_encoder *encoder)
 			svga_wcrt_mask(VGABASE, 0xD2, 0x00, BIT(7));
 		else if (enc->diPort & DISP_DI_DFPH)
 			svga_wcrt_mask(VGABASE, 0xD2, 0x00, BIT(6));
-		else
-			DRM_ERROR("invalid diPort\n");
 	}
 }
 
@@ -218,8 +216,6 @@ via_disable_internal_lvds(struct drm_encoder *encoder)
 			svga_wcrt_mask(VGABASE, 0xD2, BIT(7), BIT(7));
 		else if (enc->diPort & DISP_DI_DFPH)
 			svga_wcrt_mask(VGABASE, 0xD2, BIT(6), BIT(6));
-		else
-			DRM_ERROR("invalid diPort\n");
 	}
 }
 
@@ -348,17 +344,25 @@ static enum drm_connector_status
 via_lcd_detect(struct drm_connector *connector,  bool force)
 {
 	struct via_connector *con = container_of(connector, struct via_connector, base);
+	enum drm_connector_status ret = connector_status_disconnected;
 	struct edid *edid = drm_get_edid(&con->base, con->ddc_bus);
 
 	if (edid) {
 		drm_mode_connector_update_edid_property(&con->base, edid);
 		kfree(edid);
-		return connector_status_connected;
+		ret = connector_status_connected;
 	} else {
 		struct drm_via_private *dev_priv = connector->dev->dev_private;
+		u8 mask = BIT(1);
 
-		if (vga_rcrt(VGABASE, 0x3B) & BIT(1))
-			return connector_status_connected;
+		if (connector->dev->pci_device == PCI_DEVICE_ID_VIA_CLE266)
+			mask = BIT(3);
+
+		if (vga_rcrt(VGABASE, 0x3B) & mask)
+			ret = connector_status_connected;
+
+		if (machine_is_olpc())
+			ret = connector_status_connected;
 	}
 	return connector_status_disconnected;
 }
@@ -667,8 +671,13 @@ via_lvds_init(struct drm_device *dev)
 	edid = drm_get_edid(&con->base, con->ddc_bus);
 	if (!edid) {
 		if (!machine_is_olpc()) {
+			u8 mask = BIT(1);
+
+			if (dev->pci_device == PCI_DEVICE_ID_VIA_CLE266)
+				mask = BIT(3);
+
 			/* First we have to make sure a LVDS is present */
-			reg_value = (vga_rcrt(VGABASE, 0x3B) & BIT(1));
+			reg_value = (vga_rcrt(VGABASE, 0x3B) & mask);
 			if (!reg_value)
 				goto no_device;
 
