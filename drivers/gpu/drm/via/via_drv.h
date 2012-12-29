@@ -118,10 +118,6 @@ struct drm_via_private {
 	void __iomem *last_pause_ptr;
 	void __iomem *hw_addr_ptr;
 
-	struct timeval last_vblank;
-	int last_vblank_valid;
-	unsigned usec_per_vblank;
-
 	char pci_buf[VIA_PCI_BUF_SIZE];
 	const uint32_t *fire_offsets[VIA_FIRE_BUF_SIZE];
 	uint32_t num_fire_offsets;
