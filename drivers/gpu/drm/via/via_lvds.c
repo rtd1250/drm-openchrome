@@ -364,7 +364,7 @@ via_lcd_detect(struct drm_connector *connector,  bool force)
 		if (machine_is_olpc())
 			ret = connector_status_connected;
 	}
-	return connector_status_disconnected;
+	return ret;
 }
 
 static int
