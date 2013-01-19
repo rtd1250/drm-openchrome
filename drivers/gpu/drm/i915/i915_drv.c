@@ -565,6 +565,7 @@ static int __i915_drm_thaw(struct drm_device *dev)
 		intel_modeset_init_hw(dev);
 		intel_modeset_setup_hw_state(dev, false);
 		drm_irq_install(dev);
+		intel_hpd_init(dev);
 	}
 
 	intel_opregion_init(dev);
@@ -870,6 +871,7 @@ int i915_reset(struct drm_device *dev)
 
 		drm_irq_uninstall(dev);
 		drm_irq_install(dev);
+		intel_hpd_init(dev);
 	} else {
 		mutex_unlock(&dev->struct_mutex);
 	}
@@ -877,8 +879,7 @@ int i915_reset(struct drm_device *dev)
 	return 0;
 }
 
-static int __devinit
-i915_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
+static int i915_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 {
 	struct intel_device_info *intel_info =
 		(struct intel_device_info *) ent->driver_data;
