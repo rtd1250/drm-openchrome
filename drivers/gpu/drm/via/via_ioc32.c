@@ -195,11 +195,87 @@ via_gem_alloc(struct drm_device *dev, void *data,
 		if (!ret) {
 			struct ttm_buffer_object *bo = obj->driver_private;
 
+			args->domains = bo->mem.placement & TTM_PL_MASK_MEM;
 			args->map_handle = bo->addr_space_offset;
 			args->offset = bo->offset;
 			args->size = bo->mem.size;
+
+			obj->read_domains = obj->write_domain = args->domains;
 		}
 	}
+	return ret;
+}
+
+static int
+via_gem_state(struct drm_device *dev, void *data, struct drm_file *file_priv)
+{
+	struct ttm_buffer_object *bo = NULL;
+	struct drm_gem_create *args = data;
+	struct drm_gem_object *obj = NULL;
+	struct ttm_placement placement;
+	int ret = -EINVAL;
+
+	obj = drm_gem_object_lookup(dev, file_priv, args->handle);
+	if (!obj || !obj->driver_private)
+		return ret;
+
+	bo = obj->driver_private;
+
+	/* Don't bother to migrate to same domain */
+	args->domains &= ~(bo->mem.placement & TTM_PL_MASK_MEM);
+	if (args->domains) {
+		ret = ttm_bo_reserve(bo, true, false, false, 0);
+		if (unlikely(ret))
+			return ret;
+
+		ttm_placement_from_domain(bo, &placement, args->domains, bo->bdev);
+		ret = ttm_bo_validate(bo, &placement, false, false);
+		ttm_bo_unreserve(bo);
+
+		if (!ret) {
+			args->domains = bo->mem.placement & TTM_PL_MASK_MEM;
+			args->map_handle = bo->addr_space_offset;
+			args->offset = bo->offset;
+			args->size = bo->mem.size;
+
+			obj->read_domains = obj->write_domain = args->domains;
+		}
+	}
+	mutex_lock(&dev->struct_mutex);
+	drm_gem_object_unreference(obj);
+	mutex_unlock(&dev->struct_mutex);
+	return ret;
+}
+
+static int
+via_gem_wait(struct drm_device *dev, void *data, struct drm_file *file_priv)
+{
+	struct drm_via_gem_wait *args = data;
+	struct ttm_buffer_object *bo;
+	struct drm_gem_object *obj;
+	bool no_wait;
+	int ret;
+
+	obj = drm_gem_object_lookup(dev, file_priv, args->handle);
+	if (!obj)
+		return -EINVAL;
+
+	no_wait = (args->no_wait != 0);
+	bo = obj->driver_private;
+
+	ret = ttm_bo_reserve(bo, true, no_wait, false, 0);
+	if (unlikely(ret != 0))
+		return ret;
+
+	spin_lock(&bo->bdev->fence_lock);
+	if (bo->sync_obj)
+		ret = ttm_bo_wait(bo, true, true, no_wait);
+	ttm_bo_unreserve(bo);
+	spin_unlock(&bo->bdev->fence_lock);
+
+	mutex_lock(&dev->struct_mutex);
+	drm_gem_object_unreference(obj);
+	mutex_unlock(&dev->struct_mutex);
 	return ret;
 }
 
@@ -219,6 +295,8 @@ struct drm_ioctl_desc via_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(VIA_WAIT_IRQ, via_wait_irq, DRM_AUTH),
 	DRM_IOCTL_DEF_DRV(VIA_DMA_BLIT, via_dma_blit, DRM_AUTH),
 	DRM_IOCTL_DEF_DRV(VIA_BLIT_SYNC, via_dma_blit_sync, DRM_AUTH),
+	DRM_IOCTL_DEF_DRV(VIA_GEM_WAIT, via_gem_wait, DRM_AUTH),
+	DRM_IOCTL_DEF_DRV(VIA_GEM_STATE, via_gem_state, DRM_AUTH),
 };
 
 int via_max_ioctl = DRM_ARRAY_SIZE(via_ioctls);

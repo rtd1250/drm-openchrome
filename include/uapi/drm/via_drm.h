@@ -75,6 +75,8 @@
 #define DRM_VIA_WAIT_IRQ	0x0d
 #define DRM_VIA_DMA_BLIT	0x0e
 #define DRM_VIA_BLIT_SYNC	0x0f
+#define DRM_VIA_GEM_WAIT	0x10
+#define DRM_VIA_GEM_STATE	0x11
 
 #define DRM_IOCTL_VIA_ALLOCMEM	  DRM_IOWR(DRM_COMMAND_BASE + DRM_VIA_ALLOCMEM, drm_via_mem_t)
 #define DRM_IOCTL_VIA_FREEMEM	  DRM_IOW( DRM_COMMAND_BASE + DRM_VIA_FREEMEM, drm_via_mem_t)
@@ -92,6 +94,8 @@
 #define DRM_IOCTL_VIA_WAIT_IRQ    DRM_IOWR( DRM_COMMAND_BASE + DRM_VIA_WAIT_IRQ, drm_via_irqwait_t)
 #define DRM_IOCTL_VIA_DMA_BLIT    DRM_IOW(DRM_COMMAND_BASE + DRM_VIA_DMA_BLIT, drm_via_dmablit_t)
 #define DRM_IOCTL_VIA_BLIT_SYNC   DRM_IOW(DRM_COMMAND_BASE + DRM_VIA_BLIT_SYNC, drm_via_blitsync_t)
+#define DRM_IOCTL_VIA_GEM_WAIT    DRM_IOW(DRM_COMMAND_BASE + DRM_VIA_GEM_WAIT, struct drm_via_gem_wait)
+#define DRM_IOCTL_VIA_GEM_STATE   DRM_IOWR(DRM_COMMAND_BASE + DRM_VIA_GEM_STATE, struct drm_gem_create)
 
 /* Indices into buf.Setup where various bits of state are mirrored per
  * context and per buffer.  These can be fired at the card as a unit,
@@ -324,6 +328,12 @@ struct drm_gem_create {
 	uint64_t pad2;
 	uint64_t pad3;
 	uint64_t pad4;
+};
+
+struct drm_via_gem_wait {
+	/* the buffer object handle */
+	uint32_t handle;
+	uint32_t no_wait;
 };
 
 #endif				/* _VIA_DRM_H_ */
