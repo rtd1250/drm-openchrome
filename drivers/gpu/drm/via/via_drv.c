@@ -21,7 +21,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
-
+#include <linux/pci.h>
 #include <linux/module.h>
 
 #include <drm/drmP.h>
@@ -35,7 +35,7 @@ int via_modeset = 0;
 MODULE_PARM_DESC(modeset, "Disable/Enable modesetting");
 module_param_named(modeset, via_modeset, int, 0400);
 
-static struct pci_device_id via_pci_table[] __devinitdata = {
+static struct pci_device_id via_pci_table[] = {
 	viadrv_PCI_IDS,
 };
 MODULE_DEVICE_TABLE(pci, via_pci_table);
@@ -54,7 +54,7 @@ MODULE_DEVICE_TABLE(pci, via_pci_table);
 #define VIA_AGP_1X_MODE		0x01
 #define VIA_AGP_FW_MODE		0x10
 
-static int __devinit
+static int
 via_detect_agp(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
@@ -117,7 +117,7 @@ static void via_agp_engine_init(struct drm_via_private *dev_priv)
 }
 #endif
 
-static int __devinit
+static int
 via_mmio_setup(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
@@ -163,7 +163,7 @@ err:
 	return ret;
 }
 
-static void __devinit
+static void
 chip_revision_info(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
@@ -299,7 +299,7 @@ static int via_driver_unload(struct drm_device *dev)
 	return ret;
 }
 
-static int __devinit
+static int
 via_driver_load(struct drm_device *dev, unsigned long chipset)
 {
 	struct drm_via_private *dev_priv;
@@ -447,7 +447,7 @@ static struct drm_driver via_driver = {
 	.patchlevel = DRIVER_PATCHLEVEL,
 };
 
-static int __devinit
+static int
 via_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 {
 	return drm_get_pci_dev(pdev, ent, &via_driver);
@@ -486,7 +486,7 @@ static int __init via_init(void)
 
 	if (via_modeset) {
 		via_pci_driver.probe	= via_pci_probe;
-		via_pci_driver.remove	= __devexit_p(via_pci_remove);
+		via_pci_driver.remove	= via_pci_remove;
 #ifdef CONFIG_PM
 		via_pci_driver.suspend	= via_pci_suspend;
 		via_pci_driver.resume	= via_pci_resume;

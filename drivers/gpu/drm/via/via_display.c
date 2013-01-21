@@ -453,7 +453,7 @@ via_display_init(struct drm_device *dev)
 	svga_wmisc_mask(VGABASE, BIT(0), BIT(0));
 }
 
-int __devinit
+int
 via_modeset_init(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;

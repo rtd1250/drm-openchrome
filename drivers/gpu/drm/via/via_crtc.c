@@ -1234,7 +1234,7 @@ static const struct drm_crtc_helper_funcs via_iga2_helper_funcs = {
 	.load_lut = drm_mode_crtc_load_lut,
 };
 
-void __devinit
+void
 via_crtc_init(struct drm_device *dev, int index)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
