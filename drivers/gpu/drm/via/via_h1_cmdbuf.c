@@ -41,8 +41,6 @@
 #define CMDBUF_ALIGNMENT_SIZE   (0x100)
 #define CMDBUF_ALIGNMENT_MASK   (0x0ff)
 
-#define via_flush_write_combine() DRM_MEMORYBARRIER()
-
 static void via_cmdbuf_start(struct drm_via_private *dev_priv);
 static void via_cmdbuf_pause(struct drm_via_private *dev_priv);
 static void via_cmdbuf_reset(struct drm_via_private *dev_priv);
@@ -364,11 +362,11 @@ static int via_hook_segment(struct drm_via_private *dev_priv,
 	uint32_t diff;
 
 	paused = 0;
-	via_flush_write_combine();
+	mb();
 	(void) *(volatile uint32_t *)(via_get_dma(dev_priv) - 1);
 
 	*paused_at = pause_addr_lo;
-	via_flush_write_combine();
+	mb();
 	(void) *paused_at;
 
 	reader = ioread32(dev_priv->hw_addr_ptr);
@@ -491,7 +489,7 @@ static void via_cmdbuf_start(struct drm_via_private *dev_priv)
 	    via_align_cmd(dev_priv, HC_HAGPBpID_PAUSE, 0,
 			  &pause_addr_hi, &pause_addr_lo, 1) - 1;
 
-	via_flush_write_combine();
+	mb();
 	(void) *(volatile uint32_t *) dev_priv->last_pause_ptr;
 
 	VIA_WRITE(VIA_REG_TRANSET, (HC_ParaType_PreCR << 16));
@@ -501,7 +499,7 @@ static void via_cmdbuf_start(struct drm_via_private *dev_priv)
 
 	VIA_WRITE(VIA_REG_TRANSPACE, pause_addr_hi);
 	VIA_WRITE(VIA_REG_TRANSPACE, pause_addr_lo);
-	DRM_WRITEMEMORYBARRIER();
+	wmb();
 	VIA_WRITE(VIA_REG_TRANSPACE, command | HC_HAGPCMNT_MASK);
 	VIA_READ(VIA_REG_TRANSPACE);
 

@@ -1,4 +1,4 @@
-/* via_dmabuffer.h -- PCI DMA BitBlt support for the VIA Unichrome/Pro
+/* via_dma.h -- PCI DMA BitBlt support for the VIA Unichrome/Pro
  *
  * Copyright 2005 Thomas Hellstrom.
  * All Rights Reserved.
@@ -27,8 +27,8 @@
  *    Register info from Digeo Inc.
  */
 
-#ifndef _VIA_DMABLIT_H
-#define _VIA_DMABLIT_H
+#ifndef _VIA_DMA_H
+#define _VIA_DMA_H
 
 #include <linux/dma-mapping.h>
 
@@ -56,8 +56,7 @@ struct via_h1_header {
 	uint32_t next;
 };
 
-typedef struct _drm_via_sg_info {
-	struct sg_table *table;
+struct drm_via_sg_info {
 	struct page **pages;
 	unsigned long num_pages;
 	struct via_h1_header **desc_pages;
@@ -76,7 +75,7 @@ typedef struct _drm_via_sg_info {
 		dr_via_pages_alloc,
 		dr_via_sg_init
 	} state;
-} drm_via_sg_info_t;
+};
 
 typedef struct _drm_via_blitq {
 	struct drm_device *dev;
@@ -90,7 +89,7 @@ typedef struct _drm_via_blitq {
 	unsigned long end;
 	int aborting;
 	int is_active;
-	drm_via_sg_info_t *blits[VIA_NUM_BLIT_SLOTS];
+	struct drm_via_sg_info *blits[VIA_NUM_BLIT_SLOTS];
 	spinlock_t blit_lock;
 	wait_queue_head_t blit_queue[VIA_NUM_BLIT_SLOTS];
 	wait_queue_head_t busy_queue;

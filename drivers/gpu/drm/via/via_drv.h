@@ -46,8 +46,8 @@
 #include <drm/via_drm.h>
 
 #include "via_regs.h"
+#include "via_dma.h"
 #include "via_verifier.h"
-#include "via_dmabuffer.h"
 #include "via_display.h"
 
 #define VIA_MM_ALIGN_SIZE 16
