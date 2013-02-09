@@ -46,6 +46,7 @@
 #include <drm/via_drm.h>
 
 #include "via_regs.h"
+#include "via_fence.h"
 #include "via_dma.h"
 #include "via_verifier.h"
 #include "via_display.h"

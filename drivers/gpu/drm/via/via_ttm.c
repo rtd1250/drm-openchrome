@@ -412,11 +412,11 @@ static struct ttm_bo_driver via_bo_driver = {
 	.evict_flags		= via_evict_flags,
 	.move			= via_bo_move,
 	.verify_access		= via_verify_access,
-	/*.sync_obj_signaled	= via_fence_signalled,
+	.sync_obj_signaled	= via_fence_signaled,
 	.sync_obj_wait		= via_fence_wait,
 	.sync_obj_flush		= via_fence_flush,
 	.sync_obj_unref		= via_fence_unref,
-	.sync_obj_ref		= via_fence_ref,*/
+	.sync_obj_ref		= via_fence_ref,
 	.io_mem_reserve		= via_ttm_io_mem_reserve,
 	.io_mem_free		= via_ttm_io_mem_free,
 };
