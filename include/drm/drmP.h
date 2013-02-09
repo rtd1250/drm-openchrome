@@ -85,6 +85,9 @@ struct module;
 struct drm_file;
 struct drm_device;
 
+struct device_node;
+struct videomode;
+
 #include <drm/drm_os_linux.h>
 #include <drm/drm_hashtab.h>
 #include <drm/drm_mm.h>
@@ -927,6 +930,14 @@ struct drm_driver {
 	/* import dmabuf -> GEM */
 	struct drm_gem_object * (*gem_prime_import)(struct drm_device *dev,
 				struct dma_buf *dma_buf);
+	/* low-level interface used by drm_gem_prime_{import,export} */
+	int (*gem_prime_pin)(struct drm_gem_object *obj);
+	struct sg_table *(*gem_prime_get_sg_table)(struct drm_gem_object *obj);
+	struct drm_gem_object *(*gem_prime_import_sg_table)(
+				struct drm_device *dev, size_t size,
+				struct sg_table *sgt);
+	void *(*gem_prime_vmap)(struct drm_gem_object *obj);
+	void (*gem_prime_vunmap)(struct drm_gem_object *obj, void *vaddr);
 
 	/* vga arb irq handler */
 	void (*vgaarb_irq)(struct drm_device *dev, bool state);
@@ -1469,6 +1480,12 @@ extern struct drm_display_mode *
 drm_mode_create_from_cmdline_mode(struct drm_device *dev,
 				  struct drm_cmdline_mode *cmd);
 
+extern int drm_display_mode_from_videomode(const struct videomode *vm,
+					   struct drm_display_mode *dmode);
+extern int of_get_drm_display_mode(struct device_node *np,
+				   struct drm_display_mode *dmode,
+				   int index);
+
 /* Modesetting support */
 extern void drm_vblank_pre_modeset(struct drm_device *dev, int crtc);
 extern void drm_vblank_post_modeset(struct drm_device *dev, int crtc);
@@ -1553,9 +1570,13 @@ extern int drm_clients_info(struct seq_file *m, void* data);
 extern int drm_gem_name_info(struct seq_file *m, void *data);
 
 
+extern struct dma_buf *drm_gem_prime_export(struct drm_device *dev,
+		struct drm_gem_object *obj, int flags);
 extern int drm_gem_prime_handle_to_fd(struct drm_device *dev,
 		struct drm_file *file_priv, uint32_t handle, uint32_t flags,
 		int *prime_fd);
+extern struct drm_gem_object *drm_gem_prime_import(struct drm_device *dev,
+		struct dma_buf *dma_buf);
 extern int drm_gem_prime_fd_to_handle(struct drm_device *dev,
 		struct drm_file *file_priv, int prime_fd, uint32_t *handle);
 
