@@ -189,7 +189,7 @@ via_set_vclock(struct drm_crtc *crtc, u32 clk)
 
 		/* exit hw reset */
 		while ((vga_rseq(VGABASE, 0x3C) & BIT(3)) == 0 && i++ < max_loop)
-			mdelay(20);
+			udelay(20);
 
 		/* IGA1 HW Reset Disable */
 		svga_wcrt_mask(VGABASE, 0x17, BIT(7), BIT(7));
@@ -214,7 +214,7 @@ via_set_vclock(struct drm_crtc *crtc, u32 clk)
 
 		/* exit hw reset */
 		while ((vga_rseq(VGABASE, 0x3C) & BIT(2)) == 0 && i++ < max_loop)
-			mdelay(20);
+			udelay(20);
 
 		/* IGA2 HW Reset Disble, CR6A[6] = 1 */
 		svga_wcrt_mask(VGABASE, 0x6A, BIT(6), BIT(6));
