@@ -104,6 +104,9 @@ struct drm_via_private {
 	struct ttm_bo_kmap_obj gart;
 	struct ttm_bo_kmap_obj vq;
 
+	unsigned long vram_offset;
+	unsigned long agp_offset;
+
 	struct drm_fb_helper *helper;
 	int vram_mtrr;
 	u8 vram_type;
@@ -115,6 +118,7 @@ struct drm_via_private {
 	unsigned int dma_low;
 	unsigned int dma_high;
 	unsigned int dma_offset;
+	uint32_t dma_diff;
 	uint32_t dma_wrap;
 	void __iomem *last_pause_ptr;
 	void __iomem *hw_addr_ptr;
@@ -130,12 +134,11 @@ struct drm_via_private {
 	uint32_t irq_pending_mask;
 	int *irq_map;
 
-	unsigned int idle_fault;
-	unsigned long vram_offset;
-	unsigned long agp_offset;
-	drm_via_blitq_t blit_queues[VIA_NUM_BLIT_ENGINES];
-	uint32_t dma_diff;
+	/* fence handling */
+	struct via_fence_pool dma_fences;
+	int desc_size;
 
+	drm_via_blitq_t blit_queues[VIA_NUM_BLIT_ENGINES];
 	wait_queue_head_t decoder_queue[VIA_NR_XVMC_LOCKS];
 
 	struct via_crtc iga[2];
@@ -248,6 +251,6 @@ extern void via_cleanup_futex(struct drm_via_private *dev_priv);
 extern void via_release_futex(struct drm_via_private *dev_priv, int context);
 
 extern void via_dmablit_handler(struct drm_device *dev, int engine, int from_irq);
-extern void via_init_dmablit(struct drm_device *dev);
+extern int via_dmablit_init(struct drm_device *dev);
 
 #endif

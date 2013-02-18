@@ -32,16 +32,13 @@ struct via_fence;
 struct via_fence_engine {
 	struct via_fence_pool *pool;
 
-	/* BUS address used for fencing */
-	dma_addr_t fence_phy_addr;
+	struct workqueue_struct *fence_wq;
+	struct work_struct fence_work;
 
-	/* virtual address for setting seq value */
-	void *write_seq;
 	/* virtual address for getting seq value */
 	void *read_seq;
 
-	struct workqueue_struct *fence_wq;
-	struct work_struct fence_work;
+	int index;
 };
 
 struct via_fence_pool {
@@ -61,7 +58,7 @@ struct via_fence_pool {
 	struct via_fence_engine **engines;
 	unsigned int num_engines;
 
-	void (*fence_signaled)(struct via_fence *fence);
+	void (*fence_signaled)(struct via_fence_engine *eng);
 	void (*fence_cleanup)(struct via_fence *fence);
 	int (*fence_emit)(struct via_fence *fence);
 };
@@ -92,8 +89,8 @@ extern struct via_fence *
 via_fence_create_and_emit(struct via_fence_pool *pool, void *data,
 				unsigned int engine);
 extern int
-via_fence_pool_init(struct via_fence_pool *pool, struct drm_device *dev,
-			char *name, int num_engines, struct dma_pool *ctx);
+via_fence_pool_init(struct via_fence_pool *pool, char *name, int num_engines,
+			int domain, struct drm_device *dev);
 extern void via_fence_pool_fini(struct via_fence_pool *pool);
 
 #endif

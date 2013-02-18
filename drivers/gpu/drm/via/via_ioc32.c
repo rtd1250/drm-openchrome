@@ -90,8 +90,6 @@ static int via_do_init_map(struct drm_device *dev, drm_via_init_t *init)
 
 	via_init_futex(dev_priv);
 
-	via_init_dmablit(dev);
-
 	dev->dev_private = (void *)dev_priv;
 	return 0;
 }

@@ -44,6 +44,7 @@ via_fence_create_and_emit(struct via_fence_pool *pool, void *data,
 	fence = kzalloc(sizeof(*fence), GFP_KERNEL);
 	if (fence) {
 		struct drm_hash_item *hash;
+		unsigned long flags;
 		int ret = -EINVAL;
 
 		fence->timeout = jiffies + 3 * HZ;
@@ -56,7 +57,7 @@ via_fence_create_and_emit(struct via_fence_pool *pool, void *data,
 			via_fence_unref((void **) &fence);
 			return ERR_PTR(-ENXIO);
 		}
-		spin_lock(&pool->lock);
+		spin_lock_irqsave(&pool->lock, flags);
 try_again:
 		/* I like to use get_random_init but it is not exported :-( */
 		get_random_bytes(&fence->seq.key, 3);
@@ -67,11 +68,15 @@ try_again:
 		if (!drm_ht_find_item(&pool->pending, fence->seq.key, &hash))
 			goto try_again;
 
-		if (!drm_ht_insert_item(&pool->pending, &fence->seq))
+		ret = drm_ht_insert_item(&pool->pending, &fence->seq);
+		if (!ret)
 			ret = pool->fence_emit(fence);
-		spin_unlock(&pool->lock);
+		spin_unlock_irqrestore(&pool->lock, flags);
+
+		drm_ht_verbose_list(&pool->pending, fence->seq.key);
 
 		if (ret) {
+			DRM_INFO("Failed to emit fence\n");
 			drm_ht_remove_item(&pool->pending, &fence->seq);
 			via_fence_unref((void **) &fence);
 			fence = ERR_PTR(ret);
@@ -86,33 +91,32 @@ via_fence_work(struct work_struct *work)
 	struct via_fence_engine *eng = container_of(work, struct via_fence_engine,
 							fence_work);
 	uint32_t seq = readl(eng->read_seq);
-	struct drm_hash_item *hash;
+	unsigned long flags;
+	int ret;
 
-	spin_lock(&eng->pool->lock);
-	if (!drm_ht_find_item(&eng->pool->pending, seq, &hash)) {
-		drm_ht_remove_item(&eng->pool->pending, hash);
-		if (eng->pool->fence_signaled) {
-			struct via_fence *fence;
+	spin_lock_irqsave(&eng->pool->lock, flags);
 
-			fence = drm_hash_entry(hash, struct via_fence, seq);
-			if (eng->pool->fence_signaled)
-				eng->pool->fence_signaled(fence);
-		}
-	}
-	spin_unlock(&eng->pool->lock);
+	ret = drm_ht_remove_key(&eng->pool->pending, seq);
+	if (ret < 0)
+		DRM_DEBUG("Failed to remove seq %x\n", seq);
+
+	if (eng->pool->fence_signaled)
+		eng->pool->fence_signaled(eng);
+	spin_unlock_irqrestore(&eng->pool->lock, flags);
 }
 
 static bool
 via_fence_seq_signaled(struct via_fence *fence, u64 seq)
 {
 	struct drm_hash_item *key;
+	unsigned long flags;
 	bool ret = false;
 
 	/* Still waiting to be processed */
-	spin_lock(&fence->pool->lock);
+	spin_lock_irqsave(&fence->pool->lock, flags);
 	if (!drm_ht_find_item(&fence->pool->pending, seq, &key))
 		ret = true;
-	spin_unlock(&fence->pool->lock);
+	spin_unlock_irqrestore(&fence->pool->lock, flags);
 	return ret;
 }
 
@@ -187,26 +191,25 @@ via_fence_ref(void *sync_obj)
 #define FENCE_CMD_BUFFER (256 * sizeof(uint32_t))
 
 int
-via_fence_pool_init(struct via_fence_pool *pool, struct drm_device *dev,
-			char *name, int num_engines, struct dma_pool *ctx)
+via_fence_pool_init(struct via_fence_pool *pool, char *name, int num_engines,
+			int domain, struct drm_device *dev)
 {
 	int size = sizeof(num_engines * sizeof(struct via_fence_engine *));
 	struct drm_via_private *dev_priv = dev->dev_private;
 	struct via_fence_engine *eng;
+	char queue[32];
 	int ret = 0, i;
 	void *par;
 
-	i = sizeof(num_engines * sizeof(struct via_fence_engine));
-	par = kzalloc(size + i, GFP_KERNEL);
+	par = kzalloc(size, GFP_KERNEL);
 	if (!par)
 		return -ENOMEM;
 
 	pool->engines = par;
-	eng = par + size;
 
 	/* allocate fence sync bo */
 	ret = ttm_allocate_kernel_buffer(&dev_priv->bdev, PAGE_SIZE, 16,
-				TTM_PL_FLAG_VRAM, &pool->fence_sync);
+					domain, &pool->fence_sync);
 	if (unlikely(ret)) {
 		DRM_ERROR("allocate fence sync bo error.\n");
 		goto out_err;
@@ -220,28 +223,28 @@ via_fence_pool_init(struct via_fence_pool *pool, struct drm_device *dev,
 	pool->num_engines = num_engines;
 	pool->dev = dev;
 
-	if (!ctx) {
-		struct page *page = pool->fence_sync.bo->ttm->pages[0];
-
-		pool->bus_addr = dma_map_page(dev->dev, page, 0, PAGE_SIZE,
-						DMA_BIDIRECTIONAL);
+	if (domain == TTM_PL_FLAG_TT) {
+		pool->bus_addr = dma_map_page(dev->dev, pool->fence_sync.bo->ttm->pages[0],
+						0, PAGE_SIZE, DMA_BIDIRECTIONAL);
+		par = pool->fence_sync.virtual;
+	} else if (domain == TTM_PL_FLAG_VRAM) {
+		pool->bus_addr = dma_map_single(dev->dev, pool->cmd_buffer,
+						FENCE_CMD_BUFFER, DMA_TO_DEVICE);
+		par = pool->cmd_buffer;
 	}
 
 	for (i = 0; i < pool->num_engines; i++) {
-		eng->write_seq = pool->fence_sync.virtual + VIA_FENCE_SIZE * i;
-		if (!ctx) {
-			eng->fence_phy_addr = pool->bus_addr + VIA_FENCE_SIZE * i;
-			eng->read_seq = eng->write_seq;
-		} else {
-			eng->read_seq = dma_pool_alloc(ctx, GFP_KERNEL,
-							&eng->fence_phy_addr);
-		}
+		eng = kzalloc(sizeof(*eng), GFP_KERNEL);
+		if (!eng)
+			goto out_err;
 
+		snprintf(queue, sizeof(queue), "%s_%d", name, i);
 		INIT_WORK(&eng->fence_work, via_fence_work);
-		eng->fence_wq = create_singlethread_workqueue(name);
+		eng->fence_wq = create_singlethread_workqueue(queue);
+		eng->read_seq = par + VIA_FENCE_SIZE * i;
 		eng->pool = pool;
+		eng->index = i;
 		pool->engines[i] = eng;
-		eng += sizeof(struct via_fence_engine);
 	}
 	ret = drm_ht_create(&pool->pending, 12);
 out_err:
@@ -254,7 +257,6 @@ void
 via_fence_pool_fini(struct via_fence_pool *pool)
 {
 	struct ttm_buffer_object *sync_bo;
-	struct via_fence_engine *eng;
 	int i;
 
 	drm_ht_remove(&pool->pending);
@@ -262,11 +264,9 @@ via_fence_pool_fini(struct via_fence_pool *pool)
 	kfree(pool->cmd_buffer);
 
 	for (i = 0; i < pool->num_engines; i++) {
-		eng = pool->engines[i];
-
-		destroy_workqueue(eng->fence_wq);
+		destroy_workqueue(pool->engines[i]->fence_wq);
+		kfree(pool->engines[i]);
 	}
-	kfree(pool->engines);
 
 	sync_bo = pool->fence_sync.bo;
 	if (sync_bo) {

@@ -21,14 +21,13 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
-#include <linux/pci.h>
 #include <linux/module.h>
 
 #include <drm/drmP.h>
 #include <drm/via_drm.h>
-#include "via_drv.h"
-
 #include <drm/drm_pciids.h>
+
+#include "via_drv.h"
 
 int via_modeset = 0;
 
@@ -248,6 +247,8 @@ static int via_driver_unload(struct drm_device *dev)
 
 	if (drm_core_check_feature(dev, DRIVER_MODESET))
 		via_modeset_fini(dev);
+
+	via_fence_pool_fini(&dev_priv->dma_fences);
 
 	drm_vblank_cleanup(dev);
 

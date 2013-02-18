@@ -70,6 +70,7 @@ void drm_ht_verbose_list(struct drm_open_hash *ht, unsigned long key)
 	hlist_for_each_entry(entry, list, h_list, head)
 		DRM_DEBUG("count %d, key: 0x%08lx\n", count++, entry->key);
 }
+EXPORT_SYMBOL(drm_ht_verbose_list);
 
 static struct hlist_node *drm_ht_find_key(struct drm_open_hash *ht,
 					  unsigned long key)
@@ -190,6 +191,7 @@ int drm_ht_remove_key(struct drm_open_hash *ht, unsigned long key)
 	}
 	return -EINVAL;
 }
+EXPORT_SYMBOL(drm_ht_remove_key);
 
 int drm_ht_remove_item(struct drm_open_hash *ht, struct drm_hash_item *item)
 {
