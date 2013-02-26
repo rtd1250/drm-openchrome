@@ -43,7 +43,6 @@ via_fence_create_and_emit(struct via_fence_pool *pool, void *data,
 
 	fence = kzalloc(sizeof(*fence), GFP_KERNEL);
 	if (fence) {
-		struct drm_hash_item *hash;
 		unsigned long flags;
 		int ret = -EINVAL;
 
@@ -62,25 +61,21 @@ try_again:
 		/* I like to use get_random_init but it is not exported :-( */
 		get_random_bytes(&fence->seq.key, 3);
 		/* For the small change you get a zero */
-		if (!fence->seq.key)
+		if (unlikely(fence->seq.key == 0))
 			goto try_again;
 
-		if (!drm_ht_find_item(&pool->pending, fence->seq.key, &hash))
+		ret = drm_ht_insert_item_rcu(&pool->pending, &fence->seq);
+		if (unlikely(ret))
 			goto try_again;
 
-		ret = drm_ht_insert_item(&pool->pending, &fence->seq);
-		if (!ret)
-			ret = pool->fence_emit(fence);
-		spin_unlock_irqrestore(&pool->lock, flags);
-
-		drm_ht_verbose_list(&pool->pending, fence->seq.key);
-
+		ret = pool->fence_emit(fence);
 		if (ret) {
 			DRM_INFO("Failed to emit fence\n");
-			drm_ht_remove_item(&pool->pending, &fence->seq);
+			drm_ht_remove_item_rcu(&pool->pending, &fence->seq);
 			via_fence_unref((void **) &fence);
 			fence = ERR_PTR(ret);
 		}
+		spin_unlock_irqrestore(&pool->lock, flags);
 	}
 	return fence;
 }
@@ -90,16 +85,18 @@ via_fence_work(struct work_struct *work)
 {
 	struct via_fence_engine *eng = container_of(work, struct via_fence_engine,
 							fence_work);
-	uint32_t seq = readl(eng->read_seq);
-	unsigned long flags;
+	unsigned long seq = readl(eng->read_seq), flags;
+	struct via_fence_pool *pool = eng->pool;
+	struct drm_hash_item *hash = NULL;
 	int ret;
 
 	spin_lock_irqsave(&eng->pool->lock, flags);
-
-	ret = drm_ht_remove_key(&eng->pool->pending, seq);
-	if (ret < 0)
-		DRM_DEBUG("Failed to remove seq %x\n", seq);
-
+	ret = drm_ht_find_item_rcu(&pool->pending, seq, &hash);
+	if (likely(ret == 0)) {
+		ret = drm_ht_remove_item_rcu(&pool->pending, hash);
+		if (ret < 0)
+			DRM_DEBUG("Failed to remove seq %lx\n", seq);
+	}
 	if (eng->pool->fence_signaled)
 		eng->pool->fence_signaled(eng);
 	spin_unlock_irqrestore(&eng->pool->lock, flags);
@@ -112,9 +109,9 @@ via_fence_seq_signaled(struct via_fence *fence, u64 seq)
 	unsigned long flags;
 	bool ret = false;
 
-	/* Still waiting to be processed */
+	/* If the fence is no longer pending then its signaled */
 	spin_lock_irqsave(&fence->pool->lock, flags);
-	if (!drm_ht_find_item(&fence->pool->pending, seq, &key))
+	if (drm_ht_find_item_rcu(&fence->pool->pending, seq, &key))
 		ret = true;
 	spin_unlock_irqrestore(&fence->pool->lock, flags);
 	return ret;
@@ -197,7 +194,6 @@ via_fence_pool_init(struct via_fence_pool *pool, char *name, int num_engines,
 	int size = sizeof(num_engines * sizeof(struct via_fence_engine *));
 	struct drm_via_private *dev_priv = dev->dev_private;
 	struct via_fence_engine *eng;
-	char queue[32];
 	int ret = 0, i;
 	void *par;
 
@@ -214,6 +210,7 @@ via_fence_pool_init(struct via_fence_pool *pool, char *name, int num_engines,
 		DRM_ERROR("allocate fence sync bo error.\n");
 		goto out_err;
 	}
+	ret = -ENOMEM;
 
 	pool->cmd_buffer = kzalloc(FENCE_CMD_BUFFER, GFP_KERNEL);
 	if (!pool->cmd_buffer)
@@ -238,14 +235,17 @@ via_fence_pool_init(struct via_fence_pool *pool, char *name, int num_engines,
 		if (!eng)
 			goto out_err;
 
-		snprintf(queue, sizeof(queue), "%s_%d", name, i);
 		INIT_WORK(&eng->fence_work, via_fence_work);
-		eng->fence_wq = create_singlethread_workqueue(queue);
 		eng->read_seq = par + VIA_FENCE_SIZE * i;
 		eng->pool = pool;
 		eng->index = i;
 		pool->engines[i] = eng;
 	}
+
+	pool->fence_wq = alloc_workqueue(name, 0, 0);
+	if (!pool->fence_wq)
+		goto out_err;
+
 	ret = drm_ht_create(&pool->pending, 12);
 out_err:
 	if (ret)
@@ -261,12 +261,15 @@ via_fence_pool_fini(struct via_fence_pool *pool)
 
 	drm_ht_remove(&pool->pending);
 
-	kfree(pool->cmd_buffer);
+	flush_workqueue(pool->fence_wq);
+	destroy_workqueue(pool->fence_wq);
 
 	for (i = 0; i < pool->num_engines; i++) {
-		destroy_workqueue(pool->engines[i]->fence_wq);
+		cancel_work_sync(&pool->engines[i]->fence_work);
 		kfree(pool->engines[i]);
 	}
+
+	kfree(pool->cmd_buffer);
 
 	sync_bo = pool->fence_sync.bo;
 	if (sync_bo) {
@@ -277,6 +280,5 @@ via_fence_pool_fini(struct via_fence_pool *pool)
 	if (pool->bus_addr)
 		dma_unmap_page(pool->dev->dev, pool->bus_addr, PAGE_SIZE,
 				DMA_BIDIRECTIONAL);
-
 	kfree(pool);
 }

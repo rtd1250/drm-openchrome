@@ -30,10 +30,8 @@
 struct via_fence;
 
 struct via_fence_engine {
-	struct via_fence_pool *pool;
-
-	struct workqueue_struct *fence_wq;
 	struct work_struct fence_work;
+	struct via_fence_pool *pool;
 
 	/* virtual address for getting seq value */
 	void *read_seq;
@@ -52,6 +50,7 @@ struct via_fence_pool {
 	/* Fence command bounce buffer */
 	uint32_t *cmd_buffer;
 
+	struct workqueue_struct *fence_wq;
 	struct drm_open_hash pending;
 	struct drm_device *dev;
 
