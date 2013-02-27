@@ -770,7 +770,7 @@ intel_dp_mode_fixup(struct drm_encoder *encoder,
 		 * CEA-861-E - 5.1 Default Encoding Parameters
 		 * VESA DisplayPort Ver.1.2a - 5.1.1.1 Video Colorimetry
 		 */
-		if (bpp != 18 && drm_mode_cea_vic(adjusted_mode) > 1)
+		if (bpp != 18 && drm_match_cea_mode(adjusted_mode) > 1)
 			intel_dp->color_range = DP_COLOR_RANGE_16_235;
 		else
 			intel_dp->color_range = 0;
@@ -2302,13 +2302,13 @@ g4x_dp_detect(struct intel_dp *intel_dp)
 
 	switch (intel_dig_port->port) {
 	case PORT_B:
-		bit = DPB_HOTPLUG_LIVE_STATUS;
+		bit = PORTB_HOTPLUG_LIVE_STATUS;
 		break;
 	case PORT_C:
-		bit = DPC_HOTPLUG_LIVE_STATUS;
+		bit = PORTC_HOTPLUG_LIVE_STATUS;
 		break;
 	case PORT_D:
-		bit = DPD_HOTPLUG_LIVE_STATUS;
+		bit = PORTD_HOTPLUG_LIVE_STATUS;
 		break;
 	default:
 		return connector_status_unknown;
@@ -2837,15 +2837,15 @@ intel_dp_init_connector(struct intel_digital_port *intel_dig_port,
 		name = "DPDDC-A";
 		break;
 	case PORT_B:
-		dev_priv->hotplug_supported_mask |= DPB_HOTPLUG_INT_STATUS;
+		dev_priv->hotplug_supported_mask |= PORTB_HOTPLUG_INT_STATUS;
 		name = "DPDDC-B";
 		break;
 	case PORT_C:
-		dev_priv->hotplug_supported_mask |= DPC_HOTPLUG_INT_STATUS;
+		dev_priv->hotplug_supported_mask |= PORTC_HOTPLUG_INT_STATUS;
 		name = "DPDDC-C";
 		break;
 	case PORT_D:
-		dev_priv->hotplug_supported_mask |= DPD_HOTPLUG_INT_STATUS;
+		dev_priv->hotplug_supported_mask |= PORTD_HOTPLUG_INT_STATUS;
 		name = "DPDDC-D";
 		break;
 	default:

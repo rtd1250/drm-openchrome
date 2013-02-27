@@ -348,7 +348,7 @@ static void intel_hdmi_set_avi_infoframe(struct drm_encoder *encoder,
 			avi_if.body.avi.ITC_EC_Q_SC |= DIP_AVI_RGB_QUANT_RANGE_FULL;
 	}
 
-	avi_if.body.avi.VIC = drm_mode_cea_vic(adjusted_mode);
+	avi_if.body.avi.VIC = drm_match_cea_mode(adjusted_mode);
 
 	intel_set_infoframe(encoder, &avi_if);
 }
@@ -781,7 +781,7 @@ bool intel_hdmi_mode_fixup(struct drm_encoder *encoder,
 	if (intel_hdmi->color_range_auto) {
 		/* See CEA-861-E - 5.1 Default Encoding Parameters */
 		if (intel_hdmi->has_hdmi_sink &&
-		    drm_mode_cea_vic(adjusted_mode) > 1)
+		    drm_match_cea_mode(adjusted_mode) > 1)
 			intel_hdmi->color_range = SDVO_COLOR_RANGE_16_235;
 		else
 			intel_hdmi->color_range = 0;
@@ -791,28 +791,6 @@ bool intel_hdmi_mode_fixup(struct drm_encoder *encoder,
 		adjusted_mode->private_flags |= INTEL_MODE_LIMITED_COLOR_RANGE;
 
 	return true;
-}
-
-static bool g4x_hdmi_connected(struct intel_hdmi *intel_hdmi)
-{
-	struct drm_device *dev = intel_hdmi_to_dev(intel_hdmi);
-	struct drm_i915_private *dev_priv = dev->dev_private;
-	struct intel_digital_port *intel_dig_port = hdmi_to_dig_port(intel_hdmi);
-	uint32_t bit;
-
-	switch (intel_dig_port->port) {
-	case PORT_B:
-		bit = HDMIB_HOTPLUG_LIVE_STATUS;
-		break;
-	case PORT_C:
-		bit = HDMIC_HOTPLUG_LIVE_STATUS;
-		break;
-	default:
-		bit = 0;
-		break;
-	}
-
-	return I915_READ(PORT_HOTPLUG_STAT) & bit;
 }
 
 static enum drm_connector_status
@@ -826,13 +804,6 @@ intel_hdmi_detect(struct drm_connector *connector, bool force)
 	struct drm_i915_private *dev_priv = dev->dev_private;
 	struct edid *edid;
 	enum drm_connector_status status = connector_status_disconnected;
-
-
-	if (IS_G4X(dev) && !g4x_hdmi_connected(intel_hdmi))
-		return status;
-	else if (HAS_PCH_SPLIT(dev) &&
-		 !ibx_digital_port_connected(dev_priv, intel_dig_port))
-		 return status;
 
 	intel_hdmi->has_hdmi_sink = false;
 	intel_hdmi->has_audio = false;
@@ -1021,15 +992,15 @@ void intel_hdmi_init_connector(struct intel_digital_port *intel_dig_port,
 	switch (port) {
 	case PORT_B:
 		intel_hdmi->ddc_bus = GMBUS_PORT_DPB;
-		dev_priv->hotplug_supported_mask |= HDMIB_HOTPLUG_INT_STATUS;
+		dev_priv->hotplug_supported_mask |= PORTB_HOTPLUG_INT_STATUS;
 		break;
 	case PORT_C:
 		intel_hdmi->ddc_bus = GMBUS_PORT_DPC;
-		dev_priv->hotplug_supported_mask |= HDMIC_HOTPLUG_INT_STATUS;
+		dev_priv->hotplug_supported_mask |= PORTC_HOTPLUG_INT_STATUS;
 		break;
 	case PORT_D:
 		intel_hdmi->ddc_bus = GMBUS_PORT_DPD;
-		dev_priv->hotplug_supported_mask |= HDMID_HOTPLUG_INT_STATUS;
+		dev_priv->hotplug_supported_mask |= PORTD_HOTPLUG_INT_STATUS;
 		break;
 	case PORT_A:
 		/* Internal port only for eDP. */

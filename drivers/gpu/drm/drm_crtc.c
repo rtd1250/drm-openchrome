@@ -1996,9 +1996,9 @@ int drm_mode_setplane(struct drm_device *dev, void *data,
 					 plane_req->src_w, plane_req->src_h);
 	if (!ret) {
 		old_fb = plane->fb;
-		fb = NULL;
 		plane->crtc = crtc;
 		plane->fb = fb;
+		fb = NULL;
 	}
 	drm_modeset_unlock_all(dev);
 
@@ -2267,7 +2267,7 @@ uint32_t drm_mode_legacy_fb_format(uint32_t bpp, uint32_t depth)
 
 	switch (bpp) {
 	case 8:
-		fmt = DRM_FORMAT_RGB332;
+		fmt = DRM_FORMAT_C8;
 		break;
 	case 16:
 		if (depth == 15)
@@ -3792,6 +3792,13 @@ int drm_mode_page_flip_ioctl(struct drm_device *dev,
 		/* Keep the old fb, don't unref it. */
 		old_fb = NULL;
 	} else {
+		/*
+		 * Warn if the driver hasn't properly updated the crtc->fb
+		 * field to reflect that the new framebuffer is now used.
+		 * Failing to do so will screw with the reference counting
+		 * on framebuffers.
+		 */
+		WARN_ON(crtc->fb != fb);
 		/* Unref only the old framebuffer. */
 		fb = NULL;
 	}
@@ -3870,6 +3877,7 @@ void drm_fb_get_bpp_depth(uint32_t format, unsigned int *depth,
 			  int *bpp)
 {
 	switch (format) {
+	case DRM_FORMAT_C8:
 	case DRM_FORMAT_RGB332:
 	case DRM_FORMAT_BGR233:
 		*depth = 8;

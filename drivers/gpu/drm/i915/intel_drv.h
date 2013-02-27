@@ -235,6 +235,9 @@ struct intel_crtc {
 	/* We can share PLLs across outputs if the timings match */
 	struct intel_pch_pll *pch_pll;
 	uint32_t ddi_pll_sel;
+
+	/* reset counter value when the last flip was submitted */
+	unsigned int reset_counter;
 };
 
 struct intel_plane {
@@ -390,6 +393,7 @@ struct intel_dp {
 struct intel_digital_port {
 	struct intel_encoder base;
 	enum port port;
+	u32 port_reversal;
 	struct intel_dp dp;
 	struct intel_hdmi hdmi;
 };
@@ -644,9 +648,10 @@ extern void intel_update_sprite_watermarks(struct drm_device *dev, int pipe,
 extern void intel_update_linetime_watermarks(struct drm_device *dev, int pipe,
 			 struct drm_display_mode *mode);
 
-extern unsigned long intel_gen4_compute_offset_xtiled(int *x, int *y,
-						      unsigned int bpp,
-						      unsigned int pitch);
+extern unsigned long intel_gen4_compute_page_offset(int *x, int *y,
+						    unsigned int tiling_mode,
+						    unsigned int bpp,
+						    unsigned int pitch);
 
 extern int intel_sprite_set_colorkey(struct drm_device *dev, void *data,
 				     struct drm_file *file_priv);

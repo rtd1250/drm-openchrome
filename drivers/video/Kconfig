@@ -21,8 +21,6 @@ source "drivers/gpu/vga/Kconfig"
 
 source "drivers/gpu/drm/Kconfig"
 
-source "drivers/gpu/stub/Kconfig"
-
 config VGASTATE
        tristate
        default n
@@ -53,6 +51,9 @@ config OF_VIDEOMODE
 	select OF_DISPLAY_TIMING
 	help
 	  helper to get videomodes from the devicetree
+
+config HDMI
+	bool
 
 menuconfig FB
 	tristate "Support for frame buffer devices"
