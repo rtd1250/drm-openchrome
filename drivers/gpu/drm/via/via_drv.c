@@ -372,6 +372,10 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
 	if (ret)
 		goto out_err;
 
+	ret = via_dmablit_init(dev);
+	if (ret)
+		goto out_err;
+
 	if (drm_core_check_feature(dev, DRIVER_MODESET))
 		ret = via_modeset_init(dev);
 out_err:

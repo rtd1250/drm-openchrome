@@ -138,7 +138,6 @@ struct drm_via_private {
 	struct via_fence_pool dma_fences;
 	int desc_size;
 
-	drm_via_blitq_t blit_queues[VIA_NUM_BLIT_ENGINES];
 	wait_queue_head_t decoder_queue[VIA_NR_XVMC_LOCKS];
 
 	struct via_crtc iga[2];
@@ -191,8 +190,6 @@ extern int via_cmdbuf_size(struct drm_device *dev, void *data, struct drm_file *
 extern int via_pci_cmdbuffer(struct drm_device *dev, void *data, struct drm_file *file_priv);
 extern int via_decoder_futex(struct drm_device *dev, void *data, struct drm_file *file_priv);
 extern int via_wait_irq(struct drm_device *dev, void *data, struct drm_file *file_priv);
-extern int via_dma_blit_sync(struct drm_device *dev, void *data, struct drm_file *file_priv);
-extern int via_dma_blit(struct drm_device *dev, void *data, struct drm_file *file_priv);
 extern int via_wait_idle(struct drm_via_private *dev_priv);
 
 extern int via_detect_vram(struct drm_device *dev);

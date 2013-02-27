@@ -57,15 +57,13 @@ struct via_h1_header {
 };
 
 struct drm_via_sg_info {
-	struct page **pages;
-	unsigned long num_pages;
-	struct via_h1_header **desc_pages;
+	struct ttm_tt *ttm;
+	unsigned long **desc_pages;
 	int num_desc_pages;
 	int num_desc;
 	enum dma_data_direction direction;
-	unsigned char *bounce_buffer;
+	unsigned long dev_start;
 	dma_addr_t chain_start;
-	uint32_t free_on_sequence;
 	unsigned int descriptors_per_page;
 	int aborted;
 	enum {
@@ -76,27 +74,6 @@ struct drm_via_sg_info {
 		dr_via_sg_init
 	} state;
 };
-
-typedef struct _drm_via_blitq {
-	struct drm_device *dev;
-	uint32_t cur_blit_handle;
-	uint32_t done_blit_handle;
-	unsigned serviced;
-	unsigned head;
-	unsigned cur;
-	unsigned num_free;
-	unsigned num_outstanding;
-	unsigned long end;
-	int aborting;
-	int is_active;
-	struct drm_via_sg_info *blits[VIA_NUM_BLIT_SLOTS];
-	spinlock_t blit_lock;
-	wait_queue_head_t blit_queue[VIA_NUM_BLIT_SLOTS];
-	wait_queue_head_t busy_queue;
-	struct work_struct wq;
-	struct timer_list poll_timer;
-} drm_via_blitq_t;
-
 
 /*
  *  PCI DMA Registers

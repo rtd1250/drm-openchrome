@@ -110,6 +110,16 @@ static int via_map_init(struct drm_device *dev, void *data, struct drm_file *fil
 	return ret;
 }
 
+static int via_dma_blit_sync(struct drm_device *dev, void *data, struct drm_file *file_priv)
+{
+	return -EINVAL;
+}
+
+static int via_dma_blit(struct drm_device *dev, void *data, struct drm_file *file_priv)
+{
+	return -EINVAL;
+}
+
 static int via_mem_alloc(struct drm_device *dev, void *data,
 			struct drm_file *filp)
 {

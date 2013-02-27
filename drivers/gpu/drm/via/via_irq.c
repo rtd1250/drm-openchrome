@@ -129,14 +129,19 @@ irqreturn_t via_driver_irq_handler(DRM_IRQ_ARGS)
 
 	for (i = 0; i < dev_priv->num_irqs; ++i) {
 		if (status & cur_irq->pending_mask) {
+			struct via_fence_engine *eng = NULL;
+
 			atomic_inc(&cur_irq->irq_received);
 			DRM_WAKEUP(&cur_irq->irq_queue);
 			ret = IRQ_HANDLED;
 
 			if (dev_priv->irq_map[drm_via_irq_dma0_td] == i)
-				via_dmablit_handler(dev, 0, 1);
+				eng = dev_priv->dma_fences.engines[0];
 			else if (dev_priv->irq_map[drm_via_irq_dma1_td] == i)
-				via_dmablit_handler(dev, 1, 1);
+				eng = dev_priv->dma_fences.engines[1];
+
+			if (eng)
+				queue_work(eng->pool->fence_wq, &eng->fence_work);
 		}
 		cur_irq++;
 	}

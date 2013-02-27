@@ -212,21 +212,81 @@ via_evict_flags(struct ttm_buffer_object *bo, struct ttm_placement *placement)
 	}
 }
 
+/*
+ * Allocate DMA capable memory for the blit descriptor chain, and an array that keeps
+ * track of the pages we allocate. We don't want to use kmalloc for the descriptor
+ * chain because it may be quite large for some blits, and pages don't need to be
+ * contingous.
+ */
+struct drm_via_sg_info *
+via_alloc_desc_pages(struct ttm_tt *ttm, struct drm_device *dev,
+			unsigned long dev_start, enum dma_data_direction direction)
+{
+	struct drm_via_sg_info *vsg = kzalloc(sizeof(*vsg), GFP_KERNEL);
+	struct drm_via_private *dev_priv = dev->dev_private;
+	int desc_size = dev_priv->desc_size, i;
+
+	vsg->ttm = ttm;
+	vsg->dev_start = dev_start;
+	vsg->direction = direction;
+	vsg->num_desc = ttm->num_pages; // + 1;
+	vsg->descriptors_per_page = PAGE_SIZE / desc_size;
+	vsg->num_desc_pages = (vsg->num_desc + vsg->descriptors_per_page - 1) /
+				vsg->descriptors_per_page;
+
+	vsg->desc_pages = kzalloc(vsg->num_desc_pages * sizeof(void *), GFP_KERNEL);
+	if (!vsg->desc_pages)
+		return ERR_PTR(-ENOMEM);
+
+	vsg->state = dr_via_desc_pages_alloc;
+
+	/* Alloc pages for descriptor chain */
+	for (i = 0; i < vsg->num_desc_pages; ++i) {
+		vsg->desc_pages[i] = (unsigned long *) __get_free_page(GFP_KERNEL);
+
+		if (!vsg->desc_pages[i])
+			return ERR_PTR(-ENOMEM);
+	}
+	return vsg;
+}
+
 /* Move between GART and VRAM */
 static int
 via_move_blit(struct ttm_buffer_object *bo, bool evict, bool no_wait_gpu,
 		struct ttm_mem_reg *new_mem, struct ttm_mem_reg *old_mem)
 {
-	unsigned long old_start, new_start;
-	void *fence = NULL;
+	struct drm_via_private *dev_priv =
+		container_of(bo->bdev, struct drm_via_private, bdev);
+	enum dma_data_direction direction = DMA_TO_DEVICE;
+	unsigned long old_start, new_start, dev_addr = 0;
+	struct drm_via_sg_info *vsg;
+	int ret = -ENXIO;
+	struct via_fence *fence;
 
 	/* Real CPU physical address */
 	old_start = (old_mem->start << PAGE_SHIFT) + old_mem->bus.base;
 	new_start = (new_mem->start << PAGE_SHIFT) + new_mem->bus.base;
 
-	//ret = via_copy(rdev, old_start, new_start, new_mem->num_pages, fence);
+	if (old_mem->mem_type == TTM_PL_VRAM) {
+		direction = DMA_FROM_DEVICE;
+		dev_addr = old_start;
+	} else if (new_mem->mem_type == TTM_PL_VRAM) {
+		/* direction is DMA_TO_DEVICE */
+		dev_addr = new_start;
+	}
 
-	return ttm_bo_move_accel_cleanup(bo, fence, evict, no_wait_gpu, new_mem);
+	/* device addr must be 16 byte align */
+	if (dev_addr & 0x0F)
+		return ret;
+
+	vsg = via_alloc_desc_pages(bo->ttm, dev_priv->dev, dev_addr, direction);
+	if (unlikely(IS_ERR(vsg)))
+		return PTR_ERR(vsg);
+
+	fence = via_fence_create_and_emit(&dev_priv->dma_fences, vsg, 0);
+	if (unlikely(IS_ERR(fence)))
+		return PTR_ERR(fence);
+	return ttm_bo_move_accel_cleanup(bo, (void *)fence, evict, no_wait_gpu, new_mem);
 }
 
 static int
@@ -331,9 +391,11 @@ via_bo_move(struct ttm_buffer_object *bo, bool evict, bool interruptible,
 	}
 
 	/* Accelerated copy involving the VRAM. */
-	if (new_mem->mem_type == TTM_PL_SYSTEM) {
+	if (old_mem->mem_type == TTM_PL_VRAM &&
+	    new_mem->mem_type == TTM_PL_SYSTEM) {
 		ret = via_move_from_vram(bo, interruptible, no_wait_gpu, new_mem);
-	} else if (old_mem->mem_type == TTM_PL_SYSTEM) {
+	} else if (old_mem->mem_type == TTM_PL_SYSTEM &&
+		   new_mem->mem_type == TTM_PL_VRAM) {
 		ret = via_move_to_vram(bo, interruptible, no_wait_gpu, new_mem);
 	} else {
 		ret = via_move_blit(bo, evict, no_wait_gpu, new_mem, old_mem);
