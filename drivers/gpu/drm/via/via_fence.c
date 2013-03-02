@@ -187,21 +187,19 @@ via_fence_ref(void *sync_obj)
 /* We assert 30 * sizeof(uint32_t) is enough for emit fence sequence */
 #define FENCE_CMD_BUFFER (256 * sizeof(uint32_t))
 
-int
-via_fence_pool_init(struct via_fence_pool *pool, char *name, int num_engines,
-			int domain, struct drm_device *dev)
+struct via_fence_pool *
+via_fence_pool_init(struct drm_device *dev, char *name, int domain,
+			int num_engines)
 {
-	int size = sizeof(num_engines * sizeof(struct via_fence_engine *));
 	struct drm_via_private *dev_priv = dev->dev_private;
-	struct via_fence_engine *eng;
-	int ret = 0, i;
-	void *par;
+	struct via_fence_pool *pool = NULL;
+	int ret = 0, size, i;
+	void *par = NULL;
 
-	par = kzalloc(size, GFP_KERNEL);
-	if (!par)
-		return -ENOMEM;
-
-	pool->engines = par;
+	size = sizeof(*pool) + num_engines * sizeof(*pool->engines);
+	pool = kzalloc(size, GFP_KERNEL);
+	if (!pool)
+		return ERR_PTR(-ENOMEM);
 
 	/* allocate fence sync bo */
 	ret = ttm_allocate_kernel_buffer(&dev_priv->bdev, PAGE_SIZE, 16,
@@ -231,15 +229,12 @@ via_fence_pool_init(struct via_fence_pool *pool, char *name, int num_engines,
 	}
 
 	for (i = 0; i < pool->num_engines; i++) {
-		eng = kzalloc(sizeof(*eng), GFP_KERNEL);
-		if (!eng)
-			goto out_err;
+		struct via_fence_engine *eng = &pool->engines[i];
 
 		INIT_WORK(&eng->fence_work, via_fence_work);
 		eng->read_seq = par + VIA_FENCE_SIZE * i;
 		eng->pool = pool;
 		eng->index = i;
-		pool->engines[i] = eng;
 	}
 
 	pool->fence_wq = alloc_workqueue(name, 0, 0);
@@ -248,9 +243,11 @@ via_fence_pool_init(struct via_fence_pool *pool, char *name, int num_engines,
 
 	ret = drm_ht_create(&pool->pending, 12);
 out_err:
-	if (ret)
+	if (ret) {
 		via_fence_pool_fini(pool);
-	return ret;
+		pool = ERR_PTR(ret);
+	}
+	return pool;
 }
 
 void
@@ -264,10 +261,8 @@ via_fence_pool_fini(struct via_fence_pool *pool)
 	flush_workqueue(pool->fence_wq);
 	destroy_workqueue(pool->fence_wq);
 
-	for (i = 0; i < pool->num_engines; i++) {
-		cancel_work_sync(&pool->engines[i]->fence_work);
-		kfree(pool->engines[i]);
-	}
+	for (i = 0; i < pool->num_engines; i++)
+		cancel_work_sync(&pool->engines[i].fence_work);
 
 	kfree(pool->cmd_buffer);
 

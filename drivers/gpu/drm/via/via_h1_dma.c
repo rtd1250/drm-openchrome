@@ -191,7 +191,7 @@ via_h1_dma_fence_signaled(struct via_fence_engine *eng)
 static int
 via_h1_dma_emit(struct via_fence *fence)
 {
-	struct via_fence_engine *eng = fence->pool->engines[fence->engine];
+	struct via_fence_engine *eng = &fence->pool->engines[fence->engine];
 	unsigned long offset = VIA_FENCE_SIZE * eng->index;
 	struct drm_via_sg_info *vsg = fence->priv;
 	int ret = 0;
@@ -211,17 +211,19 @@ int
 via_dmablit_init(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
-	struct via_fence_pool *pool = &dev_priv->dma_fences;
-	int ret;
+	struct via_fence_pool *pool;
 
 	pci_set_master(dev->pdev);
 
-	ret = via_fence_pool_init(pool, "viadrm_dma", 4, TTM_PL_FLAG_VRAM, dev);
-	if (!ret) {
-		pool->fence_signaled = via_h1_dma_fence_signaled;
-		pool->fence_cleanup = via_free_sg_info;
-		pool->fence_emit = via_h1_dma_emit;
-	}
+	pool = via_fence_pool_init(dev, "viadrm_dma", TTM_PL_FLAG_VRAM, 4);
+	if (IS_ERR(pool))
+		return PTR_ERR(pool);
+
+	pool->fence_signaled = via_h1_dma_fence_signaled;
+	pool->fence_cleanup = via_free_sg_info;
+	pool->fence_emit = via_h1_dma_emit;
+
+	dev_priv->dma_fences = pool;
 	dev_priv->desc_size = sizeof(struct via_h1_header);
-	return ret;
+	return 0;
 }

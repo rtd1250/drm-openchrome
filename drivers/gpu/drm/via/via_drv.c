@@ -248,7 +248,7 @@ static int via_driver_unload(struct drm_device *dev)
 	if (drm_core_check_feature(dev, DRIVER_MODESET))
 		via_modeset_fini(dev);
 
-	via_fence_pool_fini(&dev_priv->dma_fences);
+	via_fence_pool_fini(dev_priv->dma_fences);
 
 	drm_vblank_cleanup(dev);
 

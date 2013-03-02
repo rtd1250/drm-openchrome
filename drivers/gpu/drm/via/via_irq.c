@@ -136,9 +136,9 @@ irqreturn_t via_driver_irq_handler(DRM_IRQ_ARGS)
 			ret = IRQ_HANDLED;
 
 			if (dev_priv->irq_map[drm_via_irq_dma0_td] == i)
-				eng = dev_priv->dma_fences.engines[0];
+				eng = &dev_priv->dma_fences->engines[0];
 			else if (dev_priv->irq_map[drm_via_irq_dma1_td] == i)
-				eng = dev_priv->dma_fences.engines[1];
+				eng = &dev_priv->dma_fences->engines[1];
 
 			if (eng)
 				queue_work(eng->pool->fence_wq, &eng->fence_work);

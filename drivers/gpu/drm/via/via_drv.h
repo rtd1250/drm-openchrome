@@ -135,7 +135,7 @@ struct drm_via_private {
 	int *irq_map;
 
 	/* fence handling */
-	struct via_fence_pool dma_fences;
+	struct via_fence_pool *dma_fences;
 	int desc_size;
 
 	wait_queue_head_t decoder_queue[VIA_NR_XVMC_LOCKS];

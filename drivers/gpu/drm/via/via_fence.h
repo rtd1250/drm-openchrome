@@ -36,6 +36,7 @@ struct via_fence_engine {
 	/* virtual address for getting seq value */
 	void *read_seq;
 
+	/* which engine we are */
 	int index;
 };
 
@@ -54,12 +55,12 @@ struct via_fence_pool {
 	struct drm_open_hash pending;
 	struct drm_device *dev;
 
-	struct via_fence_engine **engines;
-	unsigned int num_engines;
-
 	void (*fence_signaled)(struct via_fence_engine *eng);
 	void (*fence_cleanup)(struct via_fence *fence);
 	int (*fence_emit)(struct via_fence *fence);
+
+	unsigned int num_engines;
+	struct via_fence_engine engines[];
 };
 
 struct via_fence {
@@ -87,9 +88,10 @@ extern void *via_fence_ref(void *sync_obj);
 extern struct via_fence *
 via_fence_create_and_emit(struct via_fence_pool *pool, void *data,
 				unsigned int engine);
-extern int
-via_fence_pool_init(struct via_fence_pool *pool, char *name, int num_engines,
-			int domain, struct drm_device *dev);
+
+extern struct via_fence_pool *
+via_fence_pool_init(struct drm_device *dev, char *name, int domain,
+			int num_engines);
 extern void via_fence_pool_fini(struct via_fence_pool *pool);
 
 #endif
