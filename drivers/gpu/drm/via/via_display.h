@@ -26,6 +26,7 @@
 #include <video/vga.h>
 #include "crtc_hw.h"
 
+#include "drm_edid.h"
 #include "drm_crtc.h"
 #include "drm_crtc_helper.h"
 #include "drm_fb_helper.h"
@@ -54,6 +55,7 @@
 struct via_crtc {
 	struct drm_crtc base;
 	struct ttm_bo_kmap_obj cursor_kmap;
+	struct crtc_timings pixel_timings;
 	struct crtc_timings timings;
 	unsigned int display_queue_expire_num;
 	unsigned int fifo_high_threshold;
@@ -72,6 +74,7 @@ struct via_crtc {
 struct via_connector {
 	struct drm_connector base;
 	struct i2c_adapter *ddc_bus;
+	uint32_t flags;
 };
 
 #define DISP_DI_NONE		0x00
@@ -136,6 +139,8 @@ extern int via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **p
 extern void via_framebuffer_fini(struct drm_device *dev);
 
 /* crtc */
+extern void via_load_crtc_pixel_timing(struct drm_crtc *crtc,
+					struct drm_display_mode *mode);
 extern void via_crtc_init(struct drm_device *dev, int index);
 
 /* encoders */
@@ -151,6 +156,7 @@ extern void via_encoder_commit(struct drm_encoder *encoder);
 extern void via_connector_destroy(struct drm_connector *connector);
 extern int via_get_edid_modes(struct drm_connector *connector);
 
+extern void via_hdmi_init(struct drm_device *dev, int diPort);
 extern void via_analog_init(struct drm_device *dev);
 extern void via_lvds_init(struct drm_device *dev);
 

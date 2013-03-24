@@ -207,4 +207,91 @@
 /* CN400 HQV offset */
 #define REG_HQV1_INDEX		0x00001000
 
+/************************************************
+ *     DisplayPort Register
+ ************************************************/
+#define DP_DATA_PASS_ENABLE_REG 0xC000
+
+#define DP_ATTR_DATA_REG	0xC610
+#define DP_LINK_TRAINING_REG	0xC614
+#define DP_VIDEO_CTRL_REG	0xC618
+#define DP_VER_EXT_PKT_HEAD_REG	0xC61C
+
+/* DP Display Port Enable and InfoFrame Control */
+#define DP_ENABLE_IF_REG	0xC640
+#define DP_HWIDTH_TUSIZE_REG	0xC644
+#define DP_HLINE_DUR_REG	0xC648
+#define DP_MVID_MISC0_REG	0xC64C
+
+#define DP_H_ATTR_REG		0xC650
+#define DP_HV_START_REG		0xC654
+#define DP_POLARITY_WIDTH_REG	0xC658
+#define DP_ACITVE_WH_REG	0xC65C
+
+#define AUX_W_DATA0_REG		0xC710
+#define AUX_W_DATA1_REG		0xC714
+#define AUX_W_DATA2_REG		0xC718
+#define AUX_W_DATA3_REG		0xC71C
+
+#define AUX_R_DATA0_REG		0xC720
+#define AUX_R_DATA1_REG		0xC724
+#define AUX_R_DATA2_REG		0xC728
+#define AUX_R_DATA3_REG		0xC72C
+#define VIA_IRQ_DP_HOT_IRQ	0xC0000000
+#define VIA_IRQ_DP_HOT_UNPLUG	0x80000000
+#define VIA_IRQ_DP_HOT_PLUG	0x40000000
+#define VIA_IRQ_DP_NO_INT	0x00000000
+
+#define AUX_TIMER_REG		0xC730
+#define AUX_CMD_REG		0xC734
+#define DP_NAUD_MUTE_REG	0xC738
+
+#define DP_EPHY_PLL_REG		0xC740
+#define DP_EPHY_TX_PWR_REG	0xC744
+#define DP_EPHY_MISC_PWR_REG	0xC748
+
+/*************************************************
+ *     DisplayPort2 Register
+ *************************************************/
+#define DP2_NVID_MISC0_REG		0xC690
+#define DP2_LINK_TRAINING_REG		0xC694
+#define DP2_VIDEO_CTRL_REG		0xC698
+#define DP2_EXT_REG			0xC69C
+#define DP2_VER_EXT_PKT_HEAD_REG	0xC61C
+
+/* DP2 Display Port Enable and InfoFrame Control */
+#define DP2_ENABLE_IF_REG	0xC6C0
+#define DP2_HWIDTH_TUSIZE_REG	0xC6C4
+#define DP2_HLINE_DUR_REG	0xC6C8
+#define DP2_MVID_MISC0_REG	0xC6CC
+
+#define DP2_H_ATTR_REG		0xC6D0
+#define DP2_HV_START_REG	0xC6D4
+#define DP2_POLARITY_WIDTH_REG	0xC6D8
+#define DP2_ACITVE_WH_REG	0xC6DC
+
+/* the same with DP1 */
+#define DP2_EPHY_SSC_REG	0xC740
+/* the same with DP1 */
+#define DP2_EPHY_RT_REG		0xC744
+
+#define DP2_AUX_W_DATA0_REG	0xC790
+#define DP2_AUX_W_DATA1_REG	0xC794
+#define DP2_AUX_W_DATA2_REG	0xC798
+#define DP2_AUX_W_DATA3_REG	0xC79C
+
+#define DP2_AUX_R_DATA0_REG	0xC7A0
+#define DP2_AUX_R_DATA1_REG	0xC7A4
+#define DP2_AUX_R_DATA2_REG	0xC7A8
+#define DP2_AUX_R_DATA3_REG	0xC7AC
+
+#define DP2_AUX_TIMER_REG	0xC7B0
+#define DP2_AUX_CMD_REG		0xC7B4
+#define DP2_NAUD_MUTE_REG	0xC7B8
+
+#define DP2_EPHY_TX_PWR_REG2	0xC7C0
+#define DP2_EPHY_TX_IDLE_REG	0xC7C4
+#define DP2_EPHY_TX_PWR_REG	0xC7C8
+#define DP2_EPHY_PLL_REG	0xC7CC
+
 #endif /* _VIA_REGS_H_ */

@@ -385,6 +385,50 @@ via_load_fifo_regs(struct via_crtc *iga, struct drm_display_mode *mode)
 	load_value_to_registers(VGABASE, &iga->display_queue, reg_value);
 }
 
+/* Load CRTC Pixel Timing registers */
+void via_load_crtc_pixel_timing(struct drm_crtc *crtc, struct drm_display_mode *mode)
+{
+	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
+	struct drm_via_private *dev_priv = crtc->dev->dev_private;
+	u32 reg_value = 0;
+
+	reg_value = IGA1_PIXELTIMING_HOR_TOTAL_FORMULA(mode->crtc_htotal);
+	load_value_to_registers(VGABASE, &iga->pixel_timings.htotal, reg_value);
+
+	reg_value = IGA1_PIXELTIMING_HOR_ADDR_FORMULA(mode->crtc_hdisplay);
+	load_value_to_registers(VGABASE, &iga->pixel_timings.hdisplay, reg_value);
+
+	reg_value = IGA1_PIXELTIMING_HOR_BLANK_START_FORMULA(mode->crtc_hblank_start);
+	load_value_to_registers(VGABASE, &iga->pixel_timings.hblank_start, reg_value);
+
+	reg_value = IGA1_PIXELTIMING_HOR_BLANK_END_FORMULA(mode->crtc_hblank_end);
+	load_value_to_registers(VGABASE, &iga->pixel_timings.hblank_end, reg_value);
+
+	reg_value = IGA1_PIXELTIMING_HOR_SYNC_START_FORMULA(mode->crtc_hsync_start);
+	load_value_to_registers(VGABASE, &iga->pixel_timings.hsync_start, reg_value);
+
+	reg_value = IGA1_PIXELTIMING_HOR_SYNC_END_FORMULA(mode->crtc_hsync_end);
+	load_value_to_registers(VGABASE, &iga->pixel_timings.hsync_end, reg_value);
+
+	reg_value = IGA1_PIXELTIMING_VER_TOTAL_FORMULA(mode->crtc_vtotal);
+	load_value_to_registers(VGABASE, &iga->pixel_timings.vtotal, reg_value);
+
+	reg_value = IGA1_PIXELTIMING_VER_ADDR_FORMULA(mode->crtc_vdisplay);
+	load_value_to_registers(VGABASE, &iga->pixel_timings.vdisplay, reg_value);
+
+	reg_value = IGA1_PIXELTIMING_VER_BLANK_START_FORMULA(mode->crtc_vblank_start);
+	load_value_to_registers(VGABASE, &iga->pixel_timings.vblank_start, reg_value);
+
+	reg_value = IGA1_PIXELTIMING_VER_BLANK_END_FORMULA(mode->crtc_vblank_end);
+	load_value_to_registers(VGABASE, &iga->pixel_timings.vblank_end, reg_value);
+
+	reg_value = IGA1_PIXELTIMING_VER_SYNC_START_FORMULA(mode->crtc_vsync_start);
+	load_value_to_registers(VGABASE, &iga->pixel_timings.vsync_start, reg_value);
+
+	reg_value = IGA1_PIXELTIMING_VER_SYNC_END_FORMULA(mode->crtc_vsync_end);
+	load_value_to_registers(VGABASE, &iga->pixel_timings.vsync_end, reg_value);
+}
+
 /* Load CRTC timing registers */
 void via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 {

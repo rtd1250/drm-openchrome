@@ -175,10 +175,15 @@ struct drm_via_private {
 #define VIA_READ8(reg)		ioread8(VIA_BASE + reg)
 #define VIA_WRITE8(reg, val)	iowrite8(val, VIA_BASE + reg)
 
+#define VIA_WRITE_MASK(reg, data, mask)  \
+	VIA_WRITE(reg, (data & mask) | (VIA_READ(reg) & ~mask)) \
+
 #define VGABASE (VIA_BASE+VIA_MMIO_VGABASE)
 
 extern struct drm_ioctl_desc via_ioctls[];
 extern int via_max_ioctl;
+
+extern int via_hdmi_audio;
 
 extern void via_engine_init(struct drm_device *dev);
 

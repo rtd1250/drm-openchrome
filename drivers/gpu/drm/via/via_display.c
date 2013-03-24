@@ -137,6 +137,7 @@ via_encoder_commit(struct drm_encoder *encoder)
 
 	default:
 		DRM_ERROR("Unsupported DIPort.\n");
+	case DISP_DI_NONE:
 		break;
 	}
 
@@ -200,6 +201,7 @@ via_encoder_disable(struct drm_encoder *encoder)
 
 	default:
 		DRM_ERROR("Unsupported DIPort.\n");
+	case DISP_DI_NONE:
 		break;
 	}
 }
@@ -246,6 +248,7 @@ via_set_sync_polarity(struct drm_encoder *encoder, struct drm_display_mode *mode
 
 	default:
 		DRM_ERROR("No DIPort.\n");
+	case DISP_DI_NONE:
 		break;
 	}
 }
@@ -482,6 +485,13 @@ via_modeset_init(struct drm_device *dev)
 		via_analog_init(dev);
 
 	via_lvds_init(dev);
+
+	if ((dev->pdev->device != PCI_DEVICE_ID_VIA_CLE266) ||
+	    (dev->pdev->device != PCI_DEVICE_ID_VIA_KM400)  ||
+	    (dev->pdev->device != PCI_DEVICE_ID_VIA_K8M800) ||
+	    (dev->pdev->device != PCI_DEVICE_ID_VIA_PM800)  ||
+	    (dev->pdev->device != PCI_DEVICE_ID_VIA_CN700))
+		via_hdmi_init(dev, DISP_DI_NONE);
 
 	/*
 	 * Set up the framebuffer device
