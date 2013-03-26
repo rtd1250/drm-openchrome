@@ -28,6 +28,9 @@
 
 #include "via_drv.h"
 
+/*
+ * Shared encoder routines.
+ */
 void
 via_encoder_commit(struct drm_encoder *encoder)
 {
@@ -278,6 +281,9 @@ via_best_encoder(struct drm_connector *connector)
 	return encoder;
 }
 
+/*
+ * Shared connector routines.
+ */
 int
 via_get_edid_modes(struct drm_connector *connector)
 {
@@ -285,6 +291,45 @@ via_get_edid_modes(struct drm_connector *connector)
 	struct edid *edid = drm_get_edid(&con->base, con->ddc_bus);
 
 	return drm_add_edid_modes(connector, edid);
+}
+
+int
+via_connector_mode_valid(struct drm_connector *connector,
+			struct drm_display_mode *mode)
+{
+	if ((mode->flags & DRM_MODE_FLAG_INTERLACE) &&
+	    !connector->interlace_allowed)
+		return MODE_NO_INTERLACE;
+
+	if ((mode->flags & DRM_MODE_FLAG_DBLSCAN) &&
+	    !connector->doublescan_allowed)
+		return MODE_NO_DBLESCAN;
+
+	/* Check Clock Range */
+	if (mode->clock > 400000)
+		return MODE_CLOCK_HIGH;
+
+	if (mode->clock < 25000)
+		return MODE_CLOCK_LOW;
+
+	return MODE_OK;
+}
+
+int
+via_connector_set_property(struct drm_connector *connector,
+				struct drm_property *property, uint64_t value)
+{
+	struct drm_encoder *encoder = connector->encoder;
+	struct drm_encoder_helper_funcs *encoder_funcs;
+	struct drm_device *dev = connector->dev;
+
+	if (encoder) {
+		encoder_funcs = encoder->helper_private;
+
+		if (property == dev->mode_config.dpms_property)
+			encoder_funcs->dpms(encoder, (uint32_t)(value & 0xf));
+	}
+	return 0;
 }
 
 void
