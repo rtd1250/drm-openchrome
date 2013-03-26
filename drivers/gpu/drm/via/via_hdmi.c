@@ -33,7 +33,7 @@
  * Routines for controlling stuff on the HDMI port
  */
 static const struct drm_encoder_funcs via_hdmi_enc_funcs = {
-	.destroy = drm_encoder_cleanup,
+	.destroy = via_encoder_cleanup,
 };
 
 static void
@@ -653,15 +653,13 @@ via_hdmi_init(struct drm_device *dev, int diport)
 {
 	struct via_connector *con;
 	struct via_encoder *enc;
-	void *par;
 
-	par = kzalloc(sizeof(*enc) + sizeof(*con), GFP_KERNEL);
-	if (!par) {
+	enc = kzalloc(sizeof(*enc) + sizeof(*con), GFP_KERNEL);
+	if (!enc) {
 		DRM_ERROR("Failed to allocate connector and encoder\n");
 		return;
 	}
-	con = par + sizeof(*enc);
-	enc = par;
+	con = &enc->cons[0];
 
 	/* Piece together our connector */
 	drm_connector_init(dev, &con->base, &via_hdmi_connector_funcs,

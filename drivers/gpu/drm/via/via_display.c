@@ -281,6 +281,14 @@ via_best_encoder(struct drm_connector *connector)
 	return encoder;
 }
 
+void via_encoder_cleanup(struct drm_encoder *encoder)
+{
+	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
+
+	drm_encoder_cleanup(encoder);
+	kfree(enc);
+}
+
 /*
  * Shared connector routines.
  */
@@ -335,12 +343,9 @@ via_connector_set_property(struct drm_connector *connector,
 void
 via_connector_destroy(struct drm_connector *connector)
 {
-	struct via_connector *con = container_of(connector, struct via_connector, base);
-
 	drm_mode_connector_update_edid_property(connector, NULL);
 	drm_sysfs_connector_remove(connector);
 	drm_connector_cleanup(connector);
-	kfree(con);
 }
 
 /* Power sequence relations */
@@ -546,7 +551,22 @@ via_modeset_init(struct drm_device *dev)
 
 void via_modeset_fini(struct drm_device *dev)
 {
+	struct drm_connector *connector, *ot;
+	struct drm_encoder *encoder, *enct;
+
 	via_framebuffer_fini(dev);
+
+	/* We need to cleanup the connectors before the encoders */
+	list_for_each_entry_safe(connector, ot,
+				&dev->mode_config.connector_list, head) {
+		connector->funcs->destroy(connector);
+	}
+
+	list_for_each_entry_safe(encoder, enct, &dev->mode_config.encoder_list,
+				head) {
+		encoder->funcs->destroy(encoder);
+	}
+
 	drm_mode_config_cleanup(dev);
 
 	via_i2c_exit();

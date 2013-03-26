@@ -29,7 +29,7 @@
  * Routines for controlling stuff on the analog port
  */
 static const struct drm_encoder_funcs via_dac_enc_funcs = {
-	.destroy = drm_encoder_cleanup,
+	.destroy = via_encoder_cleanup,
 };
 
 /* Manage the power state of the DAC */
@@ -116,15 +116,13 @@ via_analog_init(struct drm_device *dev)
 {
 	struct via_connector *con;
 	struct via_encoder *enc;
-	void *par;
 
-	par = kzalloc(sizeof(*enc) + sizeof(*con), GFP_KERNEL);
-	if (!par) {
+	enc = kzalloc(sizeof(*enc) + sizeof(*con), GFP_KERNEL);
+	if (!enc) {
 		DRM_ERROR("Failed to allocate connector and encoder\n");
 		return;
 	}
-	con = par + sizeof(*enc);
-	enc = par;
+	con = &enc->cons[0];
 
 	/* Piece together our connector */
 	drm_connector_init(dev, &con->base, &via_analog_connector_funcs,

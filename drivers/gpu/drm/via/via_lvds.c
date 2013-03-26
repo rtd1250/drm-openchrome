@@ -336,7 +336,7 @@ const struct drm_encoder_helper_funcs via_lvds_helper_funcs = {
 };
 
 const struct drm_encoder_funcs via_lvds_enc_funcs = {
-	.destroy = drm_encoder_cleanup,
+	.destroy = via_encoder_cleanup,
 };
 
 /* detect this connector connect status */
@@ -643,15 +643,13 @@ via_lvds_init(struct drm_device *dev)
 	struct via_encoder *enc;
 	struct edid *edid;
 	u8 reg_value;
-	void *par;
 
-	par = kzalloc(sizeof(*enc) + sizeof(*con), GFP_KERNEL);
-	if (!par) {
+	enc = kzalloc(sizeof(*enc) + sizeof(*con), GFP_KERNEL);
+	if (!enc) {
 		DRM_INFO("Failed to allocate LVDS output\n");
 		return;
 	}
-	con = par + sizeof(*enc);
-	enc = par;
+	con = &enc->cons[0];
 
 	drm_connector_init(dev, &con->base, &via_lcd_connector_funcs,
 				DRM_MODE_CONNECTOR_LVDS);
@@ -776,5 +774,5 @@ via_lvds_init(struct drm_device *dev)
 no_device:
 	drm_sysfs_connector_remove(&con->base);
 	drm_connector_cleanup(&con->base);
-	kfree(par);
+	kfree(enc);
 }
