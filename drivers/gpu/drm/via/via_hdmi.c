@@ -412,7 +412,6 @@ unsigned int
 via_ddc_read_bytes_by_hdmi(struct drm_via_private *dev_priv, unsigned char *block)
 {
 	unsigned int status = true, temp = 0, i;
-	unsigned char ckm = 0;
 
 	/* Enable DDC */
 	VIA_WRITE_MASK(0xC000, 0x00000001, 0x00000001);
@@ -463,13 +462,7 @@ via_ddc_read_bytes_by_hdmi(struct drm_via_private *dev_priv, unsigned char *bloc
 		VIA_WRITE(0xC0B8, 0x0009);
 		via_check_hdmi_i2c_status(dev_priv, 0x0008, true);
 		via_check_hdmi_i2c_status(dev_priv, 0x0080, false);
-		if (i == 127) {
-			*block++ = (0x100 - ckm);
-			ckm = 0;
-		} else {
-			*block++ = (unsigned char) ((VIA_READ(0xC0B4) & 0x0000FF00) >> 8);
-			ckm += (unsigned char) ((VIA_READ(0xC0B4) & 0x0000FF00) >> 8);
-		}
+		*block++ = (unsigned char) ((VIA_READ(0xC0B4) & 0x0000FF00) >> 8);
 		VIA_WRITE(0xC0B8, (VIA_READ(0xC0B8) & ~0x80));
 	}
 
@@ -491,8 +484,8 @@ via_hdmi_get_edid(struct drm_connector *connector)
 {
 	bool print_bad_edid = !connector->bad_edid_counter || (drm_debug & DRM_UT_KMS);
 	struct drm_via_private *dev_priv = connector->dev->dev_private;
-	int i, j = 0, valid_extensions = 0;
 	struct edid *edid = NULL;
+	int i, j = 0;
 	u8 *block;
 
 	/* Clear out old EDID block */
@@ -521,6 +514,7 @@ via_hdmi_get_edid(struct drm_connector *connector)
 	/* parse the extensions if present */
 	if (block[0x7e]) {
 		u8 *new = krealloc(block, (block[0x7e] + 1) * EDID_LENGTH, GFP_KERNEL);
+		int valid_extensions = 1;
 
 		if (!new)
 			goto out;
@@ -528,7 +522,7 @@ via_hdmi_get_edid(struct drm_connector *connector)
 
 		for (j = 1; j <= block[0x7e]; j++) {
 			for (i = 0; i < 4; i++) {
-				new = block + (valid_extensions + 1) * EDID_LENGTH;
+				new = block + valid_extensions * EDID_LENGTH;
 
 				if (!via_ddc_read_bytes_by_hdmi(dev_priv, new))
 					goto out;
@@ -547,8 +541,17 @@ via_hdmi_get_edid(struct drm_connector *connector)
 				connector->bad_edid_counter++;
 			}
 		}
-	}
 
+		if (valid_extensions != block[0x7e]) {
+			block[EDID_LENGTH - 1] += block[0x7e] - valid_extensions;
+			block[0x7e] = valid_extensions;
+
+			new = krealloc(block, valid_extensions * EDID_LENGTH, GFP_KERNEL);
+			if (!new)
+				goto out;
+			block = new;
+		}
+	}
 	edid = (struct edid *) block;
 	drm_mode_connector_update_edid_property(connector, edid);
 	return edid;
@@ -570,14 +573,19 @@ via_hdmi_detect(struct drm_connector *connector, bool force)
 	struct drm_via_private *dev_priv = connector->dev->dev_private;
 	enum drm_connector_status ret = connector_status_disconnected;
 	u32 mm_c730 = VIA_READ(0xc730) & 0xC0000000;
+	struct edid *edid = NULL;
 
 	if (VIA_IRQ_DP_HOT_UNPLUG == mm_c730) {
 		drm_mode_connector_update_edid_property(connector, NULL);
 		return ret;
 	}
 
-	if (via_hdmi_get_edid(connector))
-		ret = connector_status_connected;
+	edid = via_hdmi_get_edid(connector);
+	if (edid) {
+		if ((connector->connector_type != DRM_MODE_CONNECTOR_HDMIA) ^
+		    (drm_detect_hdmi_monitor(edid)))
+			ret = connector_status_connected;
+	}
 	return ret;
 }
 
@@ -651,32 +659,16 @@ static const struct drm_connector_helper_funcs via_hdmi_connector_helper_funcs =
 void
 via_hdmi_init(struct drm_device *dev, int diport)
 {
-	struct via_connector *con;
+	struct via_connector *dvi, *hdmi;
 	struct via_encoder *enc;
 
-	enc = kzalloc(sizeof(*enc) + sizeof(*con), GFP_KERNEL);
+	enc = kzalloc(sizeof(*enc) + 2 * sizeof(*hdmi), GFP_KERNEL);
 	if (!enc) {
 		DRM_ERROR("Failed to allocate connector and encoder\n");
 		return;
 	}
-	con = &enc->cons[0];
-
-	/* Piece together our connector */
-	drm_connector_init(dev, &con->base, &via_hdmi_connector_funcs,
-				DRM_MODE_CONNECTOR_HDMIA);
-	drm_connector_helper_add(&con->base, &via_hdmi_connector_helper_funcs);
-	drm_sysfs_connector_add(&con->base);
-
-	con->base.doublescan_allowed = false;
-	switch (dev->pdev->device) {
-	case PCI_DEVICE_ID_VIA_VT3157:
-	case PCI_DEVICE_ID_VIA_VT3353:
-		con->base.interlace_allowed = false;
-		break;
-	default:
-		con->base.interlace_allowed = true;
-		break;
-	}
+	hdmi = &enc->cons[0];
+	dvi = &enc->cons[1];
 
 	/* Setup the encoders and attach them */
 	drm_encoder_init(dev, &enc->base, &via_hdmi_enc_funcs, DRM_MODE_ENCODER_TMDS);
@@ -686,5 +678,39 @@ via_hdmi_init(struct drm_device *dev, int diport)
 	enc->base.possible_clones = 0;
 	enc->diPort = diport;
 
-	drm_mode_connector_attach_encoder(&con->base, &enc->base);
+	/* Setup the HDMI connector */
+	drm_connector_init(dev, &hdmi->base, &via_hdmi_connector_funcs,
+				DRM_MODE_CONNECTOR_HDMIA);
+	drm_connector_helper_add(&hdmi->base, &via_hdmi_connector_helper_funcs);
+	drm_sysfs_connector_add(&hdmi->base);
+
+	hdmi->base.doublescan_allowed = false;
+	switch (dev->pdev->device) {
+	case PCI_DEVICE_ID_VIA_VT3157:
+	case PCI_DEVICE_ID_VIA_VT3353:
+		hdmi->base.interlace_allowed = false;
+		break;
+	default:
+		hdmi->base.interlace_allowed = true;
+		break;
+	}
+	drm_mode_connector_attach_encoder(&hdmi->base, &enc->base);
+
+	/* Setup the DVI connector */
+	drm_connector_init(dev, &dvi->base, &via_hdmi_connector_funcs,
+				DRM_MODE_CONNECTOR_DVID);
+	drm_connector_helper_add(&dvi->base, &via_hdmi_connector_helper_funcs);
+	drm_sysfs_connector_add(&dvi->base);
+
+	dvi->base.doublescan_allowed = false;
+	switch (dev->pdev->device) {
+	case PCI_DEVICE_ID_VIA_VT3157:
+	case PCI_DEVICE_ID_VIA_VT3353:
+		dvi->base.interlace_allowed = false;
+		break;
+	default:
+		dvi->base.interlace_allowed = true;
+		break;
+	}
+	drm_mode_connector_attach_encoder(&dvi->base, &enc->base);
 }
