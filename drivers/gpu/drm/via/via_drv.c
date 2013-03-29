@@ -173,8 +173,9 @@ chip_revision_info(struct drm_device *dev)
 	struct drm_via_private *dev_priv = dev->dev_private;
 	u8 tmp;
 
+	switch (dev->pci_device) {
 	/* Check revision of CLE266 Chip */
-	if (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) {
+	case PCI_DEVICE_ID_VIA_CLE266:
 		/* CR4F only define in CLE266.CX chip */
 		tmp = vga_rcrt(VGABASE, 0x4F);
 		vga_wcrt(VGABASE, 0x4F, 0x55);
@@ -184,9 +185,9 @@ chip_revision_info(struct drm_device *dev)
 			dev_priv->revision = CLE266_REVISION_CX;
 		/* restore orignal CR4F value */
 		vga_wcrt(VGABASE, 0x4F, tmp);
-	}
+		break;
 
-	if (dev->pdev->device == PCI_DEVICE_ID_VIA_VT3157) {
+	case PCI_DEVICE_ID_VIA_VT3157:
 		tmp = vga_rseq(VGABASE, 0x43);
 		if (tmp & 0x02) {
 			dev_priv->revision = CX700_REVISION_700M2;
@@ -195,6 +196,16 @@ chip_revision_info(struct drm_device *dev)
 		} else {
 			dev_priv->revision = CX700_REVISION_700;
 		}
+		break;
+
+	case PCI_DEVICE_ID_VIA_VT1122:
+	case PCI_DEVICE_ID_VIA_VX875:
+	case PCI_DEVICE_ID_VIA_VX900:
+		dev_priv->revision = vga_rseq(VGABASE, 0x3B);
+		break;
+
+	default:
+		break;
 	}
 }
 

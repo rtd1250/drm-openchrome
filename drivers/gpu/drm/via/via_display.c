@@ -536,12 +536,23 @@ via_modeset_init(struct drm_device *dev)
 
 	via_lvds_init(dev);
 
-	if ((dev->pdev->device != PCI_DEVICE_ID_VIA_CLE266) ||
-	    (dev->pdev->device != PCI_DEVICE_ID_VIA_KM400)  ||
-	    (dev->pdev->device != PCI_DEVICE_ID_VIA_K8M800) ||
-	    (dev->pdev->device != PCI_DEVICE_ID_VIA_PM800)  ||
-	    (dev->pdev->device != PCI_DEVICE_ID_VIA_CN700))
+	switch (dev->pdev->device) {
+	/* CX700 can support HDMI and non HDMI based DVI ports */
+	case PCI_DEVICE_ID_VIA_VT3157:
+		if (!via_tmds_init(dev))
+			break;
+
+	/* Newer platforms use HDMI encoder */
+	case PCI_DEVICE_ID_VIA_VT1122:
+	case PCI_DEVICE_ID_VIA_VX875:
+	case PCI_DEVICE_ID_VIA_VX900:
 		via_hdmi_init(dev, DISP_DI_NONE);
+		break;
+
+	default:
+		via_tmds_init(dev);
+		break;
+	}
 
 	/*
 	 * Set up the framebuffer device

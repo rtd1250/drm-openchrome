@@ -65,6 +65,23 @@
 #define CX700_REVISION_700M	0x1
 #define CX700_REVISION_700M2	0x2
 
+/* For VT3353 */
+#define VX800_REVISION_A	0x0f
+#define VX800_REVISION_B0	0x10
+#define VX800_REVISION_B1	0x11
+#define VX800_REVISION_B2	0x12
+
+/* For VT3409 */
+#define VX855_REVISION_A0	0x00
+#define VX855_REVISION_A1	0x01
+#define VX855_REVISION_A2	0x02
+
+/* For VT3410 */
+#define VX900_REVISION_A0	0x00
+#define VX900_REVISION_A1	0x01
+#define VX900_REVISION_A2	0x02
+#define VX900_REVISION_A3	0x03
+
 typedef uint32_t maskarray_t[5];
 
 typedef struct drm_via_irq {

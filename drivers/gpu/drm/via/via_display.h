@@ -166,5 +166,6 @@ extern int via_get_edid_modes(struct drm_connector *connector);
 extern void via_hdmi_init(struct drm_device *dev, int diPort);
 extern void via_analog_init(struct drm_device *dev);
 extern void via_lvds_init(struct drm_device *dev);
+extern int via_tmds_init(struct drm_device *dev);
 
 #endif
