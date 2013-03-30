@@ -141,46 +141,8 @@ static irqreturn_t
 via_hpd_irq_process(struct drm_via_private *dev_priv)
 {
 	uint32_t mm_1280 = VIA_READ(0x1280);
-	uint32_t mm_200 = VIA_READ(0x200);
 	uint32_t mm_c730, mm_c7b0;
 	irqreturn_t ret = IRQ_NONE;
-
-	/* DVI sense using sequence register */
-	if (vga_rseq(VGABASE, 0x2B) & BIT(6)) {
-		DRM_DEBUG("VIA_IRQ_DVI_SENSE_IRQ!\n");
-		ret = IRQ_HANDLED;
-	}
-
-	/* LVDS sense using sequence register */
-	if (vga_rseq(VGABASE, 0x2B) & BIT(4)) {
-		DRM_DEBUG("VIA_IRQ_LCD_SENSE_IRQ!\n");
-		ret = IRQ_HANDLED;
-	}
-
-	/* CRT sense interrupt */
-	if (vga_rseq(VGABASE, 0x2B) & BIT(2)) {
-		DRM_DEBUG("VIA_IRQ_VGA_SENSE_IRQ!\n");
-		ret = IRQ_HANDLED;
-	}
-
-	/* External LVDS device sense */
-	if (mm_200 & VIA_IRQ_LVDS_ENABLE) {
-		if (mm_200 & VIA_IRQ_LVDS_STATUS) {
-			DRM_DEBUG("VIA_IRQ_LVDS_SENSE_IRQ!\n");
-			ret = IRQ_HANDLED;
-		}
-	}
-
-	/* External DVI sense */
-	if (mm_200 & VIA_IRQ_TMDS_ENABLE) {
-		if (mm_200 & VIA_IRQ_TMDS_STATUS) {
-			DRM_DEBUG("VIA_IRQ_TMDS_SENSE_IRQ!\n");
-			ret = IRQ_HANDLED;
-		}
-	}
-
-	/* clear interrupt status on 0x200. */
-	VIA_WRITE(0x200, mm_200);
 
 	/* CRT sense */
 	if (mm_1280 & VIA_IRQ_CRT_ENABLE) {
