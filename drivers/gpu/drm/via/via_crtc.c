@@ -901,6 +901,19 @@ via_crtc_dpms(struct drm_crtc *crtc, int mode)
 }
 
 static void
+via_crtc_disable(struct drm_crtc *crtc)
+{
+	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
+
+	drm_vblank_off(crtc->dev, iga->index);
+
+	/* Turn off the cursor */
+	via_hide_cursor(crtc);
+
+	via_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
+}
+
+static void
 via_crtc_prepare(struct drm_crtc *crtc)
 {
 	/* Turn off the cursor */
@@ -1258,6 +1271,7 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 
 static const struct drm_crtc_helper_funcs via_iga1_helper_funcs = {
 	.dpms = via_crtc_dpms,
+	.disable = via_crtc_disable,
 	.prepare = via_crtc_prepare,
 	.commit = via_crtc_commit,
 	.mode_fixup = via_crtc_mode_fixup,
@@ -1269,6 +1283,7 @@ static const struct drm_crtc_helper_funcs via_iga1_helper_funcs = {
 
 static const struct drm_crtc_helper_funcs via_iga2_helper_funcs = {
 	.dpms = via_crtc_dpms,
+	.disable = via_crtc_disable,
 	.prepare = via_crtc_prepare,
 	.commit = via_crtc_commit,
 	.mode_fixup = via_crtc_mode_fixup,
