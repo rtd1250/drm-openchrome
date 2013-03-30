@@ -565,6 +565,7 @@ void via_modeset_fini(struct drm_device *dev)
 	struct drm_connector *connector, *ot;
 	struct drm_encoder *encoder, *enct;
 
+	drm_kms_helper_poll_fini(dev);
 	via_framebuffer_fini(dev);
 
 	/* We need to cleanup the connectors before the encoders */

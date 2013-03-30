@@ -680,6 +680,7 @@ via_hdmi_init(struct drm_device *dev, int diport)
 	drm_connector_helper_add(&hdmi->base, &via_hdmi_connector_helper_funcs);
 	drm_sysfs_connector_add(&hdmi->base);
 
+	hdmi->base.polled = DRM_CONNECTOR_POLL_HPD;
 	hdmi->base.doublescan_allowed = false;
 	switch (dev->pdev->device) {
 	case PCI_DEVICE_ID_VIA_VT3157:
@@ -698,6 +699,7 @@ via_hdmi_init(struct drm_device *dev, int diport)
 	drm_connector_helper_add(&dvi->base, &via_hdmi_connector_helper_funcs);
 	drm_sysfs_connector_add(&dvi->base);
 
+	dvi->base.polled = DRM_CONNECTOR_POLL_HPD;
 	dvi->base.doublescan_allowed = false;
 	switch (dev->pdev->device) {
 	case PCI_DEVICE_ID_VIA_VT3157:

@@ -1217,6 +1217,7 @@ via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **ptr)
 	drm_fb_helper_single_add_all_connectors(helper);
 	drm_helper_disable_unused_functions(dev);
 	drm_fb_helper_initial_config(helper, 32);
+	drm_kms_helper_poll_init(dev);
 	*ptr = helper;
 out_err:
 	if (ret)

@@ -69,6 +69,12 @@
 #define VIA_IRQ_DMA1_DD_STATUS		BIT(6)
 #define VIA_IRQ_DMA1_TD_STATUS		BIT(7)
 
+#define VIA_IRQ_LVDS_ENABLE		BIT(30)
+#define VIA_IRQ_TMDS_ENABLE		BIT(16)
+
+#define VIA_IRQ_LVDS_STATUS		BIT(27)
+#define VIA_IRQ_TMDS_STATUS		BIT(0)
+
 #define INTR_ENABLE_MASK (VIA_IRQ_DMA0_TD_ENABLE | VIA_IRQ_DMA1_TD_ENABLE | \
 			VIA_IRQ_DMA0_DD_ENABLE | VIA_IRQ_DMA1_DD_ENABLE | \
 			VIA_IRQ_IGA1_VSYNC_ENABLE | VIA_IRQ_IGA2_VSYNC_ENABLE)
@@ -84,6 +90,24 @@
 #define INTERRUPT_STATUS_MASK (VIA_IRQ_CAPTURE0_ACTIVE_STATUS | VIA_IRQ_CAPTURE1_ACTIVE_STATUS | \
 				VIA_IRQ_HQV0_STATUS | VIA_IRQ_HQV1_STATUS | \
 				INTR_STATUS_MASK)
+
+/* mmio 0x1280 IRQ enabe and status bits. */
+#define INTERRUPT_CTRL_REG3		0x1280
+
+/* MM1280[9], internal TMDS interrupt status = SR3E[6] */
+#define INTERRUPT_TMDS_STATUS		0x200
+/* MM1280[30], internal TMDS interrupt control = SR3E[7] */
+#define INTERNAL_TMDS_INT_CONTROL	0x40000000
+
+#define VIA_IRQ_DP1_ENABLE		BIT(24)
+#define VIA_IRQ_DP2_ENABLE		BIT(26)
+#define VIA_IRQ_IN_TMDS_ENABLE		BIT(30)
+#define VIA_IRQ_CRT_ENABLE		BIT(20)
+
+#define VIA_IRQ_DP1_STATUS		BIT(11)
+#define VIA_IRQ_DP2_STATUS		BIT(13)
+#define VIA_IRQ_IN_TMDS_STATUS		BIT(9)
+#define VIA_IRQ_CRT_STATUS		BIT(4)
 
 /*
  * Device-specific IRQs go here. This type might need to be extended with
@@ -113,6 +137,128 @@ static maskarray_t via_pro_group_a_irqs[] = {
 static int via_num_pro_group_a = ARRAY_SIZE(via_pro_group_a_irqs);
 static int via_irqmap_pro_group_a[] = {0, 1, -1, 2, -1, 3};
 
+static irqreturn_t
+via_hpd_irq_process(struct drm_via_private *dev_priv)
+{
+	uint32_t mm_1280 = VIA_READ(0x1280);
+	uint32_t mm_200 = VIA_READ(0x200);
+	uint32_t mm_c730, mm_c7b0;
+	irqreturn_t ret = IRQ_NONE;
+
+	/* DVI sense using sequence register */
+	if (vga_rseq(VGABASE, 0x2B) & BIT(6)) {
+		DRM_DEBUG("VIA_IRQ_DVI_SENSE_IRQ!\n");
+		ret = IRQ_HANDLED;
+	}
+
+	/* LVDS sense using sequence register */
+	if (vga_rseq(VGABASE, 0x2B) & BIT(4)) {
+		DRM_DEBUG("VIA_IRQ_LCD_SENSE_IRQ!\n");
+		ret = IRQ_HANDLED;
+	}
+
+	/* CRT sense interrupt */
+	if (vga_rseq(VGABASE, 0x2B) & BIT(2)) {
+		DRM_DEBUG("VIA_IRQ_VGA_SENSE_IRQ!\n");
+		ret = IRQ_HANDLED;
+	}
+
+	/* External LVDS device sense */
+	if (mm_200 & VIA_IRQ_LVDS_ENABLE) {
+		if (mm_200 & VIA_IRQ_LVDS_STATUS) {
+			DRM_DEBUG("VIA_IRQ_LVDS_SENSE_IRQ!\n");
+			ret = IRQ_HANDLED;
+		}
+	}
+
+	/* External DVI sense */
+	if (mm_200 & VIA_IRQ_TMDS_ENABLE) {
+		if (mm_200 & VIA_IRQ_TMDS_STATUS) {
+			DRM_DEBUG("VIA_IRQ_TMDS_SENSE_IRQ!\n");
+			ret = IRQ_HANDLED;
+		}
+	}
+
+	/* clear interrupt status on 0x200. */
+	VIA_WRITE(0x200, mm_200);
+
+	/* CRT sense */
+	if (mm_1280 & VIA_IRQ_CRT_ENABLE) {
+		if (mm_1280 & VIA_IRQ_CRT_STATUS) {
+			DRM_DEBUG("VIA_IRQ_CRT_HOT_PLUG!\n");
+		}
+	}
+
+	/* DP1 or Internal HDMI sense */
+	if (mm_1280 & VIA_IRQ_DP1_ENABLE) {
+		if (mm_1280 & VIA_IRQ_DP1_STATUS) {
+			mm_c730 = VIA_READ(0xc730);
+
+			switch (mm_c730 & 0xC0000000) {
+			case VIA_IRQ_DP_HOT_IRQ:
+				DRM_DEBUG("VIA_IRQ_DP1_HOT_IRQ!\n");
+				break;
+
+			case VIA_IRQ_DP_HOT_UNPLUG:
+				DRM_DEBUG("VIA_IRQ_DP1(HDMI)_HOT_UNPLUG!\n");
+				break;
+
+			case VIA_IRQ_DP_HOT_PLUG:
+				DRM_DEBUG("VIA_IRQ_DP1(HDMI)_HOT_PLUG!\n");
+				break;
+
+			case VIA_IRQ_DP_NO_INT:
+				DRM_DEBUG("VIA_IRQ_DP1_NO_INT!\n");
+				break;
+			}
+			ret = IRQ_HANDLED;
+		}
+	}
+
+	/* DP2 sense */
+	if (mm_1280 & VIA_IRQ_DP2_ENABLE) {
+		if (mm_1280 & VIA_IRQ_DP2_STATUS) {
+			mm_c7b0 = VIA_READ(0xc7b0);
+
+			switch (mm_c7b0 & 0xC0000000) {
+			case VIA_IRQ_DP_HOT_IRQ:
+				DRM_DEBUG("VIA_IRQ_DP2_HOT_IRQ!\n");
+				break;
+
+			case VIA_IRQ_DP_HOT_UNPLUG:
+				DRM_DEBUG("VIA_IRQ_DP2_HOT_UNPLUG!\n");
+				break;
+
+			case VIA_IRQ_DP_HOT_PLUG:
+				DRM_DEBUG("VIA_IRQ_DP2_HOT_PLUG!\n");
+				break;
+
+			case VIA_IRQ_DP_NO_INT:
+				DRM_DEBUG("VIA_IRQ_DP2_NO_INT!\n");
+				break;
+			}
+			ret = IRQ_HANDLED;
+		}
+	}
+
+	/* internal TMDS sense */
+	if ((dev_priv->dev->pci_device != PCI_DEVICE_ID_VIA_VX875) ||
+	    (dev_priv->dev->pci_device != PCI_DEVICE_ID_VIA_VX900)) {
+		if (VIA_IRQ_IN_TMDS_ENABLE & mm_1280) {
+			if (VIA_IRQ_IN_TMDS_STATUS & mm_1280) {
+				ret = IRQ_HANDLED;
+			}
+		}
+	}
+
+	/* clear interrupt status on 0x1280. */
+	VIA_WRITE(0x1280, mm_1280);
+
+	if (ret == IRQ_HANDLED)
+		queue_work(dev_priv->wq, &dev_priv->hotplug_work);
+	return ret;
+}
+
 irqreturn_t via_driver_irq_handler(DRM_IRQ_ARGS)
 {
 	struct drm_device *dev = (struct drm_device *) arg;
@@ -121,6 +267,10 @@ irqreturn_t via_driver_irq_handler(DRM_IRQ_ARGS)
 	u32 status = VIA_READ(INTERRUPT_CTRL_REG1);
 	irqreturn_t ret = IRQ_NONE;
 	int i;
+
+	/* Handle hot plug if KMS available */
+	if (drm_core_check_feature(dev, DRIVER_MODESET))
+		ret = via_hpd_irq_process(dev_priv);
 
 	if (status & VIA_IRQ_IGA1_VSYNC_STATUS) {
 		drm_handle_vblank(dev, 0);
@@ -195,6 +345,74 @@ via_disable_vblank(struct drm_device *dev, int crtc)
 	VIA_WRITE(INTERRUPT_CTRL_REG1, status);
 }
 
+/**
+ * when we set the irq mask enable bit, the irq status bit will be enabled
+ * as well, whether the device was connected or not, so we then trigger
+ * call the interrupt right now. so we should write 1 to clear the status
+ * bit when enable irq mask.
+ */
+void
+via_hpd_irq_state(struct drm_via_private *dev_priv, bool enable)
+{
+	uint32_t mask = BIT(7) | BIT(5) | BIT(3) | BIT(1);
+	uint32_t value = (enable ? mask : 0);
+	uint32_t mm_1280 = VIA_READ(0x1280);
+	uint32_t mm_200 = VIA_READ(0x200);
+
+	/* Turn off/on DVI sense [7], LVDS sense [5], CRT sense [3],
+	 * and CRT hotplug [1] */
+	svga_wseq_mask(VGABASE, 0x2B, value, mask);
+
+	/* Handle external LVDS */
+	mask = VIA_IRQ_LVDS_ENABLE | VIA_IRQ_LVDS_STATUS;
+	/* Handle external TMDS on DVP1 port */
+	mask |= VIA_IRQ_TMDS_ENABLE | VIA_IRQ_TMDS_STATUS;
+
+	if (enable)
+		mm_200 |= mask;
+	else
+		mm_200 &= ~mask;
+
+	/**
+	 * only when 0x200[31] = 1 can these IRQs can be triggered.
+	 */
+	mask = VIA_IRQ_CRT_ENABLE | VIA_IRQ_CRT_STATUS;
+
+	if ((dev_priv->dev->pci_device != PCI_DEVICE_ID_VIA_VX875) ||
+	    (dev_priv->dev->pci_device != PCI_DEVICE_ID_VIA_VX900)) {
+		/* Internal DVI - DFPL port */
+		mask |= VIA_IRQ_IN_TMDS_ENABLE | VIA_IRQ_IN_TMDS_STATUS;
+	} else {
+		/* For both HDMI encoder and DisplayPort */
+		mask |= VIA_IRQ_DP1_ENABLE | VIA_IRQ_DP1_STATUS;
+		mask |= VIA_IRQ_DP2_ENABLE | VIA_IRQ_DP2_STATUS;
+	}
+
+	if (enable)
+		mm_1280 |= mask;
+	else
+		mm_1280 &= ~mask;
+
+	VIA_WRITE(0x1280, mm_1280);
+	VIA_WRITE(0x200, mm_200);
+}
+
+/*
+ * Handle hotplug events outside the interrupt handler proper.
+ */
+static void
+via_hotplug_work_func(struct work_struct *work)
+{
+	struct drm_via_private *dev_priv = container_of(work,
+		struct drm_via_private, hotplug_work);
+	struct drm_device *dev = dev_priv->dev;
+
+	DRM_DEBUG("Sending Hotplug event\n");
+
+	/* Fire off a uevent and let userspace tell us what to do */
+	drm_helper_hpd_irq_event(dev);
+}
+
 void
 via_driver_irq_preinstall(struct drm_device *dev)
 {
@@ -238,6 +456,18 @@ via_driver_irq_preinstall(struct drm_device *dev)
 	/* Acknowledge interrupts */
 	status = VIA_READ(INTERRUPT_CTRL_REG1);
 	VIA_WRITE(INTERRUPT_CTRL_REG1, status | dev_priv->irq_pending_mask);
+
+	/* Clear hotplug settings */
+	if (drm_core_check_feature(dev, DRIVER_MODESET)) {
+		dev_priv->irq_pending_mask |= VIA_IRQ_TMDS_STATUS | VIA_IRQ_LVDS_STATUS;
+		dev_priv->irq_enable_mask |= VIA_IRQ_TMDS_ENABLE | VIA_IRQ_LVDS_ENABLE;
+
+		INIT_WORK(&dev_priv->hotplug_work, via_hotplug_work_func);
+
+		via_hpd_irq_state(dev_priv, true);
+
+		status = via_hpd_irq_process(dev_priv);
+	}
 }
 
 int
@@ -264,6 +494,9 @@ via_driver_irq_uninstall(struct drm_device *dev)
 	status = VIA_READ(INTERRUPT_CTRL_REG1);
 	VIA_WRITE(INTERRUPT_CTRL_REG1, status &
 		  ~(VIA_IRQ_IGA1_VSYNC_ENABLE | dev_priv->irq_enable_mask));
+
+	if (drm_core_check_feature(dev, DRIVER_MODESET))
+		via_hpd_irq_state(dev_priv, false);
 }
 
 static int

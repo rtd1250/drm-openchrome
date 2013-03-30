@@ -145,6 +145,8 @@ struct drm_via_private {
 	uint32_t num_fire_offsets;
 
 	drm_via_irq_t via_irqs[VIA_NUM_IRQS];
+	struct work_struct hotplug_work;
+	struct workqueue_struct *wq;
 	unsigned num_irqs;
 	maskarray_t *irq_masks;
 	uint32_t irq_enable_mask;

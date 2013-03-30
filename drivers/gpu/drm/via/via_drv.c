@@ -270,6 +270,9 @@ static int via_driver_unload(struct drm_device *dev)
 
 	drm_irq_uninstall(dev);
 
+	/* destroy work queue. */
+	destroy_workqueue(dev_priv->wq);
+
 	bo = dev_priv->vq.bo;
 	if (bo) {
 		ttm_bo_unpin(bo, &dev_priv->vq);
@@ -379,6 +382,13 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
 		DRM_ERROR("Failed to allocate VQ memory\n");
 
 	via_engine_init(dev);
+
+	/* setup workqueue */
+	dev_priv->wq = create_workqueue("viadrm");
+	if (dev_priv->wq == NULL) {
+		DRM_ERROR("create_workqueue failed !\n");
+		goto out_err;
+	}
 
 	ret = drm_irq_install(dev);
 	if (ret)
