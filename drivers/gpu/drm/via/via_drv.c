@@ -261,14 +261,14 @@ static int via_driver_unload(struct drm_device *dev)
 	if (ret)
 		return ret;
 
+	drm_irq_uninstall(dev);
+
 	if (drm_core_check_feature(dev, DRIVER_MODESET))
 		via_modeset_fini(dev);
 
 	via_fence_pool_fini(dev_priv->dma_fences);
 
 	drm_vblank_cleanup(dev);
-
-	drm_irq_uninstall(dev);
 
 	/* destroy work queue. */
 	destroy_workqueue(dev_priv->wq);
@@ -390,10 +390,6 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
 		goto out_err;
 	}
 
-	ret = drm_irq_install(dev);
-	if (ret)
-		goto out_err;
-
 	ret = drm_vblank_init(dev, 2);
 	if (ret)
 		goto out_err;
@@ -402,8 +398,13 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
 	if (ret)
 		goto out_err;
 
-	if (drm_core_check_feature(dev, DRIVER_MODESET))
+	if (drm_core_check_feature(dev, DRIVER_MODESET)) {
 		ret = via_modeset_init(dev);
+		if (ret)
+			goto out_err;
+	}
+
+	ret = drm_irq_install(dev);
 out_err:
 	if (ret)
 		via_driver_unload(dev);

@@ -277,6 +277,11 @@ irqreturn_t via_driver_irq_handler(DRM_IRQ_ARGS)
 		ret = IRQ_HANDLED;
 	}
 
+	if (status & VIA_IRQ_IGA2_VSYNC_STATUS) {
+		drm_handle_vblank(dev, 1);
+		ret = IRQ_HANDLED;
+	}
+
 	for (i = 0; i < dev_priv->num_irqs; ++i) {
 		if (status & cur_irq->pending_mask) {
 			struct via_fence_engine *eng = NULL;
