@@ -26,8 +26,7 @@
 #include "via_drv.h"
 
 #define HDMI_AUDIO_ENABLED	BIT(0)
-#define HDMI_SINK		BIT(1)
-#define HDMI_COLOR_RANGE	BIT(2)
+#define HDMI_COLOR_RANGE	BIT(1)
 
 /*
  * Routines for controlling stuff on the HDMI port
@@ -514,7 +513,7 @@ via_hdmi_get_edid(struct drm_connector *connector)
 	/* parse the extensions if present */
 	if (block[0x7e]) {
 		u8 *new = krealloc(block, (block[0x7e] + 1) * EDID_LENGTH, GFP_KERNEL);
-		int valid_extensions = 1;
+		int valid_extensions = 0;
 
 		if (!new)
 			goto out;
@@ -522,7 +521,7 @@ via_hdmi_get_edid(struct drm_connector *connector)
 
 		for (j = 1; j <= block[0x7e]; j++) {
 			for (i = 0; i < 4; i++) {
-				new = block + valid_extensions * EDID_LENGTH;
+				new = block + (valid_extensions + 1) * EDID_LENGTH;
 
 				if (!via_ddc_read_bytes_by_hdmi(dev_priv, new))
 					goto out;
@@ -637,9 +636,6 @@ via_hdmi_get_modes(struct drm_connector *connector)
 
 			if (via_hdmi_audio)
 				con->flags |= drm_detect_monitor_audio(edid);
-
-			if (drm_detect_hdmi_monitor(edid))
-				con->flags |= HDMI_SINK;
 
 			if (drm_rgb_quant_range_selectable(edid))
 				con->flags |= HDMI_COLOR_RANGE;
