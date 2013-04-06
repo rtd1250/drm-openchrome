@@ -321,9 +321,6 @@ void intel_panel_enable_backlight(struct drm_device *dev,
 	if (dev_priv->backlight_level == 0)
 		dev_priv->backlight_level = intel_panel_get_max_backlight(dev);
 
-	dev_priv->backlight_enabled = true;
-	intel_panel_actually_set_backlight(dev, dev_priv->backlight_level);
-
 	if (INTEL_INFO(dev)->gen >= 4) {
 		uint32_t reg, tmp;
 
@@ -338,7 +335,7 @@ void intel_panel_enable_backlight(struct drm_device *dev,
 		if (tmp & BLM_PWM_ENABLE)
 			goto set_level;
 
-		if (dev_priv->num_pipe == 3)
+		if (INTEL_INFO(dev)->num_pipes == 3)
 			tmp &= ~BLM_PIPE_SELECT_IVB;
 		else
 			tmp &= ~BLM_PIPE_SELECT;
@@ -359,12 +356,12 @@ void intel_panel_enable_backlight(struct drm_device *dev,
 	}
 
 set_level:
-	/* Check the current backlight level and try to set again if it's zero.
-	 * On some machines, BLC_PWM_CPU_CTL is cleared to zero automatically
-	 * when BLC_PWM_CPU_CTL2 and BLC_PWM_PCH_CTL1 are written.
+	/* Call below after setting BLC_PWM_CPU_CTL2 and BLC_PWM_PCH_CTL1.
+	 * BLC_PWM_CPU_CTL may be cleared to zero automatically when these
+	 * registers are set.
 	 */
-	if (!intel_panel_get_backlight(dev))
-		intel_panel_actually_set_backlight(dev, dev_priv->backlight_level);
+	dev_priv->backlight_enabled = true;
+	intel_panel_actually_set_backlight(dev, dev_priv->backlight_level);
 }
 
 static void intel_panel_init_backlight(struct drm_device *dev)
