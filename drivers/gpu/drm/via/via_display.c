@@ -529,10 +529,6 @@ via_modeset_init(struct drm_device *dev)
 		via_crtc_init(dev, i);
 
 	via_analog_init(dev);
-	/* CX700M has two analog ports */
-	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_VT3157) &&
-	    (dev_priv->revision == CX700_REVISION_700M))
-		via_analog_init(dev);
 
 	via_lvds_init(dev);
 
