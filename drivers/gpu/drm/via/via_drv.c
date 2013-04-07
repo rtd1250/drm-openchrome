@@ -306,7 +306,6 @@ static int via_driver_unload(struct drm_device *dev)
 		mtrr_del(dev_priv->vram_mtrr, vram_start, size);
 	}
 
-	ttm_bo_device_release(&dev_priv->bdev);
 	ttm_global_fini(&dev_priv->mem_global_ref,
 			&dev_priv->bo_global_ref,
 			&dev_priv->bdev);
