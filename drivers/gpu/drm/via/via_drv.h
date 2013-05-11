@@ -121,9 +121,6 @@ struct drm_via_private {
 	struct ttm_bo_kmap_obj gart;
 	struct ttm_bo_kmap_obj vq;
 
-	unsigned long vram_offset;
-	unsigned long agp_offset;
-
 	struct drm_fb_helper *helper;
 	int vram_mtrr;
 	u8 vram_type;

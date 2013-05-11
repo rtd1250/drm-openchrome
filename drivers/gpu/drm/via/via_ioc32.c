@@ -28,163 +28,6 @@
 #include "drmP.h"
 #include "via_drv.h"
 
-static int via_agp_init(struct drm_device *dev, void *data, struct drm_file *filp)
-{
-	struct drm_via_private *dev_priv = dev->dev_private;
-	drm_via_agp_t *agp = data;
-
-	dev_priv->agp_offset = agp->offset;
-	DRM_INFO("AGP offset = %x, size = %u MB\n", agp->offset, agp->size >> 20);
-	return 0;
-}
-
-static int via_fb_init(struct drm_device *dev, void *data, struct drm_file *filp)
-{
-	struct drm_via_private *dev_priv = dev->dev_private;
-	drm_via_fb_t *fb = data;
-
-	dev_priv->vram_offset = fb->offset;
-	DRM_INFO("FB offset = 0x%08x, size = %u MB\n", fb->offset, fb->size >> 20);
-	return 0;
-}
-
-static int via_do_init_map(struct drm_device *dev, drm_via_init_t *init)
-{
-	struct drm_via_private *dev_priv = dev->dev_private;
-
-	dev_priv->sarea = drm_getsarea(dev);
-	if (!dev_priv->sarea) {
-		DRM_ERROR("could not find sarea!\n");
-		dev->dev_private = (void *)dev_priv;
-		via_dma_cleanup(dev);
-		return -EINVAL;
-	}
-
-	dev_priv->sarea_priv =
-		(drm_via_sarea_t *) ((u8 *) dev_priv->sarea->handle +
-					init->sarea_priv_offset);
-
-	/**
-	 * The UMS xorg servers depends on the virtual address which it
-	 * received by mmap in userland. This is for backward compatiablity
-	 * only. Once we have full KMS x servers this will go away.
-	 */
-	if (init->mmio_offset) {
-		drm_local_map_t *tmp;
-
-		if (dev_priv->mmio.bo) {
-			ttm_bo_pin(dev_priv->mmio.bo, &dev_priv->mmio);
-			ttm_bo_unref(&dev_priv->mmio.bo);
-			dev_priv->mmio.bo = NULL;
-		}
-
-		tmp = drm_core_findmap(dev, init->mmio_offset);
-		dev_priv->mmio.virtual = tmp->handle;
-		if (!dev_priv->mmio.virtual) {
-			DRM_ERROR("could not find mmio region!\n");
-			dev->dev_private = (void *)dev_priv;
-			via_dma_cleanup(dev);
-			return -EINVAL;
-		}
-	}
-
-	via_init_futex(dev_priv);
-
-	dev->dev_private = (void *)dev_priv;
-	return 0;
-}
-
-static int via_map_init(struct drm_device *dev, void *data, struct drm_file *filp)
-{
-	drm_via_init_t *init = data;
-	int ret = 0;
-
-	switch (init->func) {
-	case VIA_INIT_MAP:
-		ret = via_do_init_map(dev, init);
-		break;
-	case VIA_CLEANUP_MAP:
-		ret = via_dma_cleanup(dev);
-		break;
-	}
-	return ret;
-}
-
-static int via_dma_blit_sync(struct drm_device *dev, void *data, struct drm_file *file_priv)
-{
-	return -EINVAL;
-}
-
-static int via_dma_blit(struct drm_device *dev, void *data, struct drm_file *file_priv)
-{
-	return -EINVAL;
-}
-
-static int via_mem_alloc(struct drm_device *dev, void *data,
-			struct drm_file *filp)
-{
-	struct drm_via_private *dev_priv = dev->dev_private;
-	int type = TTM_PL_FLAG_VRAM, start = dev_priv->vram_offset, ret = -EINVAL;
-	struct ttm_buffer_object *bo = NULL;
-	struct drm_gem_object *obj;
-	drm_via_mem_t *mem = data;
-	u32 handle = 0;
-
-	if (mem->type > VIA_MEM_AGP) {
-		DRM_ERROR("Unknown memory type allocation\n");
-		return ret;
-	}
-
-	if (mem->type == VIA_MEM_AGP) {
-		start = dev_priv->agp_offset;
-		type = TTM_PL_FLAG_TT;
-	}
-
-	/*
-	 * VIA hardware access is 128 bits boundries. Modify size
-	 * to be in unites of 128 bit access. For the TTM/GEM layer
-	 * the size needs to rounded to the nearest page. The user
-	 * might ask for a offset that is not aligned. In that case
-	 * we find the start of the page for this offset and allocate
-	 * from there.
-	 */
-	obj = ttm_gem_create(dev, &dev_priv->bdev, type, false,
-				VIA_MM_ALIGN_SIZE, PAGE_SIZE,
-				mem->size);
-	if (IS_ERR(obj))
-		return PTR_ERR(obj);
-
-	bo = obj->driver_private;
-	if (bo) {
-		ret = drm_gem_handle_create(filp, obj, &handle);
-		drm_gem_object_unreference_unlocked(obj);
-	}
-
-	if (!ret) {
-		mem->size = bo->mem.size;
-		mem->offset = bo->offset;
-		mem->index = (unsigned long) handle;
-		ret = 0;
-	} else {
-		mem->offset = 0;
-		mem->size = 0;
-		if (obj)
-			kfree(obj);
-		DRM_DEBUG("Video memory allocation failed\n");
-	}
-	mem->index = (unsigned long) handle;
-	DRM_INFO("offset %lu size %u index %lu\n", mem->offset, mem->size, mem->index);
-	return ret;
-}
-
-static int via_mem_free(struct drm_device *dev, void *data, struct drm_file *filp)
-{
-	drm_via_mem_t *mem = data;
-
-	DRM_DEBUG("free = 0x%lx\n", mem->index);
-	return drm_gem_handle_delete(filp, mem->index);
-}
-
 static int
 via_gem_alloc(struct drm_device *dev, void *data,
 		struct drm_file *filp)
@@ -286,6 +129,21 @@ via_gem_wait(struct drm_device *dev, void *data, struct drm_file *file_priv)
 	mutex_unlock(&dev->struct_mutex);
 	return ret;
 }
+
+#define KMS_INVALID_IOCTL(name)						\
+int name(struct drm_device *dev, void *data, struct drm_file *file_priv)\
+{									\
+	DRM_ERROR("invalid ioctl with kms %s\n", __func__);		\
+	return -EINVAL;							\
+}
+
+KMS_INVALID_IOCTL(via_mem_alloc)
+KMS_INVALID_IOCTL(via_mem_free)
+KMS_INVALID_IOCTL(via_agp_init)
+KMS_INVALID_IOCTL(via_fb_init)
+KMS_INVALID_IOCTL(via_map_init)
+KMS_INVALID_IOCTL(via_dma_blit)
+KMS_INVALID_IOCTL(via_dma_blit_sync)
 
 struct drm_ioctl_desc via_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(VIA_ALLOCMEM, via_mem_alloc, DRM_AUTH),
