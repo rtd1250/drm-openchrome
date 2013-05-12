@@ -767,8 +767,8 @@ int radeon_fence_driver_start_ring(struct radeon_device *rdev, int ring)
 
 	radeon_scratch_free(rdev, rdev->fence_drv[ring].scratch_reg);
 	if (rdev->wb.use_event || !radeon_ring_supports_scratch_reg(rdev, &rdev->ring[ring])) {
+		rdev->fence_drv[ring].scratch_reg = 0;
 		if (ring != R600_RING_TYPE_UVD_INDEX) {
-			rdev->fence_drv[ring].scratch_reg = 0;
 			index = R600_WB_EVENT_OFFSET + ring * 4;
 			rdev->fence_drv[ring].cpu_addr = &rdev->wb.wb[index/4];
 			rdev->fence_drv[ring].gpu_addr = rdev->wb.gpu_addr +
@@ -776,10 +776,9 @@ int radeon_fence_driver_start_ring(struct radeon_device *rdev, int ring)
 
 		} else {
 			/* put fence directly behind firmware */
-			rdev->fence_drv[ring].cpu_addr = rdev->uvd.cpu_addr +
-							 rdev->uvd_fw->size;
-			rdev->fence_drv[ring].gpu_addr = rdev->uvd.gpu_addr +
-							 rdev->uvd_fw->size;
+			index = ALIGN(rdev->uvd_fw->size, 8);
+			rdev->fence_drv[ring].cpu_addr = rdev->uvd.cpu_addr + index;
+			rdev->fence_drv[ring].gpu_addr = rdev->uvd.gpu_addr + index;
 		}
 
 	} else {

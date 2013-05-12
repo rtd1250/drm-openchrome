@@ -36,6 +36,9 @@
 #include "radeon.h"
 #include "r600d.h"
 
+/* 1 second timeout */
+#define UVD_IDLE_TIMEOUT_MS	1000
+
 /* Firmware Names */
 #define FIRMWARE_RV710		"radeon/RV710_uvd.bin"
 #define FIRMWARE_CYPRESS	"radeon/CYPRESS_uvd.bin"
@@ -47,12 +50,16 @@ MODULE_FIRMWARE(FIRMWARE_CYPRESS);
 MODULE_FIRMWARE(FIRMWARE_SUMO);
 MODULE_FIRMWARE(FIRMWARE_TAHITI);
 
+static void radeon_uvd_idle_work_handler(struct work_struct *work);
+
 int radeon_uvd_init(struct radeon_device *rdev)
 {
 	struct platform_device *pdev;
 	unsigned long bo_size;
 	const char *fw_name;
 	int i, r;
+
+	INIT_DELAYED_WORK(&rdev->uvd.idle_work, radeon_uvd_idle_work_handler);
 
 	pdev = platform_device_register_simple("radeon_uvd", 0, NULL, 0);
 	r = IS_ERR(pdev);
@@ -107,7 +114,7 @@ int radeon_uvd_init(struct radeon_device *rdev)
 
 	platform_device_unregister(pdev);
 
-	bo_size = RADEON_GPU_PAGE_ALIGN(rdev->uvd_fw->size + 4) +
+	bo_size = RADEON_GPU_PAGE_ALIGN(rdev->uvd_fw->size + 8) +
 		  RADEON_UVD_STACK_SIZE + RADEON_UVD_HEAP_SIZE;
 	r = radeon_bo_create(rdev, bo_size, PAGE_SIZE, true,
 			     RADEON_GEM_DOMAIN_VRAM, NULL, &rdev->uvd.vcpu_bo);
@@ -187,8 +194,6 @@ int radeon_uvd_resume(struct radeon_device *rdev)
 	}
 
 	radeon_bo_unreserve(rdev->uvd.vcpu_bo);
-
-	radeon_set_uvd_clocks(rdev, 53300, 40000);
 
 	return 0;
 }
@@ -415,22 +420,24 @@ static int radeon_uvd_cs_reloc(struct radeon_cs_parser *p,
 		return -EINVAL;
 	}
 
-	if (cmd == 0) {
-		if (end & 0xFFFFFFFFF0000000) {
-			DRM_ERROR("msg buffer %LX-%LX out of 256MB segment!\n",
-				  start, end);
-			return -EINVAL;
-		}
-
-		r = radeon_uvd_cs_msg(p, reloc->robj, offset, buf_sizes);
-		if (r)
-			return r;
-	}
-
-	if ((start & 0xFFFFFFFFF0000000) != (end & 0xFFFFFFFFF0000000)) {
+	if ((start >> 28) != (end >> 28)) {
 		DRM_ERROR("reloc %LX-%LX crossing 256MB boundary!\n",
 			  start, end);
 		return -EINVAL;
+	}
+
+	/* TODO: is this still necessary on NI+ ? */
+	if ((cmd == 0 || cmd == 0x3) &&
+	    (start >> 28) != (p->rdev->uvd.gpu_addr >> 28)) {
+		DRM_ERROR("msg/fb buffer %LX-%LX out of 256MB segment!\n",
+			  start, end);
+		return -EINVAL;
+	}
+
+	if (cmd == 0) {
+		r = radeon_uvd_cs_msg(p, reloc->robj, offset, buf_sizes);
+		if (r)
+			return r;
 	}
 
 	return 0;
@@ -663,4 +670,162 @@ int radeon_uvd_get_destroy_msg(struct radeon_device *rdev, int ring,
 	radeon_bo_unreserve(bo);
 
 	return radeon_uvd_send_msg(rdev, ring, bo, fence);
+}
+
+static void radeon_uvd_idle_work_handler(struct work_struct *work)
+{
+	struct radeon_device *rdev =
+		container_of(work, struct radeon_device, uvd.idle_work.work);
+
+	if (radeon_fence_count_emitted(rdev, R600_RING_TYPE_UVD_INDEX) == 0)
+		radeon_set_uvd_clocks(rdev, 0, 0);
+	else
+		schedule_delayed_work(&rdev->uvd.idle_work,
+				      msecs_to_jiffies(UVD_IDLE_TIMEOUT_MS));
+}
+
+void radeon_uvd_note_usage(struct radeon_device *rdev)
+{
+	bool set_clocks = !cancel_delayed_work_sync(&rdev->uvd.idle_work);
+	set_clocks &= schedule_delayed_work(&rdev->uvd.idle_work,
+					    msecs_to_jiffies(UVD_IDLE_TIMEOUT_MS));
+	if (set_clocks)
+		radeon_set_uvd_clocks(rdev, 53300, 40000);
+}
+
+static unsigned radeon_uvd_calc_upll_post_div(unsigned vco_freq,
+					      unsigned target_freq,
+					      unsigned pd_min,
+					      unsigned pd_even)
+{
+	unsigned post_div = vco_freq / target_freq;
+
+	/* adjust to post divider minimum value */
+	if (post_div < pd_min)
+		post_div = pd_min;
+
+	/* we alway need a frequency less than or equal the target */
+	if ((vco_freq / post_div) > target_freq)
+		post_div += 1;
+
+	/* post dividers above a certain value must be even */
+	if (post_div > pd_even && post_div % 2)
+		post_div += 1;
+
+	return post_div;
+}
+
+/**
+ * radeon_uvd_calc_upll_dividers - calc UPLL clock dividers
+ *
+ * @rdev: radeon_device pointer
+ * @vclk: wanted VCLK
+ * @dclk: wanted DCLK
+ * @vco_min: minimum VCO frequency
+ * @vco_max: maximum VCO frequency
+ * @fb_factor: factor to multiply vco freq with
+ * @fb_mask: limit and bitmask for feedback divider
+ * @pd_min: post divider minimum
+ * @pd_max: post divider maximum
+ * @pd_even: post divider must be even above this value
+ * @optimal_fb_div: resulting feedback divider
+ * @optimal_vclk_div: resulting vclk post divider
+ * @optimal_dclk_div: resulting dclk post divider
+ *
+ * Calculate dividers for UVDs UPLL (R6xx-SI, except APUs).
+ * Returns zero on success -EINVAL on error.
+ */
+int radeon_uvd_calc_upll_dividers(struct radeon_device *rdev,
+				  unsigned vclk, unsigned dclk,
+				  unsigned vco_min, unsigned vco_max,
+				  unsigned fb_factor, unsigned fb_mask,
+				  unsigned pd_min, unsigned pd_max,
+				  unsigned pd_even,
+				  unsigned *optimal_fb_div,
+				  unsigned *optimal_vclk_div,
+				  unsigned *optimal_dclk_div)
+{
+	unsigned vco_freq, ref_freq = rdev->clock.spll.reference_freq;
+
+	/* start off with something large */
+	unsigned optimal_score = ~0;
+
+	/* loop through vco from low to high */
+	vco_min = max(max(vco_min, vclk), dclk);
+	for (vco_freq = vco_min; vco_freq <= vco_max; vco_freq += 100) {
+
+		uint64_t fb_div = (uint64_t)vco_freq * fb_factor;
+		unsigned vclk_div, dclk_div, score;
+
+		do_div(fb_div, ref_freq);
+
+		/* fb div out of range ? */
+		if (fb_div > fb_mask)
+			break; /* it can oly get worse */
+
+		fb_div &= fb_mask;
+
+		/* calc vclk divider with current vco freq */
+		vclk_div = radeon_uvd_calc_upll_post_div(vco_freq, vclk,
+							 pd_min, pd_even);
+		if (vclk_div > pd_max)
+			break; /* vco is too big, it has to stop */
+
+		/* calc dclk divider with current vco freq */
+		dclk_div = radeon_uvd_calc_upll_post_div(vco_freq, dclk,
+							 pd_min, pd_even);
+		if (vclk_div > pd_max)
+			break; /* vco is too big, it has to stop */
+
+		/* calc score with current vco freq */
+		score = vclk - (vco_freq / vclk_div) + dclk - (vco_freq / dclk_div);
+
+		/* determine if this vco setting is better than current optimal settings */
+		if (score < optimal_score) {
+			*optimal_fb_div = fb_div;
+			*optimal_vclk_div = vclk_div;
+			*optimal_dclk_div = dclk_div;
+			optimal_score = score;
+			if (optimal_score == 0)
+				break; /* it can't get better than this */
+		}
+	}
+
+	/* did we found a valid setup ? */
+	if (optimal_score == ~0)
+		return -EINVAL;
+
+	return 0;
+}
+
+int radeon_uvd_send_upll_ctlreq(struct radeon_device *rdev,
+				unsigned cg_upll_func_cntl)
+{
+	unsigned i;
+
+	/* make sure UPLL_CTLREQ is deasserted */
+	WREG32_P(cg_upll_func_cntl, 0, ~UPLL_CTLREQ_MASK);
+
+	mdelay(10);
+
+	/* assert UPLL_CTLREQ */
+	WREG32_P(cg_upll_func_cntl, UPLL_CTLREQ_MASK, ~UPLL_CTLREQ_MASK);
+
+	/* wait for CTLACK and CTLACK2 to get asserted */
+	for (i = 0; i < 100; ++i) {
+		uint32_t mask = UPLL_CTLACK_MASK | UPLL_CTLACK2_MASK;
+		if ((RREG32(cg_upll_func_cntl) & mask) == mask)
+			break;
+		mdelay(10);
+	}
+
+	/* deassert UPLL_CTLREQ */
+	WREG32_P(cg_upll_func_cntl, 0, ~UPLL_CTLREQ_MASK);
+
+	if (i == 100) {
+		DRM_ERROR("Timeout setting UVD clocks!\n");
+		return -ETIMEDOUT;
+	}
+
+	return 0;
 }

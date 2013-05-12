@@ -121,6 +121,7 @@ int drm_helper_probe_single_connector_modes(struct drm_connector *connector,
 		connector->helper_private;
 	int count = 0;
 	int mode_flags = 0;
+	bool verbose_prune = true;
 
 	DRM_DEBUG_KMS("[CONNECTOR:%d:%s]\n", connector->base.id,
 			drm_get_connector_name(connector));
@@ -149,6 +150,7 @@ int drm_helper_probe_single_connector_modes(struct drm_connector *connector,
 		DRM_DEBUG_KMS("[CONNECTOR:%d:%s] disconnected\n",
 			connector->base.id, drm_get_connector_name(connector));
 		drm_mode_connector_update_edid_property(connector, NULL);
+		verbose_prune = false;
 		goto prune;
 	}
 
@@ -182,7 +184,7 @@ int drm_helper_probe_single_connector_modes(struct drm_connector *connector,
 	}
 
 prune:
-	drm_mode_prune_invalid(dev, &connector->modes, true);
+	drm_mode_prune_invalid(dev, &connector->modes, verbose_prune);
 
 	if (list_empty(&connector->modes))
 		return 0;
@@ -647,6 +649,9 @@ int drm_crtc_helper_set_config(struct drm_mode_set *set)
 			mode_changed = true;
 		} else if (set->fb->bits_per_pixel !=
 			   set->crtc->fb->bits_per_pixel) {
+			mode_changed = true;
+		} else if (set->fb->pixel_format !=
+			   set->crtc->fb->pixel_format) {
 			mode_changed = true;
 		} else
 			fb_changed = true;

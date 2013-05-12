@@ -358,7 +358,8 @@ struct radeon_bo {
 	struct radeon_device		*rdev;
 	struct drm_gem_object		gem_base;
 
-	struct ttm_bo_kmap_obj dma_buf_vmap;
+	struct ttm_bo_kmap_obj		dma_buf_vmap;
+	pid_t				pid;
 };
 #define gem_to_radeon_bo(gobj) container_of((gobj), struct radeon_bo, gem_base)
 
@@ -371,6 +372,8 @@ struct radeon_bo_list {
 	unsigned		alt_domain;
 	u32			tiling_flags;
 };
+
+int radeon_gem_debugfs_init(struct radeon_device *rdev);
 
 /* sub-allocation manager, it has to be protected by another lock.
  * By conception this is an helper for other part of the driver
@@ -1143,6 +1146,7 @@ struct radeon_uvd {
 	uint64_t		gpu_addr;
 	atomic_t		handles[RADEON_MAX_UVD_HANDLES];
 	struct drm_file		*filp[RADEON_MAX_UVD_HANDLES];
+	struct delayed_work	idle_work;
 };
 
 int radeon_uvd_init(struct radeon_device *rdev);
@@ -1157,6 +1161,18 @@ void radeon_uvd_force_into_uvd_segment(struct radeon_bo *rbo);
 void radeon_uvd_free_handles(struct radeon_device *rdev,
 			     struct drm_file *filp);
 int radeon_uvd_cs_parse(struct radeon_cs_parser *parser);
+void radeon_uvd_note_usage(struct radeon_device *rdev);
+int radeon_uvd_calc_upll_dividers(struct radeon_device *rdev,
+				  unsigned vclk, unsigned dclk,
+				  unsigned vco_min, unsigned vco_max,
+				  unsigned fb_factor, unsigned fb_mask,
+				  unsigned pd_min, unsigned pd_max,
+				  unsigned pd_even,
+				  unsigned *optimal_fb_div,
+				  unsigned *optimal_vclk_div,
+				  unsigned *optimal_dclk_div);
+int radeon_uvd_send_upll_ctlreq(struct radeon_device *rdev,
+                                unsigned cg_upll_func_cntl);
 
 struct r600_audio {
 	int			channels;
@@ -1268,6 +1284,9 @@ struct radeon_asic {
 		void (*set_backlight_level)(struct radeon_encoder *radeon_encoder, u8 level);
 		/* get backlight level */
 		u8 (*get_backlight_level)(struct radeon_encoder *radeon_encoder);
+		/* audio callbacks */
+		void (*hdmi_enable)(struct drm_encoder *encoder, bool enable);
+		void (*hdmi_setmode)(struct drm_encoder *encoder, struct drm_display_mode *mode);
 	} display;
 	/* copy functions for bo handling */
 	struct {
@@ -1741,6 +1760,8 @@ void r100_io_wreg(struct radeon_device *rdev, u32 reg, u32 v);
 		tmp_ |= ((val) & ~(mask));			\
 		WREG32(reg, tmp_);				\
 	} while (0)
+#define WREG32_AND(reg, and) WREG32_P(reg, 0, and)
+#define WREG32_OR(reg, or) WREG32_P(reg, or, ~or)
 #define WREG32_PLL_P(reg, val, mask)				\
 	do {							\
 		uint32_t tmp_ = RREG32_PLL(reg);		\
@@ -1874,6 +1895,8 @@ void radeon_ring_write(struct radeon_ring *ring, uint32_t v);
 #define radeon_get_vblank_counter(rdev, crtc) (rdev)->asic->display.get_vblank_counter((rdev), (crtc))
 #define radeon_set_backlight_level(rdev, e, l) (rdev)->asic->display.set_backlight_level((e), (l))
 #define radeon_get_backlight_level(rdev, e) (rdev)->asic->display.get_backlight_level((e))
+#define radeon_hdmi_enable(rdev, e, b) (rdev)->asic->display.hdmi_enable((e), (b))
+#define radeon_hdmi_setmode(rdev, e, m) (rdev)->asic->display.hdmi_setmode((e), (m))
 #define radeon_fence_ring_emit(rdev, r, fence) (rdev)->asic->ring[(r)].emit_fence((rdev), (fence))
 #define radeon_semaphore_ring_emit(rdev, r, cp, semaphore, emit_wait) (rdev)->asic->ring[(r)].emit_semaphore((rdev), (cp), (semaphore), (emit_wait))
 #define radeon_copy_blit(rdev, s, d, np, f) (rdev)->asic->copy.blit((rdev), (s), (d), (np), (f))
@@ -1937,6 +1960,9 @@ extern void radeon_gtt_location(struct radeon_device *rdev, struct radeon_mc *mc
 extern int radeon_resume_kms(struct drm_device *dev);
 extern int radeon_suspend_kms(struct drm_device *dev, pm_message_t state);
 extern void radeon_ttm_set_active_vram_size(struct radeon_device *rdev, u64 size);
+extern void radeon_program_register_sequence(struct radeon_device *rdev,
+					     const u32 *registers,
+					     const u32 array_size);
 
 /*
  * vm
@@ -2009,9 +2035,6 @@ struct radeon_hdmi_acr {
 
 extern struct radeon_hdmi_acr r600_hdmi_acr(uint32_t clock);
 
-extern void r600_hdmi_enable(struct drm_encoder *encoder);
-extern void r600_hdmi_disable(struct drm_encoder *encoder);
-extern void r600_hdmi_setmode(struct drm_encoder *encoder, struct drm_display_mode *mode);
 extern u32 r6xx_remap_render_backend(struct radeon_device *rdev,
 				     u32 tiling_pipe_num,
 				     u32 max_rb_num,
@@ -2021,8 +2044,6 @@ extern u32 r6xx_remap_render_backend(struct radeon_device *rdev,
 /*
  * evergreen functions used by radeon_encoder.c
  */
-
-extern void evergreen_hdmi_setmode(struct drm_encoder *encoder, struct drm_display_mode *mode);
 
 extern int ni_init_microcode(struct radeon_device *rdev);
 extern int ni_mc_load_microcode(struct radeon_device *rdev);

@@ -910,7 +910,12 @@
 #       define TARGET_LINK_SPEED_MASK                     (0xf << 0)
 #       define SELECTABLE_DEEMPHASIS                      (1 << 6)
 
-/* Audio clocks */
+/* Audio clocks DCE 2.0/3.0 */
+#define AUDIO_DTO                         0x7340
+#       define AUDIO_DTO_PHASE(x)         (((x) & 0xffff) << 0)
+#       define AUDIO_DTO_MODULE(x)        (((x) & 0xffff) << 16)
+
+/* Audio clocks DCE 3.2 */
 #define DCCG_AUDIO_DTO0_PHASE             0x0514
 #define DCCG_AUDIO_DTO0_MODULE            0x0518
 #define DCCG_AUDIO_DTO0_LOAD              0x051c
@@ -1202,6 +1207,10 @@
 #define UVD_RBC_RB_RPTR_ADDR				0xf6a8
 
 #define UVD_CONTEXT_ID					0xf6f4
+
+#	define UPLL_CTLREQ_MASK				0x00000008
+#	define UPLL_CTLACK_MASK				0x40000000
+#	define UPLL_CTLACK2_MASK			0x80000000
 
 /*
  * PM4

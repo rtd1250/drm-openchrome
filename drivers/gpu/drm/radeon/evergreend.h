@@ -59,7 +59,7 @@
 #	define UPLL_SLEEP_MASK				0x00000002
 #	define UPLL_BYPASS_EN_MASK			0x00000004
 #	define UPLL_CTLREQ_MASK				0x00000008
-#	define UPLL_REF_DIV_MASK			0x001F0000
+#	define UPLL_REF_DIV_MASK			0x003F0000
 #	define UPLL_VCO_MODE_MASK			0x00000200
 #	define UPLL_CTLACK_MASK				0x40000000
 #	define UPLL_CTLACK2_MASK			0x80000000
@@ -234,6 +234,7 @@
 #       define HDMI_MPEG_INFO_CONT           (1 << 9)
 #define HDMI_INFOFRAME_CONTROL1              0x7048
 #       define HDMI_AVI_INFO_LINE(x)         (((x) & 0x3f) << 0)
+#       define HDMI_AVI_INFO_LINE_MASK       (0x3f << 0)
 #       define HDMI_AUDIO_INFO_LINE(x)       (((x) & 0x3f) << 8)
 #       define HDMI_MPEG_INFO_LINE(x)        (((x) & 0x3f) << 16)
 #define HDMI_GENERIC_PACKET_CONTROL          0x704c

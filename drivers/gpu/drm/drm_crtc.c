@@ -78,6 +78,10 @@ void drm_warn_on_modeset_not_all_locked(struct drm_device *dev)
 {
 	struct drm_crtc *crtc;
 
+	/* Locking is currently fubar in the panic handler. */
+	if (oops_in_progress)
+		return;
+
 	list_for_each_entry(crtc, &dev->mode_config.crtc_list, head)
 		WARN_ON(!mutex_is_locked(&crtc->mutex));
 
@@ -177,9 +181,6 @@ static struct drm_prop_enum_list drm_dirty_info_enum_list[] = {
 	{ DRM_MODE_DIRTY_ON,       "On"       },
 	{ DRM_MODE_DIRTY_ANNOTATE, "Annotate" },
 };
-
-DRM_ENUM_NAME_FN(drm_get_dirty_info_name,
-		 drm_dirty_info_enum_list)
 
 struct drm_conn_prop_enum_list {
 	int type;
@@ -706,7 +707,6 @@ int drm_connector_init(struct drm_device *dev,
 	connector->connector_type = connector_type;
 	connector->connector_type_id =
 		++drm_connector_enum_list[connector_type].count; /* TODO */
-	INIT_LIST_HEAD(&connector->user_modes);
 	INIT_LIST_HEAD(&connector->probed_modes);
 	INIT_LIST_HEAD(&connector->modes);
 	connector->edid_blob_ptr = NULL;
@@ -745,9 +745,6 @@ void drm_connector_cleanup(struct drm_connector *connector)
 		drm_mode_remove(connector, mode);
 
 	list_for_each_entry_safe(mode, t, &connector->modes, head)
-		drm_mode_remove(connector, mode);
-
-	list_for_each_entry_safe(mode, t, &connector->user_modes, head)
 		drm_mode_remove(connector, mode);
 
 	drm_mode_object_put(dev, &connector->base);
@@ -1120,7 +1117,7 @@ int drm_mode_create_dirty_info_property(struct drm_device *dev)
 }
 EXPORT_SYMBOL(drm_mode_create_dirty_info_property);
 
-int drm_mode_group_init(struct drm_device *dev, struct drm_mode_group *group)
+static int drm_mode_group_init(struct drm_device *dev, struct drm_mode_group *group)
 {
 	uint32_t total_objects = 0;
 
@@ -2616,192 +2613,6 @@ void drm_fb_release(struct drm_file *priv)
 	mutex_unlock(&priv->fbs_lock);
 }
 
-/**
- * drm_mode_attachmode - add a mode to the user mode list
- * @dev: DRM device
- * @connector: connector to add the mode to
- * @mode: mode to add
- *
- * Add @mode to @connector's user mode list.
- */
-static void drm_mode_attachmode(struct drm_device *dev,
-				struct drm_connector *connector,
-				struct drm_display_mode *mode)
-{
-	list_add_tail(&mode->head, &connector->user_modes);
-}
-
-int drm_mode_attachmode_crtc(struct drm_device *dev, struct drm_crtc *crtc,
-			     const struct drm_display_mode *mode)
-{
-	struct drm_connector *connector;
-	int ret = 0;
-	struct drm_display_mode *dup_mode, *next;
-	LIST_HEAD(list);
-
-	list_for_each_entry(connector, &dev->mode_config.connector_list, head) {
-		if (!connector->encoder)
-			continue;
-		if (connector->encoder->crtc == crtc) {
-			dup_mode = drm_mode_duplicate(dev, mode);
-			if (!dup_mode) {
-				ret = -ENOMEM;
-				goto out;
-			}
-			list_add_tail(&dup_mode->head, &list);
-		}
-	}
-
-	list_for_each_entry(connector, &dev->mode_config.connector_list, head) {
-		if (!connector->encoder)
-			continue;
-		if (connector->encoder->crtc == crtc)
-			list_move_tail(list.next, &connector->user_modes);
-	}
-
-	WARN_ON(!list_empty(&list));
-
- out:
-	list_for_each_entry_safe(dup_mode, next, &list, head)
-		drm_mode_destroy(dev, dup_mode);
-
-	return ret;
-}
-EXPORT_SYMBOL(drm_mode_attachmode_crtc);
-
-static int drm_mode_detachmode(struct drm_device *dev,
-			       struct drm_connector *connector,
-			       struct drm_display_mode *mode)
-{
-	int found = 0;
-	int ret = 0;
-	struct drm_display_mode *match_mode, *t;
-
-	list_for_each_entry_safe(match_mode, t, &connector->user_modes, head) {
-		if (drm_mode_equal(match_mode, mode)) {
-			list_del(&match_mode->head);
-			drm_mode_destroy(dev, match_mode);
-			found = 1;
-			break;
-		}
-	}
-
-	if (!found)
-		ret = -EINVAL;
-
-	return ret;
-}
-
-int drm_mode_detachmode_crtc(struct drm_device *dev, struct drm_display_mode *mode)
-{
-	struct drm_connector *connector;
-
-	list_for_each_entry(connector, &dev->mode_config.connector_list, head) {
-		drm_mode_detachmode(dev, connector, mode);
-	}
-	return 0;
-}
-EXPORT_SYMBOL(drm_mode_detachmode_crtc);
-
-/**
- * drm_fb_attachmode - Attach a user mode to an connector
- * @dev: drm device for the ioctl
- * @data: data pointer for the ioctl
- * @file_priv: drm file for the ioctl call
- *
- * This attaches a user specified mode to an connector.
- * Called by the user via ioctl.
- *
- * RETURNS:
- * Zero on success, errno on failure.
- */
-int drm_mode_attachmode_ioctl(struct drm_device *dev,
-			      void *data, struct drm_file *file_priv)
-{
-	struct drm_mode_mode_cmd *mode_cmd = data;
-	struct drm_connector *connector;
-	struct drm_display_mode *mode;
-	struct drm_mode_object *obj;
-	struct drm_mode_modeinfo *umode = &mode_cmd->mode;
-	int ret;
-
-	if (!drm_core_check_feature(dev, DRIVER_MODESET))
-		return -EINVAL;
-
-	drm_modeset_lock_all(dev);
-
-	obj = drm_mode_object_find(dev, mode_cmd->connector_id, DRM_MODE_OBJECT_CONNECTOR);
-	if (!obj) {
-		ret = -EINVAL;
-		goto out;
-	}
-	connector = obj_to_connector(obj);
-
-	mode = drm_mode_create(dev);
-	if (!mode) {
-		ret = -ENOMEM;
-		goto out;
-	}
-
-	ret = drm_crtc_convert_umode(mode, umode);
-	if (ret) {
-		DRM_DEBUG_KMS("Invalid mode\n");
-		drm_mode_destroy(dev, mode);
-		goto out;
-	}
-
-	drm_mode_attachmode(dev, connector, mode);
-out:
-	drm_modeset_unlock_all(dev);
-	return ret;
-}
-
-
-/**
- * drm_fb_detachmode - Detach a user specified mode from an connector
- * @dev: drm device for the ioctl
- * @data: data pointer for the ioctl
- * @file_priv: drm file for the ioctl call
- *
- * Called by the user via ioctl.
- *
- * RETURNS:
- * Zero on success, errno on failure.
- */
-int drm_mode_detachmode_ioctl(struct drm_device *dev,
-			      void *data, struct drm_file *file_priv)
-{
-	struct drm_mode_object *obj;
-	struct drm_mode_mode_cmd *mode_cmd = data;
-	struct drm_connector *connector;
-	struct drm_display_mode mode;
-	struct drm_mode_modeinfo *umode = &mode_cmd->mode;
-	int ret;
-
-	if (!drm_core_check_feature(dev, DRIVER_MODESET))
-		return -EINVAL;
-
-	drm_modeset_lock_all(dev);
-
-	obj = drm_mode_object_find(dev, mode_cmd->connector_id, DRM_MODE_OBJECT_CONNECTOR);
-	if (!obj) {
-		ret = -EINVAL;
-		goto out;
-	}
-	connector = obj_to_connector(obj);
-
-	ret = drm_crtc_convert_umode(&mode, umode);
-	if (ret) {
-		DRM_DEBUG_KMS("Invalid mode\n");
-		goto out;
-	}
-
-	ret = drm_mode_detachmode(dev, connector, &mode);
-out:
-	drm_modeset_unlock_all(dev);
-	return ret;
-}
-
 struct drm_property *drm_property_create(struct drm_device *dev, int flags,
 					 const char *name, int num_values)
 {
@@ -3635,6 +3446,12 @@ int drm_mode_page_flip_ioctl(struct drm_device *dev,
 			      fb->width, fb->height, hdisplay, vdisplay, crtc->x, crtc->y,
 			      crtc->invert_dimensions ? " (inverted)" : "");
 		ret = -ENOSPC;
+		goto out;
+	}
+
+	if (crtc->fb->pixel_format != fb->pixel_format) {
+		DRM_DEBUG_KMS("Page flip is not allowed to change frame buffer format.\n");
+		ret = -EINVAL;
 		goto out;
 	}
 
