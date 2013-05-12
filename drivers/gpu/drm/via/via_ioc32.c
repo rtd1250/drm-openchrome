@@ -142,6 +142,7 @@ KMS_INVALID_IOCTL(via_mem_free)
 KMS_INVALID_IOCTL(via_agp_init)
 KMS_INVALID_IOCTL(via_fb_init)
 KMS_INVALID_IOCTL(via_map_init)
+KMS_INVALID_IOCTL(via_decoder_futex)
 KMS_INVALID_IOCTL(via_dma_blit)
 KMS_INVALID_IOCTL(via_dma_blit_sync)
 

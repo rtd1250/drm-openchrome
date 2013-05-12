@@ -154,13 +154,8 @@ struct drm_via_private {
 	struct via_fence_pool *dma_fences;
 	int desc_size;
 
-	wait_queue_head_t decoder_queue[VIA_NR_XVMC_LOCKS];
-
 	struct via_crtc iga[2];
 	bool spread_spectrum;
-
-	drm_via_sarea_t *sarea_priv;
-	drm_local_map_t *sarea;
 };
 
 #define VIA_MEM_NONE		0x00
@@ -209,7 +204,6 @@ extern int via_dispatch_cmdbuffer(struct drm_device *dev, drm_via_cmdbuffer_t *c
 extern int via_cmdbuffer(struct drm_device *dev, void *data, struct drm_file *file_priv);
 extern int via_cmdbuf_size(struct drm_device *dev, void *data, struct drm_file *file_priv);
 extern int via_pci_cmdbuffer(struct drm_device *dev, void *data, struct drm_file *file_priv);
-extern int via_decoder_futex(struct drm_device *dev, void *data, struct drm_file *file_priv);
 extern int via_wait_irq(struct drm_device *dev, void *data, struct drm_file *file_priv);
 extern int via_wait_idle(struct drm_via_private *dev_priv);
 
@@ -264,9 +258,6 @@ extern void via_driver_irq_uninstall(struct drm_device *dev);
 extern void via_init_command_verifier(void);
 extern int via_driver_dma_quiescent(struct drm_device *dev);
 extern int via_dma_cleanup(struct drm_device *dev);
-extern void via_init_futex(struct drm_via_private *dev_priv);
-extern void via_cleanup_futex(struct drm_via_private *dev_priv);
-extern void via_release_futex(struct drm_via_private *dev_priv, int context);
 
 extern void via_dmablit_handler(struct drm_device *dev, int engine, int from_irq);
 extern int via_dmablit_init(struct drm_device *dev);
