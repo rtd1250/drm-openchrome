@@ -1230,10 +1230,14 @@ via_framebuffer_fini(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
 	struct drm_fb_helper *helper = dev_priv->helper;
-	struct ttm_bo_kmap_obj *kmap = helper->helper_private;
-	struct fb_info *info = helper->fbdev;
+	struct ttm_bo_kmap_obj *kmap;
 	struct drm_gem_object *obj;
+	struct fb_info *info;
 
+	if (!helper)
+		return;
+
+	info = helper->fbdev;
 	if (info) {
 		unregister_framebuffer(info);
 		if (info->cmap.len)
@@ -1245,6 +1249,7 @@ via_framebuffer_fini(struct drm_device *dev)
 		helper->fbdev = NULL;
 	}
 
+	kmap = helper->helper_private;
 	if (kmap) {
 		ttm_bo_unpin(kmap->bo, kmap);
 		ttm_bo_unref(&kmap->bo);

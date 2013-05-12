@@ -256,6 +256,9 @@ via_fence_pool_fini(struct via_fence_pool *pool)
 	struct ttm_buffer_object *sync_bo;
 	int i;
 
+	if (!pool)
+		return;
+
 	drm_ht_remove(&pool->pending);
 
 	flush_workqueue(pool->fence_wq);

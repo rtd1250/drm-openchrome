@@ -271,7 +271,8 @@ static int via_driver_unload(struct drm_device *dev)
 	drm_vblank_cleanup(dev);
 
 	/* destroy work queue. */
-	destroy_workqueue(dev_priv->wq);
+	if (dev_priv->wq)
+		destroy_workqueue(dev_priv->wq);
 
 	bo = dev_priv->vq.bo;
 	if (bo) {
@@ -330,6 +331,7 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
 
 	dev->dev_private = (void *)dev_priv;
 	dev_priv->engine_type = chipset;
+	dev_priv->vram_mtrr = -ENXIO;
 	dev_priv->dev = dev;
 
 	via_init_command_verifier();
@@ -386,6 +388,7 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
 	dev_priv->wq = create_workqueue("viadrm");
 	if (dev_priv->wq == NULL) {
 		DRM_ERROR("create_workqueue failed !\n");
+		ret = -EINVAL;
 		goto out_err;
 	}
 

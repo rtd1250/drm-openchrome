@@ -564,16 +564,18 @@ void via_modeset_fini(struct drm_device *dev)
 	drm_kms_helper_poll_fini(dev);
 	via_framebuffer_fini(dev);
 
+	/* drm_mode_config_init has not been called yet */
+	if (!dev->mode_config.dpms_property)
+		return;
+
 	/* We need to cleanup the connectors before the encoders */
 	list_for_each_entry_safe(connector, ot,
-				&dev->mode_config.connector_list, head) {
+				&dev->mode_config.connector_list, head)
 		connector->funcs->destroy(connector);
-	}
 
-	list_for_each_entry_safe(encoder, enct, &dev->mode_config.encoder_list,
-				head) {
+	list_for_each_entry_safe(encoder, enct,
+				&dev->mode_config.encoder_list, head)
 		encoder->funcs->destroy(encoder);
-	}
 
 	drm_mode_config_cleanup(dev);
 
