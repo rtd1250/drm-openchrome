@@ -254,9 +254,26 @@ via_iga2_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green, u16 *blue,
 		/* access Primary Display's LUT */
 		vga_wseq(VGABASE, 0x1A, sr1a & 0xFE);
 	} else {
+		u8 reg_bits = BIT(1);
+
 		svga_wseq_mask(VGABASE, 0x1A, BIT(0), BIT(0));
-		/* Enable Gamma */
+		/* Bit 1 enables gamma */
 		svga_wcrt_mask(VGABASE, 0x6A, BIT(1), BIT(1));
+
+		/* Old platforms LUT are 6 bits in size.
+		 * Newer it is 8 bits. */
+		switch (crtc->dev->pdev->device) {
+		case PCI_DEVICE_ID_VIA_CLE266:
+		case PCI_DEVICE_ID_VIA_KM400:
+		case PCI_DEVICE_ID_VIA_K8M800:
+		case PCI_DEVICE_ID_VIA_PM800:
+			break;
+
+		default:
+			reg_bits |= BIT(5);	
+			break;
+		}
+		svga_wcrt_mask(VGABASE, 0x6A, reg_bits, reg_bits);
 
 		/* Before we fill the second LUT, we have to enable
 		 * second display channel. If it's enabled before,
