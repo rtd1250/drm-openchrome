@@ -408,7 +408,8 @@ via_check_hdmi_i2c_status(struct drm_via_private *dev_priv,
 }
 
 unsigned int
-via_ddc_read_bytes_by_hdmi(struct drm_via_private *dev_priv, unsigned char *block)
+via_ddc_read_bytes_by_hdmi(struct drm_via_private *dev_priv, unsigned int offset,
+			   unsigned char *block)
 {
 	unsigned int status = true, temp = 0, i;
 
@@ -432,8 +433,8 @@ via_ddc_read_bytes_by_hdmi(struct drm_via_private *dev_priv, unsigned char *bloc
 	if (status)
 		status = via_check_hdmi_i2c_status(dev_priv, 0x0008, true);
 
-	/* Offset - always read at start of buffer */
-	temp = 0;
+	/* Offset */
+	temp = offset;
 	temp <<= 16;
 	temp |= VIA_READ(0xC0B4) & 0xFF00FFFF;
 	VIA_WRITE(0xC0B4, temp);
@@ -496,7 +497,7 @@ via_hdmi_get_edid(struct drm_connector *connector)
 
 	/* base block fetch */
 	for (i = 0; i < 4; i++) {
-		if (!via_ddc_read_bytes_by_hdmi(dev_priv, block))
+		if (!via_ddc_read_bytes_by_hdmi(dev_priv, 0, block))
 			goto out;
 
 		if (drm_edid_block_valid(block, 0, print_bad_edid))
@@ -513,7 +514,7 @@ via_hdmi_get_edid(struct drm_connector *connector)
 	/* parse the extensions if present */
 	if (block[0x7e]) {
 		u8 *new = krealloc(block, (block[0x7e] + 1) * EDID_LENGTH, GFP_KERNEL);
-		int valid_extensions = 0;
+		int valid_extensions = 0, offset = 0;
 
 		if (!new)
 			goto out;
@@ -521,9 +522,10 @@ via_hdmi_get_edid(struct drm_connector *connector)
 
 		for (j = 1; j <= block[0x7e]; j++) {
 			for (i = 0; i < 4; i++) {
-				new = block + (valid_extensions + 1) * EDID_LENGTH;
+				offset = (valid_extensions + 1) * EDID_LENGTH;
+				new = block + offset;
 
-				if (!via_ddc_read_bytes_by_hdmi(dev_priv, new))
+				if (!via_ddc_read_bytes_by_hdmi(dev_priv, offset, new))
 					goto out;
 
 				if (drm_edid_block_valid(new, j, print_bad_edid)) {
@@ -545,7 +547,7 @@ via_hdmi_get_edid(struct drm_connector *connector)
 			block[EDID_LENGTH - 1] += block[0x7e] - valid_extensions;
 			block[0x7e] = valid_extensions;
 
-			new = krealloc(block, valid_extensions * EDID_LENGTH, GFP_KERNEL);
+			new = krealloc(block, (valid_extensions + 1) * EDID_LENGTH, GFP_KERNEL);
 			if (!new)
 				goto out;
 			block = new;
