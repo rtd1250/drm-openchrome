@@ -25,6 +25,11 @@
 #include "drm_fb_helper.h"
 #include "drm_crtc_helper.h"
 
+struct ttm_fb_helper {
+	struct drm_fb_helper base;
+	struct ttm_bo_kmap_obj kmap;
+};
+
 static int
 cle266_mem_type(struct drm_via_private *dev_priv, struct pci_dev *bridge)
 {
@@ -990,26 +995,23 @@ static int
 via_fb_probe(struct drm_fb_helper *helper,
 		struct drm_fb_helper_surface_size *sizes)
 {
+	struct ttm_fb_helper *ttmfb = container_of(helper, struct ttm_fb_helper, base);
 	struct drm_via_private *dev_priv = helper->dev->dev_private;
+	struct ttm_bo_kmap_obj *kmap = &ttmfb->kmap;
 	struct fb_info *info = helper->fbdev;
-	struct ttm_bo_kmap_obj *kmap = NULL;
 	struct drm_framebuffer *fb = NULL;
 	struct drm_gem_object *obj = NULL;
 	struct drm_mode_fb_cmd2 mode_cmd;
 	struct apertures_struct *ap;
 	int size, ret = 0;
-	void *ptr;
 
 	/* Already exist */
 	if (helper->fb)
 		return ret;
 
-	size = sizeof(*fb) + sizeof(*kmap);
-	ptr = kzalloc(size, GFP_KERNEL);
-	if (ptr == NULL)
+	fb = kzalloc(sizeof(*fb), GFP_KERNEL);
+	if (fb == NULL)
 		return -ENOMEM;
-	fb = ptr;
-	kmap = ptr + sizeof(*fb);
 
 	mode_cmd.height = sizes->surface_height;
 	mode_cmd.width = sizes->surface_width;
@@ -1041,11 +1043,9 @@ via_fb_probe(struct drm_fb_helper *helper,
 
 	obj->driver_private = kmap->bo;
 	fb->helper_private = obj;
+	ttmfb->base.fb = fb;
 
 	drm_helper_mode_fill_fb_struct(fb, &mode_cmd);
-	helper->helper_private = kmap;
-	helper->fb = fb;
-
 	info->fix.smem_start = kmap->bo->mem.bus.base +
 				kmap->bo->mem.bus.offset;
 	info->fix.smem_len = info->screen_size = size;
@@ -1069,14 +1069,13 @@ out_err:
 		if (kmap->bo) {
 			ttm_bo_unpin(kmap->bo, kmap);
 			ttm_bo_unref(&kmap->bo);
-			helper->helper_private = NULL;
 		}
 
 		if (obj) {
 			drm_gem_object_unreference_unlocked(obj);
 			helper->fb->helper_private = NULL;
 		}
-		kfree(ptr);
+		kfree(fb);
 	}
 	return ret;
 }
@@ -1175,7 +1174,7 @@ static struct fb_ops viafb_ops = {
 int
 via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **ptr)
 {
-	struct drm_fb_helper *helper;
+	struct ttm_fb_helper *helper;
 	struct fb_info *info;
 	int ret = -ENOMEM;
 
@@ -1188,8 +1187,8 @@ via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **ptr)
 	}
 
 	helper = info->par;
-	helper->fbdev = info;
-	helper->funcs = &via_fb_helper_funcs;
+	helper->base.fbdev = info;
+	helper->base.funcs = &via_fb_helper_funcs;
 
 	strcpy(info->fix.id, dev->driver->name);
 	strcat(info->fix.id, "drmfb");
@@ -1207,18 +1206,18 @@ via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **ptr)
 	if (ret)
 		goto out_err;
 
-	ret = drm_fb_helper_init(dev, helper, dev->num_crtcs,
+	ret = drm_fb_helper_init(dev, &helper->base, dev->num_crtcs,
 				dev->mode_config.num_connector);
 	if (ret) {
 		fb_dealloc_cmap(&info->cmap);
 		goto out_err;
 	}
 
-	drm_fb_helper_single_add_all_connectors(helper);
+	drm_fb_helper_single_add_all_connectors(&helper->base);
 	drm_helper_disable_unused_functions(dev);
-	drm_fb_helper_initial_config(helper, 32);
+	drm_fb_helper_initial_config(&helper->base, 32);
 	drm_kms_helper_poll_init(dev);
-	*ptr = helper;
+	*ptr = (struct drm_fb_helper *) helper;
 out_err:
 	if (ret)
 		framebuffer_release(info);
@@ -1230,13 +1229,14 @@ via_framebuffer_fini(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
 	struct drm_fb_helper *helper = dev_priv->helper;
-	struct ttm_bo_kmap_obj *kmap;
+	struct ttm_fb_helper *ttmfb;
 	struct drm_gem_object *obj;
 	struct fb_info *info;
 
 	if (!helper)
 		return;
 
+	ttmfb = container_of(helper, struct ttm_fb_helper, base);
 	info = helper->fbdev;
 	if (info) {
 		unregister_framebuffer(info);
@@ -1249,11 +1249,10 @@ via_framebuffer_fini(struct drm_device *dev)
 		helper->fbdev = NULL;
 	}
 
-	kmap = helper->helper_private;
-	if (kmap) {
-		ttm_bo_unpin(kmap->bo, kmap);
-		ttm_bo_unref(&kmap->bo);
-		helper->helper_private = NULL;
+	ttmfb = container_of(helper, struct ttm_fb_helper, base);
+	if (ttmfb->kmap.bo) {
+		ttm_bo_unpin(ttmfb->kmap.bo, &ttmfb->kmap);
+		ttm_bo_unref(&ttmfb->kmap.bo);
 	}
 
 	obj = helper->fb->helper_private;
