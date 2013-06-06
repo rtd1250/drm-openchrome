@@ -65,7 +65,7 @@
 #define DRM_VIA_FB_INIT		0x03
 #define DRM_VIA_MAP_INIT	0x04
 #define DRM_VIA_DEC_FUTEX	0x05
-#define DRM_VIA_GEM_CREATE	0x06
+#define DRM_VIA_OLD_GEM_CREATE	0x06
 #define DRM_VIA_DMA_INIT	0x07
 #define DRM_VIA_CMDBUFFER	0x08
 #define DRM_VIA_FLUSH		0x09
@@ -75,8 +75,13 @@
 #define DRM_VIA_WAIT_IRQ	0x0d
 #define DRM_VIA_DMA_BLIT	0x0e
 #define DRM_VIA_BLIT_SYNC	0x0f
-#define DRM_VIA_GEM_WAIT	0x10
-#define DRM_VIA_GEM_STATE	0x11
+
+/* KMS ioctls */
+#define DRM_VIA_GETPARAM	0x10
+#define DRM_VIA_SETPARAM	0x11
+#define DRM_VIA_GEM_CREATE	0x12
+#define DRM_VIA_GEM_WAIT	0x13
+#define DRM_VIA_GEM_STATE	0x14
 
 #define DRM_IOCTL_VIA_ALLOCMEM	  DRM_IOWR(DRM_COMMAND_BASE + DRM_VIA_ALLOCMEM, drm_via_mem_t)
 #define DRM_IOCTL_VIA_FREEMEM	  DRM_IOW( DRM_COMMAND_BASE + DRM_VIA_FREEMEM, drm_via_mem_t)
@@ -84,7 +89,7 @@
 #define DRM_IOCTL_VIA_FB_INIT	  DRM_IOWR(DRM_COMMAND_BASE + DRM_VIA_FB_INIT, drm_via_fb_t)
 #define DRM_IOCTL_VIA_MAP_INIT	  DRM_IOWR(DRM_COMMAND_BASE + DRM_VIA_MAP_INIT, drm_via_init_t)
 #define DRM_IOCTL_VIA_DEC_FUTEX   DRM_IOW( DRM_COMMAND_BASE + DRM_VIA_DEC_FUTEX, drm_via_futex_t)
-#define DRM_IOCTL_VIA_GEM_CREATE  DRM_IOWR(DRM_COMMAND_BASE + DRM_VIA_GEM_CREATE, struct drm_gem_create)
+#define DRM_IOCTL_VIA_OLD_GEM_CREATE  DRM_IOWR(DRM_COMMAND_BASE + DRM_VIA_OLD_GEM_CREATE, struct drm_via_gem_create)
 #define DRM_IOCTL_VIA_DMA_INIT	  DRM_IOWR(DRM_COMMAND_BASE + DRM_VIA_DMA_INIT, drm_via_dma_init_t)
 #define DRM_IOCTL_VIA_CMDBUFFER	  DRM_IOW( DRM_COMMAND_BASE + DRM_VIA_CMDBUFFER, drm_via_cmdbuffer_t)
 #define DRM_IOCTL_VIA_FLUSH	  DRM_IO(  DRM_COMMAND_BASE + DRM_VIA_FLUSH)
@@ -94,8 +99,13 @@
 #define DRM_IOCTL_VIA_WAIT_IRQ    DRM_IOWR( DRM_COMMAND_BASE + DRM_VIA_WAIT_IRQ, drm_via_irqwait_t)
 #define DRM_IOCTL_VIA_DMA_BLIT    DRM_IOW(DRM_COMMAND_BASE + DRM_VIA_DMA_BLIT, drm_via_dmablit_t)
 #define DRM_IOCTL_VIA_BLIT_SYNC   DRM_IOW(DRM_COMMAND_BASE + DRM_VIA_BLIT_SYNC, drm_via_blitsync_t)
+
+/* KMS ioctls */
+#define DRM_IOCTL_VIA_GETPARAM    DRM_IOR(DRM_COMMAND_BASE + DRM_VIA_GETPARAM, struct drm_via_param)
+#define DRM_IOCTL_VIA_SETPARAM    DRM_IOW(DRM_COMMAND_BASE + DRM_VIA_SETPARAM, struct drm_via_param)
+#define DRM_IOCTL_VIA_GEM_CREATE  DRM_IOWR(DRM_COMMAND_BASE + DRM_VIA_GEM_CREATE, struct drm_via_gem_create)
 #define DRM_IOCTL_VIA_GEM_WAIT    DRM_IOW(DRM_COMMAND_BASE + DRM_VIA_GEM_WAIT, struct drm_via_gem_wait)
-#define DRM_IOCTL_VIA_GEM_STATE   DRM_IOWR(DRM_COMMAND_BASE + DRM_VIA_GEM_STATE, struct drm_gem_create)
+#define DRM_IOCTL_VIA_GEM_STATE   DRM_IOWR(DRM_COMMAND_BASE + DRM_VIA_GEM_STATE, struct drm_via_gem_create)
 
 /* Indices into buf.Setup where various bits of state are mirrored per
  * context and per buffer.  These can be fired at the card as a unit,
@@ -276,7 +286,17 @@ typedef struct drm_via_dmablit {
 	drm_via_blitsync_t sync;
 } drm_via_dmablit_t;
 
-struct drm_gem_create {
+/* Ioctl to query kernel params:
+ */
+#define VIA_PARAM_CHIPSET_ID		0
+#define VIA_PARAM_REVISION_ID		1
+
+struct drm_via_param {
+	uint64_t param;
+	uint64_t value;
+};
+
+struct drm_via_gem_create {
 	/**
 	 * Requested size for the object.
 	 *

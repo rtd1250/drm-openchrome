@@ -29,11 +29,41 @@
 #include "via_drv.h"
 
 static int
+via_getparam(struct drm_device *dev, void *data,
+		struct drm_file *filp)
+{
+	struct drm_via_private *dev_priv = dev->dev_private;
+	struct drm_via_param *args = data;
+	int ret = 0;
+
+	switch (args->param) {
+	case VIA_PARAM_CHIPSET_ID:
+		args->value = dev->pci_device;
+		break;
+	case VIA_PARAM_REVISION_ID:
+		args->value = dev_priv->revision;
+		break;
+	default:
+		ret = -EINVAL;
+		break;
+	}
+	return ret;
+}
+
+/* Not yet supported */
+static int
+via_setparam(struct drm_device *dev, void *data,
+		struct drm_file *filp)
+{
+	return -EINVAL;
+}
+
+static int
 via_gem_alloc(struct drm_device *dev, void *data,
 		struct drm_file *filp)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
-	struct drm_gem_create *args = data;
+	struct drm_via_gem_create *args = data;
 	struct drm_gem_object *obj;
 	int ret = -ENOMEM;
 
@@ -61,7 +91,7 @@ static int
 via_gem_state(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	struct ttm_buffer_object *bo = NULL;
-	struct drm_gem_create *args = data;
+	struct drm_via_gem_create *args = data;
 	struct drm_gem_object *obj = NULL;
 	struct ttm_placement placement;
 	int ret = -EINVAL;
@@ -153,7 +183,7 @@ struct drm_ioctl_desc via_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(VIA_FB_INIT, via_fb_init, DRM_AUTH | DRM_MASTER),
 	DRM_IOCTL_DEF_DRV(VIA_MAP_INIT, via_map_init, DRM_AUTH | DRM_MASTER),
 	DRM_IOCTL_DEF_DRV(VIA_DEC_FUTEX, via_decoder_futex, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(VIA_GEM_CREATE, via_gem_alloc, DRM_AUTH | DRM_UNLOCKED),
+	DRM_IOCTL_DEF_DRV(VIA_OLD_GEM_CREATE, via_gem_alloc, DRM_AUTH | DRM_UNLOCKED),
 	DRM_IOCTL_DEF_DRV(VIA_DMA_INIT, via_dma_init, DRM_AUTH),
 	DRM_IOCTL_DEF_DRV(VIA_CMDBUFFER, via_cmdbuffer, DRM_AUTH),
 	DRM_IOCTL_DEF_DRV(VIA_FLUSH, via_flush_ioctl, DRM_AUTH),
@@ -162,6 +192,9 @@ struct drm_ioctl_desc via_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(VIA_WAIT_IRQ, via_wait_irq, DRM_AUTH),
 	DRM_IOCTL_DEF_DRV(VIA_DMA_BLIT, via_dma_blit, DRM_AUTH),
 	DRM_IOCTL_DEF_DRV(VIA_BLIT_SYNC, via_dma_blit_sync, DRM_AUTH),
+	DRM_IOCTL_DEF_DRV(VIA_GETPARAM, via_getparam, DRM_AUTH | DRM_UNLOCKED),
+	DRM_IOCTL_DEF_DRV(VIA_SETPARAM, via_setparam, DRM_AUTH | DRM_MASTER | DRM_ROOT_ONLY),
+	DRM_IOCTL_DEF_DRV(VIA_GEM_CREATE, via_gem_alloc, DRM_AUTH | DRM_UNLOCKED),
 	DRM_IOCTL_DEF_DRV(VIA_GEM_WAIT, via_gem_wait, DRM_AUTH),
 	DRM_IOCTL_DEF_DRV(VIA_GEM_STATE, via_gem_state, DRM_AUTH),
 };
