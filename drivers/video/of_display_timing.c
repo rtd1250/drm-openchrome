@@ -23,7 +23,7 @@
  * Every display_timing can be specified with either just the typical value or
  * a range consisting of min/typ/max. This function helps handling this
  **/
-static int parse_timing_property(struct device_node *np, const char *name,
+static int parse_timing_property(const struct device_node *np, const char *name,
 			  struct timing_entry *result)
 {
 	struct property *prop;
@@ -56,7 +56,8 @@ static int parse_timing_property(struct device_node *np, const char *name,
  * of_get_display_timing - parse display_timing entry from device_node
  * @np: device_node with the properties
  **/
-static struct display_timing *of_get_display_timing(struct device_node *np)
+static struct display_timing *of_get_display_timing(const struct device_node
+						    *np)
 {
 	struct display_timing *dt;
 	u32 val = 0;
@@ -79,25 +80,26 @@ static struct display_timing *of_get_display_timing(struct device_node *np)
 	ret |= parse_timing_property(np, "vsync-len", &dt->vsync_len);
 	ret |= parse_timing_property(np, "clock-frequency", &dt->pixelclock);
 
-	dt->dmt_flags = 0;
-	dt->data_flags = 0;
+	dt->flags = 0;
 	if (!of_property_read_u32(np, "vsync-active", &val))
-		dt->dmt_flags |= val ? VESA_DMT_VSYNC_HIGH :
-				VESA_DMT_VSYNC_LOW;
+		dt->flags |= val ? DISPLAY_FLAGS_VSYNC_HIGH :
+				DISPLAY_FLAGS_VSYNC_LOW;
 	if (!of_property_read_u32(np, "hsync-active", &val))
-		dt->dmt_flags |= val ? VESA_DMT_HSYNC_HIGH :
-				VESA_DMT_HSYNC_LOW;
+		dt->flags |= val ? DISPLAY_FLAGS_HSYNC_HIGH :
+				DISPLAY_FLAGS_HSYNC_LOW;
 	if (!of_property_read_u32(np, "de-active", &val))
-		dt->data_flags |= val ? DISPLAY_FLAGS_DE_HIGH :
+		dt->flags |= val ? DISPLAY_FLAGS_DE_HIGH :
 				DISPLAY_FLAGS_DE_LOW;
 	if (!of_property_read_u32(np, "pixelclk-active", &val))
-		dt->data_flags |= val ? DISPLAY_FLAGS_PIXDATA_POSEDGE :
+		dt->flags |= val ? DISPLAY_FLAGS_PIXDATA_POSEDGE :
 				DISPLAY_FLAGS_PIXDATA_NEGEDGE;
 
 	if (of_property_read_bool(np, "interlaced"))
-		dt->data_flags |= DISPLAY_FLAGS_INTERLACED;
+		dt->flags |= DISPLAY_FLAGS_INTERLACED;
 	if (of_property_read_bool(np, "doublescan"))
-		dt->data_flags |= DISPLAY_FLAGS_DOUBLESCAN;
+		dt->flags |= DISPLAY_FLAGS_DOUBLESCAN;
+	if (of_property_read_bool(np, "doubleclk"))
+		dt->flags |= DISPLAY_FLAGS_DOUBLECLK;
 
 	if (ret) {
 		pr_err("%s: error reading timing properties\n",
