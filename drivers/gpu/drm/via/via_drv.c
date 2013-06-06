@@ -304,7 +304,7 @@ static int via_driver_unload(struct drm_device *dev)
 			vram_start = pci_resource_start(dev->pdev, 2);
 		else
 			vram_start = pci_resource_start(dev->pdev, 0);
-		mtrr_del(dev_priv->vram_mtrr, vram_start, size);
+		dev_priv->vram_mtrr = arch_phys_wc_add(vram_start, size);
 	}
 
 	ttm_global_fini(&dev_priv->mem_global_ref,
