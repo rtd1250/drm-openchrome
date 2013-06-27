@@ -1034,13 +1034,14 @@ static int mga_crtc_mode_set(struct drm_crtc *crtc,
 			else
 				hi_pri_lvl = 5;
 
-			WREG8(0x1fde, 0x06);
-			WREG8(0x1fdf, hi_pri_lvl);
+			WREG8(MGAREG_CRTCEXT_INDEX, 0x06);
+			WREG8(MGAREG_CRTCEXT_DATA, hi_pri_lvl);
 		} else {
+			WREG8(MGAREG_CRTCEXT_INDEX, 0x06);
 			if (mdev->reg_1e24 >= 0x01)
-				WREG8(0x1fdf, 0x03);
+				WREG8(MGAREG_CRTCEXT_DATA, 0x03);
 			else
-				WREG8(0x1fdf, 0x04);
+				WREG8(MGAREG_CRTCEXT_DATA, 0x04);
 		}
 	}
 	return 0;
@@ -1252,6 +1253,8 @@ static void mga_crtc_destroy(struct drm_crtc *crtc)
 
 /* These provide the minimum set of functions required to handle a CRTC */
 static const struct drm_crtc_funcs mga_crtc_funcs = {
+	.cursor_set = mga_crtc_cursor_set,
+	.cursor_move = mga_crtc_cursor_move,
 	.gamma_set = mga_crtc_gamma_set,
 	.set_config = drm_crtc_helper_set_config,
 	.destroy = mga_crtc_destroy,
