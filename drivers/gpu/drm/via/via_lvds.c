@@ -628,6 +628,13 @@ static const struct dmi_system_id via_ttl_lvds[] = {
 			DMI_MATCH(DMI_SYS_VENDOR, "QCI"),
 			DMI_MATCH(DMI_PRODUCT_VERSION, "VT6413A"),
 		},
+	}, {
+		.callback = via_ttl_lvds_dmi_callback,
+		.ident = "Amilo Pro V2030",
+		.matches = {
+			DMI_MATCH(DMI_SYS_VENDOR, "FUJITSU SIEMENS"),
+			DMI_MATCH(DMI_PRODUCT_NAME, "AMILO PRO V2030"),
+		},
 	},
 
 	{ }
