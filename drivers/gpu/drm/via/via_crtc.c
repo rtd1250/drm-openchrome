@@ -117,7 +117,7 @@ via_crtc_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
 	}
 
 	user_kmap.bo = obj->driver_private;
-	ret = ttm_bo_kmap(user_kmap.bo, 0, user_kmap.bo->mem.size, &user_kmap);
+	ret = ttm_bo_kmap(user_kmap.bo, 0, user_kmap.bo->num_pages, &user_kmap);
 	if (!ret) {
 		/* Copy data from userland to cursor memory region */
 		u32 *dst = iga->cursor_kmap.virtual, *src = user_kmap.virtual;
