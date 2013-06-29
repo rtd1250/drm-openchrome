@@ -431,7 +431,8 @@ via_hwcursor_init(struct drm_via_private *dev_priv)
 	VIA_WRITE(ALPHA_V3_PREFIFO_CONTROL, 0xE0000);
 	VIA_WRITE(ALPHA_V3_FIFO_CONTROL, 0xE0F0000);
 
-	/* Turn cursor off. */
+	/* Turn both cursors off. */
+	VIA_WRITE(PRIM_HI_CTRL, VIA_READ(PRIM_HI_CTRL) & 0xFFFFFFFA);
 	VIA_WRITE(HI_CONTROL, VIA_READ(HI_CONTROL) & 0xFFFFFFFA);
 }
 
