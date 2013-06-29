@@ -41,13 +41,13 @@ via_dac_dpms(struct drm_encoder *encoder, int mode)
 
 	switch (mode) {
 	case DRM_MODE_DPMS_SUSPEND:
-		mask = BIT(5);		// VSync off
+		mask = BIT(5);		/* VSync off */
 		break;
 	case DRM_MODE_DPMS_STANDBY:
-		mask = BIT(4);		// HSync off
+		mask = BIT(4);		/* HSync off */
 		break;
 	case DRM_MODE_DPMS_OFF:
-		mask = (BIT(5) | BIT(4));// HSync and VSync off
+		mask = (BIT(5) | BIT(4));/* HSync and VSync off */
 		break;
 	case DRM_MODE_DPMS_ON:
 	default:

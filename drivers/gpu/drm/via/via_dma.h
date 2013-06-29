@@ -38,14 +38,14 @@
 #define VIA_OUT_RING_H1(nReg, nData) {				\
 	*((uint32_t *)(vb)) = ((nReg) >> 2) | HALCYON_HEADER1;	\
 	*((uint32_t *)(vb) + 1) = (nData);			\
-        vb = ((uint32_t *)vb) + 2;				\
-        dev_priv->dma_low += 8;					\
+	vb = ((uint32_t *)vb) + 2;				\
+	dev_priv->dma_low += 8;					\
 }
 
 /* For H5/6 2D cmd load(Two value :cmd with address)***/
 #define VIA_OUT_RING_QW(w1, w2) do {		\
-        *vb++ = (w1);				\
-        *vb++ = (w2);				\
+	*vb++ = (w1);				\
+	*vb++ = (w2);				\
 	dev_priv->dma_low += 8;			\
 } while (0)
 

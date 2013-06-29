@@ -453,32 +453,32 @@ static struct vga_regset iga2_ver_sync_end[] = {
 };
 
 /* IGA1 pixel timing Registers */
-#define	IGA1_PIX_H_TOTAL_REG		0x8400		//[15:0]
-#define	IGA1_PIX_H_ADDR_REG		0x8400		//[31:16]
-#define	IGA1_PIX_H_BNK_ST_REG		0x8404		//[15:0]
-#define	IGA1_PIX_H_BNK_END_REG		0x8404		//[31:16]
-#define	IGA1_PIX_H_SYNC_ST_REG		0x8408		//[15:0]
-#define	IGA1_PIX_H_SYNC_END_REG		0x8408		//[31:16]
-#define	IGA1_PIX_V_TOTAL_REG		0x8424		//[10:0]
-#define	IGA1_PIX_V_ADDR_REG		0x8424		//[26:16]
-#define	IGA1_PIX_V_BNK_ST_REG		0x8428		//[10:0]
-#define	IGA1_PIX_V_BNK_END_REG		0x8428		//[26:16]
-#define	IGA1_PIX_V_SYNC_ST_REG		0x842C		//[10:0]
-#define	IGA1_PIX_V_SYNC_END_REG		0x842C		//[15:12]
-#define	IGA1_PIX_HALF_LINE_REG		0x8434		//[15:0]
+#define	IGA1_PIX_H_TOTAL_REG		0x8400		/* [15:0]  */
+#define	IGA1_PIX_H_ADDR_REG		0x8400		/* [31:16] */
+#define	IGA1_PIX_H_BNK_ST_REG		0x8404		/* [15:0]  */
+#define	IGA1_PIX_H_BNK_END_REG		0x8404		/* [31:16] */
+#define	IGA1_PIX_H_SYNC_ST_REG		0x8408		/* [15:0]  */
+#define	IGA1_PIX_H_SYNC_END_REG		0x8408		/* [31:16] */
+#define	IGA1_PIX_V_TOTAL_REG		0x8424		/* [10:0]  */
+#define	IGA1_PIX_V_ADDR_REG		0x8424		/* [26:16] */
+#define	IGA1_PIX_V_BNK_ST_REG		0x8428		/* [10:0]  */
+#define	IGA1_PIX_V_BNK_END_REG		0x8428		/* [26:16] */
+#define	IGA1_PIX_V_SYNC_ST_REG		0x842C		/* [10:0]  */
+#define	IGA1_PIX_V_SYNC_END_REG		0x842C		/* [15:12] */
+#define	IGA1_PIX_HALF_LINE_REG		0x8434		/* [15:0]  */
 
-#define	IGA1_PIX_H_TOTAL_MASK		0x0000FFFF	//[15:0]
-#define	IGA1_PIX_H_ADDR_MASK		0xFFFF0000	//[31:16]
-#define	IGA1_PIX_H_BNK_ST_MASK		0x0000FFFF	//[15:0]
-#define	IGA1_PIX_H_BNK_END_MASK		0xFFFF0000	//[31:16]
-#define	IGA1_PIX_H_SYNC_ST_MASK		0x0000FFFF	//[15:0]
-#define	IGA1_PIX_H_SYNC_END_MASK	0xFFFF0000	//[31:16]
-#define	IGA1_PIX_V_TOTAL_MASK		0x000007FF	//[10:0]
-#define	IGA1_PIX_V_ADDR_MASK		0x07FF0000	//[26:16]
-#define	IGA1_PIX_V_BNK_ST_MASK		0x000007FF	//[10:0]
-#define	IGA1_PIX_V_BNK_END_MASK		0x07FF0000	//[26:16]
-#define	IGA1_PIX_V_SYNC_ST_MASK		0x000007FF	//[10:0]
-#define	IGA1_PIX_V_SYNC_END_MASK	0x0000F000	//[15:12]
-#define	IGA1_PIX_HALF_LINE_MASK		0x0000FFFF	//[15:0]
+#define	IGA1_PIX_H_TOTAL_MASK		0x0000FFFF	/* [15:0]  */
+#define	IGA1_PIX_H_ADDR_MASK		0xFFFF0000	/* [31:16] */
+#define	IGA1_PIX_H_BNK_ST_MASK		0x0000FFFF	/* [15:0]  */
+#define	IGA1_PIX_H_BNK_END_MASK		0xFFFF0000	/* [31:16] */
+#define	IGA1_PIX_H_SYNC_ST_MASK		0x0000FFFF	/* [15:0]  */
+#define	IGA1_PIX_H_SYNC_END_MASK	0xFFFF0000	/* [31:16] */
+#define	IGA1_PIX_V_TOTAL_MASK		0x000007FF	/* [10:0]  */
+#define	IGA1_PIX_V_ADDR_MASK		0x07FF0000	/* [26:16] */
+#define	IGA1_PIX_V_BNK_ST_MASK		0x000007FF	/* [10:0]  */
+#define	IGA1_PIX_V_BNK_END_MASK		0x07FF0000	/* [26:16] */
+#define	IGA1_PIX_V_SYNC_ST_MASK		0x000007FF	/* [10:0]  */
+#define	IGA1_PIX_V_SYNC_END_MASK	0x0000F000	/* [15:12] */
+#define	IGA1_PIX_HALF_LINE_MASK		0x0000FFFF	/* [15:0]  */
 
 #endif

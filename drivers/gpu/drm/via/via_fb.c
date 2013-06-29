@@ -412,7 +412,7 @@ km8xx_mem_type(struct drm_via_private *dev_priv)
 			return ret;
 
 		if (type & 0x01) {	/* DDR3 */
-			switch(tmp & 0x07) {
+			switch (tmp & 0x07) {
 			case 0x03:
 				dev_priv->vram_type = VIA_MEM_DDR3_800;
 				break;
@@ -428,7 +428,7 @@ km8xx_mem_type(struct drm_via_private *dev_priv)
 				break;
 			}
 		} else {		/* DDR2 */
-			switch(tmp & 0x07) {
+			switch (tmp & 0x07) {
 			case 0x00:
 				dev_priv->vram_type = VIA_MEM_DDR2_400;
 				break;
@@ -456,7 +456,7 @@ km8xx_mem_type(struct drm_via_private *dev_priv)
 		if (ret)
 			return ret;
 
-		switch(tmp & 0x07) {
+		switch (tmp & 0x07) {
 		case 0x01:
 			dev_priv->vram_type = VIA_MEM_DDR2_533;
 			break;
@@ -542,7 +542,7 @@ cn700_mem_type(struct drm_via_private *dev_priv, struct pci_dev *fn3)
 
 	ret = pci_read_config_byte(fn3, 0x90, &tmp);
 	if (!ret) {
-		switch(tmp & 0x07) {
+		switch (tmp & 0x07) {
 		case 0x00:
 			dev_priv->vram_type = VIA_MEM_DDR_200;
 			break;
@@ -639,7 +639,7 @@ vx900_mem_type(struct drm_via_private *dev_priv, struct pci_dev *fn3)
 	type &= 0xC0;
 	type >>= 6;
 	volt &= 0x20;
-	volt >>=5;
+	volt >>= 5;
 
 	switch (type) {
 	case 1:
@@ -1151,7 +1151,8 @@ drmfb_helper_pan_display(struct fb_var_screeninfo *var,
 			}
 		}
 	}
-	if (ret) info->flags &= ~FBINFO_HWACCEL_YPAN;
+	if (ret)
+		info->flags &= ~FBINFO_HWACCEL_YPAN;
 	mutex_unlock(&dev->mode_config.mutex);
 	return ret;
 }

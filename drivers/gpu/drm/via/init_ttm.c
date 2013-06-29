@@ -126,7 +126,8 @@ ttm_placement_from_domain(struct ttm_buffer_object *bo, struct ttm_placement *pl
 	struct ttm_heap *heap = container_of(bo, struct ttm_heap, pbo);
 	int cnt = 0, i = 0;
 
-	if (!(domains & TTM_PL_MASK_MEM)) domains = TTM_PL_FLAG_SYSTEM;
+	if (!(domains & TTM_PL_MASK_MEM))
+		domains = TTM_PL_FLAG_SYSTEM;
 
 	do {
 		int domain = (domains & (1 << i));

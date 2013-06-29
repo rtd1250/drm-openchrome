@@ -229,7 +229,7 @@ via_alloc_desc_pages(struct ttm_tt *ttm, struct drm_device *dev,
 	vsg->ttm = ttm;
 	vsg->dev_start = dev_start;
 	vsg->direction = direction;
-	vsg->num_desc = ttm->num_pages; // + 1;
+	vsg->num_desc = ttm->num_pages;
 	vsg->descriptors_per_page = PAGE_SIZE / desc_size;
 	vsg->num_desc_pages = (vsg->num_desc + vsg->descriptors_per_page - 1) /
 				vsg->descriptors_per_page;

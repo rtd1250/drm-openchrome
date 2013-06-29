@@ -133,8 +133,8 @@ via_encoder_commit(struct drm_encoder *encoder)
 		break;
 
 	case DISP_DI_DAC:
-		if (iga->index) value = BIT(6);
-
+		if (iga->index)
+			value = BIT(6);
 		svga_wseq_mask(VGABASE, 0x16, value, BIT(6));
 		break;
 

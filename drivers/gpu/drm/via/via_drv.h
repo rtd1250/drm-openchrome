@@ -92,8 +92,8 @@ typedef struct drm_via_irq {
 } drm_via_irq_t;
 
 struct sgdma_tt {
-        struct ttm_dma_tt sgdma;
-        unsigned long offset;
+	struct ttm_dma_tt sgdma;
+	unsigned long offset;
 };
 
 struct via_state {

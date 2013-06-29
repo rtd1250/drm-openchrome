@@ -111,7 +111,7 @@ via_cmdbuf_wait(struct drm_via_private *dev_priv, unsigned int size)
  * Returns virtual pointer to ring buffer.
  */
 
-static inline uint32_t *via_check_dma(struct drm_via_private * dev_priv,
+static inline uint32_t *via_check_dma(struct drm_via_private *dev_priv,
 				      unsigned int size)
 {
 	if ((dev_priv->dma_low + size + 4 * CMDBUF_ALIGNMENT_SIZE) >
@@ -236,12 +236,10 @@ int via_dispatch_cmdbuffer(struct drm_device *dev, drm_via_cmdbuffer_t *cmd)
 	 * we run it on a temporary cacheable system memory buffer and
 	 * copy it to AGP memory when ready.
 	 */
-
-	if ((ret =
-	     via_verify_command_stream((uint32_t *) dev_priv->pci_buf,
-				       cmd->size, dev, 1))) {
+	ret = via_verify_command_stream((uint32_t *) dev_priv->pci_buf,
+					cmd->size, dev, 1);
+	if (ret)
 		return ret;
-	}
 
 	vb = via_check_dma(dev_priv, (cmd->size < 0x100) ? 0x102 : cmd->size);
 	if (vb == NULL)
@@ -304,11 +302,10 @@ static int via_dispatch_pci_cmdbuffer(struct drm_device *dev,
 	if (DRM_COPY_FROM_USER(dev_priv->pci_buf, cmd->buf, cmd->size))
 		return -EFAULT;
 
-	if ((ret =
-	     via_verify_command_stream((uint32_t *) dev_priv->pci_buf,
-				       cmd->size, dev, 0))) {
+	ret = via_verify_command_stream((uint32_t *) dev_priv->pci_buf,
+					cmd->size, dev, 0);
+	if (ret)
 		return ret;
-	}
 
 	ret =
 	    via_parse_command_stream(dev, (const uint32_t *)dev_priv->pci_buf,
@@ -330,7 +327,7 @@ int via_pci_cmdbuffer(struct drm_device *dev, void *data, struct drm_file *file_
 }
 
 static inline uint32_t *via_align_buffer(struct drm_via_private *dev_priv,
-					 uint32_t * vb, int qw_count)
+					 uint32_t *vb, int qw_count)
 {
 	for (; qw_count > 0; --qw_count)
 		VIA_OUT_RING_QW(HC_DUMMY, HC_DUMMY);
@@ -510,7 +507,7 @@ static void via_cmdbuf_start(struct drm_via_private *dev_priv)
 
 	reader = ioread32(dev_priv->hw_addr_ptr);
 	ptr = ((volatile void *)dev_priv->last_pause_ptr - dev_priv->dmabuf.virtual) +
-	    dev_priv->dma_offset + 4;
+		dev_priv->dma_offset + 4;
 
 	/*
 	 * This is the difference between where we tell the

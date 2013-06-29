@@ -243,7 +243,7 @@ static enum hazard table1[256];
 static enum hazard table2[256];
 static enum hazard table3[256];
 
-static __inline__ int
+static inline int
 eat_words(const uint32_t **buf, const uint32_t *buf_end, unsigned num_words)
 {
 	if ((buf_end - *buf) >= num_words) {
@@ -258,7 +258,7 @@ eat_words(const uint32_t **buf, const uint32_t *buf_end, unsigned num_words)
  * Partially stolen from drm_memory.h
  */
 
-static __inline__ drm_local_map_t *via_drm_lookup_agp_map(struct drm_via_state *seq,
+static inline drm_local_map_t *via_drm_lookup_agp_map(struct drm_via_state *seq,
 						    unsigned long offset,
 						    unsigned long size,
 						    struct drm_device *dev)
@@ -295,7 +295,7 @@ static __inline__ drm_local_map_t *via_drm_lookup_agp_map(struct drm_via_state *
  * very little CPU time.
  */
 
-static __inline__ int finish_current_sequence(struct drm_via_state * cur_seq)
+static inline int finish_current_sequence(struct drm_via_state *cur_seq)
 {
 	switch (cur_seq->unfinished) {
 	case z_address:
@@ -352,7 +352,7 @@ static __inline__ int finish_current_sequence(struct drm_via_state * cur_seq)
 	return 0;
 }
 
-static __inline__ int
+static inline int
 investigate_hazard(uint32_t cmd, enum hazard hz, struct drm_via_state *cur_seq)
 {
 	register uint32_t tmp, *tmp_addr;
@@ -525,7 +525,7 @@ investigate_hazard(uint32_t cmd, enum hazard hz, struct drm_via_state *cur_seq)
 	return 2;
 }
 
-static __inline__ int
+static inline int
 via_check_prim_list(uint32_t const **buffer, const uint32_t * buf_end,
 		    struct drm_via_state *cur_seq)
 {
@@ -629,7 +629,7 @@ via_check_prim_list(uint32_t const **buffer, const uint32_t * buf_end,
 	return ret;
 }
 
-static __inline__ enum verifier_state
+static inline enum verifier_state
 via_check_header2(uint32_t const **buffer, const uint32_t *buf_end,
 		  struct drm_via_state *hc_state)
 {
@@ -721,7 +721,7 @@ via_check_header2(uint32_t const **buffer, const uint32_t *buf_end,
 	return state_command;
 }
 
-static __inline__ enum verifier_state
+static inline enum verifier_state
 via_parse_header2(struct drm_via_private *dev_priv, uint32_t const **buffer,
 		  const uint32_t *buf_end, int *fire_count)
 {
@@ -770,7 +770,7 @@ via_parse_header2(struct drm_via_private *dev_priv, uint32_t const **buffer,
 	return state_command;
 }
 
-static __inline__ int verify_mmio_address(uint32_t address)
+static inline int verify_mmio_address(uint32_t address)
 {
 	if ((address > 0x3FF) && (address < 0xC00)) {
 		DRM_ERROR("Invalid VIDEO DMA command. "
@@ -800,7 +800,7 @@ static inline int is_dummy_cmd(uint32_t cmd)
 	return 0;
 }
 
-static __inline__ int
+static inline int
 verify_video_tail(uint32_t const **buffer, const uint32_t * buf_end,
 		  uint32_t dwords)
 {
@@ -821,7 +821,7 @@ verify_video_tail(uint32_t const **buffer, const uint32_t * buf_end,
 	return 0;
 }
 
-static __inline__ enum verifier_state
+static inline enum verifier_state
 via_check_header1(uint32_t const **buffer, const uint32_t * buf_end)
 {
 	uint32_t cmd;
@@ -853,7 +853,7 @@ via_check_header1(uint32_t const **buffer, const uint32_t * buf_end)
 	return ret;
 }
 
-static __inline__ enum verifier_state
+static inline enum verifier_state
 via_parse_header1(struct drm_via_private *dev_priv, uint32_t const **buffer,
 		  const uint32_t *buf_end)
 {
@@ -882,7 +882,7 @@ via_parse_header1(struct drm_via_private *dev_priv, uint32_t const **buffer,
 	return state_command;
 }
 
-static __inline__ enum verifier_state
+static inline enum verifier_state
 via_check_vheader5(uint32_t const **buffer, const uint32_t *buf_end)
 {
 	uint32_t data;
@@ -915,7 +915,7 @@ via_check_vheader5(uint32_t const **buffer, const uint32_t *buf_end)
 
 }
 
-static __inline__ enum verifier_state
+static inline enum verifier_state
 via_parse_vheader5(struct drm_via_private *dev_priv, uint32_t const **buffer,
 		   const uint32_t *buf_end)
 {
@@ -933,7 +933,7 @@ via_parse_vheader5(struct drm_via_private *dev_priv, uint32_t const **buffer,
 	return state_command;
 }
 
-static __inline__ enum verifier_state
+static inline enum verifier_state
 via_check_vheader6(uint32_t const **buffer, const uint32_t * buf_end)
 {
 	uint32_t data;
@@ -970,7 +970,7 @@ via_check_vheader6(uint32_t const **buffer, const uint32_t * buf_end)
 	return state_command;
 }
 
-static __inline__ enum verifier_state
+static inline enum verifier_state
 via_parse_vheader6(struct drm_via_private *dev_priv, uint32_t const **buffer,
 		   const uint32_t *buf_end)
 {

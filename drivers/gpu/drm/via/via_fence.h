@@ -70,7 +70,7 @@ struct via_fence {
 	 * stored in a hash key */
 	struct drm_hash_item seq;
 	/* the time to wait for the fence object signal */
-        unsigned long timeout;
+	unsigned long timeout;
 	/* Which engine this belongs too */
 	int engine;
 	/* the reference information of this fence object */

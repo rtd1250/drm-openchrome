@@ -176,7 +176,8 @@ via_init_vq(struct drm_via_private *dev_priv)
 	unsigned long vqstartl, vqendl, vqstart_endh;
 	struct ttm_buffer_object *bo = dev_priv->vq.bo;
 
-	if (!bo) return;
+	if (!bo)
+		return;
 
 	vq_start_addr = bo->offset;
 	vq_end_addr = vq_start_addr + bo->mem.size - 1;

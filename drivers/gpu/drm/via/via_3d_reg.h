@@ -237,8 +237,8 @@
 /* Enable Setting
  */
 #define HC_SubA_HEnable         0x0000
-#define HC_HenForce1P_MASK      0x00800000  //[Force 1 Pipe]
-#define HC_HenZDCheck_MASK      0x00400000  //[Z dirty bit settings]
+#define HC_HenForce1P_MASK      0x00800000  /* [Force 1 Pipe] */
+#define HC_HenZDCheck_MASK      0x00400000  /* [Z dirty bit settings] */
 #define HC_HenTXEnvMap_MASK     0x00200000
 #define HC_HenVertexCNT_MASK    0x00100000
 #define HC_HenCPUDAZ_MASK       0x00080000
@@ -1011,11 +1011,11 @@
 #define HC_HTXnFM_DX1           (HC_HTXnFM_DX        | 0x00010000)
 #define HC_HTXnFM_DX23          (HC_HTXnFM_DX        | 0x00020000)
 #define HC_HTXnFM_DX45          (HC_HTXnFM_DX        | 0x00030000)
-//YUV package mode
+/* YUV package mode */
 #define HC_HTXnFM_YUY2          (HC_HTXnFM_YUV           | 0x00000000)
-//YUV planner mode
+/* YUV planner mode */
 #define HC_HTXnFM_YV12          (HC_HTXnFM_YUV           | 0x00040000)
-//YUV planner mode
+/* YUV planner mode */
 #define HC_HTXnFM_IYUV          (HC_HTXnFM_YUV           | 0x00040000)
 #define HC_HTXnFM_RGB555        (HC_HTXnFM_ARGB16    | 0x00000000)
 #define HC_HTXnFM_RGB565        (HC_HTXnFM_ARGB16    | 0x00010000)
@@ -1046,7 +1046,7 @@
 #define HC_HTXnLoc_Sys          0x00000002
 #define HC_HTXnLoc_AGP          0x00000003
 
-// Video Texture
+/* Video Texture */
 #define HC_HTXnYUV2RGBMode_RGB          0x00000000
 #define HC_HTXnYUV2RGBMode_SDTV         0x00000001
 #define HC_HTXnYUV2RGBMode_HDTV         0x00000002

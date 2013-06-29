@@ -71,74 +71,73 @@ via_hdmi_enc_mode_fixup(struct drm_encoder *encoder,
 	uint32_t top_border = 0, bottom_border = 0;
 
 	if (adjusted_mode->flags & DRM_MODE_FLAG_INTERLACE) {
-                /* when interlace mode,
-                 * we should consider halve vertical timings. */
-                panelHSyncTime = adjusted_mode->hsync_end -
-                        adjusted_mode->hsync_start;
-                panelVSyncTime = adjusted_mode->vsync_end / 2 -
-                        adjusted_mode->vsync_start / 2;
-                panelHBlankStart = adjusted_mode->hdisplay;
-                panelVBlankStart = adjusted_mode->vdisplay / 2;
-                newHBlankStart = adjusted_mode->hdisplay - left_border;
-                newVBlankStart = adjusted_mode->vdisplay / 2 - top_border;
+		/* when interlace mode, we should consider halve vertical
+		 * timings. */
+		panelHSyncTime = adjusted_mode->hsync_end -
+					adjusted_mode->hsync_start;
+		panelVSyncTime = adjusted_mode->vsync_end / 2 -
+					adjusted_mode->vsync_start / 2;
+		panelHBlankStart = adjusted_mode->hdisplay;
+		panelVBlankStart = adjusted_mode->vdisplay / 2;
+		newHBlankStart = adjusted_mode->hdisplay - left_border;
+		newVBlankStart = adjusted_mode->vdisplay / 2 - top_border;
 
-                adjusted_mode->hdisplay =
-                        adjusted_mode->hdisplay - left_border - right_border;
-                adjusted_mode->hsync_start =
-                        (adjusted_mode->hsync_start - panelHBlankStart) +
-                        newHBlankStart;
-                adjusted_mode->hsync_end =
-                        adjusted_mode->hsync_start + panelHSyncTime;
+		adjusted_mode->hdisplay =
+			adjusted_mode->hdisplay - left_border - right_border;
+		adjusted_mode->hsync_start =
+			(adjusted_mode->hsync_start - panelHBlankStart) +
+				newHBlankStart;
+		adjusted_mode->hsync_end =
+			adjusted_mode->hsync_start + panelHSyncTime;
 
-                adjusted_mode->vdisplay = adjusted_mode->vdisplay / 2 -
-                        top_border - bottom_border;
-                adjusted_mode->vsync_start =
-                        (adjusted_mode->vsync_start / 2 - panelVBlankStart) +
-                        newVBlankStart;
-                adjusted_mode->vsync_end =
-                        adjusted_mode->vsync_start + panelVSyncTime;
-
+		adjusted_mode->vdisplay = adjusted_mode->vdisplay / 2 -
+						top_border - bottom_border;
+		adjusted_mode->vsync_start =
+				(adjusted_mode->vsync_start / 2 - panelVBlankStart) +
+				newVBlankStart;
+		adjusted_mode->vsync_end =
+				adjusted_mode->vsync_start + panelVSyncTime;
 	} else {
-                panelHSyncTime =
-                        adjusted_mode->hsync_end - adjusted_mode->hsync_start;
-                panelVSyncTime =
-                        adjusted_mode->vsync_end - adjusted_mode->vsync_start;
-                panelHBlankStart = adjusted_mode->hdisplay;
-                panelVBlankStart = adjusted_mode->vdisplay;
-                newHBlankStart = adjusted_mode->hdisplay - left_border;
-                newVBlankStart = adjusted_mode->vdisplay - top_border;
+		panelHSyncTime =
+			adjusted_mode->hsync_end - adjusted_mode->hsync_start;
+		panelVSyncTime =
+			adjusted_mode->vsync_end - adjusted_mode->vsync_start;
+		panelHBlankStart = adjusted_mode->hdisplay;
+		panelVBlankStart = adjusted_mode->vdisplay;
+		newHBlankStart = adjusted_mode->hdisplay - left_border;
+		newVBlankStart = adjusted_mode->vdisplay - top_border;
 
-                adjusted_mode->hdisplay =
-                        adjusted_mode->hdisplay - left_border - right_border;
-                adjusted_mode->hsync_start =
-                        (adjusted_mode->hsync_start - panelHBlankStart) +
-                        newHBlankStart;
-                adjusted_mode->hsync_end =
-                        adjusted_mode->hsync_start + panelHSyncTime;
+		adjusted_mode->hdisplay =
+			adjusted_mode->hdisplay - left_border - right_border;
+		adjusted_mode->hsync_start =
+			(adjusted_mode->hsync_start - panelHBlankStart) +
+			newHBlankStart;
+		adjusted_mode->hsync_end =
+			adjusted_mode->hsync_start + panelHSyncTime;
 
-                adjusted_mode->vdisplay =
-                        adjusted_mode->vdisplay - top_border - bottom_border;
-                adjusted_mode->vsync_start =
-                        (adjusted_mode->vsync_start - panelVBlankStart) +
-                        newVBlankStart;
-                adjusted_mode->vsync_end =
-                        adjusted_mode->vsync_start + panelVSyncTime;
-        }
+		adjusted_mode->vdisplay =
+			adjusted_mode->vdisplay - top_border - bottom_border;
+		adjusted_mode->vsync_start =
+			(adjusted_mode->vsync_start - panelVBlankStart) +
+			newVBlankStart;
+		adjusted_mode->vsync_end =
+			adjusted_mode->vsync_start + panelVSyncTime;
+	}
 
 	/* Adjust crtc H and V */
-        adjusted_mode->crtc_hdisplay = adjusted_mode->hdisplay;
-        adjusted_mode->crtc_hblank_start = newHBlankStart;
-        adjusted_mode->crtc_hblank_end =
-                adjusted_mode->crtc_htotal - left_border;
-        adjusted_mode->crtc_hsync_start = adjusted_mode->hsync_start;
-        adjusted_mode->crtc_hsync_end = adjusted_mode->hsync_end;
+	adjusted_mode->crtc_hdisplay = adjusted_mode->hdisplay;
+	adjusted_mode->crtc_hblank_start = newHBlankStart;
+	adjusted_mode->crtc_hblank_end =
+	adjusted_mode->crtc_htotal - left_border;
+	adjusted_mode->crtc_hsync_start = adjusted_mode->hsync_start;
+	adjusted_mode->crtc_hsync_end = adjusted_mode->hsync_end;
 
-        adjusted_mode->crtc_vdisplay = adjusted_mode->vdisplay;
-        adjusted_mode->crtc_vblank_start = newVBlankStart;
-        adjusted_mode->crtc_vblank_end =
-                adjusted_mode->crtc_vtotal - top_border;
-        adjusted_mode->crtc_vsync_start = adjusted_mode->vsync_start;
-        adjusted_mode->crtc_vsync_end = adjusted_mode->vsync_end;
+	adjusted_mode->crtc_vdisplay = adjusted_mode->vdisplay;
+	adjusted_mode->crtc_vblank_start = newVBlankStart;
+	adjusted_mode->crtc_vblank_end =
+	adjusted_mode->crtc_vtotal - top_border;
+	adjusted_mode->crtc_vsync_start = adjusted_mode->vsync_start;
+	adjusted_mode->crtc_vsync_end = adjusted_mode->vsync_end;
 
 	drm_mode_set_crtcinfo(adjusted_mode, 0);
 	return true;

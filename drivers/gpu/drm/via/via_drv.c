@@ -297,7 +297,7 @@ static int via_driver_unload(struct drm_device *dev)
 
 	/* mtrr delete the vram */
 	if (drm_core_has_MTRR(dev) && (dev_priv->vram_mtrr >= 0))
-        arch_phys_wc_del(dev_priv->vram_mtrr);
+		arch_phys_wc_del(dev_priv->vram_mtrr);
 
 	ttm_global_fini(&dev_priv->mem_global_ref,
 			&dev_priv->bo_global_ref,
