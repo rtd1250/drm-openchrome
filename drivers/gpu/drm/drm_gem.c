@@ -453,25 +453,21 @@ drm_gem_flink_ioctl(struct drm_device *dev, void *data,
 	spin_lock(&dev->object_name_lock);
 	if (!obj->name) {
 		ret = idr_alloc(&dev->object_name_idr, obj, 1, 0, GFP_NOWAIT);
-		obj->name = ret;
-		args->name = (uint64_t) obj->name;
-		spin_unlock(&dev->object_name_lock);
-		idr_preload_end();
-
 		if (ret < 0)
 			goto err;
-		ret = 0;
+
+		obj->name = ret;
 
 		/* Allocate a reference for the name table.  */
 		drm_gem_object_reference(obj);
-	} else {
-		args->name = (uint64_t) obj->name;
-		spin_unlock(&dev->object_name_lock);
-		idr_preload_end();
-		ret = 0;
 	}
 
+	args->name = (uint64_t) obj->name;
+	ret = 0;
+
 err:
+	spin_unlock(&dev->object_name_lock);
+	idr_preload_end();
 	drm_gem_object_unreference_unlocked(obj);
 	return ret;
 }
@@ -661,6 +657,8 @@ EXPORT_SYMBOL(drm_gem_vm_close);
  * the GEM object is not looked up based on its fake offset. To implement the
  * DRM mmap operation, drivers should use the drm_gem_mmap() function.
  *
+ * NOTE: This function has to be protected with dev->struct_mutex
+ *
  * Return 0 or success or -EINVAL if the object size is smaller than the VMA
  * size, or if no gem_vm_ops are provided.
  */
@@ -668,6 +666,8 @@ int drm_gem_mmap_obj(struct drm_gem_object *obj, unsigned long obj_size,
 		     struct vm_area_struct *vma)
 {
 	struct drm_device *dev = obj->dev;
+
+	lockdep_assert_held(&dev->struct_mutex);
 
 	/* Check for valid size. */
 	if (obj_size < vma->vm_end - vma->vm_start)

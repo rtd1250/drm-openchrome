@@ -339,6 +339,9 @@ struct drm_crtc_funcs {
 	/* cursor controls */
 	int (*cursor_set)(struct drm_crtc *crtc, struct drm_file *file_priv,
 			  uint32_t handle, uint32_t width, uint32_t height);
+	int (*cursor_set2)(struct drm_crtc *crtc, struct drm_file *file_priv,
+			   uint32_t handle, uint32_t width, uint32_t height,
+			   int32_t hot_x, int32_t hot_y);
 	int (*cursor_move)(struct drm_crtc *crtc, int x, int y);
 
 	/* Set gamma on the CRTC */
@@ -808,7 +811,6 @@ struct drm_mode_config {
 	/* output poll support */
 	bool poll_enabled;
 	bool poll_running;
-	bool delayed_event;
 	struct delayed_work output_poll_work;
 
 	/* pointers to standard properties */
@@ -1017,6 +1019,8 @@ extern int drm_mode_getplane(struct drm_device *dev,
 extern int drm_mode_setplane(struct drm_device *dev,
 			       void *data, struct drm_file *file_priv);
 extern int drm_mode_cursor_ioctl(struct drm_device *dev,
+				void *data, struct drm_file *file_priv);
+extern int drm_mode_cursor2_ioctl(struct drm_device *dev,
 				void *data, struct drm_file *file_priv);
 extern int drm_mode_addfb(struct drm_device *dev,
 			  void *data, struct drm_file *file_priv);
