@@ -685,7 +685,7 @@ via_hdmi_init(struct drm_device *dev, int diport)
 	hdmi->base.doublescan_allowed = false;
 	switch (dev->pdev->device) {
 	case PCI_DEVICE_ID_VIA_VT3157:
-	case PCI_DEVICE_ID_VIA_VT3353:
+	case PCI_DEVICE_ID_VIA_VT1122:
 		hdmi->base.interlace_allowed = false;
 		break;
 	default:
