@@ -29,7 +29,7 @@
 
 #include "via_drv.h"
 
-int via_modeset = 0;
+int via_modeset = 1;
 
 MODULE_PARM_DESC(modeset, "Disable/Enable modesetting");
 module_param_named(modeset, via_modeset, int, 0400);
