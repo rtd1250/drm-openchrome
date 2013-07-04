@@ -26,6 +26,7 @@
 #include "trinityd.h"
 #include "r600_dpm.h"
 #include "trinity_dpm.h"
+#include <linux/seq_file.h>
 
 #define TRINITY_MAX_DEEPSLEEP_DIVIDER_ID 5
 #define TRINITY_MINIMUM_ENGINE_CLOCK 800
@@ -920,6 +921,10 @@ static void trinity_setup_uvd_clocks(struct radeon_device *rdev,
 {
 	struct trinity_power_info *pi = trinity_get_pi(rdev);
 
+	if (pi->enable_gfx_power_gating) {
+		trinity_gfx_powergating_enable(rdev, false);
+	}
+
 	if (pi->uvd_dpm) {
 		if (trinity_uvd_clocks_zero(new_rps) &&
 		    !trinity_uvd_clocks_zero(old_rps)) {
@@ -944,6 +949,10 @@ static void trinity_setup_uvd_clocks(struct radeon_device *rdev,
 			return;
 
 		radeon_set_uvd_clocks(rdev, new_rps->vclk, new_rps->dclk);
+	}
+
+	if (pi->enable_gfx_power_gating) {
+		trinity_gfx_powergating_enable(rdev, true);
 	}
 }
 
@@ -1853,6 +1862,27 @@ void trinity_dpm_print_power_state(struct radeon_device *rdev,
 		       trinity_convert_voltage_index_to_value(rdev, pl->vddc_index));
 	}
 	r600_dpm_print_ps_status(rdev, rps);
+}
+
+void trinity_dpm_debugfs_print_current_performance_level(struct radeon_device *rdev,
+							 struct seq_file *m)
+{
+	struct radeon_ps *rps = rdev->pm.dpm.current_ps;
+	struct trinity_ps *ps = trinity_get_ps(rps);
+	struct trinity_pl *pl;
+	u32 current_index =
+		(RREG32(TARGET_AND_CURRENT_PROFILE_INDEX) & CURRENT_STATE_MASK) >>
+		CURRENT_STATE_SHIFT;
+
+	if (current_index >= ps->num_levels) {
+		seq_printf(m, "invalid dpm profile %d\n", current_index);
+	} else {
+		pl = &ps->levels[current_index];
+		seq_printf(m, "uvd    vclk: %d dclk: %d\n", rps->vclk, rps->dclk);
+		seq_printf(m, "power level %d    sclk: %u vddc: %u\n",
+			   current_index, pl->sclk,
+			   trinity_convert_voltage_index_to_value(rdev, pl->vddc_index));
+	}
 }
 
 void trinity_dpm_fini(struct radeon_device *rdev)
