@@ -200,7 +200,7 @@ chip_revision_info(struct drm_device *dev)
 
 	case PCI_DEVICE_ID_VIA_VT1122:
 	case PCI_DEVICE_ID_VIA_VX875:
-	case PCI_DEVICE_ID_VIA_VX900:
+	case PCI_DEVICE_ID_VIA_VX900_VGA:
 		dev_priv->revision = vga_rseq(VGABASE, 0x3B);
 		break;
 

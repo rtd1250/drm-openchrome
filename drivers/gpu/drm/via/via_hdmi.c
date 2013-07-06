@@ -281,7 +281,7 @@ via_hdmi_enc_mode_set(struct drm_encoder *encoder,
 							(v_sync_adjust & 0x700) >> 8, 0x07);
 					break;
 
-				case PCI_DEVICE_ID_VIA_VX900:
+				case PCI_DEVICE_ID_VIA_VX900_VGA:
 					svga_wcrt_mask(VGABASE, 0xAB, v_sync_adjust & 0xFF, 0xFF);
 					svga_wcrt_mask(VGABASE, 0xAC, (v_sync_adjust & 0x700) >> 8, 0x07);
 					break;
@@ -358,7 +358,7 @@ via_hdmi_enc_mode_set(struct drm_encoder *encoder,
 			svga_wcrt_mask(VGABASE, 0x9B, 0x0F, 0x0F);
 			break;
 
-		case PCI_DEVICE_ID_VIA_VX900:	/* VX900 */
+		case PCI_DEVICE_ID_VIA_VX900_VGA:	/* VX900 */
 			svga_wcrt_mask(VGABASE, 0x65, 0x09, 0x0F);
 			svga_wcrt_mask(VGABASE, 0x9B, 0x09, 0x0F);
 			break;

@@ -240,7 +240,7 @@ via_lvds_dpms(struct drm_encoder *encoder, int mode)
 		if (dev_priv->spread_spectrum) {
 			if ((dev->pci_device == PCI_DEVICE_ID_VIA_VT1122) ||
 			    (dev->pci_device == PCI_DEVICE_ID_VIA_VX875) ||
-			    (dev->pci_device == PCI_DEVICE_ID_VIA_VX900)) {
+			    (dev->pci_device == PCI_DEVICE_ID_VIA_VX900_VGA)) {
 				/* GPIO-4/5 are used for spread spectrum,
 				 * we must clear SR3D[7:6] to disable
 				 * GPIO-4/5 output */
@@ -583,7 +583,7 @@ via_lcd_mode_valid(struct drm_connector *connector,
 		return MODE_PANEL;
 
 	/* Don't support mode larger than physical size */
-	if (dev->pci_device != PCI_DEVICE_ID_VIA_VX900) {
+	if (dev->pci_device != PCI_DEVICE_ID_VIA_VX900_VGA) {
 		if (mode->hdisplay > native_mode->hdisplay)
 			return MODE_PANEL;
 		if (mode->vdisplay > native_mode->vdisplay)
@@ -665,7 +665,7 @@ via_lvds_init(struct drm_device *dev)
 
 	switch (dev->pci_device) {
 	case PCI_DEVICE_ID_VIA_VX875:
-	case PCI_DEVICE_ID_VIA_VX900:
+	case PCI_DEVICE_ID_VIA_VX900_VGA:
 		con->ddc_bus = via_find_ddc_bus(0x2C);
 		break;
 	default:
@@ -746,7 +746,7 @@ via_lvds_init(struct drm_device *dev)
 		break;
 
 	case PCI_DEVICE_ID_VIA_VX875:
-	case PCI_DEVICE_ID_VIA_VX900:
+	case PCI_DEVICE_ID_VIA_VX900_VGA:
 		enc->diPort = DISP_DI_DFPL;
 		break;
 

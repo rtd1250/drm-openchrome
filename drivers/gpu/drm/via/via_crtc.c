@@ -454,7 +454,7 @@ void via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 	u32 reg_value = 0;
 
 	if (!iga->index) {
-		if (dev->pdev->device == PCI_DEVICE_ID_VIA_VX900) {
+		if (dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA) {
 			/* Disable IGA1 shadow timing */
 			svga_wcrt_mask(VGABASE, 0x45, 0x00, BIT(0));
 
@@ -557,7 +557,7 @@ void via_set_scale_path(struct drm_crtc *crtc, u32 scale_type)
 		reg_cr_fd &= ~BIT(7);
 
 	/* only IGA1 up scaling need to clear this bit CRFD.5. */
-	if (dev->pci_device == PCI_DEVICE_ID_VIA_VX900) {
+	if (dev->pci_device == PCI_DEVICE_ID_VIA_VX900_VGA) {
 		if (!iga->index && ((VIA_HOR_EXPAND & scale_type) ||
 			(VIA_VER_EXPAND & scale_type)))
 			reg_cr_fd &= ~BIT(5);
@@ -1333,12 +1333,12 @@ via_crtc_init(struct drm_device *dev, int index)
 
 		iga->timings.hdisplay.count = ARRAY_SIZE(iga2_hor_addr);
 		iga->timings.hdisplay.regs = iga2_hor_addr;
-		if (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900)
+		if (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA)
 			iga->timings.hdisplay.count--;
 
 		iga->timings.hblank_start.count = ARRAY_SIZE(iga2_hor_blank_start);
 		iga->timings.hblank_start.regs = iga2_hor_blank_start;
-		if (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900)
+		if (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA)
 			iga->timings.hblank_start.count--;
 
 		iga->timings.hblank_end.count = ARRAY_SIZE(iga2_hor_blank_end);
@@ -1462,7 +1462,7 @@ via_crtc_init(struct drm_device *dev, int index)
 			break;
 
 		/* VX900 */
-		case PCI_DEVICE_ID_VIA_VX900:
+		case PCI_DEVICE_ID_VIA_VX900_VGA:
 			iga->fifo_high_threshold = iga->fifo_threshold = 160;
 			iga->display_queue_expire_num = 320;
 			iga->fifo_max_depth = 192;
@@ -1479,12 +1479,12 @@ via_crtc_init(struct drm_device *dev, int index)
 
 		iga->timings.hdisplay.count = ARRAY_SIZE(iga1_hor_addr);
 		iga->timings.hdisplay.regs = iga1_hor_addr;
-		if (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900)
+		if (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA)
 			iga->timings.hdisplay.count--;
 
 		iga->timings.hblank_start.count = ARRAY_SIZE(iga1_hor_blank_start);
 		iga->timings.hblank_start.regs = iga1_hor_blank_start;
-		if (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900)
+		if (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA)
 			iga->timings.hblank_start.count--;
 
 		iga->timings.hblank_end.count = ARRAY_SIZE(iga1_hor_blank_end);
@@ -1595,7 +1595,7 @@ via_crtc_init(struct drm_device *dev, int index)
 		/* VX855 */
 		case PCI_DEVICE_ID_VIA_VX875:
 		/* VX900 */
-		case PCI_DEVICE_ID_VIA_VX900:
+		case PCI_DEVICE_ID_VIA_VX900_VGA:
 			iga->fifo_high_threshold = iga->fifo_threshold = 320;
 			iga->display_queue_expire_num = 160;
 			iga->fifo_max_depth = 400;

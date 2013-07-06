@@ -444,7 +444,7 @@ via_ttm_io_mem_reserve(struct ttm_bo_device *bdev, struct ttm_mem_reg *mem)
 		break;
 
 	case TTM_PL_VRAM:
-		if (dev->pci_device == PCI_DEVICE_ID_VIA_VX900)
+		if (dev->pci_device == PCI_DEVICE_ID_VIA_VX900_VGA)
 			mem->bus.base = pci_resource_start(dev->pdev, 2);
 		else
 			mem->bus.base = pci_resource_start(dev->pdev, 0);

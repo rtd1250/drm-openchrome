@@ -160,7 +160,7 @@ via_tmds_init(struct drm_device *dev)
 			break;
 
 	case PCI_DEVICE_ID_VIA_VX875:
-	case PCI_DEVICE_ID_VIA_VX900:
+	case PCI_DEVICE_ID_VIA_VX900_VGA:
 		i2c_port = 0x31;
 		break;
 	default:

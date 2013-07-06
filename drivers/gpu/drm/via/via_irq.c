@@ -205,7 +205,7 @@ via_hpd_irq_process(struct drm_via_private *dev_priv)
 
 	/* internal TMDS sense */
 	if ((dev_priv->dev->pci_device != PCI_DEVICE_ID_VIA_VX875) ||
-	    (dev_priv->dev->pci_device != PCI_DEVICE_ID_VIA_VX900)) {
+	    (dev_priv->dev->pci_device != PCI_DEVICE_ID_VIA_VX900_VGA)) {
 		if (VIA_IRQ_IN_TMDS_ENABLE & mm_1280) {
 			if (VIA_IRQ_IN_TMDS_STATUS & mm_1280) {
 				ret = IRQ_HANDLED;
@@ -346,7 +346,7 @@ via_hpd_irq_state(struct drm_via_private *dev_priv, bool enable)
 	mask = VIA_IRQ_CRT_ENABLE | VIA_IRQ_CRT_STATUS;
 
 	if ((dev_priv->dev->pci_device != PCI_DEVICE_ID_VIA_VX875) ||
-	    (dev_priv->dev->pci_device != PCI_DEVICE_ID_VIA_VX900)) {
+	    (dev_priv->dev->pci_device != PCI_DEVICE_ID_VIA_VX900_VGA)) {
 		/* Internal DVI - DFPL port */
 		mask |= VIA_IRQ_IN_TMDS_ENABLE | VIA_IRQ_IN_TMDS_STATUS;
 	} else {

@@ -67,7 +67,7 @@ via_encoder_commit(struct drm_encoder *encoder)
 		if ((dev->pdev->device == PCI_DEVICE_ID_VIA_VT3157) ||
 		    (dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
 		    (dev->pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
-		    (dev->pdev->device == PCI_DEVICE_ID_VIA_VX900))
+		    (dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA))
 			svga_wcrt_mask(VGABASE, 0xD3, 0x00, BIT(5));
 		/* Turn on DVP1 clk */
 		svga_wseq_mask(VGABASE, 0x1E, 0x30, BIT(5) | BIT(4));
@@ -78,7 +78,7 @@ via_encoder_commit(struct drm_encoder *encoder)
 		if ((dev->pdev->device != PCI_DEVICE_ID_VIA_VT3157) &&
 		    (dev->pdev->device != PCI_DEVICE_ID_VIA_VT1122) &&
 		    (dev->pdev->device != PCI_DEVICE_ID_VIA_VX875) &&
-		    (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900))
+		    (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA))
 			svga_wcrt_mask(VGABASE, 0x96, value, BIT(4));
 
 		svga_wcrt_mask(VGABASE, 0x97, value, BIT(4));
@@ -91,7 +91,7 @@ via_encoder_commit(struct drm_encoder *encoder)
 		if ((dev->pdev->device != PCI_DEVICE_ID_VIA_VT3157) &&
 		    (dev->pdev->device != PCI_DEVICE_ID_VIA_VT1122) &&
 		    (dev->pdev->device != PCI_DEVICE_ID_VIA_VX875) &&
-		    (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900))
+		    (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA))
 			svga_wcrt_mask(VGABASE, 0x9B, value, BIT(4));
 
 		svga_wcrt_mask(VGABASE, 0x99, value, BIT(4));
@@ -481,7 +481,7 @@ via_display_init(struct drm_device *dev)
 	u8 index = 0x3D, value;
 
 	/* Check if spread spectrum is enabled */
-	if (dev->pci_device == PCI_DEVICE_ID_VIA_VX900)
+	if (dev->pci_device == PCI_DEVICE_ID_VIA_VX900_VGA)
 		index = 0x2C;
 
 	value = vga_rseq(VGABASE, 0x1E);
@@ -542,7 +542,7 @@ via_modeset_init(struct drm_device *dev)
 	/* Newer platforms use HDMI encoder */
 	case PCI_DEVICE_ID_VIA_VT1122:
 	case PCI_DEVICE_ID_VIA_VX875:
-	case PCI_DEVICE_ID_VIA_VX900:
+	case PCI_DEVICE_ID_VIA_VX900_VGA:
 		via_hdmi_init(dev, DISP_DI_NONE);
 		break;
 

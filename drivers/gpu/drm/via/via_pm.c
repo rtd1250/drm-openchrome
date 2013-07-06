@@ -33,7 +33,7 @@ via_init_2d(struct drm_via_private *dev_priv, int pci_device)
 		VIA_WRITE(i, 0x0);
 
 	/* For 410 chip*/
-	if (pci_device == PCI_DEVICE_ID_VIA_VX900)
+	if (pci_device == PCI_DEVICE_ID_VIA_VX900_VGA)
 		VIA_WRITE(0x60, 0x0);
 }
 
