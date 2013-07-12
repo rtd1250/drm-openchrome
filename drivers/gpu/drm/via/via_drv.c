@@ -417,6 +417,13 @@ static int via_final_context(struct drm_device *dev, int context)
 	return 1;
 }
 
+static void via_driver_lastclose(struct drm_device *dev)
+{
+	if (drm_core_check_feature(dev, DRIVER_MODESET) &&
+	    dev->mode_config.funcs->output_poll_changed)
+		dev->mode_config.funcs->output_poll_changed(dev);
+}
+
 static void via_reclaim_buffers_locked(struct drm_device *dev,
 					struct drm_file *filp)
 {
@@ -453,6 +460,7 @@ static struct drm_driver via_driver = {
 	.irq_uninstall = via_driver_irq_uninstall,
 	.irq_handler = via_driver_irq_handler,
 	.dma_quiescent = via_driver_dma_quiescent,
+	.lastclose = via_driver_lastclose,
 	.gem_init_object = ttm_gem_init_object,
 	.gem_free_object = ttm_gem_free_object,
 	.dumb_create = via_dumb_create,
