@@ -613,14 +613,6 @@ static int
 via_hdmi_mode_valid(struct drm_connector *connector,
 			struct drm_display_mode *mode)
 {
-	if ((mode->flags & DRM_MODE_FLAG_INTERLACE) &&
-	    !connector->interlace_allowed)
-		return MODE_NO_INTERLACE;
-
-	if ((mode->flags & DRM_MODE_FLAG_DBLSCAN) &&
-	    !connector->doublescan_allowed)
-		return MODE_NO_DBLESCAN;
-
 	return MODE_OK;
 }
 

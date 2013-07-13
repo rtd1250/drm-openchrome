@@ -305,14 +305,6 @@ int
 via_connector_mode_valid(struct drm_connector *connector,
 			struct drm_display_mode *mode)
 {
-	if ((mode->flags & DRM_MODE_FLAG_INTERLACE) &&
-	    !connector->interlace_allowed)
-		return MODE_NO_INTERLACE;
-
-	if ((mode->flags & DRM_MODE_FLAG_DBLSCAN) &&
-	    !connector->doublescan_allowed)
-		return MODE_NO_DBLESCAN;
-
 	/* Check Clock Range */
 	if (mode->clock > 400000)
 		return MODE_CLOCK_HIGH;
