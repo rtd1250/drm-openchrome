@@ -412,38 +412,63 @@ void via_load_crtc_pixel_timing(struct drm_crtc *crtc, struct drm_display_mode *
 	reg_value = IGA1_PIXELTIMING_HOR_TOTAL_FORMULA(mode->crtc_htotal);
 	load_value_to_registers(VGABASE, &iga->pixel_timings.htotal, reg_value);
 
-	reg_value = IGA1_PIXELTIMING_HOR_ADDR_FORMULA(mode->crtc_hdisplay);
+	reg_value = IGA1_PIXELTIMING_HOR_ADDR_FORMULA(mode->crtc_hdisplay) << 16;
 	load_value_to_registers(VGABASE, &iga->pixel_timings.hdisplay, reg_value);
 
 	reg_value = IGA1_PIXELTIMING_HOR_BLANK_START_FORMULA(mode->crtc_hblank_start);
 	load_value_to_registers(VGABASE, &iga->pixel_timings.hblank_start, reg_value);
 
-	reg_value = IGA1_PIXELTIMING_HOR_BLANK_END_FORMULA(mode->crtc_hblank_end);
+	reg_value = IGA1_PIXELTIMING_HOR_BLANK_END_FORMULA(mode->crtc_hblank_end) << 16;
 	load_value_to_registers(VGABASE, &iga->pixel_timings.hblank_end, reg_value);
 
 	reg_value = IGA1_PIXELTIMING_HOR_SYNC_START_FORMULA(mode->crtc_hsync_start);
 	load_value_to_registers(VGABASE, &iga->pixel_timings.hsync_start, reg_value);
 
-	reg_value = IGA1_PIXELTIMING_HOR_SYNC_END_FORMULA(mode->crtc_hsync_end);
+	reg_value = IGA1_PIXELTIMING_HOR_SYNC_END_FORMULA(mode->crtc_hsync_end) << 16;
 	load_value_to_registers(VGABASE, &iga->pixel_timings.hsync_end, reg_value);
 
 	reg_value = IGA1_PIXELTIMING_VER_TOTAL_FORMULA(mode->crtc_vtotal);
 	load_value_to_registers(VGABASE, &iga->pixel_timings.vtotal, reg_value);
 
-	reg_value = IGA1_PIXELTIMING_VER_ADDR_FORMULA(mode->crtc_vdisplay);
+	reg_value = IGA1_PIXELTIMING_VER_ADDR_FORMULA(mode->crtc_vdisplay) << 16;
 	load_value_to_registers(VGABASE, &iga->pixel_timings.vdisplay, reg_value);
 
 	reg_value = IGA1_PIXELTIMING_VER_BLANK_START_FORMULA(mode->crtc_vblank_start);
 	load_value_to_registers(VGABASE, &iga->pixel_timings.vblank_start, reg_value);
 
-	reg_value = IGA1_PIXELTIMING_VER_BLANK_END_FORMULA(mode->crtc_vblank_end);
+	reg_value = IGA1_PIXELTIMING_VER_BLANK_END_FORMULA(mode->crtc_vblank_end) << 16;
 	load_value_to_registers(VGABASE, &iga->pixel_timings.vblank_end, reg_value);
 
 	reg_value = IGA1_PIXELTIMING_VER_SYNC_START_FORMULA(mode->crtc_vsync_start);
 	load_value_to_registers(VGABASE, &iga->pixel_timings.vsync_start, reg_value);
 
-	reg_value = IGA1_PIXELTIMING_VER_SYNC_END_FORMULA(mode->crtc_vsync_end);
+	reg_value = IGA1_PIXELTIMING_VER_SYNC_END_FORMULA(mode->crtc_vsync_end) << 12;
 	load_value_to_registers(VGABASE, &iga->pixel_timings.vsync_end, reg_value);
+
+	if (mode->flags & DRM_MODE_FLAG_INTERLACE) {
+		reg_value = IGA1_PIXELTIMING_HVSYNC_OFFSET_END_FORMULA
+				(mode->crtc_htotal, mode->crtc_hsync_start);
+		VIA_WRITE_MASK(IGA1_PIX_HALF_LINE_REG, reg_value,
+				IGA1_PIX_HALF_LINE_MASK);
+
+		svga_wcrt_mask(VGABASE, 0x32, BIT(2), BIT(2));
+		/**
+		 * According to information from HW team,
+		 * we need to set 0xC280[1] = 1 (HDMI function enable)
+		 * or 0xC640[0] = 1 (DP1 enable)
+		 * to let the half line function work.
+		 * Otherwise, the clock for interlace mode
+		 * will not correct.
+		 * This is a special setting for 410.
+		 */
+		VIA_WRITE_MASK(0xC280, BIT(1), BIT(1));
+	} else {
+		VIA_WRITE_MASK(IGA1_PIX_HALF_LINE_REG, 0x0,
+				IGA1_PIX_HALF_LINE_MASK);
+		svga_wcrt_mask(VGABASE, 0x32, 0x00, BIT(2));
+
+	}
+	svga_wcrt_mask(VGABASE, 0xFD, BIT(5) | BIT(6), BIT(5) | BIT(6));
 }
 
 /* Load CRTC timing registers */
