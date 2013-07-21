@@ -63,7 +63,7 @@ via_gem_alloc(struct drm_device *dev, void *data,
 		struct drm_file *filp)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
-	struct drm_via_gem_create *args = data;
+	struct drm_via_gem_object *args = data;
 	struct drm_gem_object *obj;
 	int ret = -ENOMEM;
 
@@ -80,7 +80,7 @@ via_gem_alloc(struct drm_device *dev, void *data,
 			args->map_handle = bo->addr_space_offset;
 			args->offset = bo->offset;
 			args->size = bo->mem.size;
-
+			args->version = 1;
 			obj->read_domains = obj->write_domain = args->domains;
 		}
 	}
@@ -91,7 +91,7 @@ static int
 via_gem_state(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	struct ttm_buffer_object *bo = NULL;
-	struct drm_via_gem_create *args = data;
+	struct drm_via_gem_object *args = data;
 	struct drm_gem_object *obj = NULL;
 	struct ttm_placement placement;
 	int ret = -EINVAL;
