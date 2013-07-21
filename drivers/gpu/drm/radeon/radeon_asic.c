@@ -1026,8 +1026,8 @@ static struct radeon_asic r600_asic = {
 		.blit_ring_index = RADEON_RING_TYPE_GFX_INDEX,
 		.dma = &r600_copy_dma,
 		.dma_ring_index = R600_RING_TYPE_DMA_INDEX,
-		.copy = &r600_copy_dma,
-		.copy_ring_index = R600_RING_TYPE_DMA_INDEX,
+		.copy = &r600_copy_cpdma,
+		.copy_ring_index = RADEON_RING_TYPE_GFX_INDEX,
 	},
 	.surface = {
 		.set_reg = r600_set_surface_reg,
@@ -1119,8 +1119,8 @@ static struct radeon_asic rv6xx_asic = {
 		.blit_ring_index = RADEON_RING_TYPE_GFX_INDEX,
 		.dma = &r600_copy_dma,
 		.dma_ring_index = R600_RING_TYPE_DMA_INDEX,
-		.copy = &r600_copy_dma,
-		.copy_ring_index = R600_RING_TYPE_DMA_INDEX,
+		.copy = &r600_copy_cpdma,
+		.copy_ring_index = RADEON_RING_TYPE_GFX_INDEX,
 	},
 	.surface = {
 		.set_reg = r600_set_surface_reg,
@@ -1229,8 +1229,8 @@ static struct radeon_asic rs780_asic = {
 		.blit_ring_index = RADEON_RING_TYPE_GFX_INDEX,
 		.dma = &r600_copy_dma,
 		.dma_ring_index = R600_RING_TYPE_DMA_INDEX,
-		.copy = &r600_copy_dma,
-		.copy_ring_index = R600_RING_TYPE_DMA_INDEX,
+		.copy = &r600_copy_cpdma,
+		.copy_ring_index = RADEON_RING_TYPE_GFX_INDEX,
 	},
 	.surface = {
 		.set_reg = r600_set_surface_reg,
@@ -1270,6 +1270,7 @@ static struct radeon_asic rs780_asic = {
 		.get_sclk = &rs780_dpm_get_sclk,
 		.get_mclk = &rs780_dpm_get_mclk,
 		.print_power_state = &rs780_dpm_print_power_state,
+		.debugfs_print_current_performance_level = &rs780_dpm_debugfs_print_current_performance_level,
 	},
 	.pflip = {
 		.pre_page_flip = &rs600_pre_page_flip,
@@ -1393,6 +1394,8 @@ static struct radeon_asic rv770_asic = {
 		.get_mclk = &rv770_dpm_get_mclk,
 		.print_power_state = &rv770_dpm_print_power_state,
 		.debugfs_print_current_performance_level = &rv770_dpm_debugfs_print_current_performance_level,
+		.force_performance_level = &rv770_dpm_force_performance_level,
+		.vblank_too_short = &rv770_dpm_vblank_too_short,
 	},
 	.pflip = {
 		.pre_page_flip = &rs600_pre_page_flip,
@@ -1516,6 +1519,8 @@ static struct radeon_asic evergreen_asic = {
 		.get_mclk = &rv770_dpm_get_mclk,
 		.print_power_state = &rv770_dpm_print_power_state,
 		.debugfs_print_current_performance_level = &rv770_dpm_debugfs_print_current_performance_level,
+		.force_performance_level = &rv770_dpm_force_performance_level,
+		.vblank_too_short = &cypress_dpm_vblank_too_short,
 	},
 	.pflip = {
 		.pre_page_flip = &evergreen_pre_page_flip,
@@ -1639,6 +1644,7 @@ static struct radeon_asic sumo_asic = {
 		.get_mclk = &sumo_dpm_get_mclk,
 		.print_power_state = &sumo_dpm_print_power_state,
 		.debugfs_print_current_performance_level = &sumo_dpm_debugfs_print_current_performance_level,
+		.force_performance_level = &sumo_dpm_force_performance_level,
 	},
 	.pflip = {
 		.pre_page_flip = &evergreen_pre_page_flip,
@@ -1762,6 +1768,8 @@ static struct radeon_asic btc_asic = {
 		.get_mclk = &btc_dpm_get_mclk,
 		.print_power_state = &rv770_dpm_print_power_state,
 		.debugfs_print_current_performance_level = &rv770_dpm_debugfs_print_current_performance_level,
+		.force_performance_level = &rv770_dpm_force_performance_level,
+		.vblank_too_short = &btc_dpm_vblank_too_short,
 	},
 	.pflip = {
 		.pre_page_flip = &evergreen_pre_page_flip,
@@ -1937,6 +1945,8 @@ static struct radeon_asic cayman_asic = {
 		.get_mclk = &ni_dpm_get_mclk,
 		.print_power_state = &ni_dpm_print_power_state,
 		.debugfs_print_current_performance_level = &ni_dpm_debugfs_print_current_performance_level,
+		.force_performance_level = &ni_dpm_force_performance_level,
+		.vblank_too_short = &ni_dpm_vblank_too_short,
 	},
 	.pflip = {
 		.pre_page_flip = &evergreen_pre_page_flip,
@@ -2110,6 +2120,7 @@ static struct radeon_asic trinity_asic = {
 		.get_mclk = &trinity_dpm_get_mclk,
 		.print_power_state = &trinity_dpm_print_power_state,
 		.debugfs_print_current_performance_level = &trinity_dpm_debugfs_print_current_performance_level,
+		.force_performance_level = &trinity_dpm_force_performance_level,
 	},
 	.pflip = {
 		.pre_page_flip = &evergreen_pre_page_flip,
@@ -2283,6 +2294,8 @@ static struct radeon_asic si_asic = {
 		.get_mclk = &ni_dpm_get_mclk,
 		.print_power_state = &ni_dpm_print_power_state,
 		.debugfs_print_current_performance_level = &si_dpm_debugfs_print_current_performance_level,
+		.force_performance_level = &si_dpm_force_performance_level,
+		.vblank_too_short = &ni_dpm_vblank_too_short,
 	},
 	.pflip = {
 		.pre_page_flip = &evergreen_pre_page_flip,

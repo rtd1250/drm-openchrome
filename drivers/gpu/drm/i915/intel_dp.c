@@ -75,7 +75,12 @@ intel_dp_max_link_bw(struct intel_dp *intel_dp)
 	case DP_LINK_BW_1_62:
 	case DP_LINK_BW_2_7:
 		break;
+	case DP_LINK_BW_5_4: /* 1.2 capable displays may advertise higher bw */
+		max_link_bw = DP_LINK_BW_2_7;
+		break;
 	default:
+		WARN(1, "invalid max DP link bw val %x, using 1.62Gbps\n",
+		     max_link_bw);
 		max_link_bw = DP_LINK_BW_1_62;
 		break;
 	}
@@ -1355,6 +1360,13 @@ static void intel_dp_get_config(struct intel_encoder *encoder,
 	}
 
 	pipe_config->adjusted_mode.flags |= flags;
+
+	if (dp_to_dig_port(intel_dp)->port == PORT_A) {
+		if ((I915_READ(DP_A) & DP_PLL_FREQ_MASK) == DP_PLL_FREQ_160MHZ)
+			pipe_config->port_clock = 162000;
+		else
+			pipe_config->port_clock = 270000;
+	}
 }
 
 static void intel_disable_dp(struct intel_encoder *encoder)
