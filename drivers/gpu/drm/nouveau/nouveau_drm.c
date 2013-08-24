@@ -192,6 +192,18 @@ nouveau_accel_init(struct nouveau_drm *drm)
 
 		arg0 = NVE0_CHANNEL_IND_ENGINE_GR;
 		arg1 = 1;
+	} else
+	if (device->chipset >= 0xa3 &&
+	    device->chipset != 0xaa &&
+	    device->chipset != 0xac) {
+		ret = nouveau_channel_new(drm, &drm->client, NVDRM_DEVICE,
+					  NVDRM_CHAN + 1, NvDmaFB, NvDmaTT,
+					  &drm->cechan);
+		if (ret)
+			NV_ERROR(drm, "failed to create ce channel, %d\n", ret);
+
+		arg0 = NvDmaFB;
+		arg1 = NvDmaTT;
 	} else {
 		arg0 = NvDmaFB;
 		arg1 = NvDmaTT;
@@ -284,8 +296,6 @@ static int nouveau_drm_probe(struct pci_dev *pdev,
 	return 0;
 }
 
-static struct lock_class_key drm_client_lock_class_key;
-
 static int
 nouveau_drm_load(struct drm_device *dev, unsigned long flags)
 {
@@ -297,7 +307,6 @@ nouveau_drm_load(struct drm_device *dev, unsigned long flags)
 	ret = nouveau_cli_create(pdev, "DRM", sizeof(*drm), (void**)&drm);
 	if (ret)
 		return ret;
-	lockdep_set_class(&drm->client.mutex, &drm_client_lock_class_key);
 
 	dev->dev_private = drm;
 	drm->dev = dev;
@@ -640,7 +649,7 @@ nouveau_drm_postclose(struct drm_device *dev, struct drm_file *fpriv)
 	nouveau_cli_destroy(cli);
 }
 
-static struct drm_ioctl_desc
+static const struct drm_ioctl_desc
 nouveau_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(NOUVEAU_GETPARAM, nouveau_abi16_ioctl_getparam, DRM_UNLOCKED|DRM_AUTH),
 	DRM_IOCTL_DEF_DRV(NOUVEAU_SETPARAM, nouveau_abi16_ioctl_setparam, DRM_UNLOCKED|DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
@@ -664,7 +673,6 @@ nouveau_driver_fops = {
 	.unlocked_ioctl = drm_ioctl,
 	.mmap = nouveau_ttm_mmap,
 	.poll = drm_poll,
-	.fasync = drm_fasync,
 	.read = drm_read,
 #if defined(CONFIG_COMPAT)
 	.compat_ioctl = nouveau_compat_ioctl,
@@ -675,7 +683,7 @@ nouveau_driver_fops = {
 static struct drm_driver
 driver = {
 	.driver_features =
-		DRIVER_USE_AGP | DRIVER_PCI_DMA | DRIVER_SG |
+		DRIVER_USE_AGP |
 		DRIVER_GEM | DRIVER_MODESET | DRIVER_PRIME,
 
 	.load = nouveau_drm_load,
@@ -695,6 +703,7 @@ driver = {
 	.disable_vblank = nouveau_drm_vblank_disable,
 
 	.ioctls = nouveau_ioctls,
+	.num_ioctls = ARRAY_SIZE(nouveau_ioctls),
 	.fops = &nouveau_driver_fops,
 
 	.prime_handle_to_fd = drm_gem_prime_handle_to_fd,
@@ -715,7 +724,7 @@ driver = {
 
 	.dumb_create = nouveau_display_dumb_create,
 	.dumb_map_offset = nouveau_display_dumb_map_offset,
-	.dumb_destroy = nouveau_display_dumb_destroy,
+	.dumb_destroy = drm_gem_dumb_destroy,
 
 	.name = DRIVER_NAME,
 	.desc = DRIVER_DESC,
@@ -765,8 +774,6 @@ nouveau_drm_pci_driver = {
 static int __init
 nouveau_drm_init(void)
 {
-	driver.num_ioctls = ARRAY_SIZE(nouveau_ioctls);
-
 	if (nouveau_modeset == -1) {
 #ifdef CONFIG_VGA_CONSOLE
 		if (vgacon_text_force())

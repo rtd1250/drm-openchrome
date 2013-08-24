@@ -191,7 +191,7 @@ struct drm_via_private {
 
 #define VGABASE (VIA_BASE+VIA_MMIO_VGABASE)
 
-extern struct drm_ioctl_desc via_ioctls[];
+extern const struct drm_ioctl_desc via_ioctls[];
 extern int via_max_ioctl;
 
 extern int via_hdmi_audio;

@@ -240,7 +240,7 @@ static int via_dumb_mmap(struct drm_file *filp, struct drm_device *dev,
 		return -ENOENT;
 
 	bo = obj->driver_private;
-	*offset_p = bo->addr_space_offset;
+	*offset_p = drm_vma_node_offset_addr(&bo->vma_node);
 	drm_gem_object_unreference_unlocked(obj);
 	return 0;
 }
@@ -296,7 +296,7 @@ static int via_driver_unload(struct drm_device *dev)
 	}
 
 	/* mtrr delete the vram */
-	if (drm_core_has_MTRR(dev) && (dev_priv->vram_mtrr >= 0))
+	if (dev_priv->vram_mtrr >= 0)
 		arch_phys_wc_del(dev_priv->vram_mtrr);
 
 	ttm_global_fini(&dev_priv->mem_global_ref,
@@ -440,14 +440,12 @@ static const struct file_operations via_driver_fops = {
 	.unlocked_ioctl = drm_ioctl,
 	.mmap		= ttm_mmap,
 	.poll		= drm_poll,
-	.fasync		= drm_fasync,
 	.llseek		= noop_llseek,
 };
 
 static struct drm_driver via_driver = {
-	.driver_features =
-		DRIVER_USE_AGP | DRIVER_USE_MTRR | DRIVER_HAVE_IRQ |
-		DRIVER_GEM | DRIVER_IRQ_SHARED,
+	.driver_features = DRIVER_USE_AGP | DRIVER_HAVE_IRQ | DRIVER_IRQ_SHARED |
+					   DRIVER_GEM,
 	.load = via_driver_load,
 	.unload = via_driver_unload,
 	.preclose = via_reclaim_buffers_locked,

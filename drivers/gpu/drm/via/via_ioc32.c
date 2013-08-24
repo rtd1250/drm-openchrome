@@ -76,8 +76,8 @@ via_gem_alloc(struct drm_device *dev, void *data,
 		if (!ret) {
 			struct ttm_buffer_object *bo = obj->driver_private;
 
+			args->map_handle = drm_vma_node_offset_addr(&bo->vma_node);
 			args->domains = bo->mem.placement & TTM_PL_MASK_MEM;
-			args->map_handle = bo->addr_space_offset;
 			args->offset = bo->offset;
 			args->size = bo->mem.size;
 			args->version = 1;
@@ -114,8 +114,8 @@ via_gem_state(struct drm_device *dev, void *data, struct drm_file *file_priv)
 		ttm_bo_unreserve(bo);
 
 		if (!ret) {
+			args->map_handle = drm_vma_node_offset_addr(&bo->vma_node);
 			args->domains = bo->mem.placement & TTM_PL_MASK_MEM;
-			args->map_handle = bo->addr_space_offset;
 			args->offset = bo->offset;
 			args->size = bo->mem.size;
 
@@ -176,7 +176,7 @@ KMS_INVALID_IOCTL(via_decoder_futex)
 KMS_INVALID_IOCTL(via_dma_blit)
 KMS_INVALID_IOCTL(via_dma_blit_sync)
 
-struct drm_ioctl_desc via_ioctls[] = {
+const struct drm_ioctl_desc via_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(VIA_ALLOCMEM, via_mem_alloc, DRM_AUTH),
 	DRM_IOCTL_DEF_DRV(VIA_FREEMEM, via_mem_free, DRM_AUTH),
 	DRM_IOCTL_DEF_DRV(VIA_AGP_INIT, via_agp_init, DRM_AUTH | DRM_MASTER),

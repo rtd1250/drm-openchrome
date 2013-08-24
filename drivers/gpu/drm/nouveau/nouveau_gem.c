@@ -50,12 +50,6 @@ nouveau_gem_object_del(struct drm_gem_object *gem)
 		return;
 	nvbo->gem = NULL;
 
-	/* Lockdep hates you for doing reserve with gem object lock held */
-	if (WARN_ON_ONCE(nvbo->pin_refcnt)) {
-		nvbo->pin_refcnt = 1;
-		nouveau_bo_unpin(nvbo);
-	}
-
 	if (gem->import_attach)
 		drm_prime_gem_destroy(gem, nvbo->bo.sg);
 
@@ -226,7 +220,7 @@ nouveau_gem_info(struct drm_file *file_priv, struct drm_gem_object *gem,
 	}
 
 	rep->size = nvbo->bo.mem.num_pages << PAGE_SHIFT;
-	rep->map_handle = nvbo->bo.addr_space_offset;
+	rep->map_handle = drm_vma_node_offset_addr(&nvbo->bo.vma_node);
 	rep->tile_mode = nvbo->tile_mode;
 	rep->tile_flags = nvbo->tile_flags;
 	return 0;

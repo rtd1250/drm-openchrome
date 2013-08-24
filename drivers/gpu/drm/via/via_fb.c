@@ -902,8 +902,7 @@ int via_detect_vram(struct drm_device *dev)
 	}
 
 	/* Add an MTRR for the VRAM */
-	if (drm_core_has_MTRR(dev))
-		dev_priv->vram_mtrr = arch_phys_wc_add(vram_start, vram_size);
+	dev_priv->vram_mtrr = arch_phys_wc_add(vram_start, vram_size);
 
 	ret = ttm_bo_init_mm(&dev_priv->bdev, TTM_PL_VRAM, vram_size >> PAGE_SHIFT);
 	if (!ret) {

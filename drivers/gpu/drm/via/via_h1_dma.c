@@ -49,6 +49,7 @@ via_h1_fire_dmablit(struct drm_device *dev, struct drm_via_sg_info *vsg, int eng
 	VIA_READ(VIA_PCI_DMA_CSR0  + engine * 0x04);
 }
 
+#if 0
 static void
 via_abort_dmablit(struct drm_device *dev, int engine)
 {
@@ -64,6 +65,7 @@ via_dmablit_engine_off(struct drm_device *dev, int engine)
 
 	VIA_WRITE(VIA_PCI_DMA_CSR0 + engine * 0x04, VIA_DMA_CSR_TD | VIA_DMA_CSR_DD);
 }
+#endif
 
 static void
 via_dmablit_done(struct drm_device *dev, int engine)
