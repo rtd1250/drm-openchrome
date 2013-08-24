@@ -987,7 +987,7 @@ via_crtc_mode_fixup(struct drm_crtc *crtc, const struct drm_display_mode *mode,
 static int
 via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 			struct drm_display_mode *adjusted_mode,
-			int x, int y, struct drm_framebuffer *old_fb)
+			int x, int y, struct drm_framebuffer *fb)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
@@ -1136,14 +1136,14 @@ via_crtc_mode_set(struct drm_crtc *crtc, struct drm_display_mode *mode,
 		pll_regs = via_get_clk_value(crtc->dev, clock);
 		via_set_vclock(crtc, pll_regs);
 	}
-	return crtc_funcs->mode_set_base(crtc, x, y, old_fb);
+	return crtc_funcs->mode_set_base(crtc, x, y, fb);
 }
 
 static int
 via_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
-			struct drm_framebuffer *old_fb)
+			struct drm_framebuffer *fb)
 {
-	enum mode_set_atomic state = old_fb ? LEAVE_ATOMIC_MODE_SET : ENTER_ATOMIC_MODE_SET;
+	enum mode_set_atomic state = fb ? ENTER_ATOMIC_MODE_SET : LEAVE_ATOMIC_MODE_SET;
 	struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
 	struct drm_framebuffer *new_fb = crtc->fb;
 	struct ttm_buffer_object *bo;
@@ -1173,8 +1173,8 @@ via_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 	}
 
 	/* Free the old framebuffer if it exist */
-	if (old_fb) {
-		obj = old_fb->helper_private;
+	if (fb) {
+		obj = fb->helper_private;
 		bo = obj->driver_private;
 
 		ret = ttm_bo_unpin(bo, NULL);
@@ -1190,24 +1190,24 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
+	struct drm_gem_object *crtc_obj = crtc->fb->helper_private;
+	struct ttm_buffer_object *crtc_bo = crtc_obj->driver_private;
 	struct drm_gem_object *obj = fb->helper_private;
 	struct ttm_buffer_object *bo = obj->driver_private;
 	u32 pitch = (x * fb->bits_per_pixel) >> 3, addr;
-
-	/*if ((state == ENTER_ATOMIC_MODE_SET) && (fb != crtc->fb))
-		disable_accel(dev);
-	else
-		restore_accel(dev);*/
 
 	/* Set the framebuffer offset */
 	pitch += y * fb->pitches[0];
 	addr = round_up(bo->offset + pitch, 16) >> 1;
 
-	vga_wcrt(VGABASE, 0x0D, addr & 0xFF);
-	vga_wcrt(VGABASE, 0x0C, (addr >> 8) & 0xFF);
-	/* Yes order of setting these registers matters on some hardware */
-	svga_wcrt_mask(VGABASE, 0x48, ((addr >> 24) & 0x1F), 0x1F);
-	vga_wcrt(VGABASE, 0x34, (addr >> 16) & 0xFF);
+	if ((state == ENTER_ATOMIC_MODE_SET) ||
+	     crtc_bo->offset != bo->offset) {
+		vga_wcrt(VGABASE, 0x0D, addr & 0xFF);
+		vga_wcrt(VGABASE, 0x0C, (addr >> 8) & 0xFF);
+		/* Yes order of setting these registers matters on some hardware */
+		svga_wcrt_mask(VGABASE, 0x48, ((addr >> 24) & 0x1F), 0x1F);
+		vga_wcrt(VGABASE, 0x34, (addr >> 16) & 0xFF);
+	}
 
 	/* Load fetch count registers */
 	pitch = ALIGN(crtc->mode.hdisplay * fb->bits_per_pixel >> 3, 16) >> 4;
@@ -1259,6 +1259,8 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
+	struct drm_gem_object *crtc_obj = crtc->fb->helper_private;
+	struct ttm_buffer_object *crtc_bo = crtc_obj->driver_private;
 	struct drm_gem_object *obj = fb->helper_private;
 	struct ttm_buffer_object *bo = obj->driver_private;
 	u32 pitch = (x * fb->bits_per_pixel) >> 3, addr;
@@ -1268,13 +1270,16 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	pitch += y * fb->pitches[0];
 	addr = round_up(bo->offset + pitch, 16);
 
-	/* Bits 9 to 3 of the frame buffer go into bits 7 to 1
-	 * of the register. Bit 0 is for setting tile mode or
-	 * linear mode. A value of zero sets it to linear mode */
-	vga_wcrt(VGABASE, 0x62, ((addr >> 3) & 0x7F) << 1);
-	vga_wcrt(VGABASE, 0x63, (addr >> 10) & 0xFF);
-	vga_wcrt(VGABASE, 0x64, (addr >> 18) & 0xFF);
-	svga_wcrt_mask(VGABASE, 0xA3, ((addr >> 26) & 0x07), 0x07);
+	if ((state == ENTER_ATOMIC_MODE_SET) ||
+	     crtc_bo->offset != bo->offset) {
+		/* Bits 9 to 3 of the frame buffer go into bits 7 to 1
+		 * of the register. Bit 0 is for setting tile mode or
+		 * linear mode. A value of zero sets it to linear mode */
+		vga_wcrt(VGABASE, 0x62, ((addr >> 3) & 0x7F) << 1);
+		vga_wcrt(VGABASE, 0x63, (addr >> 10) & 0xFF);
+		vga_wcrt(VGABASE, 0x64, (addr >> 18) & 0xFF);
+		svga_wcrt_mask(VGABASE, 0xA3, ((addr >> 26) & 0x07), 0x07);
+	}
 
 	/* Load fetch count registers */
 	pitch = ALIGN(crtc->mode.hdisplay * fb->bits_per_pixel >> 3, 16) >> 4;
