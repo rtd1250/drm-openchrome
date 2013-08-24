@@ -335,6 +335,13 @@ via_connector_set_property(struct drm_connector *connector,
 void
 via_connector_destroy(struct drm_connector *connector)
 {
+	struct via_connector *con = container_of(connector, struct via_connector, base);
+	struct drm_property *property, *tmp;
+
+	list_for_each_entry_safe(property, tmp, &con->props, head)
+		drm_property_destroy(connector->dev, property);
+	list_del(&con->props);
+
 	drm_mode_connector_update_edid_property(connector, NULL);
 	drm_sysfs_connector_remove(connector);
 	drm_connector_cleanup(connector);

@@ -123,6 +123,7 @@ via_analog_init(struct drm_device *dev)
 		return;
 	}
 	con = &enc->cons[0];
+	INIT_LIST_HEAD(&con->props);
 
 	/* Piece together our connector */
 	drm_connector_init(dev, &con->base, &via_analog_connector_funcs,

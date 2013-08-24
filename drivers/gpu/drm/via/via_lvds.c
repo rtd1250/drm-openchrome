@@ -657,6 +657,7 @@ via_lvds_init(struct drm_device *dev)
 		return;
 	}
 	con = &enc->cons[0];
+	INIT_LIST_HEAD(&con->props);
 
 	drm_connector_init(dev, &con->base, &via_lcd_connector_funcs,
 				DRM_MODE_CONNECTOR_LVDS);

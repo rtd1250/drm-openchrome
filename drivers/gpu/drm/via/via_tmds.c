@@ -169,6 +169,7 @@ via_tmds_init(struct drm_device *dev)
 	con->ddc_bus = via_find_ddc_bus(i2c_port);
 	con->base.doublescan_allowed = false;
 	con->base.interlace_allowed = true;
+	INIT_LIST_HEAD(&con->props);
 
 	drm_mode_connector_attach_encoder(&con->base, &enc->base);
 
@@ -181,6 +182,7 @@ via_tmds_init(struct drm_device *dev)
 	con->ddc_bus = via_find_ddc_bus(i2c_port);
 	con->base.doublescan_allowed = false;
 	con->base.interlace_allowed = true;
+	INIT_LIST_HEAD(&con->props);
 
 	drm_mode_connector_attach_encoder(&con->base, &enc->base);
 	return 0;

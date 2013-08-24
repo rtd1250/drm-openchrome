@@ -74,6 +74,7 @@ struct via_crtc {
 struct via_connector {
 	struct drm_connector base;
 	struct i2c_adapter *ddc_bus;
+	struct list_head props;
 	uint32_t flags;
 };
 
