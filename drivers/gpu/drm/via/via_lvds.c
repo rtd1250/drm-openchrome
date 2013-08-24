@@ -367,36 +367,27 @@ via_lcd_detect(struct drm_connector *connector,  bool force)
 	return ret;
 }
 
+static const struct drm_prop_enum_list dithering_enum_list[] =
+{
+	{ DRM_MODE_DITHERING_OFF, "Off" },
+	{ DRM_MODE_DITHERING_ON, "On" },
+	{ DRM_MODE_DITHERING_AUTO, "Automatic" },
+};
+
 static int
 via_lcd_set_property(struct drm_connector *connector,
 			struct drm_property *property, uint64_t value)
 {
+	struct via_connector *con = container_of(connector, struct via_connector, base);
 	struct drm_via_private *dev_priv = connector->dev->dev_private;
 	struct drm_device *dev = connector->dev;
+	struct drm_property *prop;
 	uint64_t orig;
 	int ret;
 
 	ret = drm_object_property_get_value(&connector->base, property, &orig);
 	if (!ret && (orig != value)) {
-		if (property == dev->mode_config.dithering_mode_property) {
-			u8 reg_value;
-
-			switch (value) {
-			case DRM_MODE_DITHERING_AUTO:
-			case DRM_MODE_DITHERING_ON:
-				reg_value = BIT(0);
-				break;
-
-			case DRM_MODE_DITHERING_OFF:
-				reg_value = 0x00;
-				break;
-
-			default:
-				return -EINVAL;
-			}
-			svga_wcrt_mask(VGABASE, 0x88, reg_value, BIT(0));
-
-		} else if (property == dev->mode_config.scaling_mode_property) {
+		if (property == dev->mode_config.scaling_mode_property) {
 			switch (value) {
 			case DRM_MODE_SCALE_NONE:
 				break;
@@ -412,6 +403,27 @@ via_lcd_set_property(struct drm_connector *connector,
 
 			default:
 				return -EINVAL;
+			}
+		}
+
+		list_for_each_entry(prop, &con->props, head) {
+			if (property == prop) {
+				u8 reg_value;
+
+				switch (value) {
+				case DRM_MODE_DITHERING_AUTO:
+				case DRM_MODE_DITHERING_ON:
+					reg_value = BIT(0);
+					break;
+
+				case DRM_MODE_DITHERING_OFF:
+					reg_value = 0x00;
+					break;
+
+				default:
+					return -EINVAL;
+				}
+				svga_wcrt_mask(VGABASE, 0x88, reg_value, BIT(0));
 			}
 		}
 	}
@@ -646,6 +658,7 @@ via_lvds_init(struct drm_device *dev)
 	struct drm_via_private *dev_priv = dev->dev_private;
 	bool dual_channel = false, is_msb = false;
 	uint64_t dither = DRM_MODE_DITHERING_OFF;
+	struct drm_property *dithering;
 	struct via_connector *con;
 	struct via_encoder *enc;
 	struct edid *edid;
@@ -727,12 +740,13 @@ via_lvds_init(struct drm_device *dev)
 					dev->mode_config.scaling_mode_property,
 					DRM_MODE_SCALE_CENTER);
 
-	drm_mode_create_dithering_property(dev);
-	drm_object_attach_property(&con->base.base,
-					dev->mode_config.dithering_mode_property,
-					dither);
-	via_lcd_set_property(&con->base, dev->mode_config.dithering_mode_property,
-				dither);
+	dithering = drm_property_create_enum(dev, 0, "dithering",
+					     dithering_enum_list,
+					     ARRAY_SIZE(dithering_enum_list));
+	list_add(&dithering->head, &con->props);
+
+	drm_object_attach_property(&con->base.base, dithering, dither);
+	via_lcd_set_property(&con->base, dithering, dither);
 
 	/* Now setup the encoder */
 	drm_encoder_init(dev, &enc->base, &via_lvds_enc_funcs,
