@@ -197,35 +197,32 @@ via_hdmi_native_mode_set(struct via_crtc *iga, struct drm_display_mode *mode,
 	reg_c280 |= (delay << 16);
 	VIA_WRITE(0xC280, reg_c280);
 	reg_c284 = 0x00000102 | (max_packet << 28);
+
 	/* power down to reset */
 	VIA_WRITE_MASK(0xC740, 0x00000000, 0x06000000);
 	/* enable DP data pass */
 	VIA_WRITE_MASK(DP_DATA_PASS_ENABLE_REG, 0x00000001, 0x00000001);
 	/* select HDMI mode */
 	VIA_WRITE_MASK(0xC748, 0, BIT(0));
-	if (audio_off) {
-		/* enable HDMI with DVI mode for disable audio. */
-		VIA_WRITE_MASK(0xC280, 0x40, 0x40);
-	} else {
-		/* enable HDMI with HDMI mode */
-		VIA_WRITE_MASK(0xC280, 0x0, 0x40);
-	}
+	/* enable HDMI with HDMI mode */
+	VIA_WRITE_MASK(0xC280, 0x00, 0x40);
 	/* select AC mode */
 	VIA_WRITE_MASK(0xC74C, 0x40, 0x40);
 	/* enable InfoFrame */
 	VIA_WRITE(0xC284, reg_c284);
 	/* set status of Lane0~3 */
 	VIA_WRITE_MASK(0xC744, 0x00FFFF82, 0x00FFFF82);
-	VIA_WRITE(0xC0B4, 0x12000000);
+	VIA_WRITE(0xC0B4, 0x92000000);
 	/* enable audio packet */
-	VIA_WRITE_MASK(0xC294, 0x10000000, 0x10000000);
+	if (!audio_off)
+		VIA_WRITE_MASK(0xC294, 0x10000000, 0x10000000);
 	/* enable InfoFrame */
 	VIA_WRITE(0xC284, reg_c284);
 	VIA_WRITE_MASK(0xC740, 0x1E4CBE7F, 0x3FFFFFFF);
 	VIA_WRITE_MASK(0xC748, 0x84509180, 0x001FFFFF);
 	/* Select PHY Function as HDMI */
 	/* Select HDTV0 source */
-	if (!iga->index)
+	if (iga->index)
 		value |= BIT(1);
 	svga_wcrt_mask(VGABASE, 0xFF, value, BIT(1) | BIT(0));
 }
@@ -256,7 +253,6 @@ via_hdmi_enc_mode_set(struct drm_encoder *encoder,
 	if (connector->connector_type == DRM_MODE_CONNECTOR_HDMIA) {
 		struct via_connector *con = container_of(connector, struct via_connector, base);
 		bool audio_off = (con->flags & HDMI_AUDIO_ENABLED);
-		u32 v_sync_adjust = 0;
 
 		if (enc->diPort == DISP_DI_NONE)
 			via_hdmi_native_mode_set(iga, adjusted_mode, audio_off);
@@ -273,6 +269,9 @@ via_hdmi_enc_mode_set(struct drm_encoder *encoder,
 
 		if (adjusted_mode->flags & DRM_MODE_FLAG_INTERLACE) {
 			if (iga->index) {
+				/* FIXME VIA where do you get this value from ??? */
+				u32 v_sync_adjust = 0;
+
 				switch (dev->pci_device) {
 				case PCI_DEVICE_ID_VIA_VX875:
 					svga_wcrt_mask(VGABASE, 0xFB,
