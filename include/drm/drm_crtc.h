@@ -363,7 +363,8 @@ struct drm_crtc_funcs {
 	 */
 	int (*page_flip)(struct drm_crtc *crtc,
 			 struct drm_framebuffer *fb,
-			 struct drm_pending_vblank_event *event);
+			 struct drm_pending_vblank_event *event,
+			 uint32_t flags);
 
 	int (*set_property)(struct drm_crtc *crtc,
 			    struct drm_property *property, uint64_t val);
@@ -837,11 +838,13 @@ struct drm_mode_config {
 
 	/* Optional properties */
 	struct drm_property *scaling_mode_property;
-	struct drm_property *dithering_mode_property;
 	struct drm_property *dirty_info_property;
 
 	/* dumb ioctl parameters */
 	uint32_t preferred_depth, prefer_shadow;
+
+	/* whether async page flip is supported or not */
+	bool async_page_flip;
 };
 
 #define obj_to_crtc(x) container_of(x, struct drm_crtc, base)
@@ -1032,7 +1035,6 @@ extern int drm_mode_gamma_get_ioctl(struct drm_device *dev,
 				    void *data, struct drm_file *file_priv);
 extern int drm_mode_gamma_set_ioctl(struct drm_device *dev,
 				    void *data, struct drm_file *file_priv);
-extern u8 *drm_find_cea_extension(struct edid *edid);
 extern u8 drm_match_cea_mode(const struct drm_display_mode *to_match);
 extern bool drm_detect_hdmi_monitor(struct edid *edid);
 extern bool drm_detect_monitor_audio(struct edid *edid);
