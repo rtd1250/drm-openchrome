@@ -23,7 +23,7 @@
  */
 
 #include <subdev/mc.h>
-#include <linux/pm_runtime.h>
+#include <core/option.h>
 
 static irqreturn_t
 nouveau_mc_intr(int irq, void *arg)
@@ -46,6 +46,9 @@ nouveau_mc_intr(int irq, void *arg)
 		}
 		map++;
 	}
+
+	if (pmc->use_msi)
+		nv_wr08(pmc->base.base.parent, 0x00088068, 0xff);
 
 	if (intr) {
 		nv_error(pmc, "unknown intr 0x%08x\n", stat);
@@ -81,12 +84,16 @@ _nouveau_mc_dtor(struct nouveau_object *object)
 	struct nouveau_device *device = nv_device(object);
 	struct nouveau_mc *pmc = (void *)object;
 	free_irq(device->pdev->irq, pmc);
+	if (pmc->use_msi)
+		pci_disable_msi(device->pdev);
 	nouveau_subdev_destroy(&pmc->base);
 }
 
 int
 nouveau_mc_create_(struct nouveau_object *parent, struct nouveau_object *engine,
-		   struct nouveau_oclass *oclass, int length, void **pobject)
+		   struct nouveau_oclass *oclass,
+		   const struct nouveau_mc_intr *intr_map,
+		   int length, void **pobject)
 {
 	struct nouveau_device *device = nv_device(parent);
 	struct nouveau_mc *pmc;
@@ -97,6 +104,25 @@ nouveau_mc_create_(struct nouveau_object *parent, struct nouveau_object *engine,
 	pmc = *pobject;
 	if (ret)
 		return ret;
+
+	pmc->intr_map = intr_map;
+
+	switch (device->pdev->device & 0x0ff0) {
+	case 0x00f0: /* BR02? */
+	case 0x02e0: /* BR02? */
+		pmc->use_msi = false;
+		break;
+	default:
+		pmc->use_msi = nouveau_boolopt(device->cfgopt, "NvMSI", true);
+		if (pmc->use_msi) {
+			pmc->use_msi = pci_enable_msi(device->pdev) == 0;
+			if (pmc->use_msi) {
+				nv_info(pmc, "MSI interrupts enabled\n");
+				nv_wr08(device, 0x00088068, 0xff);
+			}
+		}
+		break;
+	}
 
 	ret = request_irq(device->pdev->irq, nouveau_mc_intr,
 			  IRQF_SHARED, "nouveau", pmc);

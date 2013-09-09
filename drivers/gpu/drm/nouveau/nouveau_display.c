@@ -107,6 +107,11 @@ nouveau_framebuffer_init(struct drm_device *dev,
 			 return -EINVAL;
 		}
 
+		if (nvbo->tile_flags & NOUVEAU_GEM_TILE_NONCONTIG) {
+			NV_ERROR(drm, "framebuffer requires contiguous bo\n");
+			return -EINVAL;
+		}
+
 		if (nv_device(drm->device)->chipset == 0x50)
 			nv_fb->r_format |= (tile_flags << 8);
 
@@ -580,6 +585,9 @@ nouveau_crtc_page_flip(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 		ret = nv50_display_flip_next(crtc, fb, chan, 0);
 		if (ret)
 			goto fail_unreserve;
+	} else {
+		struct nv04_display *dispnv04 = nv04_display(dev);
+		nouveau_bo_ref(new_bo, &dispnv04->image[nouveau_crtc(crtc)->index]);
 	}
 
 	ret = nouveau_page_flip_emit(chan, old_bo, new_bo, s, &fence);
