@@ -152,8 +152,7 @@ via_mmio_setup(struct drm_device *dev)
 		return ret;
 
 	ret = ttm_bo_allocate(&dev_priv->bdev, VIA_MMIO_REGSIZE, ttm_bo_type_kernel,
-				TTM_PL_FLAG_PRIV0, 1, PAGE_SIZE, false, NULL,
-				NULL, &bo);
+				TTM_PL_FLAG_PRIV0, 1, PAGE_SIZE, false, NULL, &bo);
 	if (ret)
 		goto err;
 

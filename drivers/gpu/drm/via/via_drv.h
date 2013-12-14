@@ -226,7 +226,6 @@ extern int ttm_bo_allocate(struct ttm_bo_device *bdev, unsigned long size,
 				enum ttm_bo_type origin, int types,
 				uint32_t byte_align, uint32_t page_align,
 				bool interruptible, struct sg_table *sg,
-				struct file *persistant_swap_storage,
 				struct ttm_buffer_object **p_bo);
 extern void ttm_placement_from_domain(struct ttm_buffer_object *bo,
 				struct ttm_placement *placement, u32 domains,

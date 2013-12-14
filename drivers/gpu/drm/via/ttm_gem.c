@@ -83,12 +83,13 @@ ttm_gem_create(struct drm_device *dev, struct ttm_bo_device *bdev, int types,
 
 	ret = ttm_bo_allocate(bdev, size, ttm_bo_type_device, types,
 				byte_align, page_align, interruptible,
-				NULL, obj->filp, &bo);
+				NULL, &bo);
 	if (ret) {
 		DRM_ERROR("Failed to create buffer object\n");
 		drm_gem_object_unreference_unlocked(obj);
 		return ERR_PTR(ret);
 	}
+	bo->persistent_swap_storage = obj->filp;
 	obj->driver_private = bo;
 	return obj;
 }
