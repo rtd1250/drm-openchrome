@@ -582,7 +582,7 @@ void via_set_scale_path(struct drm_crtc *crtc, u32 scale_type)
 		reg_cr_fd &= ~BIT(7);
 
 	/* only IGA1 up scaling need to clear this bit CRFD.5. */
-	if (dev->pci_device == PCI_DEVICE_ID_VIA_VX900_VGA) {
+	if (dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA) {
 		if (!iga->index && ((VIA_HOR_EXPAND & scale_type) ||
 			(VIA_VER_EXPAND & scale_type)))
 			reg_cr_fd &= ~BIT(5);

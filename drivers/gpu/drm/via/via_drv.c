@@ -173,7 +173,7 @@ chip_revision_info(struct drm_device *dev)
 	struct drm_via_private *dev_priv = dev->dev_private;
 	u8 tmp;
 
-	switch (dev->pci_device) {
+	switch (dev->pdev->device) {
 	/* Check revision of CLE266 Chip */
 	case PCI_DEVICE_ID_VIA_CLE266:
 		/* CR4F only define in CLE266.CX chip */

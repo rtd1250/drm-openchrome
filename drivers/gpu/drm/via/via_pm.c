@@ -238,7 +238,7 @@ via_engine_init(struct drm_device *dev)
 	struct drm_via_private *dev_priv = dev->dev_private;
 
 	/* initial engines */
-	via_init_2d(dev_priv, dev->pci_device);
+	via_init_2d(dev_priv, dev->pdev->device);
 	via_init_3d(dev_priv);
 	via_init_vq(dev_priv);
 

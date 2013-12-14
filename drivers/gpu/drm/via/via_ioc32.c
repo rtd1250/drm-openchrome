@@ -38,7 +38,7 @@ via_getparam(struct drm_device *dev, void *data,
 
 	switch (args->param) {
 	case VIA_PARAM_CHIPSET_ID:
-		args->value = dev->pci_device;
+		args->value = dev->pdev->device;
 		break;
 	case VIA_PARAM_REVISION_ID:
 		args->value = dev_priv->revision;

@@ -74,8 +74,8 @@ via_enable_internal_lvds(struct drm_encoder *encoder)
 
 	/* Turn on LCD panel */
 	if ((enc->diPort & DISP_DI_DFPL) || (enc->diPort == DISP_DI_DVP1)) {
-		if ((dev->pci_device == PCI_DEVICE_ID_VIA_VT1122) ||
-		    (dev->pci_device == PCI_DEVICE_ID_VIA_CLE266)) {
+		if ((dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
+		    (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266)) {
 			/* Software control power sequence ON */
 			svga_wcrt_mask(VGABASE, 0x91, 0x00, BIT(7));
 			svga_wcrt_mask(VGABASE, 0x91, BIT(0), BIT(0));
@@ -105,8 +105,8 @@ via_enable_internal_lvds(struct drm_encoder *encoder)
 	}
 
 	if (enc->diPort & DISP_DI_DFPH) {
-		if ((dev->pci_device == PCI_DEVICE_ID_VIA_VT1122) ||
-		    (dev->pci_device == PCI_DEVICE_ID_VIA_CLE266)) {
+		if ((dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
+		    (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266)) {
 			/* Software control power sequence ON */
 			svga_wcrt_mask(VGABASE, 0xD4, 0x00, BIT(1));
 			svga_wcrt_mask(VGABASE, 0xD3, BIT(0), BIT(0));
@@ -157,8 +157,8 @@ via_disable_internal_lvds(struct drm_encoder *encoder)
 	/* Turn off LCD panel */
 	if ((enc->diPort & DISP_DI_DFPL) || (enc->diPort == DISP_DI_DVP1)) {
 		/* Set LCD software power sequence off */
-		if ((dev->pci_device == PCI_DEVICE_ID_VIA_VT1122) ||
-		    (dev->pci_device == PCI_DEVICE_ID_VIA_CLE266)) {
+		if ((dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
+		    (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266)) {
 			/* Back-Light OFF */
 			svga_wcrt_mask(VGABASE, 0x91, 0x00, BIT(1));
 			/* Delay td3 msec. */
@@ -183,8 +183,8 @@ via_disable_internal_lvds(struct drm_encoder *encoder)
 
 	if (enc->diPort & DISP_DI_DFPH) {
 		/* Set LCD software power sequence off */
-		if ((dev->pci_device == PCI_DEVICE_ID_VIA_VT1122) ||
-		    (dev->pci_device == PCI_DEVICE_ID_VIA_CLE266)) {
+		if ((dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
+		    (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266)) {
 			/* Back-Light OFF */
 			svga_wcrt_mask(VGABASE, 0xD3, 0x00, BIT(1));
 			/* Delay td3 msec. */
@@ -238,9 +238,9 @@ via_lvds_dpms(struct drm_encoder *encoder, int mode)
 		svga_wcrt_mask(VGABASE, 0x6A, BIT(3), BIT(3));
 
 		if (dev_priv->spread_spectrum) {
-			if ((dev->pci_device == PCI_DEVICE_ID_VIA_VT1122) ||
-			    (dev->pci_device == PCI_DEVICE_ID_VIA_VX875) ||
-			    (dev->pci_device == PCI_DEVICE_ID_VIA_VX900_VGA)) {
+			if ((dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
+			    (dev->pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
+			    (dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA)) {
 				/* GPIO-4/5 are used for spread spectrum,
 				 * we must clear SR3D[7:6] to disable
 				 * GPIO-4/5 output */
@@ -355,7 +355,7 @@ via_lcd_detect(struct drm_connector *connector,  bool force)
 		struct drm_via_private *dev_priv = connector->dev->dev_private;
 		u8 mask = BIT(1);
 
-		if (connector->dev->pci_device == PCI_DEVICE_ID_VIA_CLE266)
+		if (connector->dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266)
 			mask = BIT(3);
 
 		if (vga_rcrt(VGABASE, 0x3B) & mask)
@@ -595,7 +595,7 @@ via_lcd_mode_valid(struct drm_connector *connector,
 		return MODE_PANEL;
 
 	/* Don't support mode larger than physical size */
-	if (dev->pci_device != PCI_DEVICE_ID_VIA_VX900_VGA) {
+	if (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA) {
 		if (mode->hdisplay > native_mode->hdisplay)
 			return MODE_PANEL;
 		if (mode->vdisplay > native_mode->vdisplay)
@@ -677,7 +677,7 @@ via_lvds_init(struct drm_device *dev)
 	drm_connector_helper_add(&con->base, &via_lcd_connector_helper_funcs);
 	drm_sysfs_connector_add(&con->base);
 
-	switch (dev->pci_device) {
+	switch (dev->pdev->device) {
 	case PCI_DEVICE_ID_VIA_VX875:
 	case PCI_DEVICE_ID_VIA_VX900_VGA:
 		con->ddc_bus = via_find_ddc_bus(0x2C);
@@ -692,7 +692,7 @@ via_lvds_init(struct drm_device *dev)
 		if (!machine_is_olpc()) {
 			u8 mask = BIT(1);
 
-			if (dev->pci_device == PCI_DEVICE_ID_VIA_CLE266)
+			if (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266)
 				mask = BIT(3);
 
 			/* First we have to make sure a LVDS is present */
@@ -755,7 +755,7 @@ via_lvds_init(struct drm_device *dev)
 
 	enc->base.possible_crtcs = BIT(1) | BIT(0);
 
-	switch (dev->pci_device) {
+	switch (dev->pdev->device) {
 	case PCI_DEVICE_ID_VIA_CLE266:
 		enc->diPort = DISP_DI_DVP1;
 		break;

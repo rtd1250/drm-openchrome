@@ -154,7 +154,7 @@ via_tmds_init(struct drm_device *dev)
 	drm_connector_helper_add(&con->base, &via_dvi_connector_helper_funcs);
 	drm_sysfs_connector_add(&con->base);
 
-	switch (dev->pci_device) {
+	switch (dev->pdev->device) {
 	case PCI_DEVICE_ID_VIA_VT1122:
 		if (dev_priv->revision < VX800_REVISION_B1)
 			break;

@@ -387,7 +387,7 @@ via_init_td_timing_regs(struct drm_device *dev)
 
 	/* Note: VT3353 have two hardware power sequences
 	 * other chips only have one hardware power sequence */
-	if (dev->pci_device == PCI_DEVICE_ID_VIA_VT1122) {
+	if (dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) {
 		/* set CRD4[0] to "1" to select 2nd LCD power sequence. */
 		svga_wcrt_mask(VGABASE, 0xD4, BIT(0), BIT(0));
 		/* Fill secondary power sequence */
@@ -480,7 +480,7 @@ via_display_init(struct drm_device *dev)
 	u8 index = 0x3D, value;
 
 	/* Check if spread spectrum is enabled */
-	if (dev->pci_device == PCI_DEVICE_ID_VIA_VX900_VGA)
+	if (dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA)
 		index = 0x2C;
 
 	value = vga_rseq(VGABASE, 0x1E);

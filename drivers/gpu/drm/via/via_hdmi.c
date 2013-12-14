@@ -272,7 +272,7 @@ via_hdmi_enc_mode_set(struct drm_encoder *encoder,
 				/* FIXME VIA where do you get this value from ??? */
 				u32 v_sync_adjust = 0;
 
-				switch (dev->pci_device) {
+				switch (dev->pdev->device) {
 				case PCI_DEVICE_ID_VIA_VX875:
 					svga_wcrt_mask(VGABASE, 0xFB,
 							v_sync_adjust & 0xFF, 0xFF);
