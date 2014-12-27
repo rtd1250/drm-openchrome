@@ -1027,9 +1027,10 @@ via_fb_probe(struct drm_fb_helper *helper,
 	}
 	ret = ttm_bo_allocate(&dev_priv->bdev, size, ttm_bo_type_kernel,
 				TTM_PL_FLAG_VRAM, 1, PAGE_SIZE, false,
-				NULL, obj->filp, &kmap->bo);
+				NULL, &kmap->bo);
 	if (unlikely(ret))
 		goto out_err;
+	kmap->bo->persistent_swap_storage = obj->filp;
 
 	ret = ttm_bo_pin(kmap->bo, kmap);
 	if (unlikely(ret))

@@ -153,7 +153,6 @@ ttm_bo_allocate(struct ttm_bo_device *bdev,
 		uint32_t page_align,
 		bool interruptible,
 		struct sg_table *sg,
-		struct file *persistant_swap_storage,
 		struct ttm_buffer_object **p_bo)
 {
 	unsigned long acc_size = sizeof(struct ttm_heap);
@@ -174,10 +173,10 @@ ttm_bo_allocate(struct ttm_bo_device *bdev,
 	ttm_placement_from_domain(bo, &placement, domains, bdev);
 
 	ret = ttm_bo_init(bdev, bo, size, origin, &placement,
-				page_align >> PAGE_SHIFT,
-				interruptible, persistant_swap_storage,
-				ttm_bo_dma_acc_size(bdev, size, acc_size),
-				sg, ttm_buffer_object_destroy);
+			  page_align >> PAGE_SHIFT,
+			  interruptible, NULL,
+			  ttm_bo_dma_acc_size(bdev, size, acc_size),
+			  sg, ttm_buffer_object_destroy);
 	if (unlikely(ret))
 		kfree(heap);
 	else
@@ -237,7 +236,7 @@ ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev, unsigned long size,
 {
 	int ret = ttm_bo_allocate(bdev, size, ttm_bo_type_kernel, domain,
 					alignment, PAGE_SIZE, false, NULL,
-					NULL, &kmap->bo);
+					&kmap->bo);
 	if (likely(!ret)) {
 		ret = ttm_bo_pin(kmap->bo, kmap);
 		if (unlikely(ret)) {
