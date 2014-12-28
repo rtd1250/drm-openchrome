@@ -483,8 +483,10 @@ static struct ttm_bo_driver via_bo_driver = {
 	.io_mem_free		= via_ttm_io_mem_free,
 };
 
-int via_ttm_init(struct drm_via_private *dev_priv)
+int via_ttm_init(struct drm_device *dev)
 {
+	struct drm_via_private *dev_priv = dev->dev_private;
+
 	int ret = ttm_global_init(&dev_priv->mem_global_ref,
 				&dev_priv->bo_global_ref,
 				&via_bo_driver,

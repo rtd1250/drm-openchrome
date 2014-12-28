@@ -217,8 +217,9 @@ static int via_dumb_create(struct drm_file *filp, struct drm_device *dev,
 
 	args->pitch = round_up(args->width * (args->bpp >> 3), 16);
 	args->size = args->pitch * args->height;
-	obj = ttm_gem_create(dev, &dev_priv->bdev, TTM_PL_FLAG_VRAM,
-				false, 16, PAGE_SIZE, args->size);
+	obj = ttm_gem_create(dev, &dev_priv->bdev, ttm_bo_type_device,
+			     TTM_PL_FLAG_VRAM, false, 16, PAGE_SIZE,
+			     args->size);
 	if (IS_ERR(obj))
 		return PTR_ERR(obj);
 
@@ -233,15 +234,19 @@ static int via_dumb_mmap(struct drm_file *filp, struct drm_device *dev,
 {
 	struct ttm_buffer_object *bo;
 	struct drm_gem_object *obj;
+	int rc = -ENOENT;
 
 	obj = drm_gem_object_lookup(dev, filp, handle);
-	if (!obj || !obj->driver_private)
-		return -ENOENT;
+	if (obj == NULL)
+		return rc;
 
-	bo = obj->driver_private;
-	*offset_p = drm_vma_node_offset_addr(&bo->vma_node);
+	bo = ttm_gem_mapping(obj);
+	if (bo != NULL) {
+		*offset_p = drm_vma_node_offset_addr(&bo->vma_node);
+		rc = 0;
+	}
 	drm_gem_object_unreference_unlocked(obj);
-	return 0;
+	return rc;
 }
 
 static int gem_dumb_destroy(struct drm_file *filp, struct drm_device *dev,
@@ -327,7 +332,7 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
 
 	via_init_command_verifier();
 
-	ret = via_ttm_init(dev_priv);
+	ret = via_ttm_init(dev);
 	if (ret)
 		goto out_err;
 
@@ -458,7 +463,7 @@ static struct drm_driver via_driver = {
 	.irq_handler = via_driver_irq_handler,
 	.dma_quiescent = via_driver_dma_quiescent,
 	.lastclose = via_driver_lastclose,
-	.gem_init_object = ttm_gem_init_object,
+	.gem_open_object = ttm_gem_open_object,
 	.gem_free_object = ttm_gem_free_object,
 	.dumb_create = via_dumb_create,
 	.dumb_map_offset = via_dumb_mmap,

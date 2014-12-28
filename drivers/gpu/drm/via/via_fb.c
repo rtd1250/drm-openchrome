@@ -1020,17 +1020,16 @@ via_fb_probe(struct drm_fb_helper *helper,
 	size = mode_cmd.pitches[0] * mode_cmd.height;
 	size = ALIGN(size, PAGE_SIZE);
 
-	obj = drm_gem_object_alloc(helper->dev, size);
+	obj = ttm_gem_create(helper->dev, &dev_priv->bdev, ttm_bo_type_kernel,
+			     TTM_PL_FLAG_VRAM, false, 1, PAGE_SIZE, size);
 	if (unlikely(IS_ERR(obj))) {
 		ret = PTR_ERR(obj);
 		goto out_err;
 	}
-	ret = ttm_bo_allocate(&dev_priv->bdev, size, ttm_bo_type_kernel,
-				TTM_PL_FLAG_VRAM, 1, PAGE_SIZE, false,
-				NULL, &kmap->bo);
-	if (unlikely(ret))
+
+	kmap->bo = ttm_gem_mapping(obj);
+	if (kmap->bo == NULL)
 		goto out_err;
-	kmap->bo->persistent_swap_storage = obj->filp;
 
 	ret = ttm_bo_pin(kmap->bo, kmap);
 	if (unlikely(ret))

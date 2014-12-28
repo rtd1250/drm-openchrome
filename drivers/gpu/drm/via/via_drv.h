@@ -46,6 +46,7 @@
 #include <drm/via_drm.h>
 
 #include "via_regs.h"
+#include "via_mem.h"
 #include "via_fence.h"
 #include "via_dma.h"
 #include "via_verifier.h"
@@ -208,43 +209,6 @@ extern int via_wait_irq(struct drm_device *dev, void *data, struct drm_file *fil
 extern int via_wait_idle(struct drm_via_private *dev_priv);
 
 extern int via_detect_vram(struct drm_device *dev);
-
-extern int via_ttm_init(struct drm_via_private *dev_priv);
-extern struct ttm_tt *via_sgdma_backend_init(struct ttm_bo_device *bdev, unsigned long size,
-					uint32_t page_flags, struct page *dummy_read_page);
-
-extern int ttm_global_init(struct drm_global_reference *global_ref,
-				struct ttm_bo_global_ref *global_bo,
-				struct ttm_bo_driver *driver,
-				struct ttm_bo_device *bdev,
-				bool dma32);
-extern void ttm_global_fini(struct drm_global_reference *global_ref,
-				struct ttm_bo_global_ref *global_bo,
-				struct ttm_bo_device *bdev);
-
-extern int ttm_bo_allocate(struct ttm_bo_device *bdev, unsigned long size,
-				enum ttm_bo_type origin, int types,
-				uint32_t byte_align, uint32_t page_align,
-				bool interruptible, struct sg_table *sg,
-				struct ttm_buffer_object **p_bo);
-extern void ttm_placement_from_domain(struct ttm_buffer_object *bo,
-				struct ttm_placement *placement, u32 domains,
-				struct ttm_bo_device *bdev);
-extern int ttm_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap);
-extern int ttm_bo_pin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap);
-extern int ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev, unsigned long size,
-				uint32_t alignment, uint32_t domain,
-				struct ttm_bo_kmap_obj *kmap);
-
-extern int ttm_mmap(struct file *filp, struct vm_area_struct *vma);
-
-extern int ttm_gem_init_object(struct drm_gem_object *obj);
-extern void ttm_gem_free_object(struct drm_gem_object *obj);
-extern struct drm_gem_object *ttm_gem_create(struct drm_device *dev,
-					struct ttm_bo_device *bdev, int type,
-					bool interruptible,
-					int byte_align, int page_align,
-					unsigned long size);
 
 extern int via_enable_vblank(struct drm_device *dev, int crtc);
 extern void via_disable_vblank(struct drm_device *dev, int crtc);

@@ -111,12 +111,12 @@ via_crtc_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
 	}
 
 	obj = drm_gem_object_lookup(dev, file_priv, handle);
-	if (!obj || !obj->driver_private) {
+	if (!obj) {
 		DRM_ERROR("Cannot find cursor object %x for crtc %d\n", handle, crtc->base.id);
 		return -ENOENT;
 	}
 
-	user_kmap.bo = obj->driver_private;
+	user_kmap.bo = ttm_gem_mapping(obj);
 	ret = ttm_bo_kmap(user_kmap.bo, 0, user_kmap.bo->num_pages, &user_kmap);
 	if (!ret) {
 		/* Copy data from userland to cursor memory region */
@@ -1160,7 +1160,7 @@ via_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 		return ret;
 
 	obj = new_fb->helper_private;
-	bo = obj->driver_private;
+	bo = ttm_gem_mapping(obj);
 
 	ret = ttm_bo_pin(bo, NULL);
 	if (unlikely(ret)) {
@@ -1179,7 +1179,7 @@ via_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 	/* Free the old framebuffer if it exist */
 	if (fb) {
 		obj = fb->helper_private;
-		bo = obj->driver_private;
+		bo = ttm_gem_mapping(obj);
 
 		ret = ttm_bo_unpin(bo, NULL);
 		if (unlikely(ret))
@@ -1196,7 +1196,7 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	struct drm_gem_object *obj = fb->helper_private;
-	struct ttm_buffer_object *bo = obj->driver_private;
+	struct ttm_buffer_object *bo = ttm_gem_mapping(obj);
 	u8 value;
 
 	/* Set the framebuffer offset */
@@ -1254,7 +1254,7 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	struct drm_gem_object *obj = fb->helper_private;
-	struct ttm_buffer_object *bo = obj->driver_private;
+	struct ttm_buffer_object *bo = ttm_gem_mapping(obj);
 	u8 value;
 
 	/* Set the framebuffer offset */

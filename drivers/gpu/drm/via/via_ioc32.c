@@ -24,7 +24,6 @@
 /*
  * Authors: Thomas Hellström <thomas-at-tungstengraphics-dot-com>
  */
-
 #include "drmP.h"
 #include "via_drv.h"
 
@@ -67,14 +66,15 @@ via_gem_alloc(struct drm_device *dev, void *data,
 	struct drm_gem_object *obj;
 	int ret = -ENOMEM;
 
-	obj = ttm_gem_create(dev, &dev_priv->bdev, args->domains, false,
-				args->alignment, PAGE_SIZE, args->size);
-	if (obj && obj->driver_private) {
+	obj = ttm_gem_create(dev, &dev_priv->bdev, ttm_bo_type_device,
+			     args->domains, false, args->alignment,
+			     PAGE_SIZE, args->size);
+	if (obj != NULL) {
 		ret = drm_gem_handle_create(filp, obj, &args->handle);
 		/* drop reference from allocate - handle holds it now */
 		drm_gem_object_unreference_unlocked(obj);
 		if (!ret) {
-			struct ttm_buffer_object *bo = obj->driver_private;
+			struct ttm_buffer_object *bo = ttm_gem_mapping(obj);
 
 			args->map_handle = drm_vma_node_offset_addr(&bo->vma_node);
 			args->domains = bo->mem.placement & TTM_PL_MASK_MEM;
@@ -90,17 +90,19 @@ via_gem_alloc(struct drm_device *dev, void *data,
 static int
 via_gem_state(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
-	struct ttm_buffer_object *bo = NULL;
 	struct drm_via_gem_object *args = data;
+	struct ttm_buffer_object *bo = NULL;
 	struct drm_gem_object *obj = NULL;
 	struct ttm_placement placement;
 	int ret = -EINVAL;
 
 	obj = drm_gem_object_lookup(dev, file_priv, args->handle);
-	if (!obj || !obj->driver_private)
+	if (obj == NULL)
 		return ret;
 
-	bo = obj->driver_private;
+	bo = ttm_gem_mapping(obj);
+	if (bo == NULL)
+		return ret;
 
 	/* Don't bother to migrate to same domain */
 	args->domains &= ~(bo->mem.placement & TTM_PL_MASK_MEM);
@@ -134,16 +136,18 @@ via_gem_wait(struct drm_device *dev, void *data, struct drm_file *file_priv)
 	struct drm_via_gem_wait *args = data;
 	struct ttm_buffer_object *bo;
 	struct drm_gem_object *obj;
+	int ret = -EINVAL;
 	bool no_wait;
-	int ret;
 
 	obj = drm_gem_object_lookup(dev, file_priv, args->handle);
-	if (!obj)
-		return -EINVAL;
+	if (obj == NULL)
+		return ret;
+
+	bo = ttm_gem_mapping(obj);
+	if (bo == NULL)
+		return ret;
 
 	no_wait = (args->no_wait != 0);
-	bo = obj->driver_private;
-
 	ret = ttm_bo_reserve(bo, true, no_wait, false, 0);
 	if (unlikely(ret != 0))
 		return ret;

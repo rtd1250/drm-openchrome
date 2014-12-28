@@ -23,10 +23,15 @@
 #include "drmP.h"
 #include "via_drv.h"
 
+struct ttm_gem_object {
+	struct drm_gem_object gem;
+	struct ttm_heap *heap;
+};
+
 /*
  * initialize the gem buffer object
  */
-int ttm_gem_init_object(struct drm_gem_object *obj)
+int ttm_gem_open_object(struct drm_gem_object *obj, struct drm_file *file_priv)
 {
 	return 0;
 }
@@ -36,14 +41,27 @@ int ttm_gem_init_object(struct drm_gem_object *obj)
  */
 void ttm_gem_free_object(struct drm_gem_object *obj)
 {
-	struct ttm_buffer_object *bo = obj->driver_private;
+	struct ttm_gem_object *gem = container_of(obj, struct ttm_gem_object, gem);
 
-	if (bo) {
-		obj->driver_private = NULL;
+	if (gem->heap != NULL) {
+		struct ttm_buffer_object *bo = &gem->heap->pbo;
+
 		ttm_bo_unref(&bo);
+		gem->heap = NULL;
 	}
 	drm_gem_object_release(obj);
-	kfree(obj);
+	kfree(gem);
+}
+
+struct ttm_buffer_object *
+ttm_gem_mapping(struct drm_gem_object *obj)
+{
+	struct ttm_gem_object *gem;
+
+	gem = container_of(obj, struct ttm_gem_object, gem);
+	if (gem->heap == NULL)
+		return NULL;
+	return &gem->heap->pbo;
 }
 
 /*
@@ -66,30 +84,37 @@ int ttm_mmap(struct file *filp, struct vm_area_struct *vma)
 }
 
 struct drm_gem_object *
-ttm_gem_create(struct drm_device *dev, struct ttm_bo_device *bdev, int types,
-		bool interruptible, int byte_align, int page_align,
-		unsigned long size)
+ttm_gem_create(struct drm_device *dev, struct ttm_bo_device *bdev,
+		enum ttm_bo_type origin, int types, bool interruptible,
+		int byte_align, int page_align, unsigned long size)
 {
 	struct ttm_buffer_object *bo = NULL;
-	struct drm_gem_object *obj;
+	struct ttm_gem_object *obj;
 	int ret;
 
 	size = round_up(size, byte_align);
 	size = ALIGN(size, page_align);
 
-	obj = drm_gem_object_alloc(dev, size);
-	if (!obj)
-		return ERR_PTR(-ENOMEM);
-
-	ret = ttm_bo_allocate(bdev, size, ttm_bo_type_device, types,
-				byte_align, page_align, interruptible,
-				NULL, &bo);
+	ret = ttm_bo_allocate(bdev, size, origin, types, byte_align,
+			      page_align, interruptible, NULL, &bo);
 	if (ret) {
 		DRM_ERROR("Failed to create buffer object\n");
-		drm_gem_object_unreference_unlocked(obj);
 		return ERR_PTR(ret);
 	}
-	bo->persistent_swap_storage = obj->filp;
-	obj->driver_private = bo;
-	return obj;
+
+	obj = kzalloc(sizeof(*obj), GFP_KERNEL);
+	if (!obj) {
+		ttm_bo_unref(&bo);
+		return ERR_PTR(-ENOMEM);
+	}
+
+	ret = drm_gem_object_init(dev, &obj->gem, size);
+	if (unlikely(ret)) {
+		ttm_bo_unref(&bo);
+		return ERR_PTR(ret);
+	}
+
+	obj->heap = container_of(bo, struct ttm_heap, pbo);
+	bo->persistent_swap_storage = obj->gem.filp;
+	return &obj->gem;
 }
