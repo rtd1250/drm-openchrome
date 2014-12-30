@@ -94,6 +94,8 @@
 #define	CG_SPLL_FUNC_CNTL_2				0x604
 #define		SCLK_MUX_SEL(x)				((x) << 0)
 #define		SCLK_MUX_SEL_MASK			(0x1ff << 0)
+#define		SPLL_CTLREQ_CHG				(1 << 23)
+#define		SCLK_MUX_UPDATE				(1 << 26)
 #define	CG_SPLL_FUNC_CNTL_3				0x608
 #define		SPLL_FB_DIV(x)				((x) << 0)
 #define		SPLL_FB_DIV_MASK			(0x3ffffff << 0)
@@ -101,9 +103,12 @@
 #define		SPLL_DITHEN				(1 << 28)
 #define	CG_SPLL_FUNC_CNTL_4				0x60c
 
+#define	SPLL_STATUS					0x614
+#define		SPLL_CHG_STATUS				(1 << 1)
 #define	SPLL_CNTL_MODE					0x618
-#	define SPLL_REFCLK_SEL(x)			((x) << 8)
-#	define SPLL_REFCLK_SEL_MASK			0xFF00
+#define		SPLL_SW_DIR_CONTROL			(1 << 0)
+#	define SPLL_REFCLK_SEL(x)			((x) << 26)
+#	define SPLL_REFCLK_SEL_MASK			(3 << 26)
 
 #define	CG_SPLL_SPREAD_SPECTRUM				0x620
 #define		SSEN					(1 << 0)
@@ -175,7 +180,10 @@
 #define		DIG_THERM_DPM(x)			((x) << 14)
 #define		DIG_THERM_DPM_MASK			0x003FC000
 #define		DIG_THERM_DPM_SHIFT			14
-
+#define	CG_THERMAL_STATUS				0x704
+#define		FDO_PWM_DUTY(x)				((x) << 9)
+#define		FDO_PWM_DUTY_MASK			(0xff << 9)
+#define		FDO_PWM_DUTY_SHIFT			9
 #define	CG_THERMAL_INT					0x708
 #define		DIG_THERM_INTH(x)			((x) << 8)
 #define		DIG_THERM_INTH_MASK			0x0000FF00
@@ -186,6 +194,10 @@
 #define 	THERM_INT_MASK_HIGH			(1 << 24)
 #define 	THERM_INT_MASK_LOW			(1 << 25)
 
+#define	CG_MULT_THERMAL_CTRL					0x710
+#define		TEMP_SEL(x)					((x) << 20)
+#define		TEMP_SEL_MASK					(0xff << 20)
+#define		TEMP_SEL_SHIFT					20
 #define	CG_MULT_THERMAL_STATUS					0x714
 #define		ASIC_MAX_TEMP(x)				((x) << 0)
 #define		ASIC_MAX_TEMP_MASK				0x000001ff
@@ -193,6 +205,37 @@
 #define		CTF_TEMP(x)					((x) << 9)
 #define		CTF_TEMP_MASK					0x0003fe00
 #define		CTF_TEMP_SHIFT					9
+
+#define	CG_FDO_CTRL0					0x754
+#define		FDO_STATIC_DUTY(x)			((x) << 0)
+#define		FDO_STATIC_DUTY_MASK			0x000000FF
+#define		FDO_STATIC_DUTY_SHIFT			0
+#define	CG_FDO_CTRL1					0x758
+#define		FMAX_DUTY100(x)				((x) << 0)
+#define		FMAX_DUTY100_MASK			0x000000FF
+#define		FMAX_DUTY100_SHIFT			0
+#define	CG_FDO_CTRL2					0x75C
+#define		TMIN(x)					((x) << 0)
+#define		TMIN_MASK				0x000000FF
+#define		TMIN_SHIFT				0
+#define		FDO_PWM_MODE(x)				((x) << 11)
+#define		FDO_PWM_MODE_MASK			(7 << 11)
+#define		FDO_PWM_MODE_SHIFT			11
+#define		TACH_PWM_RESP_RATE(x)			((x) << 25)
+#define		TACH_PWM_RESP_RATE_MASK			(0x7f << 25)
+#define		TACH_PWM_RESP_RATE_SHIFT		25
+
+#define CG_TACH_CTRL                                    0x770
+#       define EDGE_PER_REV(x)                          ((x) << 0)
+#       define EDGE_PER_REV_MASK                        (0x7 << 0)
+#       define EDGE_PER_REV_SHIFT                       0
+#       define TARGET_PERIOD(x)                         ((x) << 3)
+#       define TARGET_PERIOD_MASK                       0xfffffff8
+#       define TARGET_PERIOD_SHIFT                      3
+#define CG_TACH_STATUS                                  0x774
+#       define TACH_PERIOD(x)                           ((x) << 0)
+#       define TACH_PERIOD_MASK                         0xffffffff
+#       define TACH_PERIOD_SHIFT                        0
 
 #define GENERAL_PWRMGT                                  0x780
 #       define GLOBAL_PWRMGT_EN                         (1 << 0)
@@ -357,6 +400,7 @@
 #define		READ_PROTECTION_FAULT_ENABLE_DEFAULT		(1 << 16)
 #define		WRITE_PROTECTION_FAULT_ENABLE_INTERRUPT		(1 << 18)
 #define		WRITE_PROTECTION_FAULT_ENABLE_DEFAULT		(1 << 19)
+#define		PAGE_TABLE_BLOCK_SIZE(x)			(((x) & 0xF) << 24)
 #define VM_CONTEXT1_CNTL				0x1414
 #define VM_CONTEXT0_CNTL2				0x1430
 #define VM_CONTEXT1_CNTL2				0x1434
@@ -478,7 +522,7 @@
 #define		STATE3_MASK				(0x1f << 15)
 #define		STATE3_SHIFT				15
 
-#define	MC_SEQ_TRAIN_WAKEUP_CNTL			0x2808
+#define	MC_SEQ_TRAIN_WAKEUP_CNTL			0x28e8
 #define		TRAIN_DONE_D0      			(1 << 30)
 #define		TRAIN_DONE_D1      			(1 << 31)
 
@@ -559,6 +603,8 @@
 #       define MRDCK0_BYPASS                            (1 << 24)
 #       define MRDCK1_BYPASS                            (1 << 25)
 
+#define	MPLL_CNTL_MODE					0x2bb0
+#       define MPLL_MCLK_SEL                            (1 << 11)
 #define	MPLL_FUNC_CNTL					0x2bb4
 #define		BWCTRL(x)				((x) << 20)
 #define		BWCTRL_MASK				(0xff << 20)
@@ -683,7 +729,52 @@
  * bit5 = 176.4 kHz
  * bit6 = 192 kHz
  */
-#define AZ_F0_CODEC_PIN_CONTROL_HOTPLUG_CONTROL          0x54
+
+#define AZ_F0_CODEC_PIN_CONTROL_RESPONSE_LIPSYNC         0x37
+#       define VIDEO_LIPSYNC(x)                           (((x) & 0xff) << 0)
+#       define AUDIO_LIPSYNC(x)                           (((x) & 0xff) << 8)
+/* VIDEO_LIPSYNC, AUDIO_LIPSYNC
+ * 0   = invalid
+ * x   = legal delay value
+ * 255 = sync not supported
+ */
+#define AZ_F0_CODEC_PIN_CONTROL_RESPONSE_HBR             0x38
+#       define HBR_CAPABLE                                (1 << 0) /* enabled by default */
+
+#define AZ_F0_CODEC_PIN_CONTROL_SINK_INFO0               0x3a
+#       define MANUFACTURER_ID(x)                        (((x) & 0xffff) << 0)
+#       define PRODUCT_ID(x)                             (((x) & 0xffff) << 16)
+#define AZ_F0_CODEC_PIN_CONTROL_SINK_INFO1               0x3b
+#       define SINK_DESCRIPTION_LEN(x)                   (((x) & 0xff) << 0)
+#define AZ_F0_CODEC_PIN_CONTROL_SINK_INFO2               0x3c
+#       define PORT_ID0(x)                               (((x) & 0xffffffff) << 0)
+#define AZ_F0_CODEC_PIN_CONTROL_SINK_INFO3               0x3d
+#       define PORT_ID1(x)                               (((x) & 0xffffffff) << 0)
+#define AZ_F0_CODEC_PIN_CONTROL_SINK_INFO4               0x3e
+#       define DESCRIPTION0(x)                           (((x) & 0xff) << 0)
+#       define DESCRIPTION1(x)                           (((x) & 0xff) << 8)
+#       define DESCRIPTION2(x)                           (((x) & 0xff) << 16)
+#       define DESCRIPTION3(x)                           (((x) & 0xff) << 24)
+#define AZ_F0_CODEC_PIN_CONTROL_SINK_INFO5               0x3f
+#       define DESCRIPTION4(x)                           (((x) & 0xff) << 0)
+#       define DESCRIPTION5(x)                           (((x) & 0xff) << 8)
+#       define DESCRIPTION6(x)                           (((x) & 0xff) << 16)
+#       define DESCRIPTION7(x)                           (((x) & 0xff) << 24)
+#define AZ_F0_CODEC_PIN_CONTROL_SINK_INFO6               0x40
+#       define DESCRIPTION8(x)                           (((x) & 0xff) << 0)
+#       define DESCRIPTION9(x)                           (((x) & 0xff) << 8)
+#       define DESCRIPTION10(x)                          (((x) & 0xff) << 16)
+#       define DESCRIPTION11(x)                          (((x) & 0xff) << 24)
+#define AZ_F0_CODEC_PIN_CONTROL_SINK_INFO7               0x41
+#       define DESCRIPTION12(x)                          (((x) & 0xff) << 0)
+#       define DESCRIPTION13(x)                          (((x) & 0xff) << 8)
+#       define DESCRIPTION14(x)                          (((x) & 0xff) << 16)
+#       define DESCRIPTION15(x)                          (((x) & 0xff) << 24)
+#define AZ_F0_CODEC_PIN_CONTROL_SINK_INFO8               0x42
+#       define DESCRIPTION16(x)                          (((x) & 0xff) << 0)
+#       define DESCRIPTION17(x)                          (((x) & 0xff) << 8)
+
+#define AZ_F0_CODEC_PIN_CONTROL_HOT_PLUG_CONTROL         0x54
 #       define AUDIO_ENABLED                             (1 << 31)
 
 #define AZ_F0_CODEC_PIN_CONTROL_RESPONSE_CONFIGURATION_DEFAULT  0x56
@@ -770,7 +861,7 @@
 #       define GRPH_PFLIP_INT_MASK                      (1 << 0)
 #       define GRPH_PFLIP_INT_TYPE                      (1 << 8)
 
-#define	DACA_AUTODETECT_INT_CONTROL			0x66c8
+#define	DAC_AUTODETECT_INT_CONTROL			0x67c8
 
 #define DC_HPD1_INT_STATUS                              0x601c
 #define DC_HPD2_INT_STATUS                              0x6028
@@ -1553,7 +1644,7 @@
  * 6. COMMAND [30:21] | BYTE_COUNT [20:0]
  */
 #              define PACKET3_CP_DMA_DST_SEL(x)    ((x) << 20)
-                /* 0 - SRC_ADDR
+                /* 0 - DST_ADDR
 		 * 1 - GDS
 		 */
 #              define PACKET3_CP_DMA_ENGINE(x)     ((x) << 27)
@@ -1568,7 +1659,7 @@
 #              define PACKET3_CP_DMA_CP_SYNC       (1 << 31)
 /* COMMAND */
 #              define PACKET3_CP_DMA_DIS_WC        (1 << 21)
-#              define PACKET3_CP_DMA_CMD_SRC_SWAP(x) ((x) << 23)
+#              define PACKET3_CP_DMA_CMD_SRC_SWAP(x) ((x) << 22)
                 /* 0 - none
 		 * 1 - 8 in 16
 		 * 2 - 8 in 32
@@ -1745,5 +1836,52 @@
 #define	DMA_PACKET_SRBM_WRITE				  0x9
 #define	DMA_PACKET_CONSTANT_FILL			  0xd
 #define	DMA_PACKET_NOP					  0xf
+
+#define VCE_STATUS					0x20004
+#define VCE_VCPU_CNTL					0x20014
+#define		VCE_CLK_EN				(1 << 0)
+#define VCE_VCPU_CACHE_OFFSET0				0x20024
+#define VCE_VCPU_CACHE_SIZE0				0x20028
+#define VCE_VCPU_CACHE_OFFSET1				0x2002c
+#define VCE_VCPU_CACHE_SIZE1				0x20030
+#define VCE_VCPU_CACHE_OFFSET2				0x20034
+#define VCE_VCPU_CACHE_SIZE2				0x20038
+#define VCE_SOFT_RESET					0x20120
+#define 	VCE_ECPU_SOFT_RESET			(1 << 0)
+#define 	VCE_FME_SOFT_RESET			(1 << 2)
+#define VCE_RB_BASE_LO2					0x2016c
+#define VCE_RB_BASE_HI2					0x20170
+#define VCE_RB_SIZE2					0x20174
+#define VCE_RB_RPTR2					0x20178
+#define VCE_RB_WPTR2					0x2017c
+#define VCE_RB_BASE_LO					0x20180
+#define VCE_RB_BASE_HI					0x20184
+#define VCE_RB_SIZE					0x20188
+#define VCE_RB_RPTR					0x2018c
+#define VCE_RB_WPTR					0x20190
+#define VCE_CLOCK_GATING_A				0x202f8
+#define VCE_CLOCK_GATING_B				0x202fc
+#define VCE_UENC_CLOCK_GATING				0x205bc
+#define VCE_UENC_REG_CLOCK_GATING			0x205c0
+#define VCE_FW_REG_STATUS				0x20e10
+#	define VCE_FW_REG_STATUS_BUSY			(1 << 0)
+#	define VCE_FW_REG_STATUS_PASS			(1 << 3)
+#	define VCE_FW_REG_STATUS_DONE			(1 << 11)
+#define VCE_LMI_FW_START_KEYSEL				0x20e18
+#define VCE_LMI_FW_PERIODIC_CTRL			0x20e20
+#define VCE_LMI_CTRL2					0x20e74
+#define VCE_LMI_CTRL					0x20e98
+#define VCE_LMI_VM_CTRL					0x20ea0
+#define VCE_LMI_SWAP_CNTL				0x20eb4
+#define VCE_LMI_SWAP_CNTL1				0x20eb8
+#define VCE_LMI_CACHE_CTRL				0x20ef4
+
+#define VCE_CMD_NO_OP					0x00000000
+#define VCE_CMD_END					0x00000001
+#define VCE_CMD_IB					0x00000002
+#define VCE_CMD_FENCE					0x00000003
+#define VCE_CMD_TRAP					0x00000004
+#define VCE_CMD_IB_AUTO					0x00000005
+#define VCE_CMD_SEMAPHORE				0x00000006
 
 #endif

@@ -129,7 +129,7 @@ via_analog_init(struct drm_device *dev)
 	drm_connector_init(dev, &con->base, &via_analog_connector_funcs,
 				DRM_MODE_CONNECTOR_VGA);
 	drm_connector_helper_add(&con->base, &via_analog_connector_helper_funcs);
-	drm_sysfs_connector_add(&con->base);
+	drm_connector_register(&con->base);
 
 	con->ddc_bus = via_find_ddc_bus(0x26);
 	con->base.doublescan_allowed = false;

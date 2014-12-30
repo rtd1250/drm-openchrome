@@ -256,8 +256,7 @@ eat_words(const uint32_t **buf, const uint32_t *buf_end, unsigned num_words)
 
 /*
  * Partially stolen from drm_memory.h
- */
-
+ *
 static inline drm_local_map_t *via_drm_lookup_agp_map(struct drm_via_state *seq,
 						    unsigned long offset,
 						    unsigned long size,
@@ -286,7 +285,7 @@ static inline drm_local_map_t *via_drm_lookup_agp_map(struct drm_via_state *seq,
 	return NULL;
 }
 
-/*
+*
  * Require that all AGP texture levels reside in the same AGP map which should
  * be mappable by the client. This is not a big restriction.
  * FIXME: To actually enforce this security policy strictly, drm_rmmap
@@ -337,12 +336,12 @@ static inline int finish_current_sequence(struct drm_via_state *cur_seq)
 					hi = tmp;
 			}
 
-			if (!via_drm_lookup_agp_map
+			/*if (!via_drm_lookup_agp_map
 			    (cur_seq, lo, hi - lo, cur_seq->dev)) {
 				DRM_ERROR
 				    ("AGP texture is not in allowed map\n");
 				return 2;
-			}
+			}*/
 		}
 		break;
 	default:
@@ -1010,7 +1009,6 @@ via_verify_command_stream(const uint32_t * buf, unsigned int size,
 
 	hc_state->dev = dev;
 	hc_state->unfinished = no_sequence;
-	hc_state->map_cache = NULL;
 	hc_state->agp = agp;
 	hc_state->buf_start = buf;
 	dev_priv->num_fire_offsets = 0;

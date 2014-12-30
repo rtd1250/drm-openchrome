@@ -535,7 +535,7 @@ via_hdmi_get_edid(struct drm_connector *connector)
 			if (i == 4 && print_bad_edid) {
 				dev_warn(connector->dev->dev,
 					"%s: Ignoring invalid EDID block %d.\n",
-					drm_get_connector_name(connector), j);
+					connector->name, j);
 
 				connector->bad_edid_counter++;
 			}
@@ -558,7 +558,7 @@ via_hdmi_get_edid(struct drm_connector *connector)
 carp:
 	if (print_bad_edid) {
 		dev_warn(connector->dev->dev, "%s: EDID block %d invalid.\n",
-			drm_get_connector_name(connector), j);
+			 connector->name, j);
 	}
 	connector->bad_edid_counter++;
 out:
@@ -670,7 +670,7 @@ via_hdmi_init(struct drm_device *dev, int diport)
 	drm_connector_init(dev, &hdmi->base, &via_hdmi_connector_funcs,
 				DRM_MODE_CONNECTOR_HDMIA);
 	drm_connector_helper_add(&hdmi->base, &via_hdmi_connector_helper_funcs);
-	drm_sysfs_connector_add(&hdmi->base);
+	drm_connector_register(&hdmi->base);
 
 	hdmi->base.polled = DRM_CONNECTOR_POLL_HPD;
 	hdmi->base.doublescan_allowed = false;
@@ -691,7 +691,7 @@ via_hdmi_init(struct drm_device *dev, int diport)
 	drm_connector_init(dev, &dvi->base, &via_hdmi_connector_funcs,
 				DRM_MODE_CONNECTOR_DVID);
 	drm_connector_helper_add(&dvi->base, &via_hdmi_connector_helper_funcs);
-	drm_sysfs_connector_add(&dvi->base);
+	drm_connector_register(&dvi->base);
 
 	dvi->base.polled = DRM_CONNECTOR_POLL_HPD;
 	dvi->base.doublescan_allowed = false;

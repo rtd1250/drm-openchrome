@@ -30,21 +30,9 @@
 #include <media/v4l2-ctrls.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-mediabus.h>
+#include <media/v4l2-image-sizes.h>
 
 #include "vs6624_regs.h"
-
-#define VGA_WIDTH       640
-#define VGA_HEIGHT      480
-#define QVGA_WIDTH      320
-#define QVGA_HEIGHT     240
-#define QQVGA_WIDTH     160
-#define QQVGA_HEIGHT    120
-#define CIF_WIDTH       352
-#define CIF_HEIGHT      288
-#define QCIF_WIDTH      176
-#define QCIF_HEIGHT     144
-#define QQCIF_WIDTH     88
-#define QQCIF_HEIGHT    72
 
 #define MAX_FRAME_RATE  30
 
@@ -503,6 +491,7 @@ static inline struct v4l2_subdev *to_sd(struct v4l2_ctrl *ctrl)
 	return &container_of(ctrl->handler, struct vs6624, hdl)->sd;
 }
 
+#ifdef CONFIG_VIDEO_ADV_DEBUG
 static int vs6624_read(struct v4l2_subdev *sd, u16 index)
 {
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
@@ -515,6 +504,7 @@ static int vs6624_read(struct v4l2_subdev *sd, u16 index)
 
 	return buf[0];
 }
+#endif
 
 static int vs6624_write(struct v4l2_subdev *sd, u16 index,
 				u8 value)

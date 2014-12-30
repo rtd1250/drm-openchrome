@@ -1039,7 +1039,6 @@ via_fb_probe(struct drm_fb_helper *helper,
 	if (unlikely(ret))
 		goto out_err;
 
-	obj->driver_private = kmap->bo;
 	fb->helper_private = obj;
 	ttmfb->base.fb = fb;
 
@@ -1142,7 +1141,8 @@ drmfb_helper_pan_display(struct fb_var_screeninfo *var,
 
 		if (modeset->num_connectors) {
 			ret = crtc_funcs->mode_set_base(crtc, modeset->x,
-							modeset->y, crtc->fb);
+							modeset->y,
+							crtc->primary->fb);
 			if (!ret) {
 				info->flags |= FBINFO_HWACCEL_YPAN;
 				info->var.xoffset = var->xoffset;
@@ -1187,7 +1187,7 @@ via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **ptr)
 
 	helper = info->par;
 	helper->base.fbdev = info;
-	helper->base.funcs = &via_fb_helper_funcs;
+	drm_fb_helper_prepare(dev, &helper->base, &via_fb_helper_funcs);
 
 	strcpy(info->fix.id, dev->driver->name);
 	strcat(info->fix.id, "drmfb");

@@ -49,10 +49,10 @@
 #include <mach/system_rev.h>
 
 #include "at91_aic.h"
-#include "at91_shdwc.h"
 #include "board.h"
 #include "sam9_smc.h"
 #include "generic.h"
+#include "gpio.h"
 
 
 static void __init ek_init_early(void)
@@ -389,7 +389,7 @@ static struct fb_monspecs at91fb_default_stn_monspecs = {
 					| ATMEL_LCDC_IFWIDTH_4 \
 					| ATMEL_LCDC_SCANMOD_SINGLE)
 
-static void at91_lcdc_stn_power_control(int on)
+static void at91_lcdc_stn_power_control(struct atmel_lcdfb_pdata *pdata, int on)
 {
 	/* backlight */
 	if (on) {	/* power up */
@@ -401,7 +401,7 @@ static void at91_lcdc_stn_power_control(int on)
 	}
 }
 
-static struct atmel_lcdfb_info __initdata ek_lcdc_data = {
+static struct atmel_lcdfb_pdata __initdata ek_lcdc_data = {
 	.default_bpp			= 1,
 	.default_dmacon			= ATMEL_LCDC_DMAEN,
 	.default_lcdcon2		= AT91SAM9261_DEFAULT_STN_LCDCON2,
@@ -445,7 +445,7 @@ static struct fb_monspecs at91fb_default_tft_monspecs = {
 					| ATMEL_LCDC_DISTYPE_TFT    \
 					| ATMEL_LCDC_CLKMOD_ALWAYSACTIVE)
 
-static void at91_lcdc_tft_power_control(int on)
+static void at91_lcdc_tft_power_control(struct atmel_lcdfb_pdata *pdata, int on)
 {
 	if (on)
 		at91_set_gpio_value(AT91_PIN_PA12, 0);	/* power up */
@@ -453,7 +453,7 @@ static void at91_lcdc_tft_power_control(int on)
 		at91_set_gpio_value(AT91_PIN_PA12, 1);	/* power down */
 }
 
-static struct atmel_lcdfb_info __initdata ek_lcdc_data = {
+static struct atmel_lcdfb_pdata __initdata ek_lcdc_data = {
 	.lcdcon_is_backlight		= true,
 	.default_bpp			= 16,
 	.default_dmacon			= ATMEL_LCDC_DMAEN,
@@ -465,7 +465,7 @@ static struct atmel_lcdfb_info __initdata ek_lcdc_data = {
 #endif
 
 #else
-static struct atmel_lcdfb_info __initdata ek_lcdc_data;
+static struct atmel_lcdfb_pdata __initdata ek_lcdc_data;
 #endif
 
 
@@ -560,6 +560,8 @@ static struct gpio_led ek_leds[] = {
 
 static void __init ek_board_init(void)
 {
+	at91_register_devices();
+
 	/* Serial */
 	/* DBGU on ttyS0. (Rx & Tx only) */
 	at91_register_uart(0, 0, 0);
@@ -602,7 +604,7 @@ static void __init ek_board_init(void)
 
 MACHINE_START(AT91SAM9261EK, "Atmel AT91SAM9261-EK")
 	/* Maintainer: Atmel */
-	.init_time	= at91sam926x_pit_init,
+	.init_time	= at91_init_time,
 	.map_io		= at91_map_io,
 	.handle_irq	= at91_aic_handle_irq,
 	.init_early	= ek_init_early,
@@ -612,7 +614,7 @@ MACHINE_END
 
 MACHINE_START(AT91SAM9G10EK, "Atmel AT91SAM9G10-EK")
 	/* Maintainer: Atmel */
-	.init_time	= at91sam926x_pit_init,
+	.init_time	= at91_init_time,
 	.map_io		= at91_map_io,
 	.handle_irq	= at91_aic_handle_irq,
 	.init_early	= ek_init_early,

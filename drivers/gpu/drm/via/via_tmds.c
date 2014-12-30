@@ -152,7 +152,7 @@ via_tmds_init(struct drm_device *dev)
 	drm_connector_init(dev, &con->base, &via_dvi_connector_funcs,
 				DRM_MODE_CONNECTOR_DVID);
 	drm_connector_helper_add(&con->base, &via_dvi_connector_helper_funcs);
-	drm_sysfs_connector_add(&con->base);
+	drm_connector_register(&con->base);
 
 	switch (dev->pdev->device) {
 	case PCI_DEVICE_ID_VIA_VT1122:
@@ -178,7 +178,7 @@ via_tmds_init(struct drm_device *dev)
 	drm_connector_init(dev, &con->base, &via_dvi_connector_funcs,
 				DRM_MODE_CONNECTOR_DVIA);
 	drm_connector_helper_add(&con->base, &via_dvi_connector_helper_funcs);
-	drm_sysfs_connector_add(&con->base);
+	drm_connector_register(&con->base);
 	con->ddc_bus = via_find_ddc_bus(i2c_port);
 	con->base.doublescan_allowed = false;
 	con->base.interlace_allowed = true;

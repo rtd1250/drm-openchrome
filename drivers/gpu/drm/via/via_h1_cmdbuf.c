@@ -161,7 +161,7 @@ static int via_initialize(struct drm_device *dev,
 
 	ret = ttm_bo_allocate(&dev_priv->bdev, init->size, ttm_bo_type_kernel,
 				TTM_PL_FLAG_TT, VIA_MM_ALIGN_SIZE, PAGE_SIZE,
-				false, NULL, &bo);
+				false, NULL, NULL, &bo);
 	if (!ret) {
 		ret = ttm_bo_pin(bo, &dev_priv->dmabuf);
 		if (ret)
@@ -191,13 +191,13 @@ int via_dma_init(struct drm_device *dev, void *data, struct drm_file *file_priv)
 
 	switch (init->func) {
 	case VIA_INIT_DMA:
-		if (!DRM_SUSER(DRM_CURPROC))
+		if (!capable(CAP_SYS_ADMIN))
 			retcode = -EPERM;
 		else
 			retcode = via_initialize(dev, dev_priv, init);
 		break;
 	case VIA_CLEANUP_DMA:
-		if (!DRM_SUSER(DRM_CURPROC))
+		if (!capable(CAP_SYS_ADMIN))
 			retcode = -EPERM;
 		else
 			retcode = via_dma_cleanup(dev);
@@ -228,7 +228,7 @@ int via_dispatch_cmdbuffer(struct drm_device *dev, drm_via_cmdbuffer_t *cmd)
 	if (cmd->size > VIA_PCI_BUF_SIZE)
 		return -ENOMEM;
 
-	if (DRM_COPY_FROM_USER(dev_priv->pci_buf, cmd->buf, cmd->size))
+	if (copy_from_user(dev_priv->pci_buf, cmd->buf, cmd->size))
 		return -EFAULT;
 
 	/*
@@ -273,7 +273,7 @@ int via_driver_dma_quiescent(struct drm_device *dev)
 int via_flush_ioctl(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 
-	LOCK_TEST_WITH_RETURN(dev, file_priv);
+	//LOCK_TEST_WITH_RETURN(dev, file_priv);
 
 	return via_driver_dma_quiescent(dev);
 }
@@ -283,7 +283,7 @@ int via_cmdbuffer(struct drm_device *dev, void *data, struct drm_file *file_priv
 	drm_via_cmdbuffer_t *cmdbuf = data;
 	int ret;
 
-	LOCK_TEST_WITH_RETURN(dev, file_priv);
+	//LOCK_TEST_WITH_RETURN(dev, file_priv);
 
 	DRM_DEBUG("buf %p size %lu\n", cmdbuf->buf, cmdbuf->size);
 
@@ -299,7 +299,7 @@ static int via_dispatch_pci_cmdbuffer(struct drm_device *dev,
 
 	if (cmd->size > VIA_PCI_BUF_SIZE)
 		return -ENOMEM;
-	if (DRM_COPY_FROM_USER(dev_priv->pci_buf, cmd->buf, cmd->size))
+	if (copy_from_user(dev_priv->pci_buf, cmd->buf, cmd->size))
 		return -EFAULT;
 
 	ret = via_verify_command_stream((uint32_t *) dev_priv->pci_buf,
@@ -318,7 +318,7 @@ int via_pci_cmdbuffer(struct drm_device *dev, void *data, struct drm_file *file_
 	drm_via_cmdbuffer_t *cmdbuf = data;
 	int ret;
 
-	LOCK_TEST_WITH_RETURN(dev, file_priv);
+	//LOCK_TEST_WITH_RETURN(dev, file_priv);
 
 	DRM_DEBUG("buf %p size %lu\n", cmdbuf->buf, cmdbuf->size);
 
@@ -623,7 +623,7 @@ int via_cmdbuf_size(struct drm_device *dev, void *data, struct drm_file *file_pr
 	uint32_t tmp_size, count;
 
 	DRM_DEBUG("\n");
-	LOCK_TEST_WITH_RETURN(dev, file_priv);
+	//LOCK_TEST_WITH_RETURN(dev, file_priv);
 
 	if (dev_priv->dmabuf.virtual == NULL) {
 		DRM_ERROR("called without initializing AGP ring buffer.\n");

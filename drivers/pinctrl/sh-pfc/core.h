@@ -25,16 +25,25 @@ struct sh_pfc_window {
 struct sh_pfc_chip;
 struct sh_pfc_pinctrl;
 
+struct sh_pfc_pin_range {
+	u16 start;
+	u16 end;
+};
+
 struct sh_pfc {
 	struct device *dev;
 	const struct sh_pfc_soc_info *info;
-	void *soc_data;
 	spinlock_t lock;
 
 	unsigned int num_windows;
-	struct sh_pfc_window *window;
+	struct sh_pfc_window *windows;
+	unsigned int num_irqs;
+	unsigned int *irqs;
 
-	unsigned int nr_pins;
+	struct sh_pfc_pin_range *ranges;
+	unsigned int nr_ranges;
+
+	unsigned int nr_gpio_pins;
 
 	struct sh_pfc_chip *gpio;
 	struct sh_pfc_chip *func;
@@ -61,6 +70,7 @@ extern const struct sh_pfc_soc_info r8a7740_pinmux_info;
 extern const struct sh_pfc_soc_info r8a7778_pinmux_info;
 extern const struct sh_pfc_soc_info r8a7779_pinmux_info;
 extern const struct sh_pfc_soc_info r8a7790_pinmux_info;
+extern const struct sh_pfc_soc_info r8a7791_pinmux_info;
 extern const struct sh_pfc_soc_info sh7203_pinmux_info;
 extern const struct sh_pfc_soc_info sh7264_pinmux_info;
 extern const struct sh_pfc_soc_info sh7269_pinmux_info;

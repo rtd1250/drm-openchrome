@@ -152,11 +152,8 @@ via_gem_wait(struct drm_device *dev, void *data, struct drm_file *file_priv)
 	if (unlikely(ret != 0))
 		return ret;
 
-	spin_lock(&bo->bdev->fence_lock);
-	if (bo->sync_obj)
-		ret = ttm_bo_wait(bo, true, true, no_wait);
+	ret = ttm_bo_wait(bo, true, true, no_wait);
 	ttm_bo_unreserve(bo);
-	spin_unlock(&bo->bdev->fence_lock);
 
 	mutex_lock(&dev->struct_mutex);
 	drm_gem_object_unreference(obj);
@@ -203,4 +200,4 @@ const struct drm_ioctl_desc via_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(VIA_GEM_STATE, via_gem_state, DRM_AUTH),
 };
 
-int via_max_ioctl = DRM_ARRAY_SIZE(via_ioctls);
+int via_max_ioctl = ARRAY_SIZE(via_ioctls);

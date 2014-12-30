@@ -152,7 +152,7 @@ via_mmio_setup(struct drm_device *dev)
 		return ret;
 
 	ret = ttm_bo_allocate(&dev_priv->bdev, VIA_MMIO_REGSIZE, ttm_bo_type_kernel,
-				TTM_PL_FLAG_PRIV0, 1, PAGE_SIZE, false, NULL, &bo);
+			      TTM_PL_FLAG_PRIV0, 1, PAGE_SIZE, false, NULL, NULL, &bo);
 	if (ret)
 		goto err;
 
@@ -402,7 +402,7 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
 			goto out_err;
 	}
 
-	ret = drm_irq_install(dev);
+	ret = drm_irq_install(dev, dev->pdev->irq);
 out_err:
 	if (ret)
 		via_driver_unload(dev);
@@ -413,7 +413,7 @@ static int via_final_context(struct drm_device *dev, int context)
 {
 	/* Linux specific until context tracking code gets ported to BSD */
 	/* Last context, perform cleanup */
-	if (dev->ctx_count == 1 && dev->dev_private) {
+	if (dev->dev_private) {
 		DRM_DEBUG("Last Context\n");
 		drm_irq_uninstall(dev);
 		via_dma_cleanup(dev);

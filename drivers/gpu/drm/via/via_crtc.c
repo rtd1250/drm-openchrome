@@ -171,10 +171,10 @@ via_iga1_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green, u16 *blue,
 	int end = (start + size > 256) ? 256 : start + size, i;
 	u8 val, sr1a = vga_rseq(VGABASE, 0x1A);
 
-	if (!crtc->enabled || !crtc->fb)
+	if (!crtc->enabled || !crtc->primary->fb)
 		return;
 
-	if (crtc->fb->bits_per_pixel == 8) {
+	if (crtc->primary->fb->bits_per_pixel == 8) {
 		/* Prepare for initialize IGA1's LUT: */
 		vga_wseq(VGABASE, 0x1A, sr1a & 0xFE);
 		/* Change to Primary Display's LUT */
@@ -224,10 +224,10 @@ via_iga2_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green, u16 *blue,
 	int end = (start + size > 256) ? 256 : start + size, i;
 	u8 sr1a = vga_rseq(VGABASE, 0x1A);
 
-	if (!crtc->enabled || !crtc->fb)
+	if (!crtc->enabled || !crtc->primary->fb)
 		return;
 
-	if (crtc->fb->bits_per_pixel == 8) {
+	if (crtc->primary->fb->bits_per_pixel == 8) {
 		/* Change Shadow to Secondary Display's LUT */
 		svga_wseq_mask(VGABASE, 0x1A, BIT(0), BIT(0));
 		/* Enable Secondary Display Engine */
@@ -1144,7 +1144,7 @@ via_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 			struct drm_framebuffer *fb)
 {
 	struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
-	struct drm_framebuffer *new_fb = crtc->fb;
+	struct drm_framebuffer *new_fb = crtc->primary->fb;
 	struct ttm_buffer_object *bo;
 	struct drm_gem_object *obj;
 	int ret = 0;

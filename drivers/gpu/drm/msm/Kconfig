@@ -2,9 +2,10 @@
 config DRM_MSM
 	tristate "MSM DRM"
 	depends on DRM
-	depends on ARCH_MSM
-	depends on ARCH_MSM8960
+	depends on ARCH_QCOM || (ARM && COMPILE_TEST)
+	select REGULATOR
 	select DRM_KMS_HELPER
+	select DRM_PANEL
 	select SHMEM
 	select TMPFS
 	default y
@@ -14,6 +15,7 @@ config DRM_MSM
 config DRM_MSM_FBDEV
 	bool "Enable legacy fbdev support for MSM modesetting driver"
 	depends on DRM_MSM
+	select DRM_KMS_FB_HELPER
 	select FB_SYS_FILLRECT
 	select FB_SYS_COPYAREA
 	select FB_SYS_IMAGEBLIT

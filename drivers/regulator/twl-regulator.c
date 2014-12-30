@@ -58,7 +58,7 @@ struct twlreg_info {
 	struct regulator_desc	desc;
 
 	/* chip specific features */
-	unsigned long 		features;
+	unsigned long		features;
 
 	/*
 	 * optional override functions for voltage set/get
@@ -1108,7 +1108,7 @@ static int twlreg_probe(struct platform_device *pdev)
 		drvdata = NULL;
 	} else {
 		id = pdev->id;
-		initdata = pdev->dev.platform_data;
+		initdata = dev_get_platdata(&pdev->dev);
 		for (i = 0, template = NULL; i < ARRAY_SIZE(twl_of_match); i++) {
 			template = twl_of_match[i].data;
 			if (template && template->desc.id == id)
@@ -1128,7 +1128,7 @@ static int twlreg_probe(struct platform_device *pdev)
 	if (!initdata)
 		return -EINVAL;
 
-	info = kmemdup(template, sizeof (*info), GFP_KERNEL);
+	info = devm_kmemdup(&pdev->dev, template, sizeof(*info), GFP_KERNEL);
 	if (!info)
 		return -ENOMEM;
 
@@ -1188,11 +1188,10 @@ static int twlreg_probe(struct platform_device *pdev)
 	config.driver_data = info;
 	config.of_node = pdev->dev.of_node;
 
-	rdev = regulator_register(&info->desc, &config);
+	rdev = devm_regulator_register(&pdev->dev, &info->desc, &config);
 	if (IS_ERR(rdev)) {
 		dev_err(&pdev->dev, "can't register %s, %ld\n",
 				info->desc.name, PTR_ERR(rdev));
-		kfree(info);
 		return PTR_ERR(rdev);
 	}
 	platform_set_drvdata(pdev, rdev);
@@ -1212,21 +1211,10 @@ static int twlreg_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int twlreg_remove(struct platform_device *pdev)
-{
-	struct regulator_dev *rdev = platform_get_drvdata(pdev);
-	struct twlreg_info *info = rdev->reg_data;
-
-	regulator_unregister(rdev);
-	kfree(info);
-	return 0;
-}
-
 MODULE_ALIAS("platform:twl_reg");
 
 static struct platform_driver twlreg_driver = {
 	.probe		= twlreg_probe,
-	.remove		= twlreg_remove,
 	/* NOTE: short name, to work around driver model truncation of
 	 * "twl_regulator.12" (and friends) to "twl_regulator.1".
 	 */

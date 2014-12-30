@@ -36,7 +36,7 @@ struct msm_gem_object {
 	 */
 	struct list_head mm_list;
 	struct msm_gpu *gpu;     /* non-null if active */
-	uint32_t fence;
+	uint32_t read_fence, write_fence;
 
 	/* Transiently in the process of submit ioctl, objects associated
 	 * with the submit are on submit->bo_list.. this only lasts for
@@ -44,9 +44,6 @@ struct msm_gem_object {
 	 * submit lists.
 	 */
 	struct list_head submit_entry;
-
-	/* work defered until bo is inactive: */
-	struct list_head inactive_work;
 
 	struct page **pages;
 	struct sg_table *sgt;
@@ -60,12 +57,30 @@ struct msm_gem_object {
 	/* normally (resv == &_resv) except for imported bo's */
 	struct reservation_object *resv;
 	struct reservation_object _resv;
+
+	/* For physically contiguous buffers.  Used when we don't have
+	 * an IOMMU.
+	 */
+	struct drm_mm_node *vram_node;
 };
 #define to_msm_bo(x) container_of(x, struct msm_gem_object, base)
 
 static inline bool is_active(struct msm_gem_object *msm_obj)
 {
 	return msm_obj->gpu != NULL;
+}
+
+static inline uint32_t msm_gem_fence(struct msm_gem_object *msm_obj,
+		uint32_t op)
+{
+	uint32_t fence = 0;
+
+	if (op & MSM_PREP_READ)
+		fence = msm_obj->write_fence;
+	if (op & MSM_PREP_WRITE)
+		fence = max(fence, msm_obj->read_fence);
+
+	return fence;
 }
 
 #define MAX_CMDS 4
@@ -88,6 +103,7 @@ struct msm_gem_submit {
 		uint32_t type;
 		uint32_t size;  /* in dwords */
 		uint32_t iova;
+		uint32_t idx;   /* cmdstream buffer idx in bos[] */
 	} cmd[MAX_CMDS];
 	struct {
 		uint32_t flags;

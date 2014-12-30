@@ -43,6 +43,7 @@
 #include "ttm/ttm_page_alloc.h"
 
 #include <drm/drmP.h>
+#include <drm/drm_gem.h>
 #include <drm/via_drm.h>
 
 #include "via_regs.h"
@@ -213,7 +214,7 @@ extern int via_detect_vram(struct drm_device *dev);
 extern int via_enable_vblank(struct drm_device *dev, int crtc);
 extern void via_disable_vblank(struct drm_device *dev, int crtc);
 
-extern irqreturn_t via_driver_irq_handler(DRM_IRQ_ARGS);
+extern irqreturn_t via_driver_irq_handler(int irq, void *arg);
 extern void via_driver_irq_preinstall(struct drm_device *dev);
 extern int via_driver_irq_postinstall(struct drm_device *dev);
 extern void via_driver_irq_uninstall(struct drm_device *dev);

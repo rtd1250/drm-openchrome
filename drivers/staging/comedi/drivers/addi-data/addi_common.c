@@ -44,7 +44,7 @@ static int i_ADDIDATA_InsnReadEeprom(struct comedi_device *dev,
 				     struct comedi_insn *insn,
 				     unsigned int *data)
 {
-	const struct addi_board *this_board = comedi_board(dev);
+	const struct addi_board *this_board = dev->board_ptr;
 	struct addi_private *devpriv = dev->private;
 	unsigned short w_Address = CR_CHAN(insn->chanspec);
 	unsigned short w_Data;
@@ -59,7 +59,7 @@ static int i_ADDIDATA_InsnReadEeprom(struct comedi_device *dev,
 static irqreturn_t v_ADDI_Interrupt(int irq, void *d)
 {
 	struct comedi_device *dev = d;
-	const struct addi_board *this_board = comedi_board(dev);
+	const struct addi_board *this_board = dev->board_ptr;
 
 	this_board->interrupt(irq, d);
 	return IRQ_RETVAL(1);
@@ -67,7 +67,7 @@ static irqreturn_t v_ADDI_Interrupt(int irq, void *d)
 
 static int i_ADDI_Reset(struct comedi_device *dev)
 {
-	const struct addi_board *this_board = comedi_board(dev);
+	const struct addi_board *this_board = dev->board_ptr;
 
 	this_board->reset(dev);
 	return 0;
@@ -77,7 +77,7 @@ static int addi_auto_attach(struct comedi_device *dev,
 				      unsigned long context_unused)
 {
 	struct pci_dev *pcidev = comedi_to_pci_dev(dev);
-	const struct addi_board *this_board = comedi_board(dev);
+	const struct addi_board *this_board = dev->board_ptr;
 	struct addi_private *devpriv;
 	struct comedi_subdevice *s;
 	int ret, n_subdevices;
@@ -85,10 +85,9 @@ static int addi_auto_attach(struct comedi_device *dev,
 
 	dev->board_name = this_board->pc_DriverName;
 
-	devpriv = kzalloc(sizeof(*devpriv), GFP_KERNEL);
+	devpriv = comedi_alloc_devpriv(dev, sizeof(*devpriv));
 	if (!devpriv)
 		return -ENOMEM;
-	dev->private = devpriv;
 
 	ret = comedi_pci_enable(dev);
 	if (ret)
@@ -158,14 +157,10 @@ static int addi_auto_attach(struct comedi_device *dev,
 		s->subdev_flags =
 			SDF_READABLE | SDF_COMMON | SDF_GROUND
 			| SDF_DIFF;
-		if (devpriv->s_EeParameters.i_NbrAiChannel) {
-			s->n_chan =
-				devpriv->s_EeParameters.i_NbrAiChannel;
-			devpriv->b_SingelDiff = 0;
-		} else {
+		if (devpriv->s_EeParameters.i_NbrAiChannel)
+			s->n_chan = devpriv->s_EeParameters.i_NbrAiChannel;
+		else
 			s->n_chan = this_board->i_NbrAiChannelDiff;
-			devpriv->b_SingelDiff = 1;
-		}
 		s->maxdata = devpriv->s_EeParameters.i_AiMaxdata;
 		s->len_chanlist = this_board->i_AiChannelList;
 		s->range_table = this_board->pr_AiRangelist;
@@ -205,7 +200,6 @@ static int addi_auto_attach(struct comedi_device *dev,
 		s->len_chanlist =
 			devpriv->s_EeParameters.i_NbrDiChannel;
 		s->range_table = &range_digital;
-		s->io_bits = 0;	/* all bits input */
 		s->insn_config = this_board->di_config;
 		s->insn_read = this_board->di_read;
 		s->insn_write = this_board->di_write;
@@ -224,7 +218,6 @@ static int addi_auto_attach(struct comedi_device *dev,
 		s->len_chanlist =
 			devpriv->s_EeParameters.i_NbrDoChannel;
 		s->range_table = &range_digital;
-		s->io_bits = 0xf;	/* all bits output */
 
 		/* insn_config - for digital output memory */
 		s->insn_config = this_board->do_config;
@@ -275,13 +268,7 @@ static int addi_auto_attach(struct comedi_device *dev,
 
 static void i_ADDI_Detach(struct comedi_device *dev)
 {
-	struct addi_private *devpriv = dev->private;
-
-	if (devpriv) {
-		if (dev->iobase)
-			i_ADDI_Reset(dev);
-		if (dev->irq)
-			free_irq(dev->irq, dev);
-	}
-	comedi_pci_disable(dev);
+	if (dev->iobase)
+		i_ADDI_Reset(dev);
+	comedi_pci_detach(dev);
 }

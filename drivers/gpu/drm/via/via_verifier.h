@@ -50,7 +50,6 @@ struct drm_via_state {
 	int agp_texture;
 	int multitex;
 	struct drm_device *dev;
-	drm_local_map_t *map_cache;
 	uint32_t vertex_count;
 	int agp;
 	const uint32_t *buf_start;

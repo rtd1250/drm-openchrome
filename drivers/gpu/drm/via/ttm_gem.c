@@ -73,7 +73,7 @@ int ttm_mmap(struct file *filp, struct vm_area_struct *vma)
 	struct drm_file *file_priv;
 
 	if (unlikely(vma->vm_pgoff < DRM_FILE_PAGE_OFFSET))
-		return drm_mmap(filp, vma);
+		return -EINVAL;
 
 	file_priv = filp->private_data;
 	dev_priv = file_priv->minor->dev->dev_private;
@@ -85,8 +85,8 @@ int ttm_mmap(struct file *filp, struct vm_area_struct *vma)
 
 struct drm_gem_object *
 ttm_gem_create(struct drm_device *dev, struct ttm_bo_device *bdev,
-		enum ttm_bo_type origin, int types, bool interruptible,
-		int byte_align, int page_align, unsigned long size)
+	       enum ttm_bo_type origin, int types, bool interruptible,
+	       int byte_align, int page_align, unsigned long size)
 {
 	struct ttm_buffer_object *bo = NULL;
 	struct ttm_gem_object *obj;
@@ -96,7 +96,7 @@ ttm_gem_create(struct drm_device *dev, struct ttm_bo_device *bdev,
 	size = ALIGN(size, page_align);
 
 	ret = ttm_bo_allocate(bdev, size, origin, types, byte_align,
-			      page_align, interruptible, NULL, &bo);
+			      page_align, interruptible, NULL, NULL, &bo);
 	if (ret) {
 		DRM_ERROR("Failed to create buffer object\n");
 		return ERR_PTR(ret);

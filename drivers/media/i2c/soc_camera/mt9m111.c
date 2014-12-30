@@ -208,8 +208,8 @@ struct mt9m111 {
 	struct mt9m111_context *ctx;
 	struct v4l2_rect rect;	/* cropping rectangle */
 	struct v4l2_clk *clk;
-	int width;		/* output */
-	int height;		/* sizes */
+	unsigned int width;	/* output */
+	unsigned int height;	/* sizes */
 	struct mutex power_lock; /* lock to protect power_count */
 	int power_count;
 	const struct mt9m111_datafmt *fmt;
@@ -931,6 +931,12 @@ static int mt9m111_probe(struct i2c_client *client,
 	struct soc_camera_subdev_desc *ssdd = soc_camera_i2c_to_desc(client);
 	int ret;
 
+	if (client->dev.of_node) {
+		ssdd = devm_kzalloc(&client->dev, sizeof(*ssdd), GFP_KERNEL);
+		if (!ssdd)
+			return -ENOMEM;
+		client->dev.platform_data = ssdd;
+	}
 	if (!ssdd) {
 		dev_err(&client->dev, "mt9m111: driver needs platform data\n");
 		return -EINVAL;
@@ -945,6 +951,10 @@ static int mt9m111_probe(struct i2c_client *client,
 	mt9m111 = devm_kzalloc(&client->dev, sizeof(struct mt9m111), GFP_KERNEL);
 	if (!mt9m111)
 		return -ENOMEM;
+
+	mt9m111->clk = v4l2_clk_get(&client->dev, "mclk");
+	if (IS_ERR(mt9m111->clk))
+		return -EPROBE_DEFER;
 
 	/* Default HIGHPOWER context */
 	mt9m111->ctx = &context_b;
@@ -963,8 +973,10 @@ static int mt9m111_probe(struct i2c_client *client,
 			&mt9m111_ctrl_ops, V4L2_CID_EXPOSURE_AUTO, 1, 0,
 			V4L2_EXPOSURE_AUTO);
 	mt9m111->subdev.ctrl_handler = &mt9m111->hdl;
-	if (mt9m111->hdl.error)
-		return mt9m111->hdl.error;
+	if (mt9m111->hdl.error) {
+		ret = mt9m111->hdl.error;
+		goto out_clkput;
+	}
 
 	/* Second stage probe - when a capture adapter is there */
 	mt9m111->rect.left	= MT9M111_MIN_DARK_COLS;
@@ -975,18 +987,25 @@ static int mt9m111_probe(struct i2c_client *client,
 	mt9m111->lastpage	= -1;
 	mutex_init(&mt9m111->power_lock);
 
-	mt9m111->clk = v4l2_clk_get(&client->dev, "mclk");
-	if (IS_ERR(mt9m111->clk)) {
-		ret = PTR_ERR(mt9m111->clk);
-		goto eclkget;
-	}
+	ret = soc_camera_power_init(&client->dev, ssdd);
+	if (ret < 0)
+		goto out_hdlfree;
 
 	ret = mt9m111_video_probe(client);
-	if (ret) {
-		v4l2_clk_put(mt9m111->clk);
-eclkget:
-		v4l2_ctrl_handler_free(&mt9m111->hdl);
-	}
+	if (ret < 0)
+		goto out_hdlfree;
+
+	mt9m111->subdev.dev = &client->dev;
+	ret = v4l2_async_register_subdev(&mt9m111->subdev);
+	if (ret < 0)
+		goto out_hdlfree;
+
+	return 0;
+
+out_hdlfree:
+	v4l2_ctrl_handler_free(&mt9m111->hdl);
+out_clkput:
+	v4l2_clk_put(mt9m111->clk);
 
 	return ret;
 }
@@ -995,12 +1014,18 @@ static int mt9m111_remove(struct i2c_client *client)
 {
 	struct mt9m111 *mt9m111 = to_mt9m111(client);
 
+	v4l2_async_unregister_subdev(&mt9m111->subdev);
 	v4l2_clk_put(mt9m111->clk);
 	v4l2_device_unregister_subdev(&mt9m111->subdev);
 	v4l2_ctrl_handler_free(&mt9m111->hdl);
 
 	return 0;
 }
+static const struct of_device_id mt9m111_of_match[] = {
+	{ .compatible = "micron,mt9m111", },
+	{},
+};
+MODULE_DEVICE_TABLE(of, mt9m111_of_match);
 
 static const struct i2c_device_id mt9m111_id[] = {
 	{ "mt9m111", 0 },
@@ -1011,6 +1036,7 @@ MODULE_DEVICE_TABLE(i2c, mt9m111_id);
 static struct i2c_driver mt9m111_i2c_driver = {
 	.driver = {
 		.name = "mt9m111",
+		.of_match_table = of_match_ptr(mt9m111_of_match),
 	},
 	.probe		= mt9m111_probe,
 	.remove		= mt9m111_remove,

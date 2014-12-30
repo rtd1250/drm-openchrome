@@ -14,7 +14,9 @@
 #include <linux/module.h>
 #include <linux/rtc.h>
 #include <linux/of.h>
+#include <linux/of_address.h>
 #include <linux/of_device.h>
+#include <linux/of_irq.h>
 #include <linux/of_platform.h>
 #include <linux/io.h>
 #include <linux/slab.h>
@@ -399,7 +401,7 @@ static int mpc5121_rtc_remove(struct platform_device *op)
 }
 
 #ifdef CONFIG_OF
-static struct of_device_id mpc5121_rtc_match[] = {
+static const struct of_device_id mpc5121_rtc_match[] = {
 	{ .compatible = "fsl,mpc5121-rtc", },
 	{ .compatible = "fsl,mpc5200-rtc", },
 	{},

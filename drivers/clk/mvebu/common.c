@@ -26,7 +26,84 @@
  * Core Clocks
  */
 
+#define SSCG_CONF_MODE(reg)	(((reg) >> 16) & 0x3)
+#define SSCG_SPREAD_DOWN	0x0
+#define SSCG_SPREAD_UP		0x1
+#define SSCG_SPREAD_CENTRAL	0x2
+#define SSCG_CONF_LOW(reg)	(((reg) >> 8) & 0xFF)
+#define SSCG_CONF_HIGH(reg)	((reg) & 0xFF)
+
 static struct clk_onecell_data clk_data;
+
+/*
+ * This function can be used by the Kirkwood, the Armada 370, the
+ * Armada XP and the Armada 375 SoC. The name of the function was
+ * chosen following the dt convention: using the first known SoC
+ * compatible with it.
+ */
+u32 kirkwood_fix_sscg_deviation(u32 system_clk)
+{
+	struct device_node *sscg_np = NULL;
+	void __iomem *sscg_map;
+	u32 sscg_reg;
+	s32 low_bound, high_bound;
+	u64 freq_swing_half;
+
+	sscg_np = of_find_node_by_name(NULL, "sscg");
+	if (sscg_np == NULL) {
+		pr_err("cannot get SSCG register node\n");
+		return system_clk;
+	}
+
+	sscg_map = of_iomap(sscg_np, 0);
+	if (sscg_map == NULL) {
+		pr_err("cannot map SSCG register\n");
+		goto out;
+	}
+
+	sscg_reg = readl(sscg_map);
+	high_bound = SSCG_CONF_HIGH(sscg_reg);
+	low_bound = SSCG_CONF_LOW(sscg_reg);
+
+	if ((high_bound - low_bound) <= 0)
+		goto out;
+	/*
+	 * From Marvell engineer we got the following formula (when
+	 * this code was written, the datasheet was erroneous)
+	 * Spread percentage = 1/96 * (H - L) / H
+	 * H = SSCG_High_Boundary
+	 * L = SSCG_Low_Boundary
+	 *
+	 * As the deviation is half of spread then it lead to the
+	 * following formula in the code.
+	 *
+	 * To avoid an overflow and not lose any significant digit in
+	 * the same time we have to use a 64 bit integer.
+	 */
+
+	freq_swing_half = (((u64)high_bound - (u64)low_bound)
+			* (u64)system_clk);
+	do_div(freq_swing_half, (2 * 96 * high_bound));
+
+	switch (SSCG_CONF_MODE(sscg_reg)) {
+	case SSCG_SPREAD_DOWN:
+		system_clk -= freq_swing_half;
+		break;
+	case SSCG_SPREAD_UP:
+		system_clk += freq_swing_half;
+		break;
+	case SSCG_SPREAD_CENTRAL:
+	default:
+		break;
+	}
+
+	iounmap(sscg_map);
+
+out:
+	of_node_put(sscg_np);
+
+	return system_clk;
+}
 
 void __init mvebu_coreclk_setup(struct device_node *np,
 				const struct coreclk_soc_desc *desc)
@@ -45,8 +122,10 @@ void __init mvebu_coreclk_setup(struct device_node *np,
 	clk_data.clk_num = 2 + desc->num_ratios;
 	clk_data.clks = kzalloc(clk_data.clk_num * sizeof(struct clk *),
 				GFP_KERNEL);
-	if (WARN_ON(!clk_data.clks))
+	if (WARN_ON(!clk_data.clks)) {
+		iounmap(base);
 		return;
+	}
 
 	/* Register TCLK */
 	of_property_read_string_index(np, "clock-output-names", 0,
@@ -60,6 +139,11 @@ void __init mvebu_coreclk_setup(struct device_node *np,
 	of_property_read_string_index(np, "clock-output-names", 1,
 				      &cpuclk_name);
 	rate = desc->get_cpu_freq(base);
+
+	if (desc->is_sscg_enabled && desc->fix_sscg_deviation
+		&& desc->is_sscg_enabled(base))
+		rate = desc->fix_sscg_deviation(rate);
+
 	clk_data.clks[1] = clk_register_fixed_rate(NULL, cpuclk_name, NULL,
 						   CLK_IS_ROOT, rate);
 	WARN_ON(IS_ERR(clk_data.clks[1]));
@@ -87,8 +171,10 @@ void __init mvebu_coreclk_setup(struct device_node *np,
  * Clock Gating Control
  */
 
+DEFINE_SPINLOCK(ctrl_gating_lock);
+
 struct clk_gating_ctrl {
-	spinlock_t lock;
+	spinlock_t *lock;
 	struct clk **gates;
 	int num_gates;
 };
@@ -134,9 +220,10 @@ void __init mvebu_clk_gating_setup(struct device_node *np,
 
 	ctrl = kzalloc(sizeof(*ctrl), GFP_KERNEL);
 	if (WARN_ON(!ctrl))
-		return;
+		goto ctrl_out;
 
-	spin_lock_init(&ctrl->lock);
+	/* lock must already be initialized */
+	ctrl->lock = &ctrl_gating_lock;
 
 	/* Count, allocate, and register clock gates */
 	for (n = 0; desc[n].name;)
@@ -145,19 +232,23 @@ void __init mvebu_clk_gating_setup(struct device_node *np,
 	ctrl->num_gates = n;
 	ctrl->gates = kzalloc(ctrl->num_gates * sizeof(struct clk *),
 			      GFP_KERNEL);
-	if (WARN_ON(!ctrl->gates)) {
-		kfree(ctrl);
-		return;
-	}
+	if (WARN_ON(!ctrl->gates))
+		goto gates_out;
 
 	for (n = 0; n < ctrl->num_gates; n++) {
 		const char *parent =
 			(desc[n].parent) ? desc[n].parent : default_parent;
 		ctrl->gates[n] = clk_register_gate(NULL, desc[n].name, parent,
 					desc[n].flags, base, desc[n].bit_idx,
-					0, &ctrl->lock);
+					0, ctrl->lock);
 		WARN_ON(IS_ERR(ctrl->gates[n]));
 	}
 
 	of_clk_add_provider(np, clk_gating_get_src, ctrl);
+
+	return;
+gates_out:
+	kfree(ctrl);
+ctrl_out:
+	iounmap(base);
 }

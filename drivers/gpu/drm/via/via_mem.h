@@ -25,42 +25,45 @@
 #ifndef _VIA_MEM_H_
 #define _VIA_MEM_H_
 
-#include "drmP.h"
+#include "drm_gem.h"
 #include "ttm/ttm_bo_driver.h"
 #include "ttm/ttm_placement.h"
 
 struct ttm_heap {
-	uint32_t busy_placements[TTM_NUM_MEM_TYPES];
-	uint32_t placements[TTM_NUM_MEM_TYPES];
+	struct ttm_place busy_placements[TTM_NUM_MEM_TYPES];
+	struct ttm_place placements[TTM_NUM_MEM_TYPES];
 	struct ttm_buffer_object pbo;
 };
 
 extern int via_ttm_init(struct drm_device *dev);
-extern struct ttm_tt *via_sgdma_backend_init(struct ttm_bo_device *bdev, unsigned long size,
-                                        uint32_t page_flags, struct page *dummy_read_page);
+extern struct ttm_tt *
+via_sgdma_backend_init(struct ttm_bo_device *bdev, unsigned long size,
+		       uint32_t page_flags, struct page *dummy_read_page);
 
 extern int ttm_global_init(struct drm_global_reference *global_ref,
-                                struct ttm_bo_global_ref *global_bo,
-                                struct ttm_bo_driver *driver,
-                                struct ttm_bo_device *bdev,
-                                bool dma32);
+			   struct ttm_bo_global_ref *global_bo,
+			   struct ttm_bo_driver *driver,
+			   struct ttm_bo_device *bdev,
+			   struct drm_device *dev,
+			   bool dma32);
 extern void ttm_global_fini(struct drm_global_reference *global_ref,
-                                struct ttm_bo_global_ref *global_bo,
-                                struct ttm_bo_device *bdev);
+			    struct ttm_bo_global_ref *global_bo,
+			    struct ttm_bo_device *bdev);
 
 extern int ttm_bo_allocate(struct ttm_bo_device *bdev, unsigned long size,
-                                enum ttm_bo_type origin, uint32_t domains,
-                                uint32_t byte_align, uint32_t page_align,
-                                bool interruptible, struct sg_table *sg,
-                                struct ttm_buffer_object **p_bo);
+			   enum ttm_bo_type origin, uint32_t domains,
+			   uint32_t byte_align, uint32_t page_align,
+			   bool interruptible, struct sg_table *sg,
+			   struct reservation_object *resv,
+			   struct ttm_buffer_object **p_bo);
 extern void ttm_placement_from_domain(struct ttm_buffer_object *bo,
-                                struct ttm_placement *placement, u32 domains,
-                                struct ttm_bo_device *bdev);
+				      struct ttm_placement *placement,
+				      u32 domains, struct ttm_bo_device *bdev);
 extern int ttm_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap);
 extern int ttm_bo_pin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap);
 extern int ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev, unsigned long size,
-                                uint32_t alignment, uint32_t domain,
-                                struct ttm_bo_kmap_obj *kmap);
+				      uint32_t alignment, uint32_t domain,
+				      struct ttm_bo_kmap_obj *kmap);
 
 extern int ttm_mmap(struct file *filp, struct vm_area_struct *vma);
 

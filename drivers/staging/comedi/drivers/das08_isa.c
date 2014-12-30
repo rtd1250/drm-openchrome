@@ -43,6 +43,7 @@
  *	[0] - base io address
  */
 
+#include <linux/module.h>
 #include "../comedidev.h"
 
 #include "das08.h"
@@ -173,14 +174,13 @@ static const struct das08_board_struct das08_isa_boards[] = {
 static int das08_isa_attach(struct comedi_device *dev,
 			    struct comedi_devconfig *it)
 {
-	const struct das08_board_struct *thisboard = comedi_board(dev);
+	const struct das08_board_struct *thisboard = dev->board_ptr;
 	struct das08_private_struct *devpriv;
 	int ret;
 
-	devpriv = kzalloc(sizeof(*devpriv), GFP_KERNEL);
+	devpriv = comedi_alloc_devpriv(dev, sizeof(*devpriv));
 	if (!devpriv)
 		return -ENOMEM;
-	dev->private = devpriv;
 
 	ret = comedi_request_region(dev, it->options[0], thisboard->iosize);
 	if (ret)

@@ -343,7 +343,7 @@ via_connector_destroy(struct drm_connector *connector)
 	list_del(&con->props);
 
 	drm_mode_connector_update_edid_property(connector, NULL);
-	drm_sysfs_connector_remove(connector);
+	drm_connector_unregister(connector);
 	drm_connector_cleanup(connector);
 }
 

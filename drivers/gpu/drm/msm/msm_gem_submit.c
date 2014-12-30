@@ -23,7 +23,6 @@
  * Cmdstream submission:
  */
 
-#define BO_INVALID_FLAGS ~(MSM_SUBMIT_BO_READ | MSM_SUBMIT_BO_WRITE)
 /* make sure these don't conflict w/ MSM_SUBMIT_BO_x */
 #define BO_VALID    0x8000
 #define BO_LOCKED   0x4000
@@ -77,8 +76,8 @@ static int submit_lookup_objects(struct msm_gem_submit *submit,
 			goto out_unlock;
 		}
 
-		if (submit_bo.flags & BO_INVALID_FLAGS) {
-			DBG("invalid flags: %x", submit_bo.flags);
+		if (submit_bo.flags & ~MSM_SUBMIT_BO_FLAGS) {
+			DRM_ERROR("invalid flags: %x\n", submit_bo.flags);
 			ret = -EINVAL;
 			goto out_unlock;
 		}
@@ -92,7 +91,7 @@ static int submit_lookup_objects(struct msm_gem_submit *submit,
 		 */
 		obj = idr_find(&file->object_idr, submit_bo.handle);
 		if (!obj) {
-			DBG("invalid handle %u at index %u", submit_bo.handle, i);
+			DRM_ERROR("invalid handle %u at index %u\n", submit_bo.handle, i);
 			ret = -EINVAL;
 			goto out_unlock;
 		}
@@ -100,7 +99,7 @@ static int submit_lookup_objects(struct msm_gem_submit *submit,
 		msm_obj = to_msm_bo(obj);
 
 		if (!list_empty(&msm_obj->submit_entry)) {
-			DBG("handle %u at index %u already on submit list",
+			DRM_ERROR("handle %u at index %u already on submit list\n",
 					submit_bo.handle, i);
 			ret = -EINVAL;
 			goto out_unlock;
@@ -163,7 +162,7 @@ retry:
 
 
 		/* if locking succeeded, pin bo: */
-		ret = msm_gem_get_iova(&msm_obj->base,
+		ret = msm_gem_get_iova_locked(&msm_obj->base,
 				submit->gpu->id, &iova);
 
 		/* this would break the logic in the fail path.. there is no
@@ -216,8 +215,9 @@ static int submit_bo(struct msm_gem_submit *submit, uint32_t idx,
 		struct msm_gem_object **obj, uint32_t *iova, bool *valid)
 {
 	if (idx >= submit->nr_bos) {
-		DBG("invalid buffer index: %u (out of %u)", idx, submit->nr_bos);
-		return EINVAL;
+		DRM_ERROR("invalid buffer index: %u (out of %u)\n",
+				idx, submit->nr_bos);
+		return -EINVAL;
 	}
 
 	if (obj)
@@ -239,14 +239,14 @@ static int submit_reloc(struct msm_gem_submit *submit, struct msm_gem_object *ob
 	int ret;
 
 	if (offset % 4) {
-		DBG("non-aligned cmdstream buffer: %u", offset);
+		DRM_ERROR("non-aligned cmdstream buffer: %u\n", offset);
 		return -EINVAL;
 	}
 
 	/* For now, just map the entire thing.  Eventually we probably
 	 * to do it page-by-page, w/ kmap() if not vmap()d..
 	 */
-	ptr = msm_gem_vaddr(&obj->base);
+	ptr = msm_gem_vaddr_locked(&obj->base);
 
 	if (IS_ERR(ptr)) {
 		ret = PTR_ERR(ptr);
@@ -266,7 +266,7 @@ static int submit_reloc(struct msm_gem_submit *submit, struct msm_gem_object *ob
 			return -EFAULT;
 
 		if (submit_reloc.submit_offset % 4) {
-			DBG("non-aligned reloc offset: %u",
+			DRM_ERROR("non-aligned reloc offset: %u\n",
 					submit_reloc.submit_offset);
 			return -EINVAL;
 		}
@@ -276,7 +276,7 @@ static int submit_reloc(struct msm_gem_submit *submit, struct msm_gem_object *ob
 
 		if ((off >= (obj->base.size / 4)) ||
 				(off < last_offset)) {
-			DBG("invalid offset %u at reloc %u", off, i);
+			DRM_ERROR("invalid offset %u at reloc %u\n", off, i);
 			return -EINVAL;
 		}
 
@@ -306,14 +306,12 @@ static void submit_cleanup(struct msm_gem_submit *submit, bool fail)
 {
 	unsigned i;
 
-	mutex_lock(&submit->dev->struct_mutex);
 	for (i = 0; i < submit->nr_bos; i++) {
 		struct msm_gem_object *msm_obj = submit->bos[i].obj;
 		submit_unlock_unpin_bo(submit, i);
 		list_del_init(&msm_obj->submit_entry);
 		drm_gem_object_unreference(&msm_obj->base);
 	}
-	mutex_unlock(&submit->dev->struct_mutex);
 
 	ww_acquire_fini(&submit->ticket);
 	kfree(submit);
@@ -340,6 +338,8 @@ int msm_ioctl_gem_submit(struct drm_device *dev, void *data,
 
 	if (args->nr_cmds > MAX_CMDS)
 		return -EINVAL;
+
+	mutex_lock(&dev->struct_mutex);
 
 	submit = submit_create(dev, gpu, args->nr_bos);
 	if (!submit) {
@@ -368,20 +368,33 @@ int msm_ioctl_gem_submit(struct drm_device *dev, void *data,
 			goto out;
 		}
 
+		/* validate input from userspace: */
+		switch (submit_cmd.type) {
+		case MSM_SUBMIT_CMD_BUF:
+		case MSM_SUBMIT_CMD_IB_TARGET_BUF:
+		case MSM_SUBMIT_CMD_CTX_RESTORE_BUF:
+			break;
+		default:
+			DRM_ERROR("invalid type: %08x\n", submit_cmd.type);
+			ret = -EINVAL;
+			goto out;
+		}
+
 		ret = submit_bo(submit, submit_cmd.submit_idx,
 				&msm_obj, &iova, NULL);
 		if (ret)
 			goto out;
 
 		if (submit_cmd.size % 4) {
-			DBG("non-aligned cmdstream buffer size: %u",
+			DRM_ERROR("non-aligned cmdstream buffer size: %u\n",
 					submit_cmd.size);
 			ret = -EINVAL;
 			goto out;
 		}
 
-		if (submit_cmd.size >= msm_obj->base.size) {
-			DBG("invalid cmdstream size: %u", submit_cmd.size);
+		if ((submit_cmd.size + submit_cmd.submit_offset) >=
+				msm_obj->base.size) {
+			DRM_ERROR("invalid cmdstream size: %u\n", submit_cmd.size);
 			ret = -EINVAL;
 			goto out;
 		}
@@ -389,6 +402,7 @@ int msm_ioctl_gem_submit(struct drm_device *dev, void *data,
 		submit->cmd[i].type = submit_cmd.type;
 		submit->cmd[i].size = submit_cmd.size / 4;
 		submit->cmd[i].iova = iova + submit_cmd.submit_offset;
+		submit->cmd[i].idx  = submit_cmd.submit_idx;
 
 		if (submit->valid)
 			continue;
@@ -408,5 +422,6 @@ int msm_ioctl_gem_submit(struct drm_device *dev, void *data,
 out:
 	if (submit)
 		submit_cleanup(submit, !!ret);
+	mutex_unlock(&dev->struct_mutex);
 	return ret;
 }

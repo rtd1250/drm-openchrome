@@ -50,6 +50,19 @@ The maximum number of packets that kernel can handle on a NAPI interrupt,
 it's a Per-CPU variable.
 Default: 64
 
+default_qdisc
+--------------
+
+The default queuing discipline to use for network devices. This allows
+overriding the default queue discipline of pfifo_fast with an
+alternative. Since the default queuing discipline is created with the
+no additional parameters so is best suited to queuing disciplines that
+work well without configuration like stochastic fair queue (sfq),
+CoDel (codel) or fair queue CoDel (fq_codel). Don't use queuing disciplines
+like Hierarchical Token Bucket or Deficit Round Robin which require setting
+up classes and bandwidths.
+Default: pfifo_fast
+
 busy_read
 ----------------
 Low latency busy poll timeout for socket reads. (needs CONFIG_NET_RX_BUSY_POLL)
@@ -228,6 +241,9 @@ address of the router (or Connected) for internal networks.
 6. TIPC
 -------------------------------------------------------
 
+tipc_rmem
+----------
+
 The TIPC protocol now has a tunable for the receive memory, similar to the
 tcp_rmem - i.e. a vector of 3 INTEGERs: (min, default, max)
 
@@ -239,3 +255,16 @@ The max value is set to CONN_OVERLOAD_LIMIT, and the default and min values
 are scaled (shifted) versions of that same value.  Note that the min value
 is not at this point in time used in any meaningful way, but the triplet is
 preserved in order to be consistent with things like tcp_rmem.
+
+named_timeout
+--------------
+
+TIPC name table updates are distributed asynchronously in a cluster, without
+any form of transaction handling. This means that different race scenarios are
+possible. One such is that a name withdrawal sent out by one node and received
+by another node may arrive after a second, overlapping name publication already
+has been accepted from a third node, although the conflicting updates
+originally may have been issued in the correct sequential order.
+If named_timeout is nonzero, failed topology updates will be placed on a defer
+queue until another event arrives that clears the error, or until the timeout
+expires. Value is in milliseconds.

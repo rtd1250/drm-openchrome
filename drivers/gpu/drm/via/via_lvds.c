@@ -675,7 +675,7 @@ via_lvds_init(struct drm_device *dev)
 	drm_connector_init(dev, &con->base, &via_lcd_connector_funcs,
 				DRM_MODE_CONNECTOR_LVDS);
 	drm_connector_helper_add(&con->base, &via_lcd_connector_helper_funcs);
-	drm_sysfs_connector_add(&con->base);
+	drm_connector_register(&con->base);
 
 	switch (dev->pdev->device) {
 	case PCI_DEVICE_ID_VIA_VX875:
@@ -794,7 +794,7 @@ via_lvds_init(struct drm_device *dev)
 	return;
 
 no_device:
-	drm_sysfs_connector_remove(&con->base);
+	drm_connector_unregister(&con->base);
 	drm_connector_cleanup(&con->base);
 	kfree(enc);
 }

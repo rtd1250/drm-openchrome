@@ -300,7 +300,7 @@ static int adjust_tp(struct atm_trafprm *tp, unsigned char aal)
 		max_sdu = ATM_MAX_AAL34_PDU;
 		break;
 	default:
-		pr_warning("AAL problems ... (%d)\n", aal);
+		pr_warn("AAL problems ... (%d)\n", aal);
 		/* fall through */
 	case ATM_AAL5:
 		max_sdu = ATM_MAX_AAL5_PDU;
@@ -530,8 +530,6 @@ int vcc_recvmsg(struct kiocb *iocb, struct socket *sock, struct msghdr *msg,
 	struct atm_vcc *vcc;
 	struct sk_buff *skb;
 	int copied, error = -EINVAL;
-
-	msg->msg_namelen = 0;
 
 	if (sock->state != SS_CONNECTED)
 		return -ENOTCONN;

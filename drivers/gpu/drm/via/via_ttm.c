@@ -160,14 +160,12 @@ via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
 		man->default_caching = TTM_PL_FLAG_CACHED;
 
 #if __OS_HAS_AGP
-		if (drm_pci_device_is_agp(dev)) {
-			if (drm_core_has_AGP(dev) && dev->agp) {
-				man->flags = TTM_MEMTYPE_FLAG_MAPPABLE;
-				man->available_caching = TTM_PL_FLAG_UNCACHED | TTM_PL_FLAG_WC;
-				man->default_caching = TTM_PL_FLAG_WC;
-			} else
-				DRM_ERROR("AGP is possible but not enabled\n");
-		}
+		if (drm_pci_device_is_agp(dev) && dev->agp != NULL) {
+			man->flags = TTM_MEMTYPE_FLAG_MAPPABLE;
+			man->available_caching = TTM_PL_FLAG_UNCACHED | TTM_PL_FLAG_WC;
+			man->default_caching = TTM_PL_FLAG_WC;
+		} else
+			DRM_ERROR("AGP is possible but not enabled\n");
 #endif
 		break;
 
@@ -296,18 +294,18 @@ via_move_from_vram(struct ttm_buffer_object *bo, bool interruptible,
 	struct ttm_mem_reg *old_mem = &bo->mem;
 	struct ttm_mem_reg tmp_mem;
 	struct ttm_placement placement;
-	u32 placements;
+	struct ttm_place place;
 	int ret;
 
 	tmp_mem = *new_mem;
 	tmp_mem.mm_node = NULL;
-	placement.fpfn = 0;
-	placement.lpfn = 0;
-	placement.num_placement = 1;
-	placement.placement = &placements;
-	placement.num_busy_placement = 1;
-	placement.busy_placement = &placements;
-	placements = TTM_PL_MASK_CACHING | TTM_PL_FLAG_TT;
+
+	place.fpfn = place.lpfn = 0;
+	place.flags = TTM_PL_MASK_CACHING | TTM_PL_FLAG_TT;
+
+	placement.num_busy_placement = placement.num_placement = 1;
+	placement.busy_placement = placement.placement = &place;
+
 	ret = ttm_bo_mem_space(bo, &placement, &tmp_mem,
 				interruptible, no_wait_gpu);
 	if (unlikely(ret))
@@ -341,18 +339,18 @@ via_move_to_vram(struct ttm_buffer_object *bo, bool interruptible,
 	struct ttm_mem_reg *old_mem = &bo->mem;
 	struct ttm_mem_reg tmp_mem;
 	struct ttm_placement placement;
-	u32 placements;
+	struct ttm_place place;
 	int ret;
 
 	tmp_mem = *new_mem;
 	tmp_mem.mm_node = NULL;
-	placement.fpfn = 0;
-	placement.lpfn = 0;
-	placement.num_placement = 1;
-	placement.placement = &placements;
-	placement.num_busy_placement = 1;
-	placement.busy_placement = &placements;
-	placements = TTM_PL_MASK_CACHING | TTM_PL_FLAG_TT;
+
+	place.fpfn = place.lpfn = 0;
+	place.flags = TTM_PL_MASK_CACHING | TTM_PL_FLAG_TT;
+
+	placement.busy_placement = placement.placement = &place;
+	placement.num_busy_placement = placement.num_placement = 1;
+
 	ret = ttm_bo_mem_space(bo, &placement, &tmp_mem,
 				interruptible, no_wait_gpu);
 	if (unlikely(ret))
@@ -474,11 +472,6 @@ static struct ttm_bo_driver via_bo_driver = {
 	.evict_flags		= via_evict_flags,
 	.move			= via_bo_move,
 	.verify_access		= via_verify_access,
-	.sync_obj_signaled	= via_fence_signaled,
-	.sync_obj_wait		= via_fence_wait,
-	.sync_obj_flush		= via_fence_flush,
-	.sync_obj_unref		= via_fence_unref,
-	.sync_obj_ref		= via_fence_ref,
 	.io_mem_reserve		= via_ttm_io_mem_reserve,
 	.io_mem_free		= via_ttm_io_mem_free,
 };
@@ -488,10 +481,10 @@ int via_ttm_init(struct drm_device *dev)
 	struct drm_via_private *dev_priv = dev->dev_private;
 
 	int ret = ttm_global_init(&dev_priv->mem_global_ref,
-				&dev_priv->bo_global_ref,
-				&via_bo_driver,
-				&dev_priv->bdev, false);
+				  &dev_priv->bo_global_ref,
+				  &via_bo_driver, &dev_priv->bdev,
+				  dev_priv->dev, false);
 	if (!ret)
-		dev_priv->bdev.dev_mapping = dev_priv->dev->dev_mapping;
+		dev_priv->bdev.dev_mapping = dev_priv->dev->anon_inode->i_mapping;
 	return ret;
 }
