@@ -811,6 +811,8 @@ int i915_reset(struct drm_device *dev)
 	if (!i915.reset)
 		return 0;
 
+	intel_reset_gt_powersave(dev);
+
 	mutex_lock(&dev->struct_mutex);
 
 	i915_gem_reset(dev);
@@ -838,6 +840,8 @@ int i915_reset(struct drm_device *dev)
 		mutex_unlock(&dev->struct_mutex);
 		return ret;
 	}
+
+	intel_overlay_reset(dev_priv);
 
 	/* Ok, now get things going again... */
 
@@ -880,7 +884,7 @@ int i915_reset(struct drm_device *dev)
 		 * of re-init after reset.
 		 */
 		if (INTEL_INFO(dev)->gen > 5)
-			intel_reset_gt_powersave(dev);
+			intel_enable_gt_powersave(dev);
 	} else {
 		mutex_unlock(&dev->struct_mutex);
 	}
@@ -1297,7 +1301,9 @@ static int vlv_suspend_complete(struct drm_i915_private *dev_priv)
 	err = vlv_allow_gt_wake(dev_priv, false);
 	if (err)
 		goto err2;
-	vlv_save_gunit_s0ix_state(dev_priv);
+
+	if (!IS_CHERRYVIEW(dev_priv->dev))
+		vlv_save_gunit_s0ix_state(dev_priv);
 
 	err = vlv_force_gfx_clock(dev_priv, false);
 	if (err)
@@ -1328,7 +1334,8 @@ static int vlv_resume_prepare(struct drm_i915_private *dev_priv,
 	 */
 	ret = vlv_force_gfx_clock(dev_priv, true);
 
-	vlv_restore_gunit_s0ix_state(dev_priv);
+	if (!IS_CHERRYVIEW(dev_priv->dev))
+		vlv_restore_gunit_s0ix_state(dev_priv);
 
 	err = vlv_allow_gt_wake(dev_priv, true);
 	if (!ret)
@@ -1584,7 +1591,7 @@ static struct drm_driver driver = {
 	.gem_prime_import = i915_gem_prime_import,
 
 	.dumb_create = i915_gem_dumb_create,
-	.dumb_map_offset = i915_gem_dumb_map_offset,
+	.dumb_map_offset = i915_gem_mmap_gtt,
 	.dumb_destroy = drm_gem_dumb_destroy,
 	.ioctls = i915_ioctls,
 	.fops = &i915_driver_fops,

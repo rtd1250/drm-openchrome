@@ -323,25 +323,12 @@ static void mdp4_crtc_commit(struct drm_crtc *crtc)
 	drm_crtc_vblank_put(crtc);
 }
 
-static void mdp4_crtc_load_lut(struct drm_crtc *crtc)
-{
-}
-
 static int mdp4_crtc_atomic_check(struct drm_crtc *crtc,
 		struct drm_crtc_state *state)
 {
 	struct mdp4_crtc *mdp4_crtc = to_mdp4_crtc(crtc);
-	struct drm_device *dev = crtc->dev;
-
 	DBG("%s: check", mdp4_crtc->name);
-
-	if (mdp4_crtc->event) {
-		dev_err(dev->dev, "already pending flip!\n");
-		return -EBUSY;
-	}
-
 	// TODO anything else to check?
-
 	return 0;
 }
 
@@ -357,7 +344,7 @@ static void mdp4_crtc_atomic_flush(struct drm_crtc *crtc)
 	struct drm_device *dev = crtc->dev;
 	unsigned long flags;
 
-	DBG("%s: flush", mdp4_crtc->name);
+	DBG("%s: event: %p", mdp4_crtc->name, crtc->state->event);
 
 	WARN_ON(mdp4_crtc->event);
 
@@ -524,7 +511,6 @@ static const struct drm_crtc_helper_funcs mdp4_crtc_helper_funcs = {
 	.mode_set_base = drm_helper_crtc_mode_set_base,
 	.prepare = mdp4_crtc_prepare,
 	.commit = mdp4_crtc_commit,
-	.load_lut = mdp4_crtc_load_lut,
 	.atomic_check = mdp4_crtc_atomic_check,
 	.atomic_begin = mdp4_crtc_atomic_begin,
 	.atomic_flush = mdp4_crtc_atomic_flush,

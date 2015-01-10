@@ -29,7 +29,7 @@ static void msm_fb_output_poll_changed(struct drm_device *dev)
 static const struct drm_mode_config_funcs mode_config_funcs = {
 	.fb_create = msm_framebuffer_create,
 	.output_poll_changed = msm_fb_output_poll_changed,
-	.atomic_check = drm_atomic_helper_check,
+	.atomic_check = msm_atomic_check,
 	.atomic_commit = msm_atomic_commit,
 };
 
@@ -193,6 +193,7 @@ static int msm_load(struct drm_device *dev, unsigned long flags)
 
 	priv->wq = alloc_ordered_workqueue("msm", 0);
 	init_waitqueue_head(&priv->fence_event);
+	init_waitqueue_head(&priv->pending_crtcs_event);
 
 	INIT_LIST_HEAD(&priv->inactive_list);
 	INIT_LIST_HEAD(&priv->fence_cbs);
@@ -1012,7 +1013,6 @@ static struct platform_driver msm_platform_driver = {
 	.probe      = msm_pdev_probe,
 	.remove     = msm_pdev_remove,
 	.driver     = {
-		.owner  = THIS_MODULE,
 		.name   = "msm",
 		.of_match_table = dt_match,
 		.pm     = &msm_pm_ops,
