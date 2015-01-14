@@ -1241,8 +1241,7 @@ via_framebuffer_fini(struct drm_device *dev)
 		unregister_framebuffer(info);
 		if (info->cmap.len)
 			fb_dealloc_cmap(&info->cmap);
-		if (info->apertures)
-			kfree(info->apertures);
+		kfree(info->apertures);
 
 		framebuffer_release(info);
 		helper->fbdev = NULL;
