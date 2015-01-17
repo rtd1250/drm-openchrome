@@ -99,7 +99,7 @@ via_cmdbuf_wait(struct drm_via_private *dev_priv, unsigned int size)
 			return -1;
 		}
 		if  ((cur_addr < hw_addr) && (next_addr >= hw_addr))
-			msleep(1);
+			usleep_range(500, 2000);
 	} while ((cur_addr < hw_addr) && (next_addr >= hw_addr));
 	return 0;
 }
