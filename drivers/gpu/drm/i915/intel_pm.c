@@ -3745,16 +3745,7 @@ static u32 gen6_rps_pm_mask(struct drm_i915_private *dev_priv, u8 val)
 	mask |= dev_priv->pm_rps_events & (GEN6_PM_RP_DOWN_EI_EXPIRED | GEN6_PM_RP_UP_EI_EXPIRED);
 	mask &= dev_priv->pm_rps_events;
 
-	/* IVB and SNB hard hangs on looping batchbuffer
-	 * if GEN6_PM_UP_EI_EXPIRED is masked.
-	 */
-	if (INTEL_INFO(dev_priv->dev)->gen <= 7 && !IS_HASWELL(dev_priv->dev))
-		mask |= GEN6_PM_RP_UP_EI_EXPIRED;
-
-	if (IS_GEN8(dev_priv->dev))
-		mask |= GEN8_PMINTR_REDIRECT_TO_NON_DISP;
-
-	return ~mask;
+	return gen6_sanitize_rps_pm_mask(dev_priv, ~mask);
 }
 
 /* gen6_set_rps is called to update the frequency request, but should also be
@@ -3823,7 +3814,8 @@ static void vlv_set_rps_idle(struct drm_i915_private *dev_priv)
 		return;
 
 	/* Mask turbo interrupt so that they will not come in between */
-	I915_WRITE(GEN6_PMINTRMSK, 0xffffffff);
+	I915_WRITE(GEN6_PMINTRMSK,
+		   gen6_sanitize_rps_pm_mask(dev_priv, ~0));
 
 	vlv_force_gfx_clock(dev_priv, true);
 
@@ -4689,8 +4681,7 @@ static void cherryview_enable_rps(struct drm_device *dev)
 		I915_WRITE(RING_MAX_IDLE(ring->mmio_base), 10);
 	I915_WRITE(GEN6_RC_SLEEP, 0);
 
-	/* TO threshold set to 1750 us ( 0x557 * 1.28 us) */
-	I915_WRITE(GEN6_RC6_THRESHOLD, 0x557);
+	I915_WRITE(GEN6_RC6_THRESHOLD, 50000); /* 50/125ms per EI */
 
 	/* allows RC6 residency counter to work */
 	I915_WRITE(VLV_COUNTER_CONTROL,
@@ -4704,7 +4695,7 @@ static void cherryview_enable_rps(struct drm_device *dev)
 	/* 3: Enable RC6 */
 	if ((intel_enable_rc6(dev) & INTEL_RC6_ENABLE) &&
 						(pcbr >> VLV_PCBR_ADDR_SHIFT))
-		rc6_mode = GEN7_RC_CTL_TO_MODE;
+		rc6_mode = GEN6_RC_CTL_EI_MODE(1);
 
 	I915_WRITE(GEN6_RC_CONTROL, rc6_mode);
 
@@ -5981,6 +5972,10 @@ static void haswell_init_clock_gating(struct drm_device *dev)
 	 */
 	I915_WRITE(GEN7_GT_MODE,
 		   _MASKED_FIELD(GEN6_WIZ_HASHING_MASK, GEN6_WIZ_HASHING_16x4));
+
+	/* WaSampleCChickenBitEnable:hsw */
+	I915_WRITE(HALF_SLICE_CHICKEN3,
+		   _MASKED_BIT_ENABLE(HSW_SAMPLE_C_PERFORMANCE));
 
 	/* WaSwitchSolVfFArbitrationPriority:hsw */
 	I915_WRITE(GAM_ECOCHK, I915_READ(GAM_ECOCHK) | HSW_ECOCHK_ARB_PRIO_SOL);
