@@ -349,7 +349,7 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
 	chip_revision_info(dev);
 
 #if __OS_HAS_AGP
-	if ((dev_priv->engine_type > VIA_ENG_H2) ||
+	if ((dev_priv->engine_type <= VIA_ENG_H2) ||
 	    (dev->agp && drm_pci_device_is_agp(dev))) {
 		ret = via_detect_agp(dev);
 		if (!ret)
