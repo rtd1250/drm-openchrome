@@ -468,7 +468,7 @@ void via_load_crtc_pixel_timing(struct drm_crtc *crtc, struct drm_display_mode *
 		svga_wcrt_mask(VGABASE, 0x32, 0x00, BIT(2));
 
 	}
-	svga_wcrt_mask(VGABASE, 0xFD, BIT(5) | BIT(6), BIT(5) | BIT(6));
+	svga_wcrt_mask(VGABASE, 0xFD, BIT(5), BIT(5));
 }
 
 /* Load CRTC timing registers */
@@ -484,7 +484,7 @@ void via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 			svga_wcrt_mask(VGABASE, 0x45, 0x00, BIT(0));
 
 			/* Disable IGA1 pixel timing */
-			svga_wcrt_mask(VGABASE, 0xFD, 0x00, BIT(6) | BIT(5));
+			svga_wcrt_mask(VGABASE, 0xFD, 0x00, BIT(5));
 		}
 
 		reg_value = IGA1_HOR_TOTAL_FORMULA(mode->crtc_htotal);
