@@ -26,7 +26,7 @@
 
 #define DRIVER_AUTHOR       "The OpenChrome Project"
 #define DRIVER_NAME         "via"
-#define DRIVER_DESC         "VIA Technologies UniChrome / UniChrome Pro / Chrome9"
+#define DRIVER_DESC         "VIA Technologies UniChrome / Chrome9"
 #define DRIVER_DATE         "20160916"
 
 #define DRIVER_MAJOR		3
