@@ -24,10 +24,10 @@
 #ifndef _VIA_DRV_H_
 #define _VIA_DRV_H_
 
-#define DRIVER_AUTHOR		"Various"
-#define DRIVER_NAME		"via"
-#define DRIVER_DESC		"VIA Unichrome / Pro"
-#define DRIVER_DATE		"20110221"
+#define DRIVER_AUTHOR       "The OpenChrome Project"
+#define DRIVER_NAME         "via"
+#define DRIVER_DESC         "VIA Technologies UniChrome / UniChrome Pro / Chrome9"
+#define DRIVER_DATE         "20160916"
 
 #define DRIVER_MAJOR		3
 #define DRIVER_MINOR		0
