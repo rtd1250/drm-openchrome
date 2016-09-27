@@ -2,6 +2,8 @@
  * Copyright 2012 James Simmons <jsimmons@infradead.org>
  *
  * Based on code for the viafb driver.
+ * UniChrome PLL parameters calculation code borrowed from OpenChrome DDX
+ * device driver.
  * Copyright 1998-2008 VIA Technologies, Inc. All Rights Reserved.
  * Copyright 2001-2008 S3 Graphics, Inc. All Rights Reserved.
  *
@@ -60,58 +62,86 @@ via_get_clk_value(struct drm_device *dev, u32 freq)
 		{ 0, 0, 0, 0, 0 } };
 	int count;
 
-	/* DN[6:0] */
-	for (pll_n = 2; pll_n < 6; pll_n++) {
-		/* DR[2:0] */
-		for (pll_r = 0; pll_r < 6; pll_r++) {
-			/* DM[9:0] */
-			for (pll_m = 2; pll_m < 512; pll_m++) {
-				/* first divide pll_n then multiply
-				 * pll_m. We have to reduce pll_m
-				 * to 512 to get rid of the overflow */
-				pll_fvco = (VIA_CLK_REFERENCE / pll_n) * pll_m;
-				if ((pll_fvco >= CSR_VCO_DOWN) && (pll_fvco <= CSR_VCO_UP)) {
-					pll_fout = pll_fvco >> pll_r;
+    if ((dev->pdev->device != PCI_DEVICE_ID_VIA_CLE266) 
+        && (dev->pdev->device != PCI_DEVICE_ID_VIA_KM400)) {
+		/* DN[6:0] */
+		for (pll_n = 2; pll_n < 6; pll_n++) {
+			/* DR[2:0] */
+			for (pll_r = 0; pll_r < 6; pll_r++) {
+				/* DM[9:0] */
+				for (pll_m = 2; pll_m < 512; pll_m++) {
+					/* first divide pll_n then multiply
+					 * pll_m. We have to reduce pll_m
+					 * to 512 to get rid of the overflow */
+					pll_fvco = (VIA_CLK_REFERENCE / pll_n) * pll_m;
+					if ((pll_fvco >= CSR_VCO_DOWN) && (pll_fvco <= CSR_VCO_UP)) {
+						pll_fout = pll_fvco >> pll_r;
+						if (pll_fout < freq)
+							clk_diff = freq - pll_fout;
+						else
+							clk_diff = pll_fout - freq;
+
+						/* if frequency (which is the PLL we want
+						 * to set) > 150MHz, the MRN value we
+						 * write in register must < frequency, and
+						 * get MRN value whose M is the largeset */
+						if (freq >= 150000000) {
+							if ((clk_diff <= pll_tmp[0].diff_clk) || pll_tmp[0].pll_fout == 0) {
+								for (count = ARRAY_SIZE(pll_tmp) - 1; count >= 1; count--)
+									pll_tmp[count] = pll_tmp[count - 1];
+
+								pll_tmp[0].pll_m = pll_m;
+								pll_tmp[0].pll_r = pll_r;
+								pll_tmp[0].pll_n = pll_n;
+								pll_tmp[0].diff_clk = clk_diff;
+								pll_tmp[0].pll_fout = pll_fout;
+							}
+						}
+
+						if (clk_diff < best_clk_diff) {
+							best_clk_diff = clk_diff;
+							best_pll_m = pll_m;
+							best_pll_n = pll_n;
+							best_pll_r = pll_r;
+						}
+					} /* if pll_fvco in VCO range */
+				} /* for PLL M */
+			} /* for PLL R */
+		} /* for PLL N */
+
+		/* if frequency(which is the PLL we want to set) > 150MHz,
+		 * the MRN value we write in register must < frequency,
+		 * and get MRN value whose M is the largeset */
+		if (freq > 150000000) {
+			best_pll_m = pll_tmp[0].pll_m;
+			best_pll_r = pll_tmp[0].pll_r;
+			best_pll_n = pll_tmp[0].pll_n;
+		}
+	/* UniChrome IGP (CLE266, KM400(A), KN400, and P4M800 chipsets)
+	 * requires a different formula for calculating the PLL parameters.
+	 * The code was borrowed from OpenChrome DDX device driver UMS
+	 * (User Mode Setting) section, but was modified to not use float type
+	 * variables. */
+    } else {
+		for (pll_r = 0; pll_r < 4; ++pll_r) {
+			for (pll_n = (pll_r == 0) ? 2 : 1; pll_n <= 7; ++pll_n) {
+				for (pll_m = 1; pll_m <= 127; ++pll_m) {
+					pll_fout = VIA_CLK_REFERENCE * pll_m;
+					pll_fout /= (pll_n << pll_r);
 					if (pll_fout < freq)
 						clk_diff = freq - pll_fout;
 					else
 						clk_diff = pll_fout - freq;
 
-					/* if frequency (which is the PLL we want
-					 * to set) > 150MHz, the MRN value we
-					 * write in register must < frequency, and
-					 * get MRN value whose M is the largeset */
-					if (freq >= 150000000) {
-						if ((clk_diff <= pll_tmp[0].diff_clk) || pll_tmp[0].pll_fout == 0) {
-							for (count = ARRAY_SIZE(pll_tmp) - 1; count >= 1; count--)
-								pll_tmp[count] = pll_tmp[count - 1];
-
-							pll_tmp[0].pll_m = pll_m;
-							pll_tmp[0].pll_r = pll_r;
-							pll_tmp[0].pll_n = pll_n;
-							pll_tmp[0].diff_clk = clk_diff;
-							pll_tmp[0].pll_fout = pll_fout;
-						}
-					}
-
 					if (clk_diff < best_clk_diff) {
 						best_clk_diff = clk_diff;
-						best_pll_m = pll_m;
-						best_pll_n = pll_n;
-						best_pll_r = pll_r;
+						best_pll_m = pll_m & 0x7F;
+						best_pll_n = pll_n & 0x1F;
+						best_pll_r = pll_r & 0x03;
 					}
-				} /* if pll_fvco in VCO range */
-			} /* for PLL M */
-		} /* for PLL R */
-	} /* for PLL N */
-
-	/* if frequency(which is the PLL we want to set) > 150MHz,
-	 * the MRN value we write in register must < frequency,
-	 * and get MRN value whose M is the largeset */
-	if (freq > 150000000) {
-		best_pll_m = pll_tmp[0].pll_m;
-		best_pll_r = pll_tmp[0].pll_r;
-		best_pll_n = pll_tmp[0].pll_n;
+				}
+			}
+		}
 	}
 
 	switch (dev->pdev->device) {
