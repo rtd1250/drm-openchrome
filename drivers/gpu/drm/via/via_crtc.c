@@ -1233,10 +1233,8 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 		value |= BIT(4) | BIT(2);
 		break;
 	case 24:
-		value |= BIT(3) | BIT(2);
-		break;
 	case 32:
-		value |= BIT(3);
+		value |= BIT(3) | BIT(2);
 		break;
 	default:
 		DRM_ERROR("Unsupported depth: %d\n", fb->depth);
