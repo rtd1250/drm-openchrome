@@ -1225,9 +1225,6 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	switch (fb->depth) {
 	case 8:
 		break;
-	case 15:
-		value |= BIT(2);
-		break;
 	case 16:
 		/* Bit 4 is for 555/565 selection */
 		value |= BIT(4) | BIT(2);
