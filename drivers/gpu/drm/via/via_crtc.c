@@ -46,6 +46,53 @@ static struct vga_regset vpit_table[] = {
 };
 
 static void
+viaIGA1SetColorDepth(struct drm_via_private *dev_priv,
+			u8 depth)
+{
+	u8 value;
+
+	DRM_DEBUG("Entered viaIGA1SetColorDepth.\n");
+
+	value = 0x00;
+
+	/* Set the color depth for IGA1. */
+	switch (depth) {
+	case 8:
+		break;
+	case 16:
+		/* Bit 4 is for 555 (15-bit) / 565 (16-bit) color selection. */
+		value |= BIT(4) | BIT(2);
+		break;
+	case 24:
+	case 32:
+		value |= BIT(3) | BIT(2);
+		break;
+	default:
+		break;
+	}
+
+	if ((depth == 8)
+		|| (depth == 16)
+		|| (depth == 24)
+		|| (depth == 32)) {
+		/* 3C5.15[4]   - Hi Color Mode Select
+		 *               0: 555
+		 *               1: 565
+		 * 3C5.15[3:2] - Display Color Depth Select
+		 *               00: 8bpp
+		 *               01: 16bpp
+		 *               10: 30bpp
+		 *               11: 32bpp */
+		svga_wseq_mask(VGABASE, 0x15, value, 0x0E);
+		DRM_INFO("IGA1 Color Depth: %d bit\n", depth);
+	} else {
+		DRM_ERROR("Unsupported IGA1 Color Depth: %d bit\n", depth);
+	}
+
+	DRM_DEBUG("Exiting viaIGA1SetColorDepth.\n");
+}
+
+static void
 via_hide_cursor(struct drm_crtc *crtc)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
@@ -1199,6 +1246,16 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	struct ttm_buffer_object *bo = ttm_gem_mapping(obj);
 	u8 value;
 
+	if ((fb->depth != 8)
+		&& (fb->depth != 16)
+		&& (fb->depth != 24)
+		&& (fb->depth != 32)) {
+		DRM_ERROR("Unsupported IGA1 Color Depth: %d bit\n", fb->depth);
+		return -EINVAL;
+	}
+
+	viaIGA1SetColorDepth(dev_priv, fb->depth);
+
 	/* Set the framebuffer offset */
 	addr = round_up(bo->offset + pitch, 16) >> 1;
 	vga_wcrt(VGABASE, 0x0D, addr & 0xFF);
@@ -1218,26 +1275,11 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	 * second adapter */
 	load_value_to_registers(VGABASE, &iga->offset, pitch >> 3);
 
-	/* Load color depth registers */
 	/* Bit 7 set LUT bit size to 8 bit. Bit 5 enables wrap around
 	 * and bit 1 enables extended display mode */
 	value = BIT(7) | BIT(5) | BIT(1);
-	switch (fb->depth) {
-	case 8:
-		break;
-	case 16:
-		/* Bit 4 is for 555/565 selection */
-		value |= BIT(4) | BIT(2);
-		break;
-	case 24:
-	case 32:
-		value |= BIT(3) | BIT(2);
-		break;
-	default:
-		DRM_ERROR("Unsupported depth: %d\n", fb->depth);
-		return -EINVAL;
-	}
-	svga_wseq_mask(VGABASE, 0x15, value, 0xFE);
+	svga_wseq_mask(VGABASE, 0x15, value, 0xA2);
+
 	return 0;
 }
 
