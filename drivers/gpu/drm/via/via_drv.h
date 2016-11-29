@@ -27,11 +27,11 @@
 #define DRIVER_AUTHOR       "The OpenChrome Project"
 #define DRIVER_NAME         "via"
 #define DRIVER_DESC         "VIA Technologies UniChrome / Chrome9"
-#define DRIVER_DATE         "20160927"
+#define DRIVER_DATE         "20161128"
 
 #define DRIVER_MAJOR		3
 #define DRIVER_MINOR		0
-#define DRIVER_PATCHLEVEL	1
+#define DRIVER_PATCHLEVEL	2
 
 #include <linux/module.h>
 
