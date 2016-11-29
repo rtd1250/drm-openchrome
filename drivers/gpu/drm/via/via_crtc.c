@@ -93,6 +93,49 @@ viaIGA1SetColorDepth(struct drm_via_private *dev_priv,
 }
 
 static void
+viaIGA2SetColorDepth(struct drm_via_private *dev_priv,
+			u8 depth)
+{
+	u8 value;
+
+	DRM_DEBUG("Entered viaIGA2SetColorDepth.\n");
+
+	value = 0x00;
+
+	/* Set the color depth for IGA2. */
+	switch (depth) {
+	case 8:
+		break;
+	case 16:
+		value = BIT(6);
+		break;
+	case 24:
+	case 32:
+		value = BIT(7) | BIT(6);
+		break;
+	default:
+		break;
+	}
+
+	if ((depth == 8)
+		|| (depth == 16)
+		|| (depth == 24)
+		|| (depth == 32)) {
+		/* 3X5.67[7:6] - Display Color Depth Select
+		*               00: 8bpp
+		*               01: 16bpp
+		*               10: 30bpp
+		*               11: 32bpp */
+		svga_wcrt_mask(VGABASE, 0x67, value, 0xC0);
+		DRM_INFO("IGA2 Color Depth: %d bit\n", depth);
+	} else {
+		DRM_ERROR("Unsupported IGA2 Color Depth: %d bit\n", depth);
+	}
+
+	DRM_DEBUG("Exiting viaIGA2SetColorDepth.\n");
+}
+
+static void
 via_hide_cursor(struct drm_crtc *crtc)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
@@ -1292,7 +1335,16 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	struct drm_via_private *dev_priv = crtc->dev->dev_private;
 	struct drm_gem_object *obj = fb->helper_private;
 	struct ttm_buffer_object *bo = ttm_gem_mapping(obj);
-	u8 value;
+
+	if ((fb->depth != 8)
+		&& (fb->depth != 16)
+		&& (fb->depth != 24)
+		&& (fb->depth != 32)) {
+		DRM_ERROR("Unsupported IGA2 Color Depth: %d bit\n", fb->depth);
+		return -EINVAL;
+	}
+
+	viaIGA2SetColorDepth(dev_priv, fb->depth);
 
 	/* Set the framebuffer offset */
 	addr = round_up(bo->offset + pitch, 16);
@@ -1312,23 +1364,6 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	pitch = ALIGN(fb->pitches[0], 16);
 	load_value_to_registers(VGABASE, &iga->offset, pitch >> 3);
 
-	/* Load color depth registers */
-	switch (fb->depth) {
-	case 8:
-		value = 0x00;
-		break;
-	case 16:
-		value = BIT(6);
-		break;
-	case 24:
-	case 32:
-		value = BIT(7) | BIT(6);
-		break;
-	default:
-		DRM_ERROR("Unsupported depth: %d\n", fb->depth);
-		return -EINVAL;
-	}
-	svga_wcrt_mask(VGABASE, 0x67, value, BIT(7) | BIT(6));
 	return 0;
 }
 
