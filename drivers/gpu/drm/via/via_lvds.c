@@ -753,7 +753,7 @@ via_lvds_init(struct drm_device *dev)
 				DRM_MODE_ENCODER_LVDS);
 	drm_encoder_helper_add(&enc->base, &via_lvds_helper_funcs);
 
-	enc->base.possible_crtcs = BIT(1) | BIT(0);
+	enc->base.possible_crtcs = BIT(1);
 
 	switch (dev->pdev->device) {
 	case PCI_DEVICE_ID_VIA_CLE266:

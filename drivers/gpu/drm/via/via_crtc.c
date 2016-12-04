@@ -1003,7 +1003,6 @@ via_crtc_dpms(struct drm_crtc *crtc, int mode)
 		if (iga->index) {
 			/* turn off CRT screen (IGA2) */
 			svga_wcrt_mask(VGABASE, 0x6B, BIT(2), BIT(2));
-			disable_second_display_channel(VGABASE);
 			/* clear for TV clock */
 			svga_wcrt_mask(VGABASE, 0x6C, 0x00, 0x0F);
 		} else {
@@ -1019,7 +1018,6 @@ via_crtc_dpms(struct drm_crtc *crtc, int mode)
 			drm_vblank_post_modeset(crtc->dev, iga->index);
 		if (iga->index) {
 			/* turn on CRT screen (IGA2) */
-			enable_second_display_channel(VGABASE);
 			svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(2));
 		} else {
 			/* turn on CRT screen (IGA1) */
@@ -1364,6 +1362,8 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc, struct drm_framebuffer *fb,
 	pitch = ALIGN(fb->pitches[0], 16);
 	load_value_to_registers(VGABASE, &iga->offset, pitch >> 3);
 
+	enable_second_display_channel(VGABASE);
+
 	return 0;
 }
 
@@ -1404,10 +1404,6 @@ via_crtc_init(struct drm_device *dev, int index)
 	if (index) {
 		drm_crtc_init(dev, crtc, &via_iga2_funcs);
 		drm_crtc_helper_add(crtc, &via_iga2_helper_funcs);
-
-		/* Always start off IGA2 disabled until we detected something
-		   attached to it */
-		disable_second_display_channel(VGABASE);
 
 		iga->timings.htotal.count = ARRAY_SIZE(iga2_hor_total);
 		iga->timings.htotal.regs = iga2_hor_total;
