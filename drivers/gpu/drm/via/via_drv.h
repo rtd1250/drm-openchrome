@@ -26,8 +26,8 @@
 
 #define DRIVER_AUTHOR       "The OpenChrome Project"
 #define DRIVER_NAME         "via"
-#define DRIVER_DESC         "VIA Technologies UniChrome / Chrome9"
-#define DRIVER_DATE         "20161204"
+#define DRIVER_DESC         "OpenChrome DRM for VIA Technologies Chrome IGP"
+#define DRIVER_DATE         "20161220"
 
 #define DRIVER_MAJOR		3
 #define DRIVER_MINOR		0
