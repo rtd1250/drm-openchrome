@@ -1349,9 +1349,9 @@ via_iga2_crtc_mode_set(struct drm_crtc *crtc,
 
     /* interlace setting */
     if (adjusted_mode->flags & DRM_MODE_FLAG_INTERLACE) {
-        svga_wcrt_mask(VGABASE, 0x33, BIT(6), BIT(6));
+        svga_wcrt_mask(VGABASE, 0x67, BIT(5), BIT(5));
     } else {
-        svga_wcrt_mask(VGABASE, 0x33, 0, BIT(6));
+        svga_wcrt_mask(VGABASE, 0x67, 0, BIT(5));
     }
 
     /* Load FIFO */
