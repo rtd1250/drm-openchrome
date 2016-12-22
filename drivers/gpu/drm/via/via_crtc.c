@@ -137,6 +137,14 @@ viaIGA2SetColorDepth(struct drm_via_private *dev_priv,
     DRM_DEBUG("Exiting viaIGA2SetColorDepth.\n");
 }
 
+static inline void
+viaIGA2InterlaceMode(void __iomem *regs, bool interlaceMode)
+{
+    svga_wcrt_mask(regs, 0x67, interlaceMode ? BIT(5) : 0, BIT(5));
+    DRM_INFO("IGA2 Interlace Mode: %s\n",
+            interlaceMode ? "On" : "Off");
+}
+
 static void
 via_hide_cursor(struct drm_crtc *crtc)
 {
@@ -1347,12 +1355,9 @@ via_iga2_crtc_mode_set(struct drm_crtc *crtc,
     /* Relock */
     via_lock_crtc(VGABASE);
 
-    /* interlace setting */
-    if (adjusted_mode->flags & DRM_MODE_FLAG_INTERLACE) {
-        svga_wcrt_mask(VGABASE, 0x67, BIT(5), BIT(5));
-    } else {
-        svga_wcrt_mask(VGABASE, 0x67, 0, BIT(5));
-    }
+    /* Set non-interlace / interlace mode. */
+    viaIGA2InterlaceMode(VGABASE,
+                            adjusted_mode->flags & DRM_MODE_FLAG_INTERLACE);
 
     /* Load FIFO */
     if ((dev->pdev->device != PCI_DEVICE_ID_VIA_CLE266)
