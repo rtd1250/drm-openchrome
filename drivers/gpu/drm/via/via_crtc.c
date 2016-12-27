@@ -1269,6 +1269,11 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc,
         return -EINVAL;
     }
 
+    viaIGACommonInit(VGABASE);
+
+    /* Set palette LUT to 8-bit mode. */
+    viaIGA1SetPaletteLUTResolution(VGABASE, true);
+
     viaIGA1SetColorDepth(dev_priv, fb->depth);
 
     /* Set the framebuffer offset */
@@ -1290,10 +1295,6 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc,
      * second adapter */
     load_value_to_registers(VGABASE, &iga->offset, pitch >> 3);
 
-    viaIGACommonInit(VGABASE);
-
-    /* Set palette LUT to 8-bit mode. */
-    viaIGA1SetPaletteLUTResolution(VGABASE, true);
     return 0;
 }
 
