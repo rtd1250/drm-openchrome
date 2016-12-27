@@ -46,6 +46,24 @@ static struct vga_regset vpit_table[] = {
 };
 
 static void
+viaIGACommonInit(void __iomem *regs)
+{
+    DRM_DEBUG("Entered viaIGACommonInit.\n");
+
+    /* Be careful with 3C5.15[5] - Wrap Around Disable.
+     * It must be set to 1 for proper operation. */
+    /* 3C5.15[5]   - Wrap Around Disable
+     *               0: Disable (For Mode 0-13)
+     *               1: Enable
+     * 3C5.15[1]   - Extended Display Mode Enable
+     *               0: Disable
+     *               1: Enable */
+    svga_wseq_mask(regs, 0x15, BIT(5) | BIT(1), BIT(5) | BIT(1));
+
+    DRM_DEBUG("Exiting viaIGACommonInit.\n");
+}
+
+static void
 viaIGA1SetColorDepth(struct drm_via_private *dev_priv,
                         u8 depth)
 {
@@ -1244,7 +1262,6 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc,
     struct drm_via_private *dev_priv = crtc->dev->dev_private;
     struct drm_gem_object *obj = fb->helper_private;
     struct ttm_buffer_object *bo = ttm_gem_mapping(obj);
-    u8 value;
 
     if ((fb->depth != 8) && (fb->depth != 16) && (fb->depth != 24)
             && (fb->depth != 32)) {
@@ -1273,10 +1290,7 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc,
      * second adapter */
     load_value_to_registers(VGABASE, &iga->offset, pitch >> 3);
 
-    /* Bit 5 enables wrap around
-     * and bit 1 enables extended display mode */
-    value = BIT(5) | BIT(1);
-    svga_wseq_mask(VGABASE, 0x15, value, 0x22);
+    viaIGACommonInit(VGABASE);
 
     /* Set palette LUT to 8-bit mode. */
     viaIGA1SetPaletteLUTResolution(VGABASE, true);
