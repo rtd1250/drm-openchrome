@@ -1433,6 +1433,8 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc,
         return -EINVAL;
     }
 
+    viaIGACommonInit(VGABASE);
+
     viaIGA2SetColorDepth(dev_priv, fb->depth);
 
     /* Set the framebuffer offset */
