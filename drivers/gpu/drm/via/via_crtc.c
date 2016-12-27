@@ -168,6 +168,18 @@ viaIGA2SetColorDepth(struct drm_via_private *dev_priv,
 }
 
 static inline void
+viaIGA2SetPaletteLUTResolution(void __iomem *regs, bool paletteLUT)
+{
+    /* Set the palette LUT resolution for IGA2. */
+    /* 3X5.6A[5] - IGA2 6 / 8 Bit LUT
+     *             0: 6-bit
+     *             1: 8-bit */
+    svga_wcrt_mask(regs, 0x6A, paletteLUT ? BIT(5) : 0, BIT(5));
+    DRM_INFO("IGA2 Palette LUT Resolution: %s bit\n",
+            paletteLUT ? "8" : "6");
+}
+
+static inline void
 viaIGA2InterlaceMode(void __iomem *regs, bool interlaceMode)
 {
     svga_wcrt_mask(regs, 0x67, interlaceMode ? BIT(5) : 0, BIT(5));
@@ -1434,6 +1446,9 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc,
     }
 
     viaIGACommonInit(VGABASE);
+
+    /* Set palette LUT to 8-bit mode. */
+    viaIGA2SetPaletteLUTResolution(VGABASE, true);
 
     viaIGA2SetColorDepth(dev_priv, fb->depth);
 
