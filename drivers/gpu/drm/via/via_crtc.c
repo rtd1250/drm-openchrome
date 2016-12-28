@@ -1042,10 +1042,12 @@ drm_mode_crtc_load_lut(struct drm_crtc *crtc)
 }
 
 static void
-via_crtc_dpms(struct drm_crtc *crtc, int mode)
+via_iga1_crtc_dpms(struct drm_crtc *crtc, int mode)
 {
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
     struct drm_via_private *dev_priv = crtc->dev->dev_private;
+
+    DRM_DEBUG("Entered via_iga1_crtc_dpms.\n");
 
     switch (mode) {
     case DRM_MODE_DPMS_SUSPEND:
@@ -1081,48 +1083,65 @@ via_crtc_dpms(struct drm_crtc *crtc, int mode)
         drm_mode_crtc_load_lut(crtc);
         break;
     }
+
+    DRM_DEBUG("Exiting via_iga1_crtc_dpms.\n");
 }
 
 static void
-via_crtc_disable(struct drm_crtc *crtc)
+via_iga1_crtc_disable(struct drm_crtc *crtc)
 {
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
+
+    DRM_DEBUG("Entered via_iga1_crtc_disable.\n");
 
     drm_vblank_off(crtc->dev, iga->index);
 
     /* Turn off the cursor */
     via_hide_cursor(crtc);
 
-    via_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
+    via_iga1_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
+
+    DRM_DEBUG("Exiting via_iga1_crtc_disable.\n");
 }
 
 static void
-via_crtc_prepare(struct drm_crtc *crtc)
+via_iga1_crtc_prepare(struct drm_crtc *crtc)
 {
+    DRM_DEBUG("Entered via_iga1_crtc_prepare.\n");
+
     /* Turn off the cursor */
     via_hide_cursor(crtc);
 
     /* Blank the screen */
     if (crtc->enabled)
-        via_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
+        via_iga1_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
+
+    DRM_DEBUG("Exiting via_iga1_crtc_prepare.\n");
 }
 
 static void
-via_crtc_commit(struct drm_crtc *crtc)
+via_iga1_crtc_commit(struct drm_crtc *crtc)
 {
+    DRM_DEBUG("Entered via_iga1_crtc_commit.\n");
+
     /* Turn on the cursor */
     via_show_cursor(crtc);
 
     /* Turn on the monitor */
     if (crtc->enabled)
-        via_crtc_dpms(crtc, DRM_MODE_DPMS_ON);
+        via_iga1_crtc_dpms(crtc, DRM_MODE_DPMS_ON);
+
+    DRM_DEBUG("Exiting via_iga1_crtc_commit.\n");
 }
 
 static bool
-via_crtc_mode_fixup(struct drm_crtc *crtc,
+via_iga1_crtc_mode_fixup(struct drm_crtc *crtc,
                     const struct drm_display_mode *mode,
                     struct drm_display_mode *adjusted_mode)
 {
+    DRM_DEBUG("Entered via_iga1_crtc_mode_fixup.\n");
+
+    DRM_DEBUG("Exiting via_iga1_crtc_mode_fixup.\n");
     return true;
 }
 
@@ -1216,7 +1235,7 @@ exit:
 }
 
 static int
-via_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
+via_iga1_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
                         struct drm_framebuffer *fb)
 {
     struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
@@ -1224,6 +1243,8 @@ via_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
     struct ttm_buffer_object *bo;
     struct drm_gem_object *obj;
     int ret = 0;
+
+    DRM_DEBUG("Entered via_iga1_crtc_mode_set_base.\n");
 
     /* no fb bound */
     if (!new_fb) {
@@ -1261,6 +1282,8 @@ via_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
         if (unlikely(ret))
             DRM_ERROR("framebuffer still locked\n");
     }
+
+    DRM_DEBUG("Exiting via_iga1_crtc_mode_set_base.\n");
     return ret;
 }
 
@@ -1308,6 +1331,110 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc,
     load_value_to_registers(VGABASE, &iga->offset, pitch >> 3);
 
     return 0;
+}
+
+static void
+via_iga2_crtc_dpms(struct drm_crtc *crtc, int mode)
+{
+    struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
+    struct drm_via_private *dev_priv = crtc->dev->dev_private;
+
+    DRM_DEBUG("Entered via_iga2_crtc_dpms.\n");
+
+    switch (mode) {
+    case DRM_MODE_DPMS_SUSPEND:
+    case DRM_MODE_DPMS_STANDBY:
+    case DRM_MODE_DPMS_OFF:
+        if (crtc->dev->num_crtcs)
+            drm_vblank_pre_modeset(crtc->dev, iga->index);
+        if (iga->index) {
+            /* turn off CRT screen (IGA2) */
+            svga_wcrt_mask(VGABASE, 0x6B, BIT(2), BIT(2));
+            /* clear for TV clock */
+            svga_wcrt_mask(VGABASE, 0x6C, 0x00, 0x0F);
+        } else {
+            /* turn off CRT screen (IGA1) */
+            svga_wseq_mask(VGABASE, 0x01, BIT(5), BIT(5));
+            /* clear for TV clock */
+            svga_wcrt_mask(VGABASE, 0x6C, 0x00, 0xF0);
+        }
+        break;
+
+    case DRM_MODE_DPMS_ON:
+        if (crtc->dev->num_crtcs)
+            drm_vblank_post_modeset(crtc->dev, iga->index);
+        if (iga->index) {
+            /* turn on CRT screen (IGA2) */
+            svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(2));
+        } else {
+            /* turn on CRT screen (IGA1) */
+            svga_wseq_mask(VGABASE, 0x01, 0x00, BIT(5));
+        }
+        /* disable simultaneous  */
+        svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(3));
+        drm_mode_crtc_load_lut(crtc);
+        break;
+    }
+
+    DRM_DEBUG("Exiting via_iga2_crtc_dpms.\n");
+}
+
+static void
+via_iga2_crtc_disable(struct drm_crtc *crtc)
+{
+    struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
+
+    DRM_DEBUG("Entered via_iga2_crtc_disable.\n");
+
+    drm_vblank_off(crtc->dev, iga->index);
+
+    /* Turn off the cursor */
+    via_hide_cursor(crtc);
+
+    via_iga2_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
+
+    DRM_DEBUG("Exiting via_iga2_crtc_disable.\n");
+}
+
+static void
+via_iga2_crtc_prepare(struct drm_crtc *crtc)
+{
+    DRM_DEBUG("Entered via_iga2_crtc_prepare.\n");
+
+    /* Turn off the cursor */
+    via_hide_cursor(crtc);
+
+    /* Blank the screen */
+    if (crtc->enabled)
+        via_iga2_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
+
+    DRM_DEBUG("Exiting via_iga2_crtc_prepare.\n");
+}
+
+static void
+via_iga2_crtc_commit(struct drm_crtc *crtc)
+{
+    DRM_DEBUG("Entered via_iga2_crtc_commit.\n");
+
+    /* Turn on the cursor */
+    via_show_cursor(crtc);
+
+    /* Turn on the monitor */
+    if (crtc->enabled)
+        via_iga2_crtc_dpms(crtc, DRM_MODE_DPMS_ON);
+
+    DRM_DEBUG("Exiting via_iga2_crtc_commit.\n");
+}
+
+static bool
+via_iga2_crtc_mode_fixup(struct drm_crtc *crtc,
+                    const struct drm_display_mode *mode,
+                    struct drm_display_mode *adjusted_mode)
+{
+    DRM_DEBUG("Entered via_iga2_crtc_mode_fixup.\n");
+
+    DRM_DEBUG("Exiting via_iga2_crtc_mode_fixup.\n");
+    return true;
 }
 
 static int
@@ -1429,6 +1556,59 @@ exit:
 }
 
 static int
+via_iga2_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
+                        struct drm_framebuffer *fb)
+{
+    struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
+    struct drm_framebuffer *new_fb = crtc->primary->fb;
+    struct ttm_buffer_object *bo;
+    struct drm_gem_object *obj;
+    int ret = 0;
+
+    DRM_DEBUG("Entered via_iga2_crtc_mode_set_base.\n");
+
+    /* no fb bound */
+    if (!new_fb) {
+        DRM_DEBUG_KMS("No FB bound\n");
+        return ret;
+    }
+
+    /* No reason to reset the display surface again */
+    if (new_fb == fb)
+        return ret;
+
+    obj = new_fb->helper_private;
+    bo = ttm_gem_mapping(obj);
+
+    ret = ttm_bo_pin(bo, NULL);
+    if (unlikely(ret)) {
+        DRM_DEBUG("failed to pin FB\n");
+        return ret;
+    }
+
+    ret = crtc_funcs->mode_set_base_atomic(crtc, new_fb, x, y,
+            ENTER_ATOMIC_MODE_SET);
+    if (unlikely(ret)) {
+        DRM_DEBUG("failed to set new framebuffer\n");
+        ttm_bo_unpin(bo, NULL);
+        return ret;
+    }
+
+    /* Free the old framebuffer if it exist */
+    if (fb) {
+        obj = fb->helper_private;
+        bo = ttm_gem_mapping(obj);
+
+        ret = ttm_bo_unpin(bo, NULL);
+        if (unlikely(ret))
+            DRM_ERROR("framebuffer still locked\n");
+    }
+
+    DRM_DEBUG("Exiting via_iga2_crtc_mode_set_base.\n");
+    return ret;
+}
+
+static int
 via_iga2_mode_set_base_atomic(struct drm_crtc *crtc,
                                 struct drm_framebuffer *fb,
                                 int x, int y, enum mode_set_atomic state)
@@ -1476,25 +1656,25 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc,
 }
 
 static const struct drm_crtc_helper_funcs via_iga1_helper_funcs = {
-    .dpms = via_crtc_dpms,
-    .disable = via_crtc_disable,
-    .prepare = via_crtc_prepare,
-    .commit = via_crtc_commit,
-    .mode_fixup = via_crtc_mode_fixup,
+    .dpms = via_iga1_crtc_dpms,
+    .disable = via_iga1_crtc_disable,
+    .prepare = via_iga1_crtc_prepare,
+    .commit = via_iga1_crtc_commit,
+    .mode_fixup = via_iga1_crtc_mode_fixup,
     .mode_set = via_iga1_crtc_mode_set,
-    .mode_set_base = via_crtc_mode_set_base,
+    .mode_set_base = via_iga1_crtc_mode_set_base,
     .mode_set_base_atomic = via_iga1_mode_set_base_atomic,
     .load_lut = drm_mode_crtc_load_lut,
 };
 
 static const struct drm_crtc_helper_funcs via_iga2_helper_funcs = {
-    .dpms = via_crtc_dpms,
-    .disable = via_crtc_disable,
-    .prepare = via_crtc_prepare,
-    .commit = via_crtc_commit,
-    .mode_fixup = via_crtc_mode_fixup,
+    .dpms = via_iga2_crtc_dpms,
+    .disable = via_iga2_crtc_disable,
+    .prepare = via_iga2_crtc_prepare,
+    .commit = via_iga2_crtc_commit,
+    .mode_fixup = via_iga2_crtc_mode_fixup,
     .mode_set = via_iga2_crtc_mode_set,
-    .mode_set_base = via_crtc_mode_set_base,
+    .mode_set_base = via_iga2_crtc_mode_set_base,
     .mode_set_base_atomic = via_iga2_mode_set_base_atomic,
     .load_lut = drm_mode_crtc_load_lut,
 };
