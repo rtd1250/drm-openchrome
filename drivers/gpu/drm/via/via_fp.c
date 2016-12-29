@@ -125,6 +125,10 @@ via_enable_internal_lvds(struct drm_encoder *encoder)
 			/* Back-Light ON */
 			svga_wcrt_mask(VGABASE, 0xD3, BIT(1), BIT(1));
 		} else {
+            /* Turn on panel path. */
+            svga_wcrt_mask(VGABASE, 0x91, 0x00, BIT(5));
+            /* Turn on back light. */
+            svga_wcrt_mask(VGABASE, 0x91, 0x00, BIT(6));
 			/* Use hardware control power sequence. */
 			svga_wcrt_mask(VGABASE, 0xD3, 0x00, BIT(0));
 			/* Turn on back light and panel path. */
@@ -203,6 +207,10 @@ via_disable_internal_lvds(struct drm_encoder *encoder)
 			svga_wcrt_mask(VGABASE, 0xD4, 0x00, BIT(1));
 			/* Turn off back light and panel path. */
 			svga_wcrt_mask(VGABASE, 0xD3, 0xC0, BIT(7) | BIT(6));
+            /* Turn off back light. */
+            svga_wcrt_mask(VGABASE, 0x91, BIT(6), BIT(6));
+            /* Turn off panel path. */
+            svga_wcrt_mask(VGABASE, 0x91, BIT(5), BIT(5));
 		}
 	}
 
