@@ -321,9 +321,13 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
 	struct drm_via_private *dev_priv;
 	int ret = 0;
 
-	dev_priv = kzalloc(sizeof(struct drm_via_private), GFP_KERNEL);
-	if (dev_priv == NULL)
+    DRM_INFO("Entered via_driver_load.\n");
+
+    dev_priv = kzalloc(sizeof(struct drm_via_private), GFP_KERNEL);
+	if (dev_priv == NULL) {
+        DRM_ERROR("Failed to allocate private storage memory.\n");
 		return -ENOMEM;
+	}
 
 	dev->dev_private = (void *)dev_priv;
 	dev_priv->engine_type = chipset;
@@ -333,16 +337,20 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
 	via_init_command_verifier();
 
 	ret = via_ttm_init(dev);
-	if (ret)
+	if (ret) {
+        DRM_ERROR("Failed to initialize TTM.\n");
 		goto out_err;
+	}
 
 	ret = via_detect_vram(dev);
-	if (ret)
+	if (ret) {
+        DRM_ERROR("Failed to initialize video RAM.\n");
 		goto out_err;
+	}
 
 	ret = via_mmio_setup(dev);
 	if (ret) {
-		DRM_INFO("VIA MMIO region failed to map\n");
+		DRM_ERROR("Failed to map Chrome IGP MMIO region.\n");
 		goto out_err;
 	}
 
@@ -355,57 +363,70 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
 		if (!ret)
 			via_agp_engine_init(dev_priv);
 		else
-			DRM_ERROR("Failed to allocate AGP\n");
+			DRM_ERROR("Failed to allocate AGP.\n");
 	}
 #endif
 	if (pci_is_pcie(dev->pdev)) {
-		/* allocate the gart table */
+		/* Allocate GART. */
 		ret = ttm_allocate_kernel_buffer(&dev_priv->bdev, SGDMA_MEMORY,
 						16, TTM_PL_FLAG_VRAM,
 						&dev_priv->gart);
 		if (likely(!ret)) {
-			DRM_INFO("Allocated %u KB of DMA memory\n",
-				SGDMA_MEMORY >> 10);
-		} else
-			DRM_ERROR("Failed to allocate DMA memory\n");
+			DRM_INFO("Allocated %u KB of DMA memory.\n", SGDMA_MEMORY >> 10);
+		} else {
+			DRM_ERROR("Failed to allocate DMA memory.\n");
+		}
 	}
 
-	/* allocate vq bo */
+	/* Allocate VQ. (Virtual Queue) */
 	ret = ttm_allocate_kernel_buffer(&dev_priv->bdev, VQ_MEMORY, 16,
 					TTM_PL_FLAG_VRAM, &dev_priv->vq);
 	if (likely(!ret))
-		DRM_INFO("Allocated %u KB of memory for VQ\n", VQ_MEMORY >> 10);
+		DRM_INFO("Allocated %u KB of VQ (Virtual Queue) memory.\n", VQ_MEMORY >> 10);
 	else
-		DRM_ERROR("Failed to allocate VQ memory\n");
+		DRM_ERROR("Failed to allocate VQ (Virtual Queue) memory.\n");
 
 	via_engine_init(dev);
 
-	/* setup workqueue */
+	/* Setting up a work queue. */
 	dev_priv->wq = create_workqueue("viadrm");
 	if (dev_priv->wq == NULL) {
-		DRM_ERROR("create_workqueue failed !\n");
+		DRM_ERROR("Failed to create a work queue.\n");
 		ret = -EINVAL;
 		goto out_err;
 	}
 
 	ret = drm_vblank_init(dev, 2);
-	if (ret)
+	if (ret) {
+        DRM_ERROR("Failed to initialize DRM VBlank.\n");
 		goto out_err;
+	}
 
 	ret = via_dmablit_init(dev);
-	if (ret)
+	if (ret) {
+        DRM_ERROR("Failed to initialize DMA.\n");
 		goto out_err;
+	}
 
 	if (drm_core_check_feature(dev, DRIVER_MODESET)) {
 		ret = via_modeset_init(dev);
-		if (ret)
-			goto out_err;
+		if (ret) {
+            DRM_ERROR("Failed to initialize mode setting.\n");
+            goto out_err;
+		}
 	}
 
 	ret = drm_irq_install(dev, dev->pdev->irq);
+    if (ret) {
+        DRM_ERROR("Failed to initialize DRM IRQ.\n");
+        goto out_err;
+    }
+
 out_err:
 	if (ret)
 		via_driver_unload(dev);
+
+    DRM_INFO("Exiting via_driver_load.\n");
 	return ret;
 }
 
