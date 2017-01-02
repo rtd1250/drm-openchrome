@@ -324,9 +324,10 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
     DRM_INFO("Entered via_driver_load.\n");
 
     dev_priv = kzalloc(sizeof(struct drm_via_private), GFP_KERNEL);
-	if (dev_priv == NULL) {
+	if (!dev_priv) {
+        ret = -ENOMEM;
         DRM_ERROR("Failed to allocate private storage memory.\n");
-		return -ENOMEM;
+        goto exit;
 	}
 
 	dev->dev_private = (void *)dev_priv;
@@ -339,19 +340,19 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
 	ret = via_ttm_init(dev);
 	if (ret) {
         DRM_ERROR("Failed to initialize TTM.\n");
-		goto out_err;
+		goto init_error;
 	}
 
 	ret = via_detect_vram(dev);
 	if (ret) {
         DRM_ERROR("Failed to initialize video RAM.\n");
-		goto out_err;
+		goto init_error;
 	}
 
 	ret = via_mmio_setup(dev);
 	if (ret) {
 		DRM_ERROR("Failed to map Chrome IGP MMIO region.\n");
-		goto out_err;
+		goto init_error;
 	}
 
 	chip_revision_info(dev);
@@ -375,57 +376,61 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
 			DRM_INFO("Allocated %u KB of DMA memory.\n", SGDMA_MEMORY >> 10);
 		} else {
 			DRM_ERROR("Failed to allocate DMA memory.\n");
+			goto init_error;
 		}
 	}
 
 	/* Allocate VQ. (Virtual Queue) */
 	ret = ttm_allocate_kernel_buffer(&dev_priv->bdev, VQ_MEMORY, 16,
 					TTM_PL_FLAG_VRAM, &dev_priv->vq);
-	if (likely(!ret))
+	if (likely(!ret)) {
 		DRM_INFO("Allocated %u KB of VQ (Virtual Queue) memory.\n", VQ_MEMORY >> 10);
-	else
+	} else {
 		DRM_ERROR("Failed to allocate VQ (Virtual Queue) memory.\n");
+		goto init_error;
+	}
 
 	via_engine_init(dev);
 
 	/* Setting up a work queue. */
 	dev_priv->wq = create_workqueue("viadrm");
-	if (dev_priv->wq == NULL) {
+	if (!dev_priv->wq) {
 		DRM_ERROR("Failed to create a work queue.\n");
 		ret = -EINVAL;
-		goto out_err;
+		goto init_error;
 	}
 
 	ret = drm_vblank_init(dev, 2);
 	if (ret) {
         DRM_ERROR("Failed to initialize DRM VBlank.\n");
-		goto out_err;
+		goto init_error;
 	}
 
 	ret = via_dmablit_init(dev);
 	if (ret) {
         DRM_ERROR("Failed to initialize DMA.\n");
-		goto out_err;
+		goto init_error;
 	}
 
 	if (drm_core_check_feature(dev, DRIVER_MODESET)) {
 		ret = via_modeset_init(dev);
 		if (ret) {
             DRM_ERROR("Failed to initialize mode setting.\n");
-            goto out_err;
+            goto init_error;
 		}
 	}
 
 	ret = drm_irq_install(dev, dev->pdev->irq);
     if (ret) {
         DRM_ERROR("Failed to initialize DRM IRQ.\n");
-        goto out_err;
+        goto init_error;
     }
 
-out_err:
+    goto exit;
+init_error:
 	if (ret)
 		via_driver_unload(dev);
-
+exit:
     DRM_INFO("Exiting via_driver_load.\n");
 	return ret;
 }
