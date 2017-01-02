@@ -524,8 +524,6 @@ static int __init via_init(void)
 		via_pci_driver.resume	= via_pci_resume;
 #endif
 		via_driver.driver_features |= DRIVER_MODESET;
-		via_driver.major = 3;
-		via_driver.minor = 0;
 	}
 	return drm_pci_init(&via_driver, &via_pci_driver);
 }
