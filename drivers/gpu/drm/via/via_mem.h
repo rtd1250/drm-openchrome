@@ -50,7 +50,7 @@ extern void ttm_global_fini(struct drm_global_reference *global_ref,
 			    struct ttm_bo_global_ref *global_bo,
 			    struct ttm_bo_device *bdev);
 
-extern int ttm_bo_allocate(struct ttm_bo_device *bdev, unsigned long size,
+extern int via_bo_allocate(struct ttm_bo_device *bdev, unsigned long size,
 			   enum ttm_bo_type origin, uint32_t domains,
 			   uint32_t byte_align, uint32_t page_align,
 			   bool interruptible, struct sg_table *sg,
