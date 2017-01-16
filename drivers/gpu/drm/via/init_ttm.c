@@ -141,7 +141,7 @@ ttm_placement_from_domain(struct ttm_buffer_object *bo, struct ttm_placement *pl
 }
 
 int
-via_bo_allocate(struct ttm_bo_device *bdev,
+via_bo_create(struct ttm_bo_device *bdev,
 		unsigned long size,
 		enum ttm_bo_type origin,
 		uint32_t domains,
@@ -229,7 +229,7 @@ ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev, unsigned long size,
 				uint32_t alignment, uint32_t domain,
 				struct ttm_bo_kmap_obj *kmap)
 {
-	int ret = via_bo_allocate(bdev, size, ttm_bo_type_kernel, domain,
+	int ret = via_bo_create(bdev, size, ttm_bo_type_kernel, domain,
 				  alignment, PAGE_SIZE, false, NULL,
 				  NULL, &kmap->bo);
 	if (likely(!ret)) {
