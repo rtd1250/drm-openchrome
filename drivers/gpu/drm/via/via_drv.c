@@ -156,7 +156,7 @@ via_mmio_setup(struct drm_device *dev)
 	if (ret)
 		goto err;
 
-	ret = ttm_bo_pin(bo, &dev_priv->mmio);
+	ret = via_bo_pin(bo, &dev_priv->mmio);
 err:
 	if (!ret)
 		DRM_INFO("Detected MMIO at physical address 0x%08llx.\n",

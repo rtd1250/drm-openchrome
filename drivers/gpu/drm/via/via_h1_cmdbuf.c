@@ -163,7 +163,7 @@ static int via_initialize(struct drm_device *dev,
 				TTM_PL_FLAG_TT, VIA_MM_ALIGN_SIZE, PAGE_SIZE,
 				false, NULL, NULL, &bo);
 	if (!ret) {
-		ret = ttm_bo_pin(bo, &dev_priv->dmabuf);
+		ret = via_bo_pin(bo, &dev_priv->dmabuf);
 		if (ret)
 			goto out_err;
 	}

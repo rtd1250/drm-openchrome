@@ -182,7 +182,7 @@ ttm_bo_allocate(struct ttm_bo_device *bdev,
 }
 
 int
-ttm_bo_pin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
+via_bo_pin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
 {
 	struct ttm_heap *heap = container_of(bo, struct ttm_heap, pbo);
 	struct ttm_placement placement;
@@ -233,7 +233,7 @@ ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev, unsigned long size,
 				  alignment, PAGE_SIZE, false, NULL,
 				  NULL, &kmap->bo);
 	if (likely(!ret)) {
-		ret = ttm_bo_pin(kmap->bo, kmap);
+		ret = via_bo_pin(kmap->bo, kmap);
 		if (unlikely(ret)) {
 			DRM_ERROR("failed to mmap the buffer\n");
 			ttm_bo_unref(&kmap->bo);

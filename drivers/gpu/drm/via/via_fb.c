@@ -1031,7 +1031,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 	if (kmap->bo == NULL)
 		goto out_err;
 
-	ret = ttm_bo_pin(kmap->bo, kmap);
+	ret = via_bo_pin(kmap->bo, kmap);
 	if (unlikely(ret))
 		goto out_err;
 

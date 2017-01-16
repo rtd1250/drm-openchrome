@@ -1251,7 +1251,7 @@ via_iga1_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
     obj = new_fb->helper_private;
     bo = ttm_gem_mapping(obj);
 
-    ret = ttm_bo_pin(bo, NULL);
+    ret = via_bo_pin(bo, NULL);
     if (unlikely(ret)) {
         DRM_DEBUG("failed to pin FB\n");
         return ret;
@@ -1564,7 +1564,7 @@ via_iga2_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
     obj = new_fb->helper_private;
     bo = ttm_gem_mapping(obj);
 
-    ret = ttm_bo_pin(bo, NULL);
+    ret = via_bo_pin(bo, NULL);
     if (unlikely(ret)) {
         DRM_DEBUG("failed to pin FB\n");
         return ret;
