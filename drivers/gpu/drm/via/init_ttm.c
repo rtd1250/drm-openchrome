@@ -152,16 +152,16 @@ via_bo_create(struct ttm_bo_device *bdev,
 		struct reservation_object *resv,
 		struct ttm_buffer_object **p_bo)
 {
-	unsigned long acc_size = sizeof(struct ttm_heap);
 	struct ttm_buffer_object *bo = NULL;
 	struct ttm_placement placement;
 	struct ttm_heap *heap;
+	size_t acc_size;
 	int ret = -ENOMEM;
 
 	size = round_up(size, byte_align);
 	size = ALIGN(size, page_align);
 
-	heap = kzalloc(acc_size, GFP_KERNEL);
+	heap = kzalloc(sizeof(struct ttm_heap), GFP_KERNEL);
 	if (unlikely(!heap))
 		return ret;
 
@@ -169,10 +169,12 @@ via_bo_create(struct ttm_bo_device *bdev,
 
 	ttm_placement_from_domain(bo, &placement, domains, bdev);
 
+	acc_size = ttm_bo_dma_acc_size(bdev, size,
+	                                sizeof(struct ttm_heap));
+
 	ret = ttm_bo_init(bdev, bo, size, origin, &placement,
 			  page_align >> PAGE_SHIFT,
-			  interruptible, NULL,
-			  ttm_bo_dma_acc_size(bdev, size, acc_size),
+			  interruptible, NULL, acc_size,
 			  sg, NULL, ttm_buffer_object_destroy);
 	if (unlikely(ret))
 		kfree(heap);
