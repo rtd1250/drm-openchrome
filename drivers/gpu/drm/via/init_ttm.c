@@ -158,12 +158,16 @@ via_bo_create(struct ttm_bo_device *bdev,
 	size_t acc_size;
 	int ret = -ENOMEM;
 
+    DRM_DEBUG("Entered via_bo_create.\n");
+
 	size = round_up(size, byte_align);
 	size = ALIGN(size, page_align);
 
 	heap = kzalloc(sizeof(struct ttm_heap), GFP_KERNEL);
-	if (unlikely(!heap))
-		return ret;
+    if (unlikely(!heap)) {
+        DRM_ERROR("Failed to allocate kernel memory.");
+        goto exit;
+    }
 
 	bo = &heap->pbo;
 
@@ -176,10 +180,18 @@ via_bo_create(struct ttm_bo_device *bdev,
 			  page_align >> PAGE_SHIFT,
 			  interruptible, NULL, acc_size,
 			  sg, NULL, ttm_buffer_object_destroy);
-	if (unlikely(ret))
-		kfree(heap);
-	else
-		*p_bo = bo;
+
+    if (unlikely(ret)) {
+        DRM_ERROR("Failed to initialize a TTM Buffer Object.");
+        goto error;
+    }
+
+	*p_bo = bo;
+	goto exit;
+error:
+    kfree(heap);
+exit:
+    DRM_DEBUG("Exiting via_bo_create.\n");
 	return ret;
 }
 
