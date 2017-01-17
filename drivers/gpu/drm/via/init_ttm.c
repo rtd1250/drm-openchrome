@@ -33,7 +33,7 @@ via_ttm_global_mem_init(struct drm_global_reference *ref)
 }
 
 static void
-ttm_global_mem_release(struct drm_global_reference *ref)
+via_ttm_global_mem_release(struct drm_global_reference *ref)
 {
 	ttm_mem_global_release(ref->object);
 }
@@ -67,7 +67,7 @@ via_ttm_global_init(struct drm_global_reference *global_ref,
 	global_ref->global_type = DRM_GLOBAL_TTM_MEM;
 	global_ref->size = sizeof(struct ttm_mem_global);
 	global_ref->init = &via_ttm_global_mem_init;
-	global_ref->release = &ttm_global_mem_release;
+	global_ref->release = &via_ttm_global_mem_release;
 
 	rc = drm_global_item_ref(global_ref);
 	if (unlikely(rc != 0)) {
