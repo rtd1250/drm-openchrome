@@ -27,6 +27,83 @@
 
 #include "via_drv.h"
 
+#define DRM_FILE_PAGE_OFFSET (0x100000000ULL >> PAGE_SHIFT)
+
+static int
+via_ttm_global_mem_init(struct drm_global_reference *ref)
+{
+    return ttm_mem_global_init(ref->object);
+}
+
+static void
+via_ttm_global_mem_release(struct drm_global_reference *ref)
+{
+    ttm_mem_global_release(ref->object);
+}
+
+void
+via_ttm_global_release(struct drm_global_reference *global_ref,
+            struct ttm_bo_global_ref *global_bo,
+            struct ttm_bo_device *bdev)
+{
+    if (global_ref->release == NULL)
+        return;
+
+    if (bdev)
+        ttm_bo_device_release(bdev);
+    drm_global_item_unref(&global_bo->ref);
+    drm_global_item_unref(global_ref);
+    global_ref->release = NULL;
+}
+
+int
+via_ttm_global_init(struct drm_global_reference *global_ref,
+        struct ttm_bo_global_ref *global_bo,
+        struct ttm_bo_driver *driver,
+        struct ttm_bo_device *bdev,
+        struct drm_device *dev,
+        bool dma32)
+{
+    struct drm_global_reference *bo_ref;
+    int rc;
+
+    global_ref->global_type = DRM_GLOBAL_TTM_MEM;
+    global_ref->size = sizeof(struct ttm_mem_global);
+    global_ref->init = &via_ttm_global_mem_init;
+    global_ref->release = &via_ttm_global_mem_release;
+
+    rc = drm_global_item_ref(global_ref);
+    if (unlikely(rc != 0)) {
+        DRM_ERROR("Failed setting up TTM memory accounting\n");
+        global_ref->release = NULL;
+        return rc;
+    }
+
+    global_bo->mem_glob = global_ref->object;
+    bo_ref = &global_bo->ref;
+    bo_ref->global_type = DRM_GLOBAL_TTM_BO;
+    bo_ref->size = sizeof(struct ttm_bo_global);
+    bo_ref->init = &ttm_bo_global_init;
+    bo_ref->release = &ttm_bo_global_release;
+
+    rc = drm_global_item_ref(bo_ref);
+    if (unlikely(rc != 0)) {
+        DRM_ERROR("Failed setting up TTM BO subsystem\n");
+        drm_global_item_unref(global_ref);
+        global_ref->release = NULL;
+        return rc;
+    }
+
+    rc = ttm_bo_device_init(bdev, bo_ref->object, driver,
+                dev->anon_inode->i_mapping,
+                DRM_FILE_PAGE_OFFSET, dma32);
+    if (rc) {
+        DRM_ERROR("Error initialising bo driver: %d\n", rc);
+        via_ttm_global_release(global_ref, global_bo, NULL);
+    }
+    return rc;
+}
+
 static struct ttm_tt *
 via_ttm_tt_create(struct ttm_bo_device *bdev, unsigned long size,
 			uint32_t page_flags, struct page *dummy_read_page)

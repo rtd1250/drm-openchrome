@@ -35,20 +35,20 @@ struct ttm_heap {
 	struct ttm_buffer_object pbo;
 };
 
+extern void via_ttm_global_release(struct drm_global_reference *global_ref,
+                struct ttm_bo_global_ref *global_bo,
+                struct ttm_bo_device *bdev);
+extern int via_ttm_global_init(struct drm_global_reference *global_ref,
+               struct ttm_bo_global_ref *global_bo,
+               struct ttm_bo_driver *driver,
+               struct ttm_bo_device *bdev,
+               struct drm_device *dev,
+               bool dma32);
 extern int via_ttm_init(struct drm_device *dev);
 extern struct ttm_tt *
 via_sgdma_backend_init(struct ttm_bo_device *bdev, unsigned long size,
 		       uint32_t page_flags, struct page *dummy_read_page);
 
-extern int via_ttm_global_init(struct drm_global_reference *global_ref,
-			   struct ttm_bo_global_ref *global_bo,
-			   struct ttm_bo_driver *driver,
-			   struct ttm_bo_device *bdev,
-			   struct drm_device *dev,
-			   bool dma32);
-extern void via_ttm_global_release(struct drm_global_reference *global_ref,
-			    struct ttm_bo_global_ref *global_bo,
-			    struct ttm_bo_device *bdev);
 
 extern int via_bo_create(struct ttm_bo_device *bdev, unsigned long size,
 			   enum ttm_bo_type origin, uint32_t domains,
