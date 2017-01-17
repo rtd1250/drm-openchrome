@@ -46,14 +46,16 @@ via_ttm_global_release(struct drm_global_reference *global_ref,
             struct ttm_bo_global_ref *global_bo,
             struct ttm_bo_device *bdev)
 {
+    DRM_DEBUG("Entered via_ttm_global_release.\n");
+
     if (global_ref->release == NULL)
         return;
 
-    if (bdev)
-        ttm_bo_device_release(bdev);
     drm_global_item_unref(&global_bo->ref);
     drm_global_item_unref(global_ref);
     global_ref->release = NULL;
+
+    DRM_DEBUG("Exiting via_ttm_global_release.\n");
 }
 
 int
@@ -564,4 +566,26 @@ int via_ttm_init(struct drm_device *dev)
 	if (!ret)
 		dev_priv->bdev.dev_mapping = dev_priv->dev->anon_inode->i_mapping;
 	return ret;
+}
+
+void via_mm_fini(struct drm_device *dev)
+{
+    struct drm_via_private *dev_priv = dev->dev_private;
+
+    DRM_DEBUG("Entered via_mm_fini.\n");
+
+    ttm_bo_device_release(&dev_priv->bdev);
+
+    via_ttm_global_release(&dev_priv->mem_global_ref,
+            &dev_priv->bo_global_ref,
+            &dev_priv->bdev);
+
+    /* mtrr delete the vram */
+    if (dev_priv->vram_mtrr >= 0) {
+        arch_phys_wc_del(dev_priv->vram_mtrr);
+    }
+
+    dev_priv->vram_mtrr = 0;
+
+    DRM_DEBUG("Exiting via_mm_fini.\n");
 }
