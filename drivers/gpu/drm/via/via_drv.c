@@ -303,7 +303,7 @@ static int via_driver_unload(struct drm_device *dev)
 	if (dev_priv->vram_mtrr >= 0)
 		arch_phys_wc_del(dev_priv->vram_mtrr);
 
-	ttm_global_fini(&dev_priv->mem_global_ref,
+	via_ttm_global_release(&dev_priv->mem_global_ref,
 			&dev_priv->bo_global_ref,
 			&dev_priv->bdev);
 

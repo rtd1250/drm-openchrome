@@ -46,7 +46,7 @@ extern int via_ttm_global_init(struct drm_global_reference *global_ref,
 			   struct ttm_bo_device *bdev,
 			   struct drm_device *dev,
 			   bool dma32);
-extern void ttm_global_fini(struct drm_global_reference *global_ref,
+extern void via_ttm_global_release(struct drm_global_reference *global_ref,
 			    struct ttm_bo_global_ref *global_bo,
 			    struct ttm_bo_device *bdev);
 

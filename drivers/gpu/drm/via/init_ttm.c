@@ -39,7 +39,7 @@ via_ttm_global_mem_release(struct drm_global_reference *ref)
 }
 
 void
-ttm_global_fini(struct drm_global_reference *global_ref,
+via_ttm_global_release(struct drm_global_reference *global_ref,
 			struct ttm_bo_global_ref *global_bo,
 			struct ttm_bo_device *bdev)
 {
@@ -96,7 +96,7 @@ via_ttm_global_init(struct drm_global_reference *global_ref,
 				DRM_FILE_PAGE_OFFSET, dma32);
 	if (rc) {
 		DRM_ERROR("Error initialising bo driver: %d\n", rc);
-		ttm_global_fini(global_ref, global_bo, NULL);
+		via_ttm_global_release(global_ref, global_bo, NULL);
 	}
 	return rc;
 }
