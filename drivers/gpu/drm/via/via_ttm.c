@@ -480,7 +480,7 @@ int via_ttm_init(struct drm_device *dev)
 {
 	struct drm_via_private *dev_priv = dev->dev_private;
 
-	int ret = ttm_global_init(&dev_priv->mem_global_ref,
+	int ret = via_ttm_global_init(&dev_priv->mem_global_ref,
 				  &dev_priv->bo_global_ref,
 				  &via_bo_driver, &dev_priv->bdev,
 				  dev_priv->dev, false);
