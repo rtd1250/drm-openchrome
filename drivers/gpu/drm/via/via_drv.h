@@ -103,6 +103,12 @@ struct via_state {
 	struct vga_regset seq_regs[256];
 };
 
+struct ttm_heap {
+    struct ttm_place busy_placements[TTM_NUM_MEM_TYPES];
+    struct ttm_place placements[TTM_NUM_MEM_TYPES];
+    struct ttm_buffer_object pbo;
+};
+
 enum via_engine {
 	VIA_ENG_H1 = 0,
 	VIA_ENG_H2,
@@ -225,5 +231,42 @@ extern int via_dma_cleanup(struct drm_device *dev);
 
 extern void via_dmablit_handler(struct drm_device *dev, int engine, int from_irq);
 extern int via_dmablit_init(struct drm_device *dev);
+
+extern int ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev, unsigned long size,
+                      uint32_t alignment, uint32_t domain,
+                      struct ttm_bo_kmap_obj *kmap);
+
+extern void via_ttm_global_release(struct drm_global_reference *global_ref,
+                struct ttm_bo_global_ref *global_bo,
+                struct ttm_bo_device *bdev);
+extern int via_mm_init(struct via_device *dev_priv);
+void via_mm_fini(struct drm_device *dev);
+extern void ttm_placement_from_domain(struct ttm_buffer_object *bo,
+                      struct ttm_placement *placement,
+                      u32 domains, struct ttm_bo_device *bdev);
+extern int via_bo_create(struct ttm_bo_device *bdev, unsigned long size,
+               enum ttm_bo_type origin, uint32_t domains,
+               uint32_t byte_align, uint32_t page_align,
+               bool interruptible, struct sg_table *sg,
+               struct reservation_object *resv,
+               struct ttm_buffer_object **p_bo);
+extern int via_bo_pin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap);
+extern int ttm_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap);
+
+extern int ttm_mmap(struct file *filp, struct vm_area_struct *vma);
+
+extern int ttm_gem_open_object(struct drm_gem_object *obj, struct drm_file *file_priv);
+extern void ttm_gem_free_object(struct drm_gem_object *obj);
+extern struct drm_gem_object *ttm_gem_create(struct drm_device *dev,
+                         struct ttm_bo_device *bdev,
+                         enum ttm_bo_type origin,
+                         int type, bool interruptible,
+                         int byte_align, int page_align,
+                         unsigned long size);
+extern struct ttm_buffer_object *ttm_gem_mapping(struct drm_gem_object *obj);
+
+extern struct ttm_tt *
+via_sgdma_backend_init(struct ttm_bo_device *bdev, unsigned long size,
+               uint32_t page_flags, struct page *dummy_read_page);
 
 #endif

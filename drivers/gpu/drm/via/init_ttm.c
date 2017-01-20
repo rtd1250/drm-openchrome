@@ -22,6 +22,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "drmP.h"
+#include "via_drv.h"
 #include "via_mem.h"
 
 int

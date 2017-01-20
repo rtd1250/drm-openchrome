@@ -58,17 +58,14 @@ via_ttm_global_release(struct drm_global_reference *global_ref,
     DRM_DEBUG("Exiting via_ttm_global_release.\n");
 }
 
-int
-via_ttm_global_init(struct drm_global_reference *global_ref,
-        struct ttm_bo_global_ref *global_bo,
-        struct ttm_bo_driver *driver,
-        struct ttm_bo_device *bdev,
-        struct drm_device *dev,
-        bool dma32)
+static int
+via_ttm_global_init(struct via_device *dev_priv)
 {
+    struct drm_global_reference *global_ref;
     struct drm_global_reference *bo_ref;
     int rc;
 
+    global_ref = &dev_priv->mem_global_ref;
     global_ref->global_type = DRM_GLOBAL_TTM_MEM;
     global_ref->size = sizeof(struct ttm_mem_global);
     global_ref->init = &via_ttm_global_mem_init;
@@ -81,8 +78,8 @@ via_ttm_global_init(struct drm_global_reference *global_ref,
         return rc;
     }
 
-    global_bo->mem_glob = global_ref->object;
-    bo_ref = &global_bo->ref;
+    dev_priv->bo_global_ref.mem_glob = dev_priv->mem_global_ref.object;
+    bo_ref = &dev_priv->bo_global_ref.ref;
     bo_ref->global_type = DRM_GLOBAL_TTM_BO;
     bo_ref->size = sizeof(struct ttm_bo_global);
     bo_ref->init = &ttm_bo_global_init;
@@ -96,13 +93,6 @@ via_ttm_global_init(struct drm_global_reference *global_ref,
         return rc;
     }
 
-    rc = ttm_bo_device_init(bdev, bo_ref->object, driver,
-                dev->anon_inode->i_mapping,
-                DRM_FILE_PAGE_OFFSET, dma32);
-    if (rc) {
-        DRM_ERROR("Error initialising bo driver: %d\n", rc);
-        via_ttm_global_release(global_ref, global_bo, NULL);
-    }
     return rc;
 }
 
@@ -564,16 +554,31 @@ static struct ttm_bo_driver via_bo_driver = {
 	.io_mem_free		= via_ttm_io_mem_free,
 };
 
-int via_ttm_init(struct drm_device *dev)
+int via_mm_init(struct via_device *dev_priv)
 {
-	struct via_device *dev_priv = dev->dev_private;
+    int ret;
+    struct drm_device *dev = dev_priv->dev;
+    struct ttm_bo_device *bdev = &dev_priv->bdev;
 
-	int ret = via_ttm_global_init(&dev_priv->mem_global_ref,
-				  &dev_priv->bo_global_ref,
-				  &via_bo_driver, &dev_priv->bdev,
-				  dev_priv->dev, false);
-	if (!ret)
-		dev_priv->bdev.dev_mapping = dev_priv->dev->anon_inode->i_mapping;
+    DRM_DEBUG("Entered via_mm_init.\n");
+
+    ret = via_ttm_global_init(dev_priv);
+	if (ret)
+	    return ret;
+
+	dev_priv->bdev.dev_mapping = dev->anon_inode->i_mapping;
+
+    ret = ttm_bo_device_init(&dev_priv->bdev,
+                                dev_priv->bo_global_ref.ref.object,
+                                &via_bo_driver,
+                                dev->anon_inode->i_mapping,
+                                DRM_FILE_PAGE_OFFSET,
+                                false);
+    if (ret) {
+        DRM_ERROR("Error initialising bo driver: %d\n", ret);
+    }
+
+    DRM_DEBUG("Exiting via_mm_init.\n");
 	return ret;
 }
 
