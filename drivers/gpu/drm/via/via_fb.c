@@ -31,7 +31,7 @@ struct ttm_fb_helper {
 };
 
 static int
-cle266_mem_type(struct drm_via_private *dev_priv, struct pci_dev *bridge)
+cle266_mem_type(struct via_device *dev_priv, struct pci_dev *bridge)
 {
 	u8 type, fsb, freq;
 	int ret;
@@ -129,7 +129,7 @@ cle266_mem_type(struct drm_via_private *dev_priv, struct pci_dev *bridge)
 }
 
 static int
-km400_mem_type(struct drm_via_private *dev_priv, struct pci_dev *bridge)
+km400_mem_type(struct via_device *dev_priv, struct pci_dev *bridge)
 {
 	u8 fsb, freq, rev;
 	int ret;
@@ -281,7 +281,7 @@ km400_mem_type(struct drm_via_private *dev_priv, struct pci_dev *bridge)
 }
 
 static int
-p4m800_mem_type(struct drm_via_private *dev_priv, struct pci_bus *bus,
+p4m800_mem_type(struct via_device *dev_priv, struct pci_bus *bus,
 		struct pci_dev *fn3)
 {
 	struct pci_dev *fn4 = pci_get_slot(bus, PCI_DEVFN(0, 4));
@@ -347,7 +347,7 @@ p4m800_mem_type(struct drm_via_private *dev_priv, struct pci_bus *bus,
 }
 
 static int
-km8xx_mem_type(struct drm_via_private *dev_priv)
+km8xx_mem_type(struct via_device *dev_priv)
 {
 	struct pci_dev *dram, *misc = NULL;
 	int ret = -ENXIO;
@@ -473,7 +473,7 @@ km8xx_mem_type(struct drm_via_private *dev_priv)
 }
 
 static int
-cn400_mem_type(struct drm_via_private *dev_priv, struct pci_bus *bus,
+cn400_mem_type(struct via_device *dev_priv, struct pci_bus *bus,
 		struct pci_dev *fn3)
 {
 	struct pci_dev *fn2 = pci_get_slot(bus, PCI_DEVFN(0, 2));
@@ -535,7 +535,7 @@ cn400_mem_type(struct drm_via_private *dev_priv, struct pci_bus *bus,
 }
 
 static int
-cn700_mem_type(struct drm_via_private *dev_priv, struct pci_dev *fn3)
+cn700_mem_type(struct via_device *dev_priv, struct pci_dev *fn3)
 {
 	int ret;
 	u8 tmp;
@@ -568,7 +568,7 @@ cn700_mem_type(struct drm_via_private *dev_priv, struct pci_dev *fn3)
 }
 
 static int
-cx700_mem_type(struct drm_via_private *dev_priv, struct pci_dev *fn3)
+cx700_mem_type(struct via_device *dev_priv, struct pci_dev *fn3)
 {
 	u8 type, clock;
 	int ret;
@@ -624,7 +624,7 @@ cx700_mem_type(struct drm_via_private *dev_priv, struct pci_dev *fn3)
 }
 
 static int
-vx900_mem_type(struct drm_via_private *dev_priv, struct pci_dev *fn3)
+vx900_mem_type(struct via_device *dev_priv, struct pci_dev *fn3)
 {
 	int ret;
 	u8 clock, type, volt;
@@ -694,7 +694,7 @@ vx900_mem_type(struct drm_via_private *dev_priv, struct pci_dev *fn3)
 
 int via_detect_vram(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	struct pci_dev *bridge = NULL, *fn3 = NULL;
 	unsigned long long vram_start;
 	int vram_size = 0, ret = 0;
@@ -948,7 +948,7 @@ static const struct drm_framebuffer_funcs via_fb_funcs = {
 static void
 via_output_poll_changed(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 
 	drm_fb_helper_hotplug_event(dev_priv->helper);
 }
@@ -994,7 +994,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 		struct drm_fb_helper_surface_size *sizes)
 {
 	struct ttm_fb_helper *ttmfb = container_of(helper, struct ttm_fb_helper, base);
-	struct drm_via_private *dev_priv = helper->dev->dev_private;
+	struct via_device *dev_priv = helper->dev->dev_private;
 	struct ttm_bo_kmap_obj *kmap = &ttmfb->kmap;
 	struct fb_info *info = helper->fbdev;
 	struct drm_framebuffer *fb = NULL;
@@ -1226,7 +1226,7 @@ out_err:
 void
 via_framebuffer_fini(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	struct drm_fb_helper *helper = dev_priv->helper;
 	struct ttm_fb_helper *ttmfb;
 	struct drm_gem_object *obj;

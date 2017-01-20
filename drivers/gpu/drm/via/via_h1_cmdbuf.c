@@ -41,17 +41,17 @@
 #define CMDBUF_ALIGNMENT_SIZE   (0x100)
 #define CMDBUF_ALIGNMENT_MASK   (0x0ff)
 
-static void via_cmdbuf_start(struct drm_via_private *dev_priv);
-static void via_cmdbuf_pause(struct drm_via_private *dev_priv);
-static void via_cmdbuf_reset(struct drm_via_private *dev_priv);
-static void via_cmdbuf_rewind(struct drm_via_private *dev_priv);
-static void via_pad_cache(struct drm_via_private *dev_priv, int qwords);
+static void via_cmdbuf_start(struct via_device *dev_priv);
+static void via_cmdbuf_pause(struct via_device *dev_priv);
+static void via_cmdbuf_reset(struct via_device *dev_priv);
+static void via_cmdbuf_rewind(struct via_device *dev_priv);
+static void via_pad_cache(struct via_device *dev_priv, int qwords);
 
 /*
  * Free space in command buffer.
  */
 
-static uint32_t via_cmdbuf_space(struct drm_via_private *dev_priv)
+static uint32_t via_cmdbuf_space(struct via_device *dev_priv)
 {
 	uint32_t gart_base = dev_priv->dma_offset;
 	uint32_t hw_addr = ioread32(dev_priv->hw_addr_ptr) - gart_base;
@@ -65,7 +65,7 @@ static uint32_t via_cmdbuf_space(struct drm_via_private *dev_priv)
  * How much does the command regulator lag behind?
  */
 
-static uint32_t via_cmdbuf_lag(struct drm_via_private *dev_priv)
+static uint32_t via_cmdbuf_lag(struct via_device *dev_priv)
 {
 	uint32_t gart_base = dev_priv->dma_offset;
 	uint32_t hw_addr = ioread32(dev_priv->hw_addr_ptr) - gart_base;
@@ -80,7 +80,7 @@ static uint32_t via_cmdbuf_lag(struct drm_via_private *dev_priv)
  */
 
 static inline int
-via_cmdbuf_wait(struct drm_via_private *dev_priv, unsigned int size)
+via_cmdbuf_wait(struct via_device *dev_priv, unsigned int size)
 {
 	uint32_t gart_base = dev_priv->dma_offset;
 	uint32_t cur_addr, hw_addr, next_addr;
@@ -111,7 +111,7 @@ via_cmdbuf_wait(struct drm_via_private *dev_priv, unsigned int size)
  * Returns virtual pointer to ring buffer.
  */
 
-static inline uint32_t *via_check_dma(struct drm_via_private *dev_priv,
+static inline uint32_t *via_check_dma(struct via_device *dev_priv,
 				      unsigned int size)
 {
 	if ((dev_priv->dma_low + size + 4 * CMDBUF_ALIGNMENT_SIZE) >
@@ -127,7 +127,7 @@ static inline uint32_t *via_check_dma(struct drm_via_private *dev_priv,
 int via_dma_cleanup(struct drm_device *dev)
 {
 	if (dev->dev_private) {
-		struct drm_via_private *dev_priv = dev->dev_private;
+		struct via_device *dev_priv = dev->dev_private;
 
 		if (dev_priv->dmabuf.virtual) {
 			struct ttm_buffer_object *bo = dev_priv->dmabuf.bo;
@@ -143,7 +143,7 @@ int via_dma_cleanup(struct drm_device *dev)
 }
 
 static int via_initialize(struct drm_device *dev,
-			  struct drm_via_private *dev_priv,
+			  struct via_device *dev_priv,
 			  drm_via_dma_init_t *init)
 {
 	struct ttm_buffer_object *bo;
@@ -185,7 +185,7 @@ out_err:
 
 int via_dma_init(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	drm_via_dma_init_t *init = data;
 	int retcode = 0;
 
@@ -216,7 +216,7 @@ int via_dma_init(struct drm_device *dev, void *data, struct drm_file *file_priv)
 
 int via_dispatch_cmdbuffer(struct drm_device *dev, drm_via_cmdbuffer_t *cmd)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	uint32_t *vb;
 	int ret;
 
@@ -263,7 +263,7 @@ int via_dispatch_cmdbuffer(struct drm_device *dev, drm_via_cmdbuffer_t *cmd)
 
 int via_driver_dma_quiescent(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 
 	if (!via_wait_idle(dev_priv))
 		return -EBUSY;
@@ -294,7 +294,7 @@ int via_cmdbuffer(struct drm_device *dev, void *data, struct drm_file *file_priv
 static int via_dispatch_pci_cmdbuffer(struct drm_device *dev,
 				      drm_via_cmdbuffer_t *cmd)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	int ret;
 
 	if (cmd->size > VIA_PCI_BUF_SIZE)
@@ -326,7 +326,7 @@ int via_pci_cmdbuffer(struct drm_device *dev, void *data, struct drm_file *file_
 	return ret;
 }
 
-static inline uint32_t *via_align_buffer(struct drm_via_private *dev_priv,
+static inline uint32_t *via_align_buffer(struct via_device *dev_priv,
 					 uint32_t *vb, int qw_count)
 {
 	for (; qw_count > 0; --qw_count)
@@ -339,7 +339,7 @@ static inline uint32_t *via_align_buffer(struct drm_via_private *dev_priv,
  *
  * Returns virtual pointer to ring buffer.
  */
-static inline uint32_t *via_get_dma(struct drm_via_private *dev_priv)
+static inline uint32_t *via_get_dma(struct via_device *dev_priv)
 {
 	return (uint32_t *) (dev_priv->dmabuf.virtual + dev_priv->dma_low);
 }
@@ -349,7 +349,7 @@ static inline uint32_t *via_get_dma(struct drm_via_private *dev_priv)
  * modifying the pause address stored in the buffer itself. If
  * the regulator has already paused, restart it.
  */
-static int via_hook_segment(struct drm_via_private *dev_priv,
+static int via_hook_segment(struct via_device *dev_priv,
 			    uint32_t pause_addr_hi, uint32_t pause_addr_lo,
 			    int no_pci_fire)
 {
@@ -415,7 +415,7 @@ static int via_hook_segment(struct drm_via_private *dev_priv,
 	return paused;
 }
 
-int via_wait_idle(struct drm_via_private *dev_priv)
+int via_wait_idle(struct via_device *dev_priv)
 {
 	int count = 10000000;
 
@@ -429,7 +429,7 @@ int via_wait_idle(struct drm_via_private *dev_priv)
 	return count;
 }
 
-static uint32_t *via_align_cmd(struct drm_via_private *dev_priv, uint32_t cmd_type,
+static uint32_t *via_align_cmd(struct via_device *dev_priv, uint32_t cmd_type,
 			       uint32_t addr, uint32_t *cmd_addr_hi,
 			       uint32_t *cmd_addr_lo, int skip_wait)
 {
@@ -460,7 +460,7 @@ static uint32_t *via_align_cmd(struct drm_via_private *dev_priv, uint32_t cmd_ty
 	return vb;
 }
 
-static void via_cmdbuf_start(struct drm_via_private *dev_priv)
+static void via_cmdbuf_start(struct via_device *dev_priv)
 {
 	uint32_t pause_addr_lo, pause_addr_hi;
 	uint32_t start_addr, start_addr_lo;
@@ -519,7 +519,7 @@ static void via_cmdbuf_start(struct drm_via_private *dev_priv)
 	dev_priv->dma_diff = ptr - reader;
 }
 
-static void via_pad_cache(struct drm_via_private *dev_priv, int qwords)
+static void via_pad_cache(struct via_device *dev_priv, int qwords)
 {
 	uint32_t *vb;
 
@@ -529,7 +529,7 @@ static void via_pad_cache(struct drm_via_private *dev_priv, int qwords)
 	via_align_buffer(dev_priv, vb, qwords);
 }
 
-static inline void via_dummy_bitblt(struct drm_via_private *dev_priv)
+static inline void via_dummy_bitblt(struct via_device *dev_priv)
 {
 	uint32_t *vb = via_get_dma(dev_priv);
 	VIA_OUT_RING_H1(0x0C, (0 | (0 << 16)));
@@ -537,7 +537,7 @@ static inline void via_dummy_bitblt(struct drm_via_private *dev_priv)
 	VIA_OUT_RING_H1(0x0, 0x1 | 0x2000 | 0xAA000000);
 }
 
-static void via_cmdbuf_rewind(struct drm_via_private *dev_priv)
+static void via_cmdbuf_rewind(struct via_device *dev_priv)
 {
 	uint32_t pause_addr_lo, pause_addr_hi;
 	uint32_t jump_addr_lo, jump_addr_hi;
@@ -592,7 +592,7 @@ static void via_cmdbuf_rewind(struct drm_via_private *dev_priv)
 	via_hook_segment(dev_priv, pause_addr_hi, pause_addr_lo, 0);
 }
 
-static void via_cmdbuf_flush(struct drm_via_private *dev_priv, uint32_t cmd_type)
+static void via_cmdbuf_flush(struct via_device *dev_priv, uint32_t cmd_type)
 {
 	uint32_t pause_addr_lo, pause_addr_hi;
 
@@ -600,12 +600,12 @@ static void via_cmdbuf_flush(struct drm_via_private *dev_priv, uint32_t cmd_type
 	via_hook_segment(dev_priv, pause_addr_hi, pause_addr_lo, 0);
 }
 
-static void via_cmdbuf_pause(struct drm_via_private *dev_priv)
+static void via_cmdbuf_pause(struct via_device *dev_priv)
 {
 	via_cmdbuf_flush(dev_priv, HC_HAGPBpID_PAUSE);
 }
 
-static void via_cmdbuf_reset(struct drm_via_private *dev_priv)
+static void via_cmdbuf_reset(struct via_device *dev_priv)
 {
 	via_cmdbuf_flush(dev_priv, HC_HAGPBpID_STOP);
 	via_wait_idle(dev_priv);
@@ -617,7 +617,7 @@ static void via_cmdbuf_reset(struct drm_via_private *dev_priv)
 
 int via_cmdbuf_size(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	drm_via_cmdbuf_size_t *d_siz = data;
 	int ret = 0;
 	uint32_t tmp_size, count;

@@ -111,7 +111,7 @@ enum via_engine {
 	VIA_ENG_H6S2
 };
 
-struct drm_via_private {
+struct via_device {
 	struct drm_global_reference mem_global_ref;
 	struct ttm_bo_global_ref bo_global_ref;
 	struct ttm_bo_device bdev;
@@ -207,7 +207,7 @@ extern int via_cmdbuffer(struct drm_device *dev, void *data, struct drm_file *fi
 extern int via_cmdbuf_size(struct drm_device *dev, void *data, struct drm_file *file_priv);
 extern int via_pci_cmdbuffer(struct drm_device *dev, void *data, struct drm_file *file_priv);
 extern int via_wait_irq(struct drm_device *dev, void *data, struct drm_file *file_priv);
-extern int via_wait_idle(struct drm_via_private *dev_priv);
+extern int via_wait_idle(struct via_device *dev_priv);
 
 extern int via_detect_vram(struct drm_device *dev);
 

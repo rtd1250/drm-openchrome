@@ -31,7 +31,7 @@ static int
 via_getparam(struct drm_device *dev, void *data,
 		struct drm_file *filp)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	struct drm_via_param *args = data;
 	int ret = 0;
 
@@ -61,7 +61,7 @@ static int
 via_gem_alloc(struct drm_device *dev, void *data,
 		struct drm_file *filp)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	struct drm_via_gem_object *args = data;
 	struct drm_gem_object *obj;
 	int ret = -ENOMEM;

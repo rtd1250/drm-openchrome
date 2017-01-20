@@ -138,7 +138,7 @@ static int via_num_pro_group_a = ARRAY_SIZE(via_pro_group_a_irqs);
 static int via_irqmap_pro_group_a[] = {0, 1, -1, 2, -1, 3};
 
 static irqreturn_t
-via_hpd_irq_process(struct drm_via_private *dev_priv)
+via_hpd_irq_process(struct via_device *dev_priv)
 {
 	uint32_t mm_1280 = VIA_READ(0x1280);
 	uint32_t mm_c730, mm_c7b0;
@@ -224,7 +224,7 @@ via_hpd_irq_process(struct drm_via_private *dev_priv)
 irqreturn_t via_driver_irq_handler(int irq, void *arg)
 {
 	struct drm_device *dev = (struct drm_device *) arg;
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	drm_via_irq_t *cur_irq = dev_priv->via_irqs;
 	u32 status = VIA_READ(INTERRUPT_CTRL_REG1);
 	irqreturn_t ret = IRQ_NONE;
@@ -271,7 +271,7 @@ irqreturn_t via_driver_irq_handler(int irq, void *arg)
 int
 via_enable_vblank(struct drm_device *dev, int crtc)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	u32 status;
 
 	if (crtc < 0 || crtc >= dev->num_crtcs) {
@@ -295,7 +295,7 @@ via_enable_vblank(struct drm_device *dev, int crtc)
 void
 via_disable_vblank(struct drm_device *dev, int crtc)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	u32 status;
 
 	if (crtc < 0 || crtc >= dev->num_crtcs) {
@@ -319,7 +319,7 @@ via_disable_vblank(struct drm_device *dev, int crtc)
  * bit when enable irq mask.
  */
 void
-via_hpd_irq_state(struct drm_via_private *dev_priv, bool enable)
+via_hpd_irq_state(struct via_device *dev_priv, bool enable)
 {
 	uint32_t mask = BIT(7) | BIT(5) | BIT(3) | BIT(1);
 	uint32_t value = (enable ? mask : 0);
@@ -370,8 +370,8 @@ via_hpd_irq_state(struct drm_via_private *dev_priv, bool enable)
 static void
 via_hotplug_work_func(struct work_struct *work)
 {
-	struct drm_via_private *dev_priv = container_of(work,
-		struct drm_via_private, hotplug_work);
+	struct via_device *dev_priv = container_of(work,
+		struct via_device, hotplug_work);
 	struct drm_device *dev = dev_priv->dev;
 
 	DRM_DEBUG("Sending Hotplug event\n");
@@ -383,7 +383,7 @@ via_hotplug_work_func(struct work_struct *work)
 void
 via_driver_irq_preinstall(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	drm_via_irq_t *cur_irq;
 	u32 status;
 	int i;
@@ -440,7 +440,7 @@ via_driver_irq_preinstall(struct drm_device *dev)
 int
 via_driver_irq_postinstall(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	u32 status = VIA_READ(INTERRUPT_CTRL_REG1);
 
 	VIA_WRITE(INTERRUPT_CTRL_REG1, status | VIA_IRQ_ALL_ENABLE |
@@ -451,7 +451,7 @@ via_driver_irq_postinstall(struct drm_device *dev)
 void
 via_driver_irq_uninstall(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	u32 status;
 
 	/* Some more magic, oh for some data sheets ! */
@@ -470,7 +470,7 @@ static int
 via_driver_irq_wait(struct drm_device *dev, unsigned int irq, int force_sequence,
 		    unsigned int *sequence)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	unsigned int cur_irq_sequence;
 	drm_via_irq_t *cur_irq;
 	int ret = 0;
@@ -519,7 +519,7 @@ via_wait_irq(struct drm_device *dev, void *data, struct drm_file *file_priv)
 	drm_via_irqwait_t *irqwait = data;
 	struct timeval now;
 	int ret = 0;
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	drm_via_irq_t *cur_irq = dev_priv->via_irqs;
 	int force_sequence;
 

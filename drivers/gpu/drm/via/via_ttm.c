@@ -120,8 +120,8 @@ via_ttm_tt_create(struct ttm_bo_device *bdev, unsigned long size,
 			uint32_t page_flags, struct page *dummy_read_page)
 {
 #if __OS_HAS_AGP
-	struct drm_via_private *dev_priv =
-		container_of(bdev, struct drm_via_private, bdev);
+	struct via_device *dev_priv =
+		container_of(bdev, struct via_device, bdev);
 
 	if (drm_pci_device_is_agp(dev_priv->dev))
 		return ttm_agp_tt_create(bdev, dev_priv->dev->agp->bridge,
@@ -136,8 +136,8 @@ via_ttm_tt_populate(struct ttm_tt *ttm)
 	struct sgdma_tt *dma_tt = (struct sgdma_tt *) ttm;
 	struct ttm_dma_tt *sgdma = &dma_tt->sgdma;
 	struct ttm_bo_device *bdev = ttm->bdev;
-	struct drm_via_private *dev_priv =
-		container_of(bdev, struct drm_via_private, bdev);
+	struct via_device *dev_priv =
+		container_of(bdev, struct via_device, bdev);
 	struct drm_device *dev = dev_priv->dev;
 	unsigned int i;
 	int ret = 0;
@@ -182,8 +182,8 @@ via_ttm_tt_unpopulate(struct ttm_tt *ttm)
 	struct sgdma_tt *dma_tt = (struct sgdma_tt *) ttm;
 	struct ttm_dma_tt *sgdma = &dma_tt->sgdma;
 	struct ttm_bo_device *bdev = ttm->bdev;
-	struct drm_via_private *dev_priv =
-		container_of(bdev, struct drm_via_private, bdev);
+	struct via_device *dev_priv =
+		container_of(bdev, struct via_device, bdev);
 	struct drm_device *dev = dev_priv->dev;
 	unsigned int i;
 
@@ -225,8 +225,8 @@ via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
 		struct ttm_mem_type_manager *man)
 {
 #if __OS_HAS_AGP
-	struct drm_via_private *dev_priv =
-		container_of(bdev, struct drm_via_private, bdev);
+	struct via_device *dev_priv =
+		container_of(bdev, struct via_device, bdev);
 	struct drm_device *dev = dev_priv->dev;
 #endif
 
@@ -309,7 +309,7 @@ via_alloc_desc_pages(struct ttm_tt *ttm, struct drm_device *dev,
 			unsigned long dev_start, enum dma_data_direction direction)
 {
 	struct drm_via_sg_info *vsg = kzalloc(sizeof(*vsg), GFP_KERNEL);
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	int desc_size = dev_priv->desc_size, i;
 
 	vsg->ttm = ttm;
@@ -341,8 +341,8 @@ static int
 via_move_blit(struct ttm_buffer_object *bo, bool evict, bool no_wait_gpu,
 		struct ttm_mem_reg *new_mem, struct ttm_mem_reg *old_mem)
 {
-	struct drm_via_private *dev_priv =
-		container_of(bo->bdev, struct drm_via_private, bdev);
+	struct via_device *dev_priv =
+		container_of(bo->bdev, struct via_device, bdev);
 	enum dma_data_direction direction = DMA_TO_DEVICE;
 	unsigned long old_start, new_start, dev_addr = 0;
 	struct drm_via_sg_info *vsg;
@@ -496,8 +496,8 @@ via_bo_move(struct ttm_buffer_object *bo, bool evict, bool interruptible,
 static int
 via_ttm_io_mem_reserve(struct ttm_bo_device *bdev, struct ttm_mem_reg *mem)
 {
-	struct drm_via_private *dev_priv =
-		container_of(bdev, struct drm_via_private, bdev);
+	struct via_device *dev_priv =
+		container_of(bdev, struct via_device, bdev);
 	struct ttm_mem_type_manager *man = &bdev->man[mem->mem_type];
 	struct drm_device *dev = dev_priv->dev;
 
@@ -566,7 +566,7 @@ static struct ttm_bo_driver via_bo_driver = {
 
 int via_ttm_init(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 
 	int ret = via_ttm_global_init(&dev_priv->mem_global_ref,
 				  &dev_priv->bo_global_ref,
@@ -579,7 +579,7 @@ int via_ttm_init(struct drm_device *dev)
 
 void via_mm_fini(struct drm_device *dev)
 {
-    struct drm_via_private *dev_priv = dev->dev_private;
+    struct via_device *dev_priv = dev->dev_private;
 
     DRM_DEBUG("Entered via_mm_fini.\n");
 

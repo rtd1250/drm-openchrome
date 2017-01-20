@@ -528,8 +528,8 @@ static inline int
 via_check_prim_list(uint32_t const **buffer, const uint32_t * buf_end,
 		    struct drm_via_state *cur_seq)
 {
-	struct drm_via_private *dev_priv =
-	    (struct drm_via_private *) cur_seq->dev->dev_private;
+	struct via_device *dev_priv =
+	    (struct via_device *) cur_seq->dev->dev_private;
 	uint32_t a_fire, bcmd, dw_count;
 	int ret = 0;
 	int have_fire;
@@ -721,7 +721,7 @@ via_check_header2(uint32_t const **buffer, const uint32_t *buf_end,
 }
 
 static inline enum verifier_state
-via_parse_header2(struct drm_via_private *dev_priv, uint32_t const **buffer,
+via_parse_header2(struct via_device *dev_priv, uint32_t const **buffer,
 		  const uint32_t *buf_end, int *fire_count)
 {
 	uint32_t cmd;
@@ -853,7 +853,7 @@ via_check_header1(uint32_t const **buffer, const uint32_t * buf_end)
 }
 
 static inline enum verifier_state
-via_parse_header1(struct drm_via_private *dev_priv, uint32_t const **buffer,
+via_parse_header1(struct via_device *dev_priv, uint32_t const **buffer,
 		  const uint32_t *buf_end)
 {
 	register uint32_t cmd = VIA_REG_GECMD;
@@ -915,7 +915,7 @@ via_check_vheader5(uint32_t const **buffer, const uint32_t *buf_end)
 }
 
 static inline enum verifier_state
-via_parse_vheader5(struct drm_via_private *dev_priv, uint32_t const **buffer,
+via_parse_vheader5(struct via_device *dev_priv, uint32_t const **buffer,
 		   const uint32_t *buf_end)
 {
 	uint32_t addr, count, i;
@@ -970,7 +970,7 @@ via_check_vheader6(uint32_t const **buffer, const uint32_t * buf_end)
 }
 
 static inline enum verifier_state
-via_parse_vheader6(struct drm_via_private *dev_priv, uint32_t const **buffer,
+via_parse_vheader6(struct via_device *dev_priv, uint32_t const **buffer,
 		   const uint32_t *buf_end)
 {
 
@@ -995,7 +995,7 @@ via_verify_command_stream(const uint32_t * buf, unsigned int size,
 			  struct drm_device * dev, int agp)
 {
 
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	struct drm_via_state *hc_state = &dev_priv->hc_state;
 	struct drm_via_state saved_state = *hc_state;
 	uint32_t cmd;
@@ -1068,7 +1068,7 @@ via_parse_command_stream(struct drm_device *dev, const uint32_t *buf,
 			 unsigned int size)
 {
 
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	const uint32_t *buf_end = buf + (size >> 2);
 	enum verifier_state state = state_command;
 	int fire_count = 0;

@@ -25,7 +25,7 @@
 #include "via_drv.h"
 
 static void
-via_init_2d(struct drm_via_private *dev_priv, int pci_device)
+via_init_2d(struct via_device *dev_priv, int pci_device)
 {
 	int i;
 
@@ -38,7 +38,7 @@ via_init_2d(struct drm_via_private *dev_priv, int pci_device)
 }
 
 static void
-via_init_3d(struct drm_via_private *dev_priv)
+via_init_3d(struct via_device *dev_priv)
 {
 	unsigned long texture_stage;
 	int i;
@@ -170,7 +170,7 @@ via_init_3d(struct drm_via_private *dev_priv)
 }
 
 static void
-via_init_vq(struct drm_via_private *dev_priv)
+via_init_vq(struct via_device *dev_priv)
 {
 	unsigned long vq_start_addr, vq_end_addr, vqlen;
 	unsigned long vqstartl, vqendl, vqstart_endh;
@@ -197,7 +197,7 @@ via_init_vq(struct drm_via_private *dev_priv)
 }
 
 static void
-via_init_pcie_gart_table(struct drm_via_private *dev_priv,
+via_init_pcie_gart_table(struct via_device *dev_priv,
 				struct pci_dev *pdev)
 {
 	struct ttm_buffer_object *bo = dev_priv->gart.bo;
@@ -235,7 +235,7 @@ via_init_pcie_gart_table(struct drm_via_private *dev_priv,
 void
 via_engine_init(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 
 	/* initial engines */
 	via_init_2d(dev_priv, dev->pdev->device);

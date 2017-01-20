@@ -35,7 +35,7 @@
 static void
 via_h1_fire_dmablit(struct drm_device *dev, struct drm_via_sg_info *vsg, int engine)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 
 	VIA_WRITE(VIA_PCI_DMA_MAR0 + engine * 0x10, 0);
 	VIA_WRITE(VIA_PCI_DMA_DAR0 + engine * 0x10, 0);
@@ -53,7 +53,7 @@ via_h1_fire_dmablit(struct drm_device *dev, struct drm_via_sg_info *vsg, int eng
 static void
 via_abort_dmablit(struct drm_device *dev, int engine)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 
 	VIA_WRITE(VIA_PCI_DMA_CSR0 + engine * 0x04, VIA_DMA_CSR_TA);
 }
@@ -61,7 +61,7 @@ via_abort_dmablit(struct drm_device *dev, int engine)
 static void
 via_dmablit_engine_off(struct drm_device *dev, int engine)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 
 	VIA_WRITE(VIA_PCI_DMA_CSR0 + engine * 0x04, VIA_DMA_CSR_TD | VIA_DMA_CSR_DD);
 }
@@ -70,7 +70,7 @@ via_dmablit_engine_off(struct drm_device *dev, int engine)
 static void
 via_dmablit_done(struct drm_device *dev, int engine)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 
 	/* Clear transfer done flag. */
 	VIA_WRITE(VIA_PCI_DMA_CSR0 + engine * 0x04,  VIA_DMA_CSR_TD);
@@ -82,7 +82,7 @@ via_dmablit_done(struct drm_device *dev, int engine)
 static void
 via_unmap_from_device(struct drm_device *dev, struct drm_via_sg_info *vsg)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	int num_desc = vsg->num_desc;
 	unsigned cur_descriptor_page = num_desc / vsg->descriptors_per_page;
 	unsigned descriptor_this_page = num_desc % vsg->descriptors_per_page;
@@ -212,7 +212,7 @@ via_h1_dma_emit(struct via_fence *fence)
 int
 via_dmablit_init(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	struct via_fence_pool *pool;
 
 	pci_set_master(dev->pdev);

@@ -64,7 +64,7 @@ viaIGACommonInit(void __iomem *regs)
 }
 
 static void
-viaIGA1SetColorDepth(struct drm_via_private *dev_priv,
+viaIGA1SetColorDepth(struct via_device *dev_priv,
                         u8 depth)
 {
     u8 value;
@@ -128,7 +128,7 @@ viaIGA1InterlaceMode(void __iomem *regs, bool interlaceMode)
 }
 
 static void
-viaIGA2SetColorDepth(struct drm_via_private *dev_priv,
+viaIGA2SetColorDepth(struct via_device *dev_priv,
                         u8 depth)
 {
     u8 value;
@@ -191,7 +191,7 @@ static void
 via_hide_cursor(struct drm_crtc *crtc)
 {
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-    struct drm_via_private *dev_priv = crtc->dev->dev_private;
+    struct via_device *dev_priv = crtc->dev->dev_private;
     uint32_t temp;
 
     if (iga->index) {
@@ -207,7 +207,7 @@ static void
 via_show_cursor(struct drm_crtc *crtc)
 {
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-    struct drm_via_private *dev_priv = crtc->dev->dev_private;
+    struct via_device *dev_priv = crtc->dev->dev_private;
 
     if (!iga->cursor_kmap.bo)
         return;
@@ -282,7 +282,7 @@ static int
 via_crtc_cursor_move(struct drm_crtc *crtc, int x, int y)
 {
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-    struct drm_via_private *dev_priv = crtc->dev->dev_private;
+    struct via_device *dev_priv = crtc->dev->dev_private;
     unsigned char xoff = 0, yoff = 0;
     int xpos = x, ypos = y;
 
@@ -310,7 +310,7 @@ static void
 via_iga1_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
                     u16 *blue, uint32_t start, uint32_t size)
 {
-    struct drm_via_private *dev_priv = crtc->dev->dev_private;
+    struct via_device *dev_priv = crtc->dev->dev_private;
     int end = (start + size > 256) ? 256 : start + size, i;
     u8 val, sr1a = vga_rseq(VGABASE, 0x1A);
 
@@ -363,7 +363,7 @@ static void
 via_iga2_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
                     u16 *blue, uint32_t start, uint32_t size)
 {
-    struct drm_via_private *dev_priv = crtc->dev->dev_private;
+    struct via_device *dev_priv = crtc->dev->dev_private;
     int end = (start + size > 256) ? 256 : start + size, i;
     u8 sr1a = vga_rseq(VGABASE, 0x1A);
 
@@ -470,7 +470,7 @@ static const struct drm_crtc_funcs via_iga2_funcs = {
 };
 
 static void
-via_load_vpit_regs(struct drm_via_private *dev_priv)
+via_load_vpit_regs(struct via_device *dev_priv)
 {
     u8 ar[] = {0x00, 0x01, 0x02, 0x03,
                 0x04, 0x05, 0x06, 0x07,
@@ -509,7 +509,7 @@ static void
 via_load_fifo_regs(struct via_crtc *iga, struct drm_display_mode *mode)
 {
     u32 queue_expire_num = iga->display_queue_expire_num, reg_value;
-    struct drm_via_private *dev_priv = iga->base.dev->dev_private;
+    struct via_device *dev_priv = iga->base.dev->dev_private;
     int hor_active = mode->hdisplay, ver_active = mode->vdisplay;
     struct drm_device *dev = iga->base.dev;
 
@@ -551,7 +551,7 @@ via_load_crtc_pixel_timing(struct drm_crtc *crtc,
                             struct drm_display_mode *mode)
 {
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-    struct drm_via_private *dev_priv = crtc->dev->dev_private;
+    struct via_device *dev_priv = crtc->dev->dev_private;
     u32 reg_value = 0;
 
     reg_value = IGA1_PIXELTIMING_HOR_TOTAL_FORMULA(mode->crtc_htotal);
@@ -629,7 +629,7 @@ via_load_crtc_pixel_timing(struct drm_crtc *crtc,
 void
 via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 {
-    struct drm_via_private *dev_priv = iga->base.dev->dev_private;
+    struct via_device *dev_priv = iga->base.dev->dev_private;
     struct drm_device *dev = iga->base.dev;
     u32 reg_value = 0;
 
@@ -726,7 +726,7 @@ void
 via_set_scale_path(struct drm_crtc *crtc, u32 scale_type)
 {
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-    struct drm_via_private *dev_priv = crtc->dev->dev_private;
+    struct via_device *dev_priv = crtc->dev->dev_private;
     u8 reg_cr_fd = vga_rcrt(VGABASE, 0xFD);
     struct drm_device *dev = crtc->dev;
 
@@ -771,7 +771,7 @@ static void
 via_disable_iga_scaling(struct drm_crtc *crtc)
 {
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-    struct drm_via_private *dev_priv = crtc->dev->dev_private;
+    struct via_device *dev_priv = crtc->dev->dev_private;
 
     if (iga->index) {
         /* IGA2 scalings disable */
@@ -817,7 +817,7 @@ bool
 via_set_iga_scale_function(struct drm_crtc *crtc, u32 scale_type)
 {
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-    struct drm_via_private *dev_priv = crtc->dev->dev_private;
+    struct via_device *dev_priv = crtc->dev->dev_private;
 
     if (!(scale_type & (VIA_SHRINK + VIA_EXPAND)))
         return false;
@@ -901,7 +901,7 @@ via_set_iga_scale_function(struct drm_crtc *crtc, u32 scale_type)
  * 3. enable H or V scale ( set CRA2 bit7 or bit3 )
  */
 bool
-via_load_iga_scale_factor_regs(struct drm_via_private *dev_priv,
+via_load_iga_scale_factor_regs(struct via_device *dev_priv,
                                 struct drm_display_mode *mode,
                                 struct drm_display_mode *adjusted_mode,
                                 u32 scale_type, u32 is_hor_or_ver)
@@ -1045,7 +1045,7 @@ static void
 via_iga1_crtc_dpms(struct drm_crtc *crtc, int mode)
 {
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-    struct drm_via_private *dev_priv = crtc->dev->dev_private;
+    struct via_device *dev_priv = crtc->dev->dev_private;
 
     DRM_DEBUG("Entered via_iga1_crtc_dpms.\n");
 
@@ -1144,7 +1144,7 @@ via_iga1_crtc_mode_set(struct drm_crtc *crtc,
 {
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
     struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
-    struct drm_via_private *dev_priv = crtc->dev->dev_private;
+    struct via_device *dev_priv = crtc->dev->dev_private;
     struct drm_device *dev = crtc->dev;
     u8 reg_value = 0;
     int ret;
@@ -1286,7 +1286,7 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc,
 {
     u32 pitch = y * fb->pitches[0] + ((x * fb->bits_per_pixel) >> 3), addr;
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-    struct drm_via_private *dev_priv = crtc->dev->dev_private;
+    struct via_device *dev_priv = crtc->dev->dev_private;
     struct drm_gem_object *obj = fb->helper_private;
     struct ttm_buffer_object *bo = ttm_gem_mapping(obj);
 
@@ -1329,7 +1329,7 @@ static void
 via_iga2_crtc_dpms(struct drm_crtc *crtc, int mode)
 {
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-    struct drm_via_private *dev_priv = crtc->dev->dev_private;
+    struct via_device *dev_priv = crtc->dev->dev_private;
 
     DRM_DEBUG("Entered via_iga2_crtc_dpms.\n");
 
@@ -1428,7 +1428,7 @@ via_iga2_crtc_mode_set(struct drm_crtc *crtc,
 {
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
     struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
-    struct drm_via_private *dev_priv = crtc->dev->dev_private;
+    struct via_device *dev_priv = crtc->dev->dev_private;
     struct drm_device *dev = crtc->dev;
     int ret;
 
@@ -1599,7 +1599,7 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc,
 {
     u32 pitch = y * fb->pitches[0] + ((x * fb->bits_per_pixel) >> 3), addr;
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-    struct drm_via_private *dev_priv = crtc->dev->dev_private;
+    struct via_device *dev_priv = crtc->dev->dev_private;
     struct drm_gem_object *obj = fb->helper_private;
     struct ttm_buffer_object *bo = ttm_gem_mapping(obj);
 
@@ -1666,7 +1666,7 @@ static const struct drm_crtc_helper_funcs via_iga2_helper_funcs = {
 void
 via_crtc_init(struct drm_device *dev, int index)
 {
-    struct drm_via_private *dev_priv = dev->dev_private;
+    struct via_device *dev_priv = dev->dev_private;
     struct via_crtc *iga = &dev_priv->iga[index];
     struct drm_crtc *crtc = &iga->base;
     int cursor_size = 64 * 64 * 4, i;

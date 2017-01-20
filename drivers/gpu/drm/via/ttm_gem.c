@@ -69,7 +69,7 @@ ttm_gem_mapping(struct drm_gem_object *obj)
  */
 int ttm_mmap(struct file *filp, struct vm_area_struct *vma)
 {
-	struct drm_via_private *dev_priv;
+	struct via_device *dev_priv;
 	struct drm_file *file_priv;
 
 	if (unlikely(vma->vm_pgoff < DRM_FILE_PAGE_OFFSET))

@@ -36,7 +36,7 @@ static const struct drm_encoder_funcs via_tmds_enc_funcs = {
 static void
 via_tmds_dpms(struct drm_encoder *encoder, int mode)
 {
-	struct drm_via_private *dev_priv = encoder->dev->dev_private;
+	struct via_device *dev_priv = encoder->dev->dev_private;
 
 	switch (mode) {
 	case DRM_MODE_DPMS_SUSPEND:
@@ -123,7 +123,7 @@ static const struct drm_connector_helper_funcs via_dvi_connector_helper_funcs = 
 int
 via_tmds_init(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	struct via_connector *con;
 	struct via_encoder *enc;
 	int i2c_port = 0x3D;

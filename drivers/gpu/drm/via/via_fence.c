@@ -191,7 +191,7 @@ struct via_fence_pool *
 via_fence_pool_init(struct drm_device *dev, char *name, int domain,
 			int num_engines)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	struct via_fence_pool *pool = NULL;
 	int ret = 0, size, i;
 	void *par = NULL;

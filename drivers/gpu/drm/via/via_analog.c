@@ -36,7 +36,7 @@ static const struct drm_encoder_funcs via_dac_enc_funcs = {
 static void
 via_dac_dpms(struct drm_encoder *encoder, int mode)
 {
-	struct drm_via_private *dev_priv = encoder->dev->dev_private;
+	struct via_device *dev_priv = encoder->dev->dev_private;
 	u8 mask = 0;
 
 	switch (mode) {

@@ -36,7 +36,7 @@ via_encoder_commit(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
 	struct drm_encoder_helper_funcs *encoder_funcs = encoder->helper_private;
-	struct drm_via_private *dev_priv = encoder->dev->dev_private;
+	struct via_device *dev_priv = encoder->dev->dev_private;
 	struct drm_device *dev = encoder->dev;
 	struct via_crtc *iga = NULL;
 	u8 value = 0;
@@ -159,7 +159,7 @@ via_encoder_disable(struct drm_encoder *encoder)
 {
 	struct drm_encoder_helper_funcs *encoder_funcs = encoder->helper_private;
 	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
-	struct drm_via_private *dev_priv = encoder->dev->dev_private;
+	struct via_device *dev_priv = encoder->dev->dev_private;
 
 	/* First turn off the display */
 	encoder_funcs->dpms(encoder, DRM_MODE_DPMS_OFF);
@@ -214,7 +214,7 @@ via_set_sync_polarity(struct drm_encoder *encoder, struct drm_display_mode *mode
 			struct drm_display_mode *adjusted_mode)
 {
 	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
-	struct drm_via_private *dev_priv = encoder->dev->dev_private;
+	struct via_device *dev_priv = encoder->dev->dev_private;
 	u8 syncreg = 0;
 
 	if (adjusted_mode->flags & DRM_MODE_FLAG_NVSYNC)
@@ -370,7 +370,7 @@ static struct td_timer td_timer_regs[] = {
 static void
 via_init_td_timing_regs(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	unsigned int td_timer[4] = { 500, 50, 0, 510 }, i;
 	struct vga_registers timings;
 	u32 reg_value;
@@ -403,7 +403,7 @@ via_init_td_timing_regs(struct drm_device *dev)
 }
 
 static void
-via_i2c_reg_init(struct drm_via_private *dev_priv)
+via_i2c_reg_init(struct via_device *dev_priv)
 {
 	vga_wseq(VGABASE, 0x31, 0x01);
 	svga_wseq_mask(VGABASE, 0x31, 0x30, 0x30);
@@ -416,7 +416,7 @@ via_i2c_reg_init(struct drm_via_private *dev_priv)
 }
 
 static void
-via_hwcursor_init(struct drm_via_private *dev_priv)
+via_hwcursor_init(struct via_device *dev_priv)
 {
 	/* set 0 as transparent color key */
 	VIA_WRITE(PRIM_HI_TRANSCOLOR, 0);
@@ -438,7 +438,7 @@ via_hwcursor_init(struct drm_via_private *dev_priv)
 static void
 via_init_crtc_regs(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 
 	via_unlock_crtc(VGABASE, dev->pdev->device);
 
@@ -476,7 +476,7 @@ via_init_crtc_regs(struct drm_device *dev)
 static void
 via_display_init(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	u8 index = 0x3D, value;
 
 	/* Check if spread spectrum is enabled */
@@ -509,7 +509,7 @@ via_display_init(struct drm_device *dev)
 int
 via_modeset_init(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	int i;
 
 	drm_mode_config_init(dev);

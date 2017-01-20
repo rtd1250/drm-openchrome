@@ -69,7 +69,7 @@ static void
 via_enable_internal_lvds(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
-	struct drm_via_private *dev_priv = encoder->dev->dev_private;
+	struct via_device *dev_priv = encoder->dev->dev_private;
 	struct drm_device *dev = encoder->dev;
 
 	/* Turn on LCD panel */
@@ -155,7 +155,7 @@ static void
 via_disable_internal_lvds(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
-	struct drm_via_private *dev_priv = encoder->dev->dev_private;
+	struct via_device *dev_priv = encoder->dev->dev_private;
 	struct drm_device *dev = encoder->dev;
 
 	/* Turn off LCD panel */
@@ -230,7 +230,7 @@ via_disable_internal_lvds(struct drm_encoder *encoder)
 static void
 via_lvds_dpms(struct drm_encoder *encoder, int mode)
 {
-	struct drm_via_private *dev_priv = encoder->dev->dev_private;
+	struct via_device *dev_priv = encoder->dev->dev_private;
 	struct drm_device *dev = encoder->dev;
 	struct via_crtc *iga = NULL;
 
@@ -360,7 +360,7 @@ via_lcd_detect(struct drm_connector *connector,  bool force)
 		kfree(edid);
 		ret = connector_status_connected;
 	} else {
-		struct drm_via_private *dev_priv = connector->dev->dev_private;
+		struct via_device *dev_priv = connector->dev->dev_private;
 		u8 mask = BIT(1);
 
 		if (connector->dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266)
@@ -387,7 +387,7 @@ via_lcd_set_property(struct drm_connector *connector,
 			struct drm_property *property, uint64_t value)
 {
 	struct via_connector *con = container_of(connector, struct via_connector, base);
-	struct drm_via_private *dev_priv = connector->dev->dev_private;
+	struct via_device *dev_priv = connector->dev->dev_private;
 	struct drm_device *dev = connector->dev;
 	struct drm_property *prop;
 	uint64_t orig;
@@ -475,7 +475,7 @@ via_lcd_get_modes(struct drm_connector *connector)
 			native_mode->vrefresh = 50;
 			native_mode->hsync = 0;
 		} else {
-			struct drm_via_private *dev_priv = dev->dev_private;
+			struct via_device *dev_priv = dev->dev_private;
 			u8 reg_value = (vga_rcrt(VGABASE, 0x3F) & 0x0F);
 			int hdisplay = 0, vdisplay = 0;
 
@@ -663,7 +663,7 @@ static const struct dmi_system_id via_ttl_lvds[] = {
 void
 via_lvds_init(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	bool dual_channel = false, is_msb = false;
 	uint64_t dither = DRM_MODE_DITHERING_OFF;
 	struct drm_property *dithering;

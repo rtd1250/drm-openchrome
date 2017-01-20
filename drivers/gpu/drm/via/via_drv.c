@@ -61,7 +61,7 @@ MODULE_DEVICE_TABLE(pci, via_pci_table);
 static int
 via_detect_agp(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	struct drm_agp_info agp_info;
 	struct drm_agp_mode mode;
 	int ret = 0;
@@ -104,7 +104,7 @@ out_err0:
 	return ret;
 }
 
-static void via_agp_engine_init(struct drm_via_private *dev_priv)
+static void via_agp_engine_init(struct via_device *dev_priv)
 {
 	VIA_WRITE(VIA_REG_TRANSET, 0x00100000);
 	VIA_WRITE(VIA_REG_TRANSPACE, 0x00000000);
@@ -124,7 +124,7 @@ static void via_agp_engine_init(struct drm_via_private *dev_priv)
 static int
 via_mmio_setup(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	int ret, len = pci_resource_len(dev->pdev, 1);
 	void __iomem *regs = ioport_map(0x3c0, 100);
 	struct ttm_buffer_object *bo;
@@ -169,7 +169,7 @@ err:
 static void
 chip_revision_info(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	u8 tmp;
 
 	switch (dev->pdev->device) {
@@ -211,7 +211,7 @@ chip_revision_info(struct drm_device *dev)
 static int via_dumb_create(struct drm_file *filp, struct drm_device *dev,
 				struct drm_mode_create_dumb *args)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	struct drm_gem_object *obj;
 	int ret;
 
@@ -257,7 +257,7 @@ static int gem_dumb_destroy(struct drm_file *filp, struct drm_device *dev,
 
 static int via_driver_unload(struct drm_device *dev)
 {
-	struct drm_via_private *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 	struct ttm_buffer_object *bo;
 	int ret = 0;
 
@@ -312,12 +312,12 @@ static int via_driver_unload(struct drm_device *dev)
 static int
 via_driver_load(struct drm_device *dev, unsigned long chipset)
 {
-	struct drm_via_private *dev_priv;
+	struct via_device *dev_priv;
 	int ret = 0;
 
     DRM_INFO("Entered via_driver_load.\n");
 
-    dev_priv = kzalloc(sizeof(struct drm_via_private), GFP_KERNEL);
+    dev_priv = kzalloc(sizeof(struct via_device), GFP_KERNEL);
 	if (!dev_priv) {
         ret = -ENOMEM;
         DRM_ERROR("Failed to allocate private storage memory.\n");
