@@ -106,6 +106,15 @@ via_ttm_global_init(struct drm_global_reference *global_ref,
     return rc;
 }
 
+static void
+ttm_buffer_object_destroy(struct ttm_buffer_object *bo)
+{
+    struct ttm_heap *heap = container_of(bo, struct ttm_heap, pbo);
+
+    kfree(heap);
+    heap = NULL;
+}
+
 static struct ttm_tt *
 via_ttm_tt_create(struct ttm_bo_device *bdev, unsigned long size,
 			uint32_t page_flags, struct page *dummy_read_page)
@@ -588,4 +597,132 @@ void via_mm_fini(struct drm_device *dev)
     dev_priv->vram_mtrr = 0;
 
     DRM_DEBUG("Exiting via_mm_fini.\n");
+}
+
+/*
+ * the buffer object domain
+ */
+void
+ttm_placement_from_domain(struct ttm_buffer_object *bo, struct ttm_placement *placement, u32 domains,
+                struct ttm_bo_device *bdev)
+{
+    struct ttm_heap *heap = container_of(bo, struct ttm_heap, pbo);
+    int cnt = 0, i = 0;
+
+    if (!(domains & TTM_PL_MASK_MEM))
+        domains = TTM_PL_FLAG_SYSTEM;
+
+    do {
+        int domain = (domains & (1 << i));
+
+        if (domain) {
+            heap->busy_placements[cnt].flags = (domain | bdev->man[i].default_caching);
+            heap->busy_placements[cnt].fpfn = heap->busy_placements[cnt].lpfn = 0;
+            heap->placements[cnt].flags = (domain | bdev->man[i].available_caching);
+            heap->placements[cnt].fpfn = heap->placements[cnt].lpfn = 0;
+            cnt++;
+        }
+    } while (i++ < TTM_NUM_MEM_TYPES);
+
+    placement->num_busy_placement = placement->num_placement = cnt;
+    placement->busy_placement = heap->busy_placements;
+    placement->placement = heap->placements;
+}
+
+int
+via_bo_create(struct ttm_bo_device *bdev,
+        unsigned long size,
+        enum ttm_bo_type origin,
+        uint32_t domains,
+        uint32_t byte_align,
+        uint32_t page_align,
+        bool interruptible,
+        struct sg_table *sg,
+        struct reservation_object *resv,
+        struct ttm_buffer_object **p_bo)
+{
+    struct ttm_buffer_object *bo = NULL;
+    struct ttm_placement placement;
+    struct ttm_heap *heap;
+    size_t acc_size;
+    int ret = -ENOMEM;
+
+    DRM_DEBUG("Entered via_bo_create.\n");
+
+    size = round_up(size, byte_align);
+    size = ALIGN(size, page_align);
+
+    heap = kzalloc(sizeof(struct ttm_heap), GFP_KERNEL);
+    if (unlikely(!heap)) {
+        DRM_ERROR("Failed to allocate kernel memory.");
+        goto exit;
+    }
+
+    bo = &heap->pbo;
+
+    ttm_placement_from_domain(bo, &placement, domains, bdev);
+
+    acc_size = ttm_bo_dma_acc_size(bdev, size,
+                                    sizeof(struct ttm_heap));
+
+    ret = ttm_bo_init(bdev, bo, size, origin, &placement,
+              page_align >> PAGE_SHIFT,
+              interruptible, NULL, acc_size,
+              sg, NULL, ttm_buffer_object_destroy);
+
+    if (unlikely(ret)) {
+        DRM_ERROR("Failed to initialize a TTM Buffer Object.");
+        goto error;
+    }
+
+    *p_bo = bo;
+    goto exit;
+error:
+    kfree(heap);
+exit:
+    DRM_DEBUG("Exiting via_bo_create.\n");
+    return ret;
+}
+
+int
+via_bo_pin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
+{
+    struct ttm_heap *heap = container_of(bo, struct ttm_heap, pbo);
+    struct ttm_placement placement;
+    int ret;
+
+    ret = ttm_bo_reserve(bo, true, false, false, 0);
+    if (!ret) {
+        placement.placement = heap->placements;
+        placement.num_placement = 1;
+
+        heap->placements[0].flags = (bo->mem.placement | TTM_PL_FLAG_NO_EVICT);
+        ret = ttm_bo_validate(bo, &placement, false, false);
+        if (!ret && kmap)
+            ret = ttm_bo_kmap(bo, 0, bo->num_pages, kmap);
+        ttm_bo_unreserve(bo);
+    }
+    return ret;
+}
+
+int
+ttm_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
+{
+    struct ttm_heap *heap = container_of(bo, struct ttm_heap, pbo);
+    struct ttm_placement placement;
+    int ret;
+
+    ret = ttm_bo_reserve(bo, true, false, false, 0);
+    if (!ret) {
+        if (kmap)
+            ttm_bo_kunmap(kmap);
+
+        placement.placement = heap->placements;
+        placement.num_placement = 1;
+
+        heap->placements[0].flags = (bo->mem.placement & ~TTM_PL_FLAG_NO_EVICT);
+        ret = ttm_bo_validate(bo, &placement, false, false);
+        ttm_bo_unreserve(bo);
+    }
+    return ret;
 }
