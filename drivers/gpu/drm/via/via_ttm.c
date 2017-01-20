@@ -558,7 +558,6 @@ int via_mm_init(struct via_device *dev_priv)
 {
     int ret;
     struct drm_device *dev = dev_priv->dev;
-    struct ttm_bo_device *bdev = &dev_priv->bdev;
 
     DRM_DEBUG("Entered via_mm_init.\n");
 
