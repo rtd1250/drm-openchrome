@@ -1,4 +1,7 @@
 /*
+ * Copyright 2014 James Simmons <jsimmons@infradead.org>
+ * Influenced by sample code from VIA Technologies and the radeon driver.
+ *
  * Copyright 1998-2003 VIA Technologies, Inc. All Rights Reserved.
  * Copyright 2001-2003 S3 Graphics, Inc. All Rights Reserved.
  *
@@ -47,7 +50,6 @@
 #include <drm/via_drm.h>
 
 #include "via_regs.h"
-#include "via_mem.h"
 #include "via_fence.h"
 #include "via_dma.h"
 #include "via_verifier.h"

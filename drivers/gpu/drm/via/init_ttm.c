@@ -23,7 +23,6 @@
  */
 #include "drmP.h"
 #include "via_drv.h"
-#include "via_mem.h"
 
 int
 ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev, unsigned long size,
