@@ -41,23 +41,6 @@ via_ttm_mem_global_release(struct drm_global_reference *ref)
     ttm_mem_global_release(ref->object);
 }
 
-void
-via_ttm_global_release(struct drm_global_reference *global_ref,
-            struct ttm_bo_global_ref *global_bo,
-            struct ttm_bo_device *bdev)
-{
-    DRM_DEBUG("Entered via_ttm_global_release.\n");
-
-    if (global_ref->release == NULL)
-        return;
-
-    drm_global_item_unref(&global_bo->ref);
-    drm_global_item_unref(global_ref);
-    global_ref->release = NULL;
-
-    DRM_DEBUG("Exiting via_ttm_global_release.\n");
-}
-
 static int
 via_ttm_global_init(struct via_device *dev_priv)
 {
@@ -94,6 +77,23 @@ via_ttm_global_init(struct via_device *dev_priv)
     }
 
     return rc;
+}
+
+void
+via_ttm_global_release(struct drm_global_reference *global_ref,
+            struct ttm_bo_global_ref *global_bo,
+            struct ttm_bo_device *bdev)
+{
+    DRM_DEBUG("Entered via_ttm_global_release.\n");
+
+    if (global_ref->release == NULL)
+        return;
+
+    drm_global_item_unref(&global_bo->ref);
+    drm_global_item_unref(global_ref);
+    global_ref->release = NULL;
+
+    DRM_DEBUG("Exiting via_ttm_global_release.\n");
 }
 
 static void
