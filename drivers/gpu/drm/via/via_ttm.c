@@ -710,7 +710,7 @@ via_bo_pin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
 }
 
 int
-ttm_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
+via_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
 {
     struct ttm_heap *heap = container_of(bo, struct ttm_heap, pbo);
     struct ttm_placement placement;

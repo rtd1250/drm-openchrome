@@ -447,7 +447,7 @@ via_crtc_destroy(struct drm_crtc *crtc)
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 
     if (iga->cursor_kmap.bo) {
-        ttm_bo_unpin(iga->cursor_kmap.bo, &iga->cursor_kmap);
+        via_bo_unpin(iga->cursor_kmap.bo, &iga->cursor_kmap);
         ttm_bo_unref(&iga->cursor_kmap.bo);
     }
     drm_crtc_cleanup(crtc);
@@ -1261,7 +1261,7 @@ via_iga1_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
             ENTER_ATOMIC_MODE_SET);
     if (unlikely(ret)) {
         DRM_DEBUG("failed to set new framebuffer\n");
-        ttm_bo_unpin(bo, NULL);
+        via_bo_unpin(bo, NULL);
         return ret;
     }
 
@@ -1270,7 +1270,7 @@ via_iga1_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
         obj = fb->helper_private;
         bo = ttm_gem_mapping(obj);
 
-        ret = ttm_bo_unpin(bo, NULL);
+        ret = via_bo_unpin(bo, NULL);
         if (unlikely(ret))
             DRM_ERROR("framebuffer still locked\n");
     }
@@ -1574,7 +1574,7 @@ via_iga2_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
             ENTER_ATOMIC_MODE_SET);
     if (unlikely(ret)) {
         DRM_DEBUG("failed to set new framebuffer\n");
-        ttm_bo_unpin(bo, NULL);
+        via_bo_unpin(bo, NULL);
         return ret;
     }
 
@@ -1583,7 +1583,7 @@ via_iga2_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
         obj = fb->helper_private;
         bo = ttm_gem_mapping(obj);
 
-        ret = ttm_bo_unpin(bo, NULL);
+        ret = via_bo_unpin(bo, NULL);
         if (unlikely(ret))
             DRM_ERROR("framebuffer still locked\n");
     }

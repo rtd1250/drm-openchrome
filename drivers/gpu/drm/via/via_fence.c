@@ -271,7 +271,7 @@ via_fence_pool_fini(struct via_fence_pool *pool)
 
 	sync_bo = pool->fence_sync.bo;
 	if (sync_bo) {
-		ttm_bo_unpin(sync_bo, &pool->fence_sync);
+		via_bo_unpin(sync_bo, &pool->fence_sync);
 		ttm_bo_unref(&sync_bo);
 	}
 

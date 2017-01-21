@@ -134,7 +134,7 @@ int via_dma_cleanup(struct drm_device *dev)
 
 			via_cmdbuf_reset(dev_priv);
 
-			ttm_bo_unpin(bo, &dev_priv->dmabuf);
+			via_bo_unpin(bo, &dev_priv->dmabuf);
 			ttm_bo_unref(&bo);
 			dev_priv->dmabuf.virtual = NULL;
 		}

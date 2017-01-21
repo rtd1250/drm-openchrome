@@ -280,7 +280,7 @@ static int via_driver_unload(struct drm_device *dev)
 
 	bo = dev_priv->vq.bo;
 	if (bo) {
-		ttm_bo_unpin(bo, &dev_priv->vq);
+		via_bo_unpin(bo, &dev_priv->vq);
 		ttm_bo_unref(&bo);
 	}
 
@@ -289,13 +289,13 @@ static int via_driver_unload(struct drm_device *dev)
 		/* enable gtt write */
 		if (pci_is_pcie(dev->pdev))
 			svga_wseq_mask(VGABASE, 0x6C, 0, BIT(7));
-		ttm_bo_unpin(bo, &dev_priv->gart);
+		via_bo_unpin(bo, &dev_priv->gart);
 		ttm_bo_unref(&bo);
 	}
 
 	bo = dev_priv->mmio.bo;
 	if (bo) {
-		ttm_bo_unpin(bo, &dev_priv->mmio);
+		via_bo_unpin(bo, &dev_priv->mmio);
 		ttm_bo_unref(&bo);
 	}
 

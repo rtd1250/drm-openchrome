@@ -253,7 +253,7 @@ extern int via_bo_create(struct ttm_bo_device *bdev, unsigned long size,
                struct reservation_object *resv,
                struct ttm_buffer_object **p_bo);
 extern int via_bo_pin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap);
-extern int ttm_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap);
+extern int via_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap);
 
 extern int ttm_mmap(struct file *filp, struct vm_area_struct *vma);
 

@@ -1064,7 +1064,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 out_err:
 	if (ret < 0) {
 		if (kmap->bo) {
-			ttm_bo_unpin(kmap->bo, kmap);
+			via_bo_unpin(kmap->bo, kmap);
 			ttm_bo_unref(&kmap->bo);
 		}
 
@@ -1249,7 +1249,7 @@ via_framebuffer_fini(struct drm_device *dev)
 
 	ttmfb = container_of(helper, struct ttm_fb_helper, base);
 	if (ttmfb->kmap.bo) {
-		ttm_bo_unpin(ttmfb->kmap.bo, &ttmfb->kmap);
+		via_bo_unpin(ttmfb->kmap.bo, &ttmfb->kmap);
 		ttm_bo_unref(&ttmfb->kmap.bo);
 	}
 
