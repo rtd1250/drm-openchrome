@@ -30,7 +30,7 @@
 #define DRM_FILE_PAGE_OFFSET (0x100000000ULL >> PAGE_SHIFT)
 
 static int
-via_ttm_global_mem_init(struct drm_global_reference *ref)
+via_ttm_mem_global_init(struct drm_global_reference *ref)
 {
     return ttm_mem_global_init(ref->object);
 }
@@ -68,7 +68,7 @@ via_ttm_global_init(struct via_device *dev_priv)
     global_ref = &dev_priv->mem_global_ref;
     global_ref->global_type = DRM_GLOBAL_TTM_MEM;
     global_ref->size = sizeof(struct ttm_mem_global);
-    global_ref->init = &via_ttm_global_mem_init;
+    global_ref->init = &via_ttm_mem_global_init;
     global_ref->release = &via_ttm_global_mem_release;
 
     rc = drm_global_item_ref(global_ref);
