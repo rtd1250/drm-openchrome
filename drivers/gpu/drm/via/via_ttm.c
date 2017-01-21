@@ -79,7 +79,7 @@ via_ttm_global_init(struct via_device *dev_priv)
     return rc;
 }
 
-void
+static void
 via_ttm_global_release(struct drm_global_reference *global_ref,
             struct ttm_bo_global_ref *global_bo,
             struct ttm_bo_device *bdev)

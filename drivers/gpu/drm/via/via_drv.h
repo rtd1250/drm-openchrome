@@ -238,9 +238,6 @@ extern int ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev, unsigned long 
                       uint32_t alignment, uint32_t domain,
                       struct ttm_bo_kmap_obj *kmap);
 
-extern void via_ttm_global_release(struct drm_global_reference *global_ref,
-                struct ttm_bo_global_ref *global_bo,
-                struct ttm_bo_device *bdev);
 extern int via_mm_init(struct via_device *dev_priv);
 void via_mm_fini(struct drm_device *dev);
 extern void ttm_placement_from_domain(struct ttm_buffer_object *bo,
