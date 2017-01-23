@@ -700,7 +700,7 @@ int via_detect_vram(struct drm_device *dev)
 	char *name = "Unknown";
 	struct pci_bus *bus;
 	u8 size;
-    int ret;
+    int ret = 0;
 
     DRM_DEBUG("Entered via_detect_vram.\n");
 
