@@ -562,8 +562,10 @@ int via_mm_init(struct via_device *dev_priv)
     DRM_DEBUG("Entered via_mm_init.\n");
 
     ret = via_ttm_global_init(dev_priv);
-	if (ret)
-	    return ret;
+	if (ret) {
+        DRM_ERROR("Failed to initialise TTM: %d\n", ret);
+        goto exit;
+	}
 
 	dev_priv->bdev.dev_mapping = dev->anon_inode->i_mapping;
 
@@ -575,8 +577,22 @@ int via_mm_init(struct via_device *dev_priv)
                                 false);
     if (ret) {
         DRM_ERROR("Error initialising bo driver: %d\n", ret);
+        goto exit;
     }
 
+    ret = ttm_bo_init_mm(&dev_priv->bdev, TTM_PL_VRAM, dev_priv->vram_size >> PAGE_SHIFT);
+    if (ret) {
+        DRM_ERROR("Failed to map video RAM: %d\n", ret);
+        goto exit;
+    }
+
+    /* Add an MTRR for the VRAM. */
+    dev_priv->vram_mtrr = arch_phys_wc_add(dev_priv->vram_start, dev_priv->vram_size);
+
+    DRM_INFO("Mapped %llu MB of video RAM at physical address 0x%08llx.\n",
+                (unsigned long long) dev_priv->vram_size >> 20, dev_priv->vram_start);
+
+exit:
     DRM_DEBUG("Exiting via_mm_init.\n");
 	return ret;
 }

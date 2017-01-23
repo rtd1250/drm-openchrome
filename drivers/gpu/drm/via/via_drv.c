@@ -331,15 +331,15 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
 
 	via_init_command_verifier();
 
+    ret = via_detect_vram(dev);
+    if (ret) {
+        DRM_ERROR("Failed to initialize video RAM.\n");
+        goto init_error;
+    }
+
 	ret = via_mm_init(dev_priv);
 	if (ret) {
         DRM_ERROR("Failed to initialize TTM.\n");
-		goto init_error;
-	}
-
-	ret = via_detect_vram(dev);
-	if (ret) {
-        DRM_ERROR("Failed to initialize video RAM.\n");
 		goto init_error;
 	}
 
