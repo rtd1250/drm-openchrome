@@ -695,14 +695,16 @@ vx900_mem_type(struct via_device *dev_priv, struct pci_dev *fn3)
 int via_detect_vram(struct drm_device *dev)
 {
 	struct via_device *dev_priv = dev->dev_private;
-	struct pci_dev *bridge = NULL, *fn3 = NULL;
-	unsigned long long vram_start;
-	int vram_size = 0, ret = 0;
+	struct pci_dev *bridge = NULL;
+	struct pci_dev *fn3 = NULL;
 	char *name = "Unknown";
 	struct pci_bus *bus;
 	u8 size;
+    int ret;
 
-	bus = pci_find_bus(0, 0);
+    DRM_DEBUG("Entered via_detect_vram.\n");
+
+    bus = pci_find_bus(0, 0);
 	if (bus == NULL) {
 		ret = -EINVAL;
 		goto out_err;
@@ -723,7 +725,7 @@ int via_detect_vram(struct drm_device *dev)
 		DRM_ERROR("No function 3 on host bridge...\n");
 		goto out_err;
 	}
-	vram_start = pci_resource_start(dev->pdev, 0);
+	dev_priv->vram_start = pci_resource_start(dev->pdev, 0);
 
 	switch (bridge->device) {
 
@@ -736,7 +738,7 @@ int via_detect_vram(struct drm_device *dev)
 		ret = pci_read_config_byte(bridge, 0xE1, &size);
 		if (ret)
 			goto out_err;
-		vram_size = (1 << ((size & 0x70) >> 4)) << 20;
+		dev_priv->vram_size = (1 << ((size & 0x70) >> 4)) << 20;
 		break;
 
 	/* KM400/KN400 */
@@ -746,7 +748,7 @@ int via_detect_vram(struct drm_device *dev)
 		ret = pci_read_config_byte(bridge, 0xE1, &size);
 		if (ret)
 			goto out_err;
-		vram_size = (1 << ((size & 0x70) >> 4)) << 20;
+		dev_priv->vram_size = (1 << ((size & 0x70) >> 4)) << 20;
 		break;
 
 	/* P4M800 */
@@ -756,7 +758,7 @@ int via_detect_vram(struct drm_device *dev)
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
 		if (ret)
 			goto out_err;
-		vram_size = (1 << ((size & 0x70) >> 4)) << 20;
+		dev_priv->vram_size = (1 << ((size & 0x70) >> 4)) << 20;
 		break;
 
 	/* K8M800/K8N800 */
@@ -766,10 +768,10 @@ int via_detect_vram(struct drm_device *dev)
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
 		if (ret)
 			goto out_err;
-		vram_size = (1 << ((size & 0x70) >> 4)) << 20;
+		dev_priv->vram_size = (1 << ((size & 0x70) >> 4)) << 20;
 
 		if (bridge->device == PCI_DEVICE_ID_VIA_VT3336)
-			vram_size <<= 2;
+			dev_priv->vram_size <<= 2;
 
 		ret = km8xx_mem_type(dev_priv);
 		if (ret)
@@ -781,7 +783,7 @@ int via_detect_vram(struct drm_device *dev)
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
 		if (ret)
 			goto out_err;
-		vram_size = (1 << ((size & 0x70) >> 4)) << 20;
+		dev_priv->vram_size = (1 << ((size & 0x70) >> 4)) << 20;
 
 		ret = cn400_mem_type(dev_priv, bus, fn3);
 		if (ret)
@@ -795,10 +797,10 @@ int via_detect_vram(struct drm_device *dev)
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
 		if (ret)
 			goto out_err;
-		vram_size = (1 << ((size & 0x70) >> 4)) << 20;
+		dev_priv->vram_size = (1 << ((size & 0x70) >> 4)) << 20;
 
 		if (bridge->device != PCI_DEVICE_ID_VIA_P4M800CE)
-			vram_size <<= 2;
+			dev_priv->vram_size <<= 2;
 
 		ret = cn700_mem_type(dev_priv, fn3);
 		if  (ret)
@@ -816,7 +818,7 @@ int via_detect_vram(struct drm_device *dev)
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
 		if (ret)
 			goto out_err;
-		vram_size = (1 << ((size & 0x70) >> 4)) << 22;
+		dev_priv->vram_size = (1 << ((size & 0x70) >> 4)) << 22;
 
 		ret = cx700_mem_type(dev_priv, fn3);
 		if (ret)
@@ -825,12 +827,12 @@ int via_detect_vram(struct drm_device *dev)
 
 	/* VX900 */
 	case PCI_DEVICE_ID_VIA_VT3410:
-		vram_start = pci_resource_start(dev->pdev, 2);
+		dev_priv->vram_start = pci_resource_start(dev->pdev, 2);
 
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
 		if (ret)
 			goto out_err;
-		vram_size = (1 << ((size & 0x70) >> 4)) << 22;
+		dev_priv->vram_size = (1 << ((size & 0x70) >> 4)) << 22;
 
 		ret = vx900_mem_type(dev_priv, fn3);
 		if (ret)
@@ -838,7 +840,7 @@ int via_detect_vram(struct drm_device *dev)
 		break;
 
 	default:
-		DRM_ERROR("Unknown North Bridge device 0x%04x.\n", bridge->device);
+		DRM_ERROR("Unknown north bridge device 0x%04x.\n", bridge->device);
 		goto out_err;
 	}
 
@@ -902,18 +904,21 @@ int via_detect_vram(struct drm_device *dev)
 	}
 
 	/* Add an MTRR for the VRAM */
-	dev_priv->vram_mtrr = arch_phys_wc_add(vram_start, vram_size);
+	dev_priv->vram_mtrr = arch_phys_wc_add(dev_priv->vram_start, dev_priv->vram_size);
 
-	ret = ttm_bo_init_mm(&dev_priv->bdev, TTM_PL_VRAM, vram_size >> PAGE_SHIFT);
+	ret = ttm_bo_init_mm(&dev_priv->bdev, TTM_PL_VRAM, dev_priv->vram_size >> PAGE_SHIFT);
 	if (!ret) {
-		DRM_INFO("Detected %llu MB of %s Video RAM at physical address 0x%08llx.\n",
-			(unsigned long long) vram_size >> 20, name, vram_start);
+		DRM_INFO("Detected %llu MB of %s video RAM at physical address 0x%08llx.\n",
+			(unsigned long long) dev_priv->vram_size >> 20, name, dev_priv->vram_start);
 	}
+
 out_err:
 	if (bridge)
 		pci_dev_put(bridge);
 	if (fn3)
 		pci_dev_put(fn3);
+
+	DRM_DEBUG("Exiting via_detect_vram.\n");
 	return ret;
 }
 
