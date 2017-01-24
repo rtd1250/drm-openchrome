@@ -240,12 +240,11 @@ static int gem_dumb_destroy(struct drm_file *filp, struct drm_device *dev,
 static int
 via_device_init(struct via_device *dev_priv)
 {
-    struct drm_device *dev = dev_priv->dev;
     int ret;
 
     DRM_DEBUG("Entered via_device_init.\n");
 
-    ret = via_vram_init(dev);
+    ret = via_vram_init(dev_priv);
     if (ret) {
         DRM_ERROR("Failed to initialize video RAM.\n");
         goto exit;

@@ -692,9 +692,9 @@ vx900_mem_type(struct via_device *dev_priv, struct pci_dev *fn3)
 	return ret;
 }
 
-int via_vram_init(struct drm_device *dev)
+int via_vram_init(struct via_device *dev_priv)
 {
-	struct via_device *dev_priv = dev->dev_private;
+	struct drm_device *dev = dev_priv->dev;
 	struct pci_dev *bridge = NULL;
 	struct pci_dev *fn3 = NULL;
 	char *name = "unknown";
