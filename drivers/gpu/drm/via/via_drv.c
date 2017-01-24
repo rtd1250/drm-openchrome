@@ -121,14 +121,13 @@ static void via_agp_engine_init(struct via_device *dev_priv)
 }
 #endif
 
-static int
+static void
 via_mmio_setup(struct drm_device *dev)
 {
-	struct via_device *dev_priv = dev->dev_private;
-	int ret, len = pci_resource_len(dev->pdev, 1);
 	void __iomem *regs = ioport_map(0x3c0, 100);
-	struct ttm_buffer_object *bo;
 	u8 val;
+
+	DRM_INFO("Entered via_mmio_setup.\n");
 
 	val = ioread8(regs + 0x03);
 	iowrite8(val | 0x1, regs + 0x03);
@@ -146,24 +145,7 @@ via_mmio_setup(struct drm_device *dev)
 	val = ioread8(regs + 0x05);
 	iowrite8(val | 0x38, regs + 0x05);
 
-	ret = ttm_bo_init_mm(&dev_priv->bdev, TTM_PL_PRIV0,
-				len >> PAGE_SHIFT);
-	if (ret)
-		return ret;
-
-	ret = via_bo_create(&dev_priv->bdev, VIA_MMIO_REGSIZE, ttm_bo_type_kernel,
-			      TTM_PL_FLAG_PRIV0, 1, PAGE_SIZE, false, NULL, NULL, &bo);
-	if (ret)
-		goto err;
-
-	ret = via_bo_pin(bo, &dev_priv->mmio);
-err:
-	if (!ret)
-		DRM_INFO("Detected MMIO at physical address 0x%08llx.\n",
-			(unsigned long long) pci_resource_start(dev->pdev, 1));
-	else
-		ttm_bo_clean_mm(&dev_priv->bdev, TTM_PL_PRIV0);
-	return ret;
+    DRM_INFO("Exiting via_mmio_setup.\n");
 }
 
 static void
@@ -343,11 +325,7 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
 		goto init_error;
 	}
 
-	ret = via_mmio_setup(dev);
-	if (ret) {
-		DRM_ERROR("Failed to map Chrome IGP MMIO region.\n");
-		goto init_error;
-	}
+	via_mmio_setup(dev);
 
 	chip_revision_info(dev);
 
