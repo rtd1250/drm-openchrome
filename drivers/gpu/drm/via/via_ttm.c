@@ -773,3 +773,22 @@ via_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
     }
     return ret;
 }
+
+int
+ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev, unsigned long size,
+                uint32_t alignment, uint32_t domain,
+                struct ttm_bo_kmap_obj *kmap)
+{
+    int ret = via_bo_create(bdev, size, ttm_bo_type_kernel, domain,
+                  alignment, PAGE_SIZE, false, NULL,
+                  NULL, &kmap->bo);
+    if (likely(!ret)) {
+        ret = via_bo_pin(kmap->bo, kmap);
+        if (unlikely(ret)) {
+            DRM_ERROR("failed to mmap the buffer\n");
+            ttm_bo_unref(&kmap->bo);
+            kmap->bo = NULL;
+        }
+    }
+    return ret;
+}
