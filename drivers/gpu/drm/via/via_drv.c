@@ -237,6 +237,25 @@ static int gem_dumb_destroy(struct drm_file *filp, struct drm_device *dev,
 	return drm_gem_handle_delete(filp, handle);
 }
 
+static int
+via_device_init(struct via_device *dev_priv)
+{
+    struct drm_device *dev = dev_priv->dev;
+    int ret;
+
+    DRM_DEBUG("Entered via_device_init.\n");
+
+    ret = via_detect_vram(dev);
+    if (ret) {
+        DRM_ERROR("Failed to initialize video RAM.\n");
+        goto exit;
+    }
+
+exit:
+    DRM_DEBUG("Exiting via_device_init.\n");
+    return ret;
+}
+
 static int via_driver_unload(struct drm_device *dev)
 {
 	struct via_device *dev_priv = dev->dev_private;
@@ -313,13 +332,13 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
 
 	via_init_command_verifier();
 
-    ret = via_detect_vram(dev);
+    ret = via_device_init(dev_priv);
     if (ret) {
-        DRM_ERROR("Failed to initialize video RAM.\n");
+        DRM_ERROR("Failed to initialize Chrome IGP.\n");
         goto init_error;
     }
 
-	ret = via_mm_init(dev_priv);
+    ret = via_mm_init(dev_priv);
 	if (ret) {
         DRM_ERROR("Failed to initialize TTM.\n");
 		goto init_error;
