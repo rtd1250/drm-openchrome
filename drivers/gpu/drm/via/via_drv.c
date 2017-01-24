@@ -245,7 +245,7 @@ via_device_init(struct via_device *dev_priv)
 
     DRM_DEBUG("Entered via_device_init.\n");
 
-    ret = via_detect_vram(dev);
+    ret = via_vram_init(dev);
     if (ret) {
         DRM_ERROR("Failed to initialize video RAM.\n");
         goto exit;

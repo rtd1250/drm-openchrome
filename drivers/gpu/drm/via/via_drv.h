@@ -219,7 +219,7 @@ extern int via_pci_cmdbuffer(struct drm_device *dev, void *data, struct drm_file
 extern int via_wait_irq(struct drm_device *dev, void *data, struct drm_file *file_priv);
 extern int via_wait_idle(struct via_device *dev_priv);
 
-extern int via_detect_vram(struct drm_device *dev);
+extern int via_vram_init(struct drm_device *dev);
 
 extern int via_enable_vblank(struct drm_device *dev, int crtc);
 extern void via_disable_vblank(struct drm_device *dev, int crtc);

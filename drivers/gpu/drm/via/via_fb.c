@@ -692,7 +692,7 @@ vx900_mem_type(struct via_device *dev_priv, struct pci_dev *fn3)
 	return ret;
 }
 
-int via_detect_vram(struct drm_device *dev)
+int via_vram_init(struct drm_device *dev)
 {
 	struct via_device *dev_priv = dev->dev_private;
 	struct pci_dev *bridge = NULL;
@@ -702,7 +702,7 @@ int via_detect_vram(struct drm_device *dev)
 	u8 size;
     int ret = 0;
 
-    DRM_DEBUG("Entered via_detect_vram.\n");
+    DRM_DEBUG("Entered via_vram_init.\n");
 
     bus = pci_find_bus(0, 0);
 	if (bus == NULL) {
@@ -911,7 +911,7 @@ out_err:
 	if (fn3)
 		pci_dev_put(fn3);
 
-	DRM_DEBUG("Exiting via_detect_vram.\n");
+	DRM_DEBUG("Exiting via_vram_init.\n");
 	return ret;
 }
 
