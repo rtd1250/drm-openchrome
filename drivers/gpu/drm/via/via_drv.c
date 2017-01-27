@@ -122,7 +122,7 @@ static void via_agp_engine_init(struct via_device *dev_priv)
 #endif
 
 static void
-via_mmio_setup(struct drm_device *dev)
+via_mmio_setup(struct via_device *dev_priv)
 {
 	void __iomem *regs = ioport_map(0x3c0, 100);
 	u8 val;
@@ -343,7 +343,7 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
 		goto init_error;
 	}
 
-	via_mmio_setup(dev);
+    via_mmio_setup(dev_priv);
 
 	chip_revision_info(dev);
 
