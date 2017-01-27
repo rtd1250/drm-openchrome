@@ -450,28 +450,37 @@ static int
 via_bo_move(struct ttm_buffer_object *bo, bool evict, bool interruptible,
 		bool no_wait_gpu, struct ttm_mem_reg *new_mem)
 {
-	struct ttm_mem_reg *old_mem = &bo->mem;
+    struct ttm_mem_reg *old_mem = &bo->mem;
 	int ret = 0;
+
+	DRM_DEBUG("Entered via_bo_move.\n");
+
+    if ((old_mem->mem_type == TTM_PL_SYSTEM) && (!bo->ttm)) {
+        BUG_ON(old_mem->mm_node != NULL);
+        *old_mem = *new_mem;
+        new_mem->mm_node = NULL;
+        goto exit;
+    }
 
 	/* No real memory copy. Just use the new_mem
 	 * directly. */
-	if ((old_mem->mem_type == TTM_PL_SYSTEM &&
-	    (new_mem->mem_type == TTM_PL_TT || !bo->ttm)) ||
-	    (old_mem->mem_type == TTM_PL_TT &&
-	     new_mem->mem_type == TTM_PL_SYSTEM) ||
-	    (new_mem->mem_type == TTM_PL_PRIV0)) {
+	if (((old_mem->mem_type == TTM_PL_SYSTEM)
+	        && (new_mem->mem_type == TTM_PL_TT))
+        || ((old_mem->mem_type == TTM_PL_TT)
+            && (new_mem->mem_type == TTM_PL_SYSTEM))
+	    || (new_mem->mem_type == TTM_PL_PRIV0)) {
 		BUG_ON(old_mem->mm_node != NULL);
 		*old_mem = *new_mem;
 		new_mem->mm_node = NULL;
-		return ret;
+        goto exit;
 	}
 
 	/* Accelerated copy involving the VRAM. */
-	if (old_mem->mem_type == TTM_PL_VRAM &&
-	    new_mem->mem_type == TTM_PL_SYSTEM) {
+	if ((old_mem->mem_type == TTM_PL_VRAM)
+        && (new_mem->mem_type == TTM_PL_SYSTEM)) {
 		ret = via_move_from_vram(bo, interruptible, no_wait_gpu, new_mem);
-	} else if (old_mem->mem_type == TTM_PL_SYSTEM &&
-		   new_mem->mem_type == TTM_PL_VRAM) {
+	} else if ((old_mem->mem_type == TTM_PL_SYSTEM)
+        && (new_mem->mem_type == TTM_PL_VRAM)) {
 		ret = via_move_to_vram(bo, interruptible, no_wait_gpu, new_mem);
 	} else {
 		ret = via_move_blit(bo, evict, no_wait_gpu, new_mem, old_mem);
@@ -480,6 +489,9 @@ via_bo_move(struct ttm_buffer_object *bo, bool evict, bool interruptible,
 	if (ret) {
 		ret = ttm_bo_move_memcpy(bo, evict, no_wait_gpu, new_mem);
 	}
+
+exit:
+    DRM_DEBUG("Exiting via_bo_move.\n");
 	return ret;
 }
 
