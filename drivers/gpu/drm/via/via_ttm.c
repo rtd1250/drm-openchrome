@@ -97,7 +97,7 @@ via_ttm_global_release(struct drm_global_reference *global_ref,
 }
 
 static void
-ttm_buffer_object_destroy(struct ttm_buffer_object *bo)
+via_ttm_bo_destroy(struct ttm_buffer_object *bo)
 {
     struct ttm_heap *heap = container_of(bo, struct ttm_heap, pbo);
 
@@ -715,7 +715,7 @@ via_bo_create(struct ttm_bo_device *bdev,
     ret = ttm_bo_init(bdev, bo, size, origin, &placement,
               page_align >> PAGE_SHIFT,
               interruptible, NULL, acc_size,
-              sg, NULL, ttm_buffer_object_destroy);
+              sg, NULL, via_ttm_bo_destroy);
 
     if (unlikely(ret)) {
         DRM_ERROR("Failed to initialize a TTM Buffer Object.");
