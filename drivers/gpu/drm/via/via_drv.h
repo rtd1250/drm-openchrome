@@ -249,7 +249,7 @@ extern int via_bo_create(struct ttm_bo_device *bdev, unsigned long size,
                struct ttm_buffer_object **p_bo);
 extern int via_bo_pin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap);
 extern int via_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap);
-extern int ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev, unsigned long size,
+extern int via_ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev, unsigned long size,
                       uint32_t alignment, uint32_t domain,
                       struct ttm_bo_kmap_obj *kmap);
 

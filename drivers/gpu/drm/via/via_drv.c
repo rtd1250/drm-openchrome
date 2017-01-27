@@ -359,7 +359,7 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
 #endif
 	if (pci_is_pcie(dev->pdev)) {
 		/* Allocate GART. */
-		ret = ttm_allocate_kernel_buffer(&dev_priv->bdev, SGDMA_MEMORY,
+		ret = via_ttm_allocate_kernel_buffer(&dev_priv->bdev, SGDMA_MEMORY,
 						16, TTM_PL_FLAG_VRAM,
 						&dev_priv->gart);
 		if (likely(!ret)) {
@@ -371,7 +371,7 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
 	}
 
 	/* Allocate VQ. (Virtual Queue) */
-	ret = ttm_allocate_kernel_buffer(&dev_priv->bdev, VQ_MEMORY, 16,
+	ret = via_ttm_allocate_kernel_buffer(&dev_priv->bdev, VQ_MEMORY, 16,
 					TTM_PL_FLAG_VRAM, &dev_priv->vq);
 	if (likely(!ret)) {
 		DRM_INFO("Allocated %u KB of VQ (Virtual Queue) memory.\n", VQ_MEMORY >> 10);

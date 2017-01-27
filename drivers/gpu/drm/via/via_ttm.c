@@ -775,7 +775,7 @@ via_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
 }
 
 int
-ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev, unsigned long size,
+via_ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev, unsigned long size,
                 uint32_t alignment, uint32_t domain,
                 struct ttm_bo_kmap_obj *kmap)
 {
