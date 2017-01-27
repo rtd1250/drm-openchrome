@@ -250,6 +250,8 @@ via_device_init(struct via_device *dev_priv)
         goto exit;
     }
 
+    via_mmio_setup(dev_priv);
+
 exit:
     DRM_DEBUG("Exiting via_device_init.\n");
     return ret;
@@ -342,8 +344,6 @@ via_driver_load(struct drm_device *dev, unsigned long chipset)
         DRM_ERROR("Failed to initialize TTM.\n");
 		goto init_error;
 	}
-
-    via_mmio_setup(dev_priv);
 
 	chip_revision_info(dev);
 
