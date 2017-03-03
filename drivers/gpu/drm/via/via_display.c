@@ -552,7 +552,7 @@ via_modeset_init(struct drm_device *dev)
 	/*
 	 * Set up the framebuffer device
 	 */
-	return via_framebuffer_init(dev, &dev_priv->helper);
+	return via_fbdev_init(dev, &dev_priv->helper);
 }
 
 void via_modeset_fini(struct drm_device *dev)

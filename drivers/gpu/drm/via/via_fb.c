@@ -1169,7 +1169,7 @@ static struct fb_ops viafb_ops = {
 };
 
 int
-via_framebuffer_init(struct drm_device *dev, struct drm_fb_helper **ptr)
+via_fbdev_init(struct drm_device *dev, struct drm_fb_helper **ptr)
 {
 	struct ttm_fb_helper *helper;
 	struct fb_info *info;
