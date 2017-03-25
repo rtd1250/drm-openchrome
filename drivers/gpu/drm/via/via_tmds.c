@@ -23,7 +23,22 @@
  * Authors:
  *	James Simmons <jsimmons@infradead.org>
  */
+
 #include "via_drv.h"
+
+
+static inline void
+viaLVDS1SetPowerSeq(void __iomem *regs, bool softCtrl)
+{
+    /* Set LVDS1 power sequence type. */
+    /* 3X5.91[0] - LVDS1 Hardware or Software Control Power Sequence
+     *             0: Hardware Control
+     *             1: Software Control */
+    svga_wcrt_mask(regs, 0x91, softCtrl ? BIT(0) : 0, BIT(0));
+
+    DRM_DEBUG("LVDS1 Power Sequence: %s Control\n",
+                softCtrl ? "Software" : "Hardware");
+}
 
 /*
  * Routines for controlling stuff on the TMDS port
