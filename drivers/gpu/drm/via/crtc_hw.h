@@ -132,6 +132,23 @@ viaLVDS1SetSoftVdd(void __iomem *regs, bool softOn)
                 softOn ? "On" : "Off");
 }
 
+/*
+ * Sets CX700 or later single chipset's LVDS1 software controlled
+ * display period.
+ */
+static inline void
+viaLVDS1SetSoftDisplayPeriod(void __iomem *regs, bool softOn)
+{
+    /* Set LVDS1 software controlled display period state. */
+    /* 3X5.91[7] - Software Direct On / Off Display Period
+     *             in the Panel Path
+     *             0: On
+     *             1: Off */
+    svga_wcrt_mask(regs, 0x91, softOn ? 0 : BIT(7), BIT(7));
+    DRM_DEBUG("LVDS1 Software Controlled Display Period: %s\n",
+                softOn ? "On" : "Off");
+}
+
 
 extern void load_register_tables(void __iomem *regbase, struct vga_registers *regs);
 extern void load_value_to_registers(void __iomem *regbase, struct vga_registers *regs,
