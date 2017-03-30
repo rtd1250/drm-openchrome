@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2016-2017 Kevin Brace
  * Copyright © 2013 James Simmons
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -21,6 +22,7 @@
  * DEALINGS IN THE SOFTWARE.
  *
  * Authors:
+ *  Kevin Brace <kevinbrace@gmx.com>
  *	James Simmons <jsimmons@infradead.org>
  */
 
