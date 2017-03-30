@@ -27,6 +27,8 @@
 
 #include <video/vga.h>
 
+#include <drm/drmP.h>
+
 
 struct vga_regset {
 	u16	ioport;
@@ -76,6 +78,29 @@ static inline void svga_wcrt_mask(void __iomem *regbase, u8 index, u8 data, u8 m
 {
 	vga_wcrt(regbase, index, (data & mask) | (vga_rcrt(regbase, index) & ~mask));
 }
+
+
+/***********************************************************************
+
+   VIA Technologies Chrome IGP Register Access Helper Functions
+
+***********************************************************************/
+
+/*
+ * Sets CX700 or later single chipset's LVDS1 power sequence type.
+ */
+static inline void
+viaLVDS1SetPowerSeq(void __iomem *regs, bool softCtrl)
+{
+    /* Set LVDS1 power sequence type. */
+    /* 3X5.91[0] - LVDS1 Hardware or Software Control Power Sequence
+     *             0: Hardware Control
+     *             1: Software Control */
+    svga_wcrt_mask(regs, 0x91, softCtrl ? BIT(0) : 0, BIT(0));
+    DRM_DEBUG("LVDS1 Power Sequence: %s Control\n",
+                softCtrl ? "Software" : "Hardware");
+}
+
 
 extern void load_register_tables(void __iomem *regbase, struct vga_registers *regs);
 extern void load_value_to_registers(void __iomem *regbase, struct vga_registers *regs,
