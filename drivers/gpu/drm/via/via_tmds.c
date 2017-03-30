@@ -26,6 +26,34 @@
 
 #include "via_drv.h"
 
+static void
+viaTMDSPower(struct via_device *dev_priv,
+                bool powerState)
+{
+    DRM_DEBUG("Entered viaTMDSPower.\n");
+
+    if (powerState) {
+        /* Software control for LVDS1 power sequence. */
+        viaLVDS1SetPowerSeq(VGABASE, true);
+
+        viaLVDS1SetSoftDisplayPeriod(VGABASE, true);
+        viaLVDS1SetSoftData(VGABASE, true);
+        viaTMDSSetPower(VGABASE, true);
+    } else {
+        /* Software control for LVDS1 power sequence. */
+        viaLVDS1SetPowerSeq(VGABASE, true);
+
+        viaTMDSSetPower(VGABASE, false);
+        viaLVDS1SetSoftData(VGABASE, false);
+        viaLVDS1SetSoftDisplayPeriod(VGABASE, false);
+    }
+
+    DRM_INFO("Integrated TMDS (DVI) Power: %s\n",
+                powerState ? "On" : "Off");
+
+    DRM_DEBUG("Exiting viaTMDSPower.\n");
+}
+
 /*
  * Routines for controlling stuff on the TMDS port
  */
@@ -39,28 +67,23 @@ via_tmds_dpms(struct drm_encoder *encoder, int mode)
 {
 	struct via_device *dev_priv = encoder->dev->dev_private;
 
+    DRM_DEBUG("Entered via_tmds_dpms.\n");
+
 	switch (mode) {
 	case DRM_MODE_DPMS_SUSPEND:
 	case DRM_MODE_DPMS_STANDBY:
 	case DRM_MODE_DPMS_OFF:
-		svga_wcrt_mask(VGABASE, 0xD2, BIT(4), BIT(4));
-		svga_wcrt_mask(VGABASE, 0x91, 0x00, BIT(0));
-
-		/* Internal TMDS only use DFP_L */
-		/* Turn on DVI panel path(Only for internal),
-		 * otherwise, the screen of DVI will be black. */
-		svga_wcrt_mask(VGABASE, 0x91, 0x00, BIT(7));
-		/* Power on TMDS */
-		svga_wcrt_mask(VGABASE, 0xD2, 0x00, BIT(3));
+        viaTMDSPower(dev_priv, false);
 		break;
-
 	case DRM_MODE_DPMS_ON:
-	default:
-		svga_wcrt_mask(VGABASE, 0x91, BIT(7), BIT(7));
-		/* Power off TMDS */
-		svga_wcrt_mask(VGABASE, 0xD2, BIT(3), BIT(3));
+        viaTMDSPower(dev_priv, true);
 		break;
+	default:
+        DRM_ERROR("Bad DPMS mode.");
+	    break;
 	}
+
+    DRM_DEBUG("Exiting via_tmds_dpms.\n");
 }
 
 /* Pass our mode to the connectors and the CRTC to give them a chance to
