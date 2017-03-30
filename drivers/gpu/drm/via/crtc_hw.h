@@ -117,6 +117,21 @@ viaLVDS1SetSoftData(void __iomem *regs, bool softOn)
                 softOn ? "On" : "Off");
 }
 
+/*
+ * Sets CX700 or later single chipset's LVDS1 software controlled Vdd.
+ */
+static inline void
+viaLVDS1SetSoftVdd(void __iomem *regs, bool softOn)
+{
+    /* Set LVDS1 software controlled Vdd. */
+    /* 3X5.91[4] - Software VDD On
+     *             0: Off
+     *             1: On */
+    svga_wcrt_mask(regs, 0x91, softOn ? BIT(4) : 0, BIT(4));
+    DRM_DEBUG("LVDS1 Software Controlled Vdd: %s\n",
+                softOn ? "On" : "Off");
+}
+
 
 extern void load_register_tables(void __iomem *regbase, struct vga_registers *regs);
 extern void load_value_to_registers(void __iomem *regbase, struct vga_registers *regs,
