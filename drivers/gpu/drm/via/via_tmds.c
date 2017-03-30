@@ -150,7 +150,7 @@ via_tmds_init(struct drm_device *dev)
 	struct via_device *dev_priv = dev->dev_private;
 	struct via_connector *con;
 	struct via_encoder *enc;
-	int i2c_port = 0x3D;
+	int i2c_port = 0x31;
 
 	if (!(vga_rseq(VGABASE, 0x3E) & BIT(5))) {
 		DRM_INFO("Internal DVI not detected\n");
@@ -178,18 +178,6 @@ via_tmds_init(struct drm_device *dev)
 	drm_connector_helper_add(&con->base, &via_dvi_connector_helper_funcs);
 	drm_connector_register(&con->base);
 
-	switch (dev->pdev->device) {
-	case PCI_DEVICE_ID_VIA_VT1122:
-		if (dev_priv->revision < VX800_REVISION_B1)
-			break;
-
-	case PCI_DEVICE_ID_VIA_VX875:
-	case PCI_DEVICE_ID_VIA_VX900_VGA:
-		i2c_port = 0x31;
-		break;
-	default:
-		break;
-	}
 	con->ddc_bus = via_find_ddc_bus(i2c_port);
 	con->base.doublescan_allowed = false;
 	con->base.interlace_allowed = true;

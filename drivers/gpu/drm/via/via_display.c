@@ -532,20 +532,21 @@ via_modeset_init(struct drm_device *dev)
 	via_lvds_init(dev);
 
 	switch (dev->pdev->device) {
-	/* CX700 can support HDMI and non HDMI based DVI ports */
+    /* Only CX700 / VX700 and VX800 have an integrated TMDS (DVI) 
+     * transmitter. */
 	case PCI_DEVICE_ID_VIA_VT3157:
-		if (!via_tmds_init(dev))
-			break;
-
-	/* Newer platforms use HDMI encoder */
 	case PCI_DEVICE_ID_VIA_VT1122:
-	case PCI_DEVICE_ID_VIA_VX875:
+		via_tmds_init(dev);
+		break;
+    default:
+        break;
+    }
+
+	switch (dev->pdev->device) {
 	case PCI_DEVICE_ID_VIA_VX900_VGA:
 		via_hdmi_init(dev, DISP_DI_NONE);
 		break;
-
 	default:
-		via_tmds_init(dev);
 		break;
 	}
 
