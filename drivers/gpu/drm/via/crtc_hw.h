@@ -101,6 +101,22 @@ viaLVDS1SetPowerSeq(void __iomem *regs, bool softCtrl)
                 softCtrl ? "Software" : "Hardware");
 }
 
+/*
+ * Sets CX700 or later single chipset's LVDS1 software controlled
+ * data path state.
+ */
+static inline void
+viaLVDS1SetSoftData(void __iomem *regs, bool softOn)
+{
+    /* Set LVDS1 software controlled data path state. */
+    /* 3X5.91[3] - Software Data On
+     *             0: Off
+     *             1: On */
+    svga_wcrt_mask(regs, 0x91, softOn ? BIT(3) : 0, BIT(3));
+    DRM_DEBUG("LVDS1 Software Controlled Data Path: %s\n",
+                softOn ? "On" : "Off");
+}
+
 
 extern void load_register_tables(void __iomem *regbase, struct vga_registers *regs);
 extern void load_value_to_registers(void __iomem *regbase, struct vga_registers *regs,
