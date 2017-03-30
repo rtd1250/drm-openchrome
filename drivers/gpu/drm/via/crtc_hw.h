@@ -149,6 +149,21 @@ viaLVDS1SetSoftDisplayPeriod(void __iomem *regs, bool softOn)
                 softOn ? "On" : "Off");
 }
 
+/*
+ * Sets CX700 / VX700 and VX800 chipsets' TMDS (DVI) power state.
+ */
+static inline void
+viaTMDSSetPower(void __iomem *regs, bool powerState)
+{
+    /* Set TMDS (DVI) power state. */
+    /* 3X5.D2[3] - Power Down (Active High) for DVI
+     *             0: TMDS power on
+     *             1: TMDS power down */
+    svga_wcrt_mask(regs, 0xD2, powerState ? 0 : BIT(3), BIT(3));
+    DRM_DEBUG("TMDS (DVI) Power State: %s\n",
+                powerState ? "On" : "Off");
+}
+
 
 extern void load_register_tables(void __iomem *regbase, struct vga_registers *regs);
 extern void load_value_to_registers(void __iomem *regbase, struct vga_registers *regs,
