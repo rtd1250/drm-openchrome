@@ -25,6 +25,9 @@
 #ifndef __CRTC_HW_H__
 #define __CRTC_HW_H__
 
+#include <video/vga.h>
+
+
 struct vga_regset {
 	u16	ioport;
 	u8	io_addr;
