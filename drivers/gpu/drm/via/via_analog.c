@@ -24,6 +24,23 @@
  *	James Simmons <jsimmons@infradead.org>
  */
 #include "via_drv.h"
+#include "crtc_hw.h"
+
+
+/*
+ * Enables or disables analog (VGA) output.
+ */
+static void
+viaAnalogOutput(struct via_device *dev_priv, bool outputState)
+{
+    DRM_DEBUG("Entered viaAnalogOutput.\n");
+
+    viaAnalogSetDACOutput(VGABASE, outputState);
+    DRM_INFO("Analog (VGA) Output: %s\n", outputState ? "On" : "Off");
+
+    DRM_DEBUG("Exiting viaAnalogOutput.\n");
+}
+
 
 /*
  * Routines for controlling stuff on the analog port
