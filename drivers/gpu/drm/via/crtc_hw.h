@@ -87,6 +87,20 @@ static inline void svga_wcrt_mask(void __iomem *regbase, u8 index, u8 data, u8 m
 ***********************************************************************/
 
 /*
+ * Sets analog (VGA) DAC output state.
+ */
+static inline void
+viaAnalogSetDACOutput(void __iomem *regs, bool outputState)
+{
+    /* Set analog (VGA) DAC output state. */
+    /* 3X5.47[2] - DACOFF Backdoor Register
+     *             0: DAC on
+     *             1: DAC off */
+    svga_wcrt_mask(regs, 0x47, outputState ? 0x00 : BIT(2), BIT(2));
+    DRM_DEBUG("Analog (VGA) DAC Output: %s\n", outputState ? "On" : "Off");
+}
+
+/*
  * Sets CX700 or later single chipset's LVDS1 power sequence type.
  */
 static inline void
