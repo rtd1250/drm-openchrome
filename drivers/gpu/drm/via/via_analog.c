@@ -49,28 +49,31 @@ static const struct drm_encoder_funcs via_dac_enc_funcs = {
 	.destroy = via_encoder_cleanup,
 };
 
-/* Manage the power state of the DAC */
+/*
+ * Manage the power state of analog (VGA) DAC.
+ */
 static void
-via_dac_dpms(struct drm_encoder *encoder, int mode)
+via_analog_dpms(struct drm_encoder *encoder, int mode)
 {
-	struct via_device *dev_priv = encoder->dev->dev_private;
-	u8 mask = 0;
+    struct via_device *dev_priv = encoder->dev->dev_private;
 
-	switch (mode) {
-	case DRM_MODE_DPMS_SUSPEND:
-		mask = BIT(5);		/* VSync off */
-		break;
-	case DRM_MODE_DPMS_STANDBY:
-		mask = BIT(4);		/* HSync off */
-		break;
-	case DRM_MODE_DPMS_OFF:
-		mask = (BIT(5) | BIT(4));/* HSync and VSync off */
-		break;
-	case DRM_MODE_DPMS_ON:
-	default:
-		break;
-	}
-	svga_wcrt_mask(VGABASE, 0x36, mask, BIT(5) | BIT(4));
+    DRM_DEBUG("Entered via_analog_dpms.\n");
+
+    switch (mode) {
+    case DRM_MODE_DPMS_ON:
+        viaAnalogOutput(dev_priv, true);
+        break;
+    case DRM_MODE_DPMS_SUSPEND:
+    case DRM_MODE_DPMS_STANDBY:
+    case DRM_MODE_DPMS_OFF:
+        viaAnalogOutput(dev_priv, false);
+        break;
+    default:
+        DRM_ERROR("Bad DPMS mode.");
+        break;
+    }
+
+    DRM_DEBUG("Exiting via_analog_dpms.\n");
 }
 
 /* Pass our mode to the connectors and the CRTC to give them a chance to
@@ -87,7 +90,7 @@ via_dac_mode_fixup(struct drm_encoder *encoder,
 }
 
 static const struct drm_encoder_helper_funcs via_dac_enc_helper_funcs = {
-	.dpms = via_dac_dpms,
+	.dpms = via_analog_dpms,
 	.mode_fixup = via_dac_mode_fixup,
 	.mode_set = via_set_sync_polarity,
 	.prepare = via_encoder_prepare,
