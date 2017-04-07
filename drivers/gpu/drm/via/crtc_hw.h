@@ -19,7 +19,7 @@
  * DEALINGS IN THE SOFTWARE.
  *
  * Authors:
- *	James Simmons <jsimmons@infradead.org>
+ * James Simmons <jsimmons@infradead.org>
  */
 
 #ifndef __CRTC_HW_H__
@@ -82,7 +82,7 @@ static inline void svga_wcrt_mask(void __iomem *regbase, u8 index, u8 data, u8 m
 
 /***********************************************************************
 
-   VIA Technologies Chrome IGP Register Access Helper Functions
+ VIA Technologies Chrome IGP Register Access Helper Functions
 
 ***********************************************************************/
 
@@ -92,12 +92,12 @@ static inline void svga_wcrt_mask(void __iomem *regbase, u8 index, u8 data, u8 m
 static inline void
 viaAnalogSetDACOutput(void __iomem *regs, bool outputState)
 {
-    /* Set analog (VGA) DAC output state. */
-    /* 3X5.47[2] - DACOFF Backdoor Register
-     *             0: DAC on
-     *             1: DAC off */
-    svga_wcrt_mask(regs, 0x47, outputState ? 0x00 : BIT(2), BIT(2));
-    DRM_DEBUG("Analog (VGA) DAC Output: %s\n", outputState ? "On" : "Off");
+	/* Set analog (VGA) DAC output state. */
+	/* 3X5.47[2] - DACOFF Backdoor Register
+	 *             0: DAC on
+	 *             1: DAC off */
+	svga_wcrt_mask(regs, 0x47, outputState ? 0x00 : BIT(2), BIT(2));
+	DRM_DEBUG("Analog (VGA) DAC Output: %s\n", outputState ? "On" : "Off");
 }
 
 /*
@@ -106,18 +106,18 @@ viaAnalogSetDACOutput(void __iomem *regs, bool outputState)
 static inline void
 viaAnalogSetSyncPolarity(void __iomem *regs, u8 syncPolarity)
 {
-    /* Set analog (VGA) sync polarity. */
-    /* 3C2[7] - Analog Vertical Sync Polarity
-     *          0: Positive
-     *          1: Negative
-     * 3C2[6] - Analog Horizontal Sync Polarity
-     *          0: Positive
-     *          1: Negative */
-    svga_wmisc_mask(regs, syncPolarity << 6, (BIT(1) | BIT(0)) << 6);
-    DRM_DEBUG_KMS("Analog (VGA) Horizontal Sync Polarity: %s\n",
-                (syncPolarity & BIT(0)) ? "-" : "+");
-    DRM_DEBUG_KMS("Analog (VGA) Vertical Sync Polarity: %s\n",
-                (syncPolarity & BIT(1)) ? "-" : "+");
+	/* Set analog (VGA) sync polarity. */
+	/* 3C2[7] - Analog Vertical Sync Polarity
+	 *          0: Positive
+	 *          1: Negative
+	 * 3C2[6] - Analog Horizontal Sync Polarity
+	 *          0: Positive
+	 *          1: Negative */
+	svga_wmisc_mask(regs, syncPolarity << 6, (BIT(1) | BIT(0)) << 6);
+	DRM_DEBUG_KMS("Analog (VGA) Horizontal Sync Polarity: %s\n",
+			(syncPolarity & BIT(0)) ? "-" : "+");
+	DRM_DEBUG_KMS("Analog (VGA) Vertical Sync Polarity: %s\n",
+			(syncPolarity & BIT(1)) ? "-" : "+");
 }
 
 /*
@@ -126,13 +126,13 @@ viaAnalogSetSyncPolarity(void __iomem *regs, u8 syncPolarity)
 static inline void
 viaLVDS1SetPowerSeq(void __iomem *regs, bool softCtrl)
 {
-    /* Set LVDS1 power sequence type. */
-    /* 3X5.91[0] - LVDS1 Hardware or Software Control Power Sequence
-     *             0: Hardware Control
-     *             1: Software Control */
-    svga_wcrt_mask(regs, 0x91, softCtrl ? BIT(0) : 0, BIT(0));
-    DRM_DEBUG("LVDS1 Power Sequence: %s Control\n",
-                softCtrl ? "Software" : "Hardware");
+	/* Set LVDS1 power sequence type. */
+	/* 3X5.91[0] - LVDS1 Hardware or Software Control Power Sequence
+	 *             0: Hardware Control
+	 *             1: Software Control */
+	svga_wcrt_mask(regs, 0x91, softCtrl ? BIT(0) : 0, BIT(0));
+	DRM_DEBUG("LVDS1 Power Sequence: %s Control\n",
+			softCtrl ? "Software" : "Hardware");
 }
 
 /*
@@ -142,13 +142,13 @@ viaLVDS1SetPowerSeq(void __iomem *regs, bool softCtrl)
 static inline void
 viaLVDS1SetSoftData(void __iomem *regs, bool softOn)
 {
-    /* Set LVDS1 software controlled data path state. */
-    /* 3X5.91[3] - Software Data On
-     *             0: Off
-     *             1: On */
-    svga_wcrt_mask(regs, 0x91, softOn ? BIT(3) : 0, BIT(3));
-    DRM_DEBUG("LVDS1 Software Controlled Data Path: %s\n",
-                softOn ? "On" : "Off");
+	/* Set LVDS1 software controlled data path state. */
+	/* 3X5.91[3] - Software Data On
+	 *             0: Off
+	 *             1: On */
+	svga_wcrt_mask(regs, 0x91, softOn ? BIT(3) : 0, BIT(3));
+	DRM_DEBUG("LVDS1 Software Controlled Data Path: %s\n",
+			softOn ? "On" : "Off");
 }
 
 /*
@@ -157,13 +157,13 @@ viaLVDS1SetSoftData(void __iomem *regs, bool softOn)
 static inline void
 viaLVDS1SetSoftVdd(void __iomem *regs, bool softOn)
 {
-    /* Set LVDS1 software controlled Vdd. */
-    /* 3X5.91[4] - Software VDD On
-     *             0: Off
-     *             1: On */
-    svga_wcrt_mask(regs, 0x91, softOn ? BIT(4) : 0, BIT(4));
-    DRM_DEBUG("LVDS1 Software Controlled Vdd: %s\n",
-                softOn ? "On" : "Off");
+	/* Set LVDS1 software controlled Vdd. */
+	/* 3X5.91[4] - Software VDD On
+	 *             0: Off
+	 *             1: On */
+	svga_wcrt_mask(regs, 0x91, softOn ? BIT(4) : 0, BIT(4));
+	DRM_DEBUG("LVDS1 Software Controlled Vdd: %s\n",
+			softOn ? "On" : "Off");
 }
 
 /*
@@ -173,14 +173,14 @@ viaLVDS1SetSoftVdd(void __iomem *regs, bool softOn)
 static inline void
 viaLVDS1SetSoftDisplayPeriod(void __iomem *regs, bool softOn)
 {
-    /* Set LVDS1 software controlled display period state. */
-    /* 3X5.91[7] - Software Direct On / Off Display Period
-     *             in the Panel Path
-     *             0: On
-     *             1: Off */
-    svga_wcrt_mask(regs, 0x91, softOn ? 0 : BIT(7), BIT(7));
-    DRM_DEBUG("LVDS1 Software Controlled Display Period: %s\n",
-                softOn ? "On" : "Off");
+	/* Set LVDS1 software controlled display period state. */
+	/* 3X5.91[7] - Software Direct On / Off Display Period
+	 *             in the Panel Path
+	 *             0: On
+	 *             1: Off */
+	svga_wcrt_mask(regs, 0x91, softOn ? 0 : BIT(7), BIT(7));
+	DRM_DEBUG("LVDS1 Software Controlled Display Period: %s\n",
+			softOn ? "On" : "Off");
 }
 
 /*
@@ -189,13 +189,13 @@ viaLVDS1SetSoftDisplayPeriod(void __iomem *regs, bool softOn)
 static inline void
 viaTMDSSetPower(void __iomem *regs, bool powerState)
 {
-    /* Set TMDS (DVI) power state. */
-    /* 3X5.D2[3] - Power Down (Active High) for DVI
-     *             0: TMDS power on
-     *             1: TMDS power down */
-    svga_wcrt_mask(regs, 0xD2, powerState ? 0 : BIT(3), BIT(3));
-    DRM_DEBUG("TMDS (DVI) Power State: %s\n",
-                powerState ? "On" : "Off");
+	/* Set TMDS (DVI) power state. */
+	/* 3X5.D2[3] - Power Down (Active High) for DVI
+	 *             0: TMDS power on
+	 *             1: TMDS power down */
+	svga_wcrt_mask(regs, 0xD2, powerState ? 0 : BIT(3), BIT(3));
+	DRM_DEBUG("TMDS (DVI) Power State: %s\n",
+			powerState ? "On" : "Off");
 }
 
 
