@@ -21,7 +21,7 @@
  * DEALINGS IN THE SOFTWARE.
  *
  * Authors:
- *	James Simmons <jsimmons@infradead.org>
+ * James Simmons <jsimmons@infradead.org>
  */
 #include "via_drv.h"
 #include "crtc_hw.h"
@@ -33,12 +33,12 @@
 static void
 viaAnalogOutput(struct via_device *dev_priv, bool outputState)
 {
-    DRM_DEBUG("Entered viaAnalogOutput.\n");
+	DRM_DEBUG("Entered viaAnalogOutput.\n");
 
-    viaAnalogSetDACOutput(VGABASE, outputState);
-    DRM_INFO("Analog (VGA) Output: %s\n", outputState ? "On" : "Off");
+	viaAnalogSetDACOutput(VGABASE, outputState);
+	DRM_INFO("Analog (VGA) Output: %s\n", outputState ? "On" : "Off");
 
-    DRM_DEBUG("Exiting viaAnalogOutput.\n");
+	DRM_DEBUG("Exiting viaAnalogOutput.\n");
 }
 
 /*
@@ -47,25 +47,25 @@ viaAnalogOutput(struct via_device *dev_priv, bool outputState)
 static void
 viaAnalogSyncPolarity(struct via_device *dev_priv, unsigned int flags)
 {
-    u8 syncPolarity = 0x00;
+	u8 syncPolarity = 0x00;
 
-    DRM_DEBUG_KMS("Entered viaAnalogSyncPolarity.\n");
+	DRM_DEBUG_KMS("Entered viaAnalogSyncPolarity.\n");
 
-    if (flags & DRM_MODE_FLAG_NHSYNC) {
-        syncPolarity |= BIT(0);
-    }
+	if (flags & DRM_MODE_FLAG_NHSYNC) {
+		syncPolarity |= BIT(0);
+	}
 
-    if (flags & DRM_MODE_FLAG_NVSYNC) {
-        syncPolarity |= BIT(1);
-    }
+	if (flags & DRM_MODE_FLAG_NVSYNC) {
+		syncPolarity |= BIT(1);
+	}
 
-    viaAnalogSetSyncPolarity(VGABASE, syncPolarity);
-    DRM_INFO("Analog (VGA) Horizontal Sync Polarity: %s\n",
-                (syncPolarity & BIT(0)) ? "-" : "+");
-    DRM_INFO("Analog (VGA) Vertical Sync Polarity: %s\n",
-                (syncPolarity & BIT(1)) ? "-" : "+");
+	viaAnalogSetSyncPolarity(VGABASE, syncPolarity);
+	DRM_INFO("Analog (VGA) Horizontal Sync Polarity: %s\n",
+		(syncPolarity & BIT(0)) ? "-" : "+");
+	DRM_INFO("Analog (VGA) Vertical Sync Polarity: %s\n",
+		(syncPolarity & BIT(1)) ? "-" : "+");
 
-    DRM_DEBUG_KMS("Exiting viaAnalogSyncPolarity.\n");
+	DRM_DEBUG_KMS("Exiting viaAnalogSyncPolarity.\n");
 }
 
 /*
@@ -81,25 +81,25 @@ static const struct drm_encoder_funcs via_dac_enc_funcs = {
 static void
 via_analog_dpms(struct drm_encoder *encoder, int mode)
 {
-    struct via_device *dev_priv = encoder->dev->dev_private;
+	struct via_device *dev_priv = encoder->dev->dev_private;
 
-    DRM_DEBUG("Entered via_analog_dpms.\n");
+	DRM_DEBUG("Entered via_analog_dpms.\n");
 
-    switch (mode) {
-    case DRM_MODE_DPMS_ON:
-        viaAnalogOutput(dev_priv, true);
-        break;
-    case DRM_MODE_DPMS_SUSPEND:
-    case DRM_MODE_DPMS_STANDBY:
-    case DRM_MODE_DPMS_OFF:
-        viaAnalogOutput(dev_priv, false);
-        break;
-    default:
-        DRM_ERROR("Bad DPMS mode.");
-        break;
-    }
+	switch (mode) {
+	case DRM_MODE_DPMS_ON:
+		viaAnalogOutput(dev_priv, true);
+		break;
+	case DRM_MODE_DPMS_SUSPEND:
+	case DRM_MODE_DPMS_STANDBY:
+	case DRM_MODE_DPMS_OFF:
+		viaAnalogOutput(dev_priv, false);
+		break;
+	default:
+		DRM_ERROR("Bad DPMS mode.");
+		break;
+	}
 
-    DRM_DEBUG("Exiting via_analog_dpms.\n");
+	DRM_DEBUG("Exiting via_analog_dpms.\n");
 }
 
 /* Pass our mode to the connectors and the CRTC to give them a chance to
@@ -120,16 +120,16 @@ via_dac_mode_fixup(struct drm_encoder *encoder,
  */
 static void
 via_analog_mode_set(struct drm_encoder *encoder,
-                    struct drm_display_mode *mode,
-                    struct drm_display_mode *adjusted_mode)
+			struct drm_display_mode *mode,
+			struct drm_display_mode *adjusted_mode)
 {
-    struct via_device *dev_priv = encoder->dev->dev_private;
+	struct via_device *dev_priv = encoder->dev->dev_private;
 
-    DRM_DEBUG_KMS("Entered via_analog_mode_set.\n");
+	DRM_DEBUG_KMS("Entered via_analog_mode_set.\n");
 
-    viaAnalogSyncPolarity(dev_priv, adjusted_mode->flags);
+	viaAnalogSyncPolarity(dev_priv, adjusted_mode->flags);
 
-    DRM_DEBUG_KMS("Exiting via_analog_mode_set.\n");
+	DRM_DEBUG_KMS("Exiting via_analog_mode_set.\n");
 }
 
 static const struct drm_encoder_helper_funcs via_dac_enc_helper_funcs = {
