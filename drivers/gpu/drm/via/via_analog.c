@@ -33,12 +33,12 @@
 static void
 viaAnalogOutput(struct via_device *dev_priv, bool outputState)
 {
-	DRM_DEBUG("Entered viaAnalogOutput.\n");
+	DRM_DEBUG_KMS("Entered viaAnalogOutput.\n");
 
 	viaAnalogSetDACOutput(VGABASE, outputState);
 	DRM_INFO("Analog (VGA) Output: %s\n", outputState ? "On" : "Off");
 
-	DRM_DEBUG("Exiting viaAnalogOutput.\n");
+	DRM_DEBUG_KMS("Exiting viaAnalogOutput.\n");
 }
 
 /*
@@ -83,7 +83,7 @@ via_analog_dpms(struct drm_encoder *encoder, int mode)
 {
 	struct via_device *dev_priv = encoder->dev->dev_private;
 
-	DRM_DEBUG("Entered via_analog_dpms.\n");
+	DRM_DEBUG_KMS("Entered via_analog_dpms.\n");
 
 	switch (mode) {
 	case DRM_MODE_DPMS_ON:
@@ -99,7 +99,7 @@ via_analog_dpms(struct drm_encoder *encoder, int mode)
 		break;
 	}
 
-	DRM_DEBUG("Exiting via_analog_dpms.\n");
+	DRM_DEBUG_KMS("Exiting via_analog_dpms.\n");
 }
 
 /* Pass our mode to the connectors and the CRTC to give them a chance to
