@@ -115,10 +115,27 @@ via_dac_mode_fixup(struct drm_encoder *encoder,
 	return true;
 }
 
+/*
+ * Handle analog (VGA) mode setting.
+ */
+static void
+via_analog_mode_set(struct drm_encoder *encoder,
+                    struct drm_display_mode *mode,
+                    struct drm_display_mode *adjusted_mode)
+{
+    struct via_device *dev_priv = encoder->dev->dev_private;
+
+    DRM_DEBUG_KMS("Entered via_analog_mode_set.\n");
+
+    viaAnalogSyncPolarity(dev_priv, adjusted_mode->flags);
+
+    DRM_DEBUG_KMS("Exiting via_analog_mode_set.\n");
+}
+
 static const struct drm_encoder_helper_funcs via_dac_enc_helper_funcs = {
 	.dpms = via_analog_dpms,
 	.mode_fixup = via_dac_mode_fixup,
-	.mode_set = via_set_sync_polarity,
+	.mode_set = via_analog_mode_set,
 	.prepare = via_encoder_prepare,
 	.commit = via_encoder_commit,
 	.disable = via_encoder_disable,
