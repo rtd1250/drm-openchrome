@@ -97,7 +97,8 @@ viaAnalogSetDACOutput(void __iomem *regs, bool outputState)
 	 *             0: DAC on
 	 *             1: DAC off */
 	svga_wcrt_mask(regs, 0x47, outputState ? 0x00 : BIT(2), BIT(2));
-	DRM_DEBUG("Analog (VGA) DAC Output: %s\n", outputState ? "On" : "Off");
+	DRM_DEBUG_KMS("Analog (VGA) DAC Output: %s\n",
+			outputState ? "On" : "Off");
 }
 
 /*
@@ -131,7 +132,7 @@ viaLVDS1SetPowerSeq(void __iomem *regs, bool softCtrl)
 	 *             0: Hardware Control
 	 *             1: Software Control */
 	svga_wcrt_mask(regs, 0x91, softCtrl ? BIT(0) : 0, BIT(0));
-	DRM_DEBUG("LVDS1 Power Sequence: %s Control\n",
+	DRM_DEBUG_KMS("LVDS1 Power Sequence: %s Control\n",
 			softCtrl ? "Software" : "Hardware");
 }
 
@@ -147,7 +148,7 @@ viaLVDS1SetSoftData(void __iomem *regs, bool softOn)
 	 *             0: Off
 	 *             1: On */
 	svga_wcrt_mask(regs, 0x91, softOn ? BIT(3) : 0, BIT(3));
-	DRM_DEBUG("LVDS1 Software Controlled Data Path: %s\n",
+	DRM_DEBUG_KMS("LVDS1 Software Controlled Data Path: %s\n",
 			softOn ? "On" : "Off");
 }
 
@@ -162,7 +163,7 @@ viaLVDS1SetSoftVdd(void __iomem *regs, bool softOn)
 	 *             0: Off
 	 *             1: On */
 	svga_wcrt_mask(regs, 0x91, softOn ? BIT(4) : 0, BIT(4));
-	DRM_DEBUG("LVDS1 Software Controlled Vdd: %s\n",
+	DRM_DEBUG_KMS("LVDS1 Software Controlled Vdd: %s\n",
 			softOn ? "On" : "Off");
 }
 
@@ -179,7 +180,7 @@ viaLVDS1SetSoftDisplayPeriod(void __iomem *regs, bool softOn)
 	 *             0: On
 	 *             1: Off */
 	svga_wcrt_mask(regs, 0x91, softOn ? 0 : BIT(7), BIT(7));
-	DRM_DEBUG("LVDS1 Software Controlled Display Period: %s\n",
+	DRM_DEBUG_KMS("LVDS1 Software Controlled Display Period: %s\n",
 			softOn ? "On" : "Off");
 }
 
@@ -194,7 +195,7 @@ viaTMDSSetPower(void __iomem *regs, bool powerState)
 	 *             0: TMDS power on
 	 *             1: TMDS power down */
 	svga_wcrt_mask(regs, 0xD2, powerState ? 0 : BIT(3), BIT(3));
-	DRM_DEBUG("TMDS (DVI) Power State: %s\n",
+	DRM_DEBUG_KMS("TMDS (DVI) Power State: %s\n",
 			powerState ? "On" : "Off");
 }
 
