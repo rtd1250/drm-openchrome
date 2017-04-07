@@ -41,6 +41,32 @@ viaAnalogOutput(struct via_device *dev_priv, bool outputState)
     DRM_DEBUG("Exiting viaAnalogOutput.\n");
 }
 
+/*
+ * Set analog (VGA) sync polarity.
+ */
+static void
+viaAnalogSyncPolarity(struct via_device *dev_priv, unsigned int flags)
+{
+    u8 syncPolarity = 0x00;
+
+    DRM_DEBUG_KMS("Entered viaAnalogSyncPolarity.\n");
+
+    if (flags & DRM_MODE_FLAG_NHSYNC) {
+        syncPolarity |= BIT(0);
+    }
+
+    if (flags & DRM_MODE_FLAG_NVSYNC) {
+        syncPolarity |= BIT(1);
+    }
+
+    viaAnalogSetSyncPolarity(VGABASE, syncPolarity);
+    DRM_INFO("Analog (VGA) Horizontal Sync Polarity: %s\n",
+                (syncPolarity & BIT(0)) ? "-" : "+");
+    DRM_INFO("Analog (VGA) Vertical Sync Polarity: %s\n",
+                (syncPolarity & BIT(1)) ? "-" : "+");
+
+    DRM_DEBUG_KMS("Exiting viaAnalogSyncPolarity.\n");
+}
 
 /*
  * Routines for controlling stuff on the analog port
