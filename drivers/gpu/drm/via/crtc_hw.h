@@ -101,6 +101,26 @@ viaAnalogSetDACOutput(void __iomem *regs, bool outputState)
 }
 
 /*
+ * Sets analog (VGA) sync polarity.
+ */
+static inline void
+viaAnalogSetSyncPolarity(void __iomem *regs, u8 syncPolarity)
+{
+    /* Set analog (VGA) sync polarity. */
+    /* 3C2[7] - Analog Vertical Sync Polarity
+     *          0: Positive
+     *          1: Negative
+     * 3C2[6] - Analog Horizontal Sync Polarity
+     *          0: Positive
+     *          1: Negative */
+    svga_wmisc_mask(regs, syncPolarity << 6, (BIT(1) | BIT(0)) << 6);
+    DRM_DEBUG_KMS("Analog (VGA) Horizontal Sync Polarity: %s\n",
+                (syncPolarity & BIT(0)) ? "-" : "+");
+    DRM_DEBUG_KMS("Analog (VGA) Vertical Sync Polarity: %s\n",
+                (syncPolarity & BIT(1)) ? "-" : "+");
+}
+
+/*
  * Sets CX700 or later single chipset's LVDS1 power sequence type.
  */
 static inline void
