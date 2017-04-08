@@ -139,10 +139,12 @@ via_analog_mode_set(struct drm_encoder *encoder,
 			struct drm_display_mode *adjusted_mode)
 {
 	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct via_crtc *iga = container_of(encoder->crtc, struct via_crtc, base);
 
 	DRM_DEBUG_KMS("Entered via_analog_mode_set.\n");
 
 	viaAnalogSyncPolarity(dev_priv, adjusted_mode->flags);
+	viaAnalogDisplaySource(dev_priv, iga->index ? 0x01 : 0x00);
 
 	DRM_DEBUG_KMS("Exiting via_analog_mode_set.\n");
 }
