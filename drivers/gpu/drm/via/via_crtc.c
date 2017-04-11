@@ -98,7 +98,7 @@ viaIGA1SetColorDepth(struct via_device *dev_priv,
          *               01: 16bpp
          *               10: 30bpp
          *               11: 32bpp */
-        svga_wseq_mask(VGABASE, 0x15, value, 0x0E);
+        svga_wseq_mask(VGABASE, 0x15, value, BIT(4) | BIT(3) | BIT(2));
         DRM_INFO("IGA1 Color Depth: %d bit\n", depth);
     } else {
         DRM_ERROR("Unsupported IGA1 Color Depth: %d bit\n", depth);
