@@ -72,11 +72,13 @@ viaAnalogSyncPolarity(struct via_device *dev_priv, unsigned int flags)
  * Sets analog (VGA) display source.
  */
 static void
-viaAnalogDisplaySource(struct via_device *dev_priv, u8 displaySource)
+viaAnalogDisplaySource(struct via_device *dev_priv, int index)
 {
+	u8 displaySource = index;
+
 	DRM_DEBUG_KMS("Entered viaAnalogDisplaySource.\n");
 
-	viaAnalogSetDisplaySource(VGABASE, displaySource);
+	viaAnalogSetDisplaySource(VGABASE, displaySource & 0x01);
 	DRM_INFO("Analog (VGA) Display Source: IGA%d\n",
 			(displaySource & 0x01) + 1);
 
@@ -144,7 +146,7 @@ via_analog_mode_set(struct drm_encoder *encoder,
 	DRM_DEBUG_KMS("Entered via_analog_mode_set.\n");
 
 	viaAnalogSyncPolarity(dev_priv, adjusted_mode->flags);
-	viaAnalogDisplaySource(dev_priv, iga->index ? 0x01 : 0x00);
+	viaAnalogDisplaySource(dev_priv, iga->index);
 
 	DRM_DEBUG_KMS("Exiting via_analog_mode_set.\n");
 }
