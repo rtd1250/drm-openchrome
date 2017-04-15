@@ -214,6 +214,26 @@ viaTMDSSetPower(void __iomem *regs, bool powerState)
 			powerState ? "On" : "Off");
 }
 
+/*
+ * Sets CX700 / VX700 and VX800 chipsets' TMDS (DVI) sync polarity.
+ */
+static inline void
+viaTMDSSetSyncPolarity(void __iomem *regs, u8 syncPolarity)
+{
+	/* Set TMDS (DVI) sync polarity. */
+	/* 3X5.97[6] - DVI (TMDS) VSYNC Polarity
+	*              0: Positive
+	*              1: Negative
+	* 3X5.97[5] - DVI (TMDS) HSYNC Polarity
+	*              0: Positive
+	*              1: Negative */
+	svga_wcrt_mask(regs, 0x97, syncPolarity << 5, BIT(6) | BIT(5));
+	DRM_DEBUG_KMS("TMDS (DVI) Horizontal Sync Polarity: %s\n",
+			(syncPolarity & BIT(0)) ? "-" : "+");
+	DRM_DEBUG_KMS("TMDS (DVI) Vertical Sync Polarity: %s\n",
+			(syncPolarity & BIT(1)) ? "-" : "+");
+}
+
 
 extern void load_register_tables(void __iomem *regbase, struct vga_registers *regs);
 extern void load_value_to_registers(void __iomem *regbase, struct vga_registers *regs,
