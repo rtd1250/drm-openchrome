@@ -57,6 +57,33 @@ viaTMDSPower(struct via_device *dev_priv,
 }
 
 /*
+ * Set TMDS (DVI) sync polarity.
+ */
+static void
+viaTMDSSyncPolarity(struct via_device *dev_priv, unsigned int flags)
+{
+	u8 syncPolarity = 0x00;
+
+	DRM_DEBUG_KMS("Entered viaTMDSSyncPolarity.\n");
+
+	if (flags & DRM_MODE_FLAG_NHSYNC) {
+		syncPolarity |= BIT(0);
+	}
+
+	if (flags & DRM_MODE_FLAG_NVSYNC) {
+		syncPolarity |= BIT(1);
+	}
+
+	viaTMDSSetSyncPolarity(VGABASE, syncPolarity);
+	DRM_INFO("TMDS (DVI) Horizontal Sync Polarity: %s\n",
+		(syncPolarity & BIT(0)) ? "-" : "+");
+	DRM_INFO("TMDS (DVI) Vertical Sync Polarity: %s\n",
+		(syncPolarity & BIT(1)) ? "-" : "+");
+
+	DRM_DEBUG_KMS("Exiting viaTMDSSyncPolarity.\n");
+}
+
+/*
  * Routines for controlling stuff on the TMDS port
  */
 static const struct drm_encoder_funcs via_tmds_enc_funcs = {
