@@ -145,10 +145,29 @@ via_tmds_mode_fixup(struct drm_encoder *encoder,
 	return true;
 }
 
+/*
+ * Handle CX700 / VX700 and VX800 integrated TMDS (DVI) mode setting.
+ */
+static void
+via_tmds_mode_set(struct drm_encoder *encoder,
+			struct drm_display_mode *mode,
+			struct drm_display_mode *adjusted_mode)
+{
+	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct via_crtc *iga = container_of(encoder->crtc, struct via_crtc, base);
+
+	DRM_DEBUG_KMS("Entered via_tmds_mode_set.\n");
+
+	viaTMDSSyncPolarity(dev_priv, adjusted_mode->flags);
+	viaTMDSDisplaySource(dev_priv, iga->index);
+
+	DRM_DEBUG_KMS("Exiting via_tmds_mode_set.\n");
+}
+
 static const struct drm_encoder_helper_funcs via_tmds_enc_helper_funcs = {
 	.dpms = via_tmds_dpms,
 	.mode_fixup = via_tmds_mode_fixup,
-	.mode_set = via_set_sync_polarity,
+	.mode_set = via_tmds_mode_set,
 	.prepare = via_encoder_prepare,
 	.commit = via_encoder_commit,
 	.disable = via_encoder_disable,
