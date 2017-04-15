@@ -234,6 +234,23 @@ viaTMDSSetSyncPolarity(void __iomem *regs, u8 syncPolarity)
 			(syncPolarity & BIT(1)) ? "-" : "+");
 }
 
+/*
+ * Sets TMDS (DVI) display source.
+ */
+static inline void
+viaTMDSSetDisplaySource(void __iomem *regs, u8 displaySource)
+{
+	/* Set TMDS (DVI) display source.
+	 * The integrated TMDS transmitter appears to utilize LVDS1's
+	 * data source selection bit (3X5.99[4]). */
+	/* 3X5.99[4] - LVDS Channel1 Data Source Selection
+	 *             0: Primary Display
+	 *             1: Secondary Display */
+	svga_wcrt_mask(regs, 0x99, displaySource << 4, BIT(4));
+	DRM_DEBUG_KMS("TMDS (DVI) Display Source: IGA%d\n",
+			(displaySource & 0x01) + 1);
+}
+
 
 extern void load_register_tables(void __iomem *regbase, struct vga_registers *regs);
 extern void load_value_to_registers(void __iomem *regbase, struct vga_registers *regs,
