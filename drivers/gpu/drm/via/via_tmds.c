@@ -84,6 +84,23 @@ viaTMDSSyncPolarity(struct via_device *dev_priv, unsigned int flags)
 }
 
 /*
+ * Sets TMDS (DVI) display source.
+ */
+static void
+viaTMDSDisplaySource(struct via_device *dev_priv, int index)
+{
+	u8 displaySource = index;
+
+	DRM_DEBUG_KMS("Entered viaTMDSDisplaySource.\n");
+
+	viaTMDSSetDisplaySource(VGABASE, displaySource & 0x01);
+	DRM_INFO("TMDS (DVI) Display Source: IGA%d\n",
+			(displaySource & 0x01) + 1);
+
+	DRM_DEBUG_KMS("Exiting viaTMDSDisplaySource.\n");
+}
+
+/*
  * Routines for controlling stuff on the TMDS port
  */
 static const struct drm_encoder_funcs via_tmds_enc_funcs = {
