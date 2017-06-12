@@ -87,6 +87,44 @@ static inline void svga_wcrt_mask(void __iomem *regbase, u8 index, u8 data, u8 m
 ***********************************************************************/
 
 /*
+ * Sets DVP0 (Digital Video Port 0) I/O pad state.
+ */
+static inline void
+via_dvp0_set_io_pad_state(void __iomem *regs, u8 io_pad_state)
+{
+	/* 3C5.1E[7:6] - DVP0 Power Control
+	 *               0x: Pad always off
+	 *               10: Depend on the other control signal
+	 *               11: Pad on/off according to the
+	 *                   Power Management Status (PMS) */
+	svga_wseq_mask(regs, 0x1E, io_pad_state << 6, BIT(7) | BIT(6));
+	DRM_DEBUG_KMS("DVP0 I/O Pad State: %s\n",
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x03) ? "On" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x02) ? "Conditional" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x01) ? "Off" :
+								       "Off");
+}
+
+/*
+ * Sets DVP1 (Digital Video Port 1) I/O pad state.
+ */
+static inline void
+via_dvp1_set_io_pad_state(void __iomem *regs, u8 io_pad_state)
+{
+	/* 3C5.1E[5:4] - DVP1 Power Control
+	 *               0x: Pad always off
+	 *               10: Depend on the other control signal
+	 *               11: Pad on/off according to the
+	 *                   Power Management Status (PMS) */
+	svga_wseq_mask(regs, 0x1E, io_pad_state << 4, BIT(5) | BIT(4));
+	DRM_DEBUG_KMS("DVP1 I/O Pad State: %s\n",
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x03) ? "On" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x02) ? "Conditional" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x01) ? "Off" :
+								       "Off");
+}
+
+/*
  * Sets analog (VGA) DAC output state.
  */
 static inline void
@@ -134,6 +172,44 @@ viaAnalogSetDisplaySource(void __iomem *regs, u8 displaySource)
 	svga_wseq_mask(regs, 0x16, displaySource << 6, BIT(6));
 	DRM_DEBUG_KMS("Analog (VGA) Display Source: IGA%d\n",
 			(displaySource & 0x01) + 1);
+}
+
+/*
+ * Sets FPDP (Flat Panel Display Port) Low I/O pad state.
+ */
+static inline void
+via_fpdp_low_set_io_pad_state(void __iomem *regs, u8 io_pad_state)
+{
+	/* 3C5.2A[1:0] - FPDP Low I/O Pad Control
+	*               0x: Pad always off
+	*               10: Depend on the other control signal
+	*               11: Pad on/off according to the
+	*                   Power Management Status (PMS) */
+	svga_wcrt_mask(regs, 0x2A, io_pad_state, BIT(1) | BIT(0));
+	DRM_DEBUG_KMS("FPDP Low I/O Pad State: %s\n",
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x03) ? "On" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x02) ? "Conditional" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x01) ? "Off" :
+								       "Off");
+}
+
+/*
+ * Sets FPDP (Flat Panel Display Port) High I/O pad state
+ */
+static inline void
+via_fpdp_high_set_io_pad_state(void __iomem *regs, u8 io_pad_state)
+{
+	/* 3C5.2A[3:2] - FPDP High I/O Pad Control
+	 *               0x: Pad always off
+	 *               10: Depend on the other control signal
+	 *               11: Pad on/off according to the
+	 *                   Power Management Status (PMS) */
+	svga_wcrt_mask(regs, 0x2A, io_pad_state << 2, BIT(3) | BIT(2));
+	DRM_DEBUG_KMS("FPDP High I/O Pad State: %s\n",
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x03) ? "On" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x02) ? "Conditional" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x01) ? "Off" :
+								       "Off");
 }
 
 /*
@@ -197,6 +273,44 @@ viaLVDS1SetSoftDisplayPeriod(void __iomem *regs, bool softOn)
 	svga_wcrt_mask(regs, 0x91, softOn ? 0 : BIT(7), BIT(7));
 	DRM_DEBUG_KMS("LVDS1 Software Controlled Display Period: %s\n",
 			softOn ? "On" : "Off");
+}
+
+/*
+ * Sets LVDS1 I/O pad state.
+ */
+static inline void
+via_lvds1_set_io_pad_setting(void __iomem *regs, u8 io_pad_state)
+{
+	/* 3C5.2A[1:0] - LVDS1 I/O Pad Control
+	 *               0x: Pad always off
+	 *               10: Depend on the other control signal
+	 *               11: Pad on/off according to the
+	 *                   Power Management Status (PMS) */
+	svga_wcrt_mask(regs, 0x2A, io_pad_state, BIT(1) | BIT(0));
+	DRM_DEBUG_KMS("LVDS1 I/O Pad State: %s\n",
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x03) ? "On" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x02) ? "Conditional" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x01) ? "Off" :
+								       "Off");
+}
+
+/*
+ * Sets LVDS2 I/O pad state.
+ */
+static inline void
+via_lvds2_set_io_pad_setting(void __iomem *regs, u8 io_pad_state)
+{
+	/* 3C5.2A[3:2] - LVDS2 I/O Pad Control
+	 *               0x: Pad always off
+	 *               10: Depend on the other control signal
+	 *               11: Pad on/off according to the
+	 *                   Power Management Status (PMS) */
+	svga_wcrt_mask(regs, 0x2A, io_pad_state << 2, BIT(3) | BIT(2));
+	DRM_DEBUG_KMS("LVDS2 I/O Pad State: %s\n",
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x03) ? "On" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x02) ? "Conditional" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x01) ? "Off" :
+								       "Off");
 }
 
 /*
