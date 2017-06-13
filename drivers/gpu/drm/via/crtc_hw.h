@@ -30,6 +30,13 @@
 #include <drm/drmP.h>
 
 
+/* To be used with via_analog_set_dpms_control inline function. */
+#define VIA_ANALOG_DPMS_ON		0x00
+#define VIA_ANALOG_DPMS_STANDBY		0x01
+#define VIA_ANALOG_DPMS_SUSPEND		0x02
+#define VIA_ANALOG_DPMS_OFF		0x03
+
+
 struct vga_regset {
 	u16	ioport;
 	u8	io_addr;
