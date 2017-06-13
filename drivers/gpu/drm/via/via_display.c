@@ -50,7 +50,7 @@ via_encoder_commit(struct drm_encoder *encoder)
 
 	/* Set IGA source and turn on DI port clock */
 	switch (enc->diPort) {
-	case DISP_DI_DVP0:
+	case VIA_DI_PORT_DVP0:
 		/* DVP0 Data Source Selection. */
 		svga_wcrt_mask(VGABASE, 0x96, value, BIT(4));
 		/* enable DVP0 under CX700 */
@@ -60,7 +60,7 @@ via_encoder_commit(struct drm_encoder *encoder)
 		svga_wseq_mask(VGABASE, 0x1E, 0xC0, BIT(7) | BIT(6));
 		break;
 
-	case DISP_DI_DVP1:
+	case VIA_DI_PORT_DVP1:
 		svga_wcrt_mask(VGABASE, 0x9B, value, BIT(4));
 		/* enable DVP1 under these chipset. Does DVI exist
 		 * for pre CX700 hardware */
@@ -73,7 +73,7 @@ via_encoder_commit(struct drm_encoder *encoder)
 		svga_wseq_mask(VGABASE, 0x1E, 0x30, BIT(5) | BIT(4));
 		break;
 
-	case DISP_DI_DFPH:
+	case VIA_DI_PORT_DFPH:
 		/* Port 96 is used on older hardware for the DVP0 */
 		if ((dev->pdev->device != PCI_DEVICE_ID_VIA_VT3157) &&
 		    (dev->pdev->device != PCI_DEVICE_ID_VIA_VT1122) &&
@@ -86,7 +86,7 @@ via_encoder_commit(struct drm_encoder *encoder)
 		svga_wseq_mask(VGABASE, 0x2A, 0x0C, BIT(3) | BIT(2));
 		break;
 
-	case DISP_DI_DFPL:
+	case VIA_DI_PORT_DFPL:
 		/* Port 9B is used on older hardware for the DVP1 */
 		if ((dev->pdev->device != PCI_DEVICE_ID_VIA_VT3157) &&
 		    (dev->pdev->device != PCI_DEVICE_ID_VIA_VT1122) &&
@@ -99,7 +99,7 @@ via_encoder_commit(struct drm_encoder *encoder)
 		svga_wseq_mask(VGABASE, 0x2A, 0x03, BIT(1) | BIT(0));
 		break;
 
-	case DISP_DI_DFP:
+	case VIA_DI_PORT_DFP:
 		if ((dev->pdev->device == PCI_DEVICE_ID_VIA_K8M890) ||
 		    (dev->pdev->device == PCI_DEVICE_ID_VIA_VT3343))
 			svga_wcrt_mask(VGABASE, 0x97, 0x84,
@@ -112,7 +112,7 @@ via_encoder_commit(struct drm_encoder *encoder)
 		break;
 
 	/* For TTL Type LCD */
-	case (DISP_DI_DFPL + DISP_DI_DVP1):
+	case (VIA_DI_PORT_DFPL + VIA_DI_PORT_DVP1):
 		svga_wcrt_mask(VGABASE, 0x99, value, BIT(4));
 		svga_wcrt_mask(VGABASE, 0x9B, value, BIT(4));
 
@@ -122,7 +122,7 @@ via_encoder_commit(struct drm_encoder *encoder)
 		break;
 
 	/* For 409 TTL Type LCD */
-	case (DISP_DI_DFPH + DISP_DI_DFPL + DISP_DI_DVP1):
+	case (VIA_DI_PORT_DFPH + VIA_DI_PORT_DFPL + VIA_DI_PORT_DVP1):
 		svga_wcrt_mask(VGABASE, 0x97, value, BIT(4));
 		svga_wcrt_mask(VGABASE, 0x99, value, BIT(4));
 		svga_wcrt_mask(VGABASE, 0x9B, value, BIT(4));
@@ -132,7 +132,7 @@ via_encoder_commit(struct drm_encoder *encoder)
 		svga_wseq_mask(VGABASE, 0x1E, 0x30, BIT(5) | BIT(4));
 		break;
 
-	case DISP_DI_DAC:
+	case VIA_DI_PORT_DAC:
 		if (iga->index)
 			value = BIT(6);
 		svga_wseq_mask(VGABASE, 0x16, value, BIT(6));
@@ -140,7 +140,7 @@ via_encoder_commit(struct drm_encoder *encoder)
 
 	default:
 		DRM_ERROR("Unsupported DIPort.\n");
-	case DISP_DI_NONE:
+	case VIA_DI_PORT_NONE:
 		break;
 	}
 
@@ -165,46 +165,46 @@ via_encoder_disable(struct drm_encoder *encoder)
 	encoder_funcs->dpms(encoder, DRM_MODE_DPMS_OFF);
 
 	switch (enc->diPort) {
-	case DISP_DI_DVP0:
+	case VIA_DI_PORT_DVP0:
 		svga_wseq_mask(VGABASE, 0x1E, 0x00, BIT(7) | BIT(6));
 		break;
 
-	case DISP_DI_DVP1:
+	case VIA_DI_PORT_DVP1:
 		svga_wseq_mask(VGABASE, 0x1E, 0x00, BIT(5) | BIT(4));
 		break;
 
-	case DISP_DI_DFPH:
+	case VIA_DI_PORT_DFPH:
 		svga_wseq_mask(VGABASE, 0x2A, 0x00, BIT(3) | BIT(2));
 		break;
 
-	case DISP_DI_DFPL:
+	case VIA_DI_PORT_DFPL:
 		svga_wseq_mask(VGABASE, 0x2A, 0x00, BIT(1) | BIT(0));
 		break;
 
-	case DISP_DI_DFP:
+	case VIA_DI_PORT_DFP:
 		svga_wseq_mask(VGABASE, 0x2A, 0x00,
 				BIT(3) | BIT(2) | BIT(1) | BIT(0));
 		break;
 
 	/* TTL LCD, Quanta case */
-	case DISP_DI_DFPL + DISP_DI_DVP1:
+	case VIA_DI_PORT_DFPL + VIA_DI_PORT_DVP1:
 		svga_wseq_mask(VGABASE, 0x1E, 0x00, BIT(5) | BIT(4));
 		svga_wseq_mask(VGABASE, 0x2A, 0x00, BIT(1) | BIT(0));
 		break;
 
-	case DISP_DI_DFPH + DISP_DI_DFPL + DISP_DI_DVP1:
+	case VIA_DI_PORT_DFPH + VIA_DI_PORT_DFPL + VIA_DI_PORT_DVP1:
 		svga_wseq_mask(VGABASE, 0x1E, 0x00, BIT(5) | BIT(4));
 		svga_wseq_mask(VGABASE, 0x2A, 0x00,
 				BIT(3) | BIT(2) | BIT(1) | BIT(0));
 		break;
 
-	case DISP_DI_DAC:
+	case VIA_DI_PORT_DAC:
 		svga_wseq_mask(VGABASE, 0x16, 0x00, BIT(6));
 		break;
 
 	default:
 		DRM_ERROR("Unsupported DIPort.\n");
-	case DISP_DI_NONE:
+	case VIA_DI_PORT_NONE:
 		break;
 	}
 }
@@ -223,35 +223,35 @@ via_set_sync_polarity(struct drm_encoder *encoder, struct drm_display_mode *mode
 		syncreg |= BIT(5);
 
 	switch (enc->diPort) {
-	case DISP_DI_DAC:
+	case VIA_DI_PORT_DAC:
 		svga_wmisc_mask(VGABASE, (syncreg << 1), BIT(7) | BIT(6));
 		break;
 
-	case DISP_DI_DVP0:
+	case VIA_DI_PORT_DVP0:
 		svga_wcrt_mask(VGABASE, 0x96, syncreg, BIT(6) | BIT(5));
 		break;
 
-	case DISP_DI_DVP1:
+	case VIA_DI_PORT_DVP1:
 		svga_wcrt_mask(VGABASE, 0x9B, syncreg, BIT(6) | BIT(5));
 		break;
 
-	case DISP_DI_DFPH:
+	case VIA_DI_PORT_DFPH:
 		svga_wcrt_mask(VGABASE, 0x97, syncreg, BIT(6) | BIT(5));
 		break;
 
-	case DISP_DI_DFPL:
+	case VIA_DI_PORT_DFPL:
 		svga_wcrt_mask(VGABASE, 0x99, syncreg, BIT(6) | BIT(5));
 		break;
 
 	/* For TTL Type LCD */
-	case (DISP_DI_DFPL + DISP_DI_DVP1):
+	case (VIA_DI_PORT_DFPL + VIA_DI_PORT_DVP1):
 		svga_wcrt_mask(VGABASE, 0x99, syncreg, BIT(6) | BIT(5));
 		svga_wcrt_mask(VGABASE, 0x9B, syncreg, BIT(6) | BIT(5));
 		break;
 
 	default:
 		DRM_ERROR("No DIPort.\n");
-	case DISP_DI_NONE:
+	case VIA_DI_PORT_NONE:
 		break;
 	}
 }
@@ -544,7 +544,7 @@ via_modeset_init(struct drm_device *dev)
 
 	switch (dev->pdev->device) {
 	case PCI_DEVICE_ID_VIA_VX900_VGA:
-		via_hdmi_init(dev, DISP_DI_NONE);
+		via_hdmi_init(dev, VIA_DI_PORT_NONE);
 		break;
 	default:
 		break;

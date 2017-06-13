@@ -234,7 +234,7 @@ via_tmds_init(struct drm_device *dev)
 
 	enc->base.possible_crtcs = BIT(1) | BIT(0);
 	enc->base.possible_clones = 0;
-	enc->diPort = DISP_DI_DFPL;
+	enc->diPort = VIA_DI_PORT_DFPL;
 
 	/* Piece together our DVI-D connector */
 	con = &enc->cons[0];

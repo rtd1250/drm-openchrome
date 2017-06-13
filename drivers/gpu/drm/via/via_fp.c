@@ -73,7 +73,7 @@ via_enable_internal_lvds(struct drm_encoder *encoder)
 	struct drm_device *dev = encoder->dev;
 
 	/* Turn on LCD panel */
-	if ((enc->diPort & DISP_DI_DFPL) || (enc->diPort == DISP_DI_DVP1)) {
+	if ((enc->diPort & VIA_DI_PORT_DFPL) || (enc->diPort == VIA_DI_PORT_DVP1)) {
 		if ((dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
 		    (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266)) {
 			/* Software control power sequence ON */
@@ -104,7 +104,7 @@ via_enable_internal_lvds(struct drm_encoder *encoder)
 		}
 	}
 
-	if (enc->diPort & DISP_DI_DFPH) {
+	if (enc->diPort & VIA_DI_PORT_DFPH) {
 		if ((dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
 		    (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266)) {
 			/* Software control power sequence ON */
@@ -144,9 +144,9 @@ via_enable_internal_lvds(struct drm_encoder *encoder)
 		 * power on both LVDS0 and LVDS1 */
 		svga_wcrt_mask(VGABASE, 0xD2, 0x00, BIT(7) | BIT(6));
 	} else {
-		if (enc->diPort & DISP_DI_DFPL)
+		if (enc->diPort & VIA_DI_PORT_DFPL)
 			svga_wcrt_mask(VGABASE, 0xD2, 0x00, BIT(7));
-		else if (enc->diPort & DISP_DI_DFPH)
+		else if (enc->diPort & VIA_DI_PORT_DFPH)
 			svga_wcrt_mask(VGABASE, 0xD2, 0x00, BIT(6));
 	}
 }
@@ -159,7 +159,7 @@ via_disable_internal_lvds(struct drm_encoder *encoder)
 	struct drm_device *dev = encoder->dev;
 
 	/* Turn off LCD panel */
-	if ((enc->diPort & DISP_DI_DFPL) || (enc->diPort == DISP_DI_DVP1)) {
+	if ((enc->diPort & VIA_DI_PORT_DFPL) || (enc->diPort == VIA_DI_PORT_DVP1)) {
 		/* Set LCD software power sequence off */
 		if ((dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
 		    (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266)) {
@@ -185,7 +185,7 @@ via_disable_internal_lvds(struct drm_encoder *encoder)
 		}
 	}
 
-	if (enc->diPort & DISP_DI_DFPH) {
+	if (enc->diPort & VIA_DI_PORT_DFPH) {
 		/* Set LCD software power sequence off */
 		if ((dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
 		    (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266)) {
@@ -220,9 +220,9 @@ via_disable_internal_lvds(struct drm_encoder *encoder)
 		 * power off both LVDS0 and LVDS1 */
 		svga_wcrt_mask(VGABASE, 0xD2, 0xC0, BIT(7) | BIT(6));
 	} else {
-		if (enc->diPort & DISP_DI_DFPL)
+		if (enc->diPort & VIA_DI_PORT_DFPL)
 			svga_wcrt_mask(VGABASE, 0xD2, BIT(7), BIT(7));
-		else if (enc->diPort & DISP_DI_DFPH)
+		else if (enc->diPort & VIA_DI_PORT_DFPH)
 			svga_wcrt_mask(VGABASE, 0xD2, BIT(6), BIT(6));
 	}
 }
@@ -765,30 +765,30 @@ via_lvds_init(struct drm_device *dev)
 
 	switch (dev->pdev->device) {
 	case PCI_DEVICE_ID_VIA_CLE266:
-		enc->diPort = DISP_DI_DVP1;
+		enc->diPort = VIA_DI_PORT_DVP1;
 		break;
 
 	case PCI_DEVICE_ID_VIA_VX875:
 	case PCI_DEVICE_ID_VIA_VX900_VGA:
-		enc->diPort = DISP_DI_DFPL;
+		enc->diPort = VIA_DI_PORT_DFPL;
 		break;
 
 	default:
-		enc->diPort = DISP_DI_DFPH;
+		enc->diPort = VIA_DI_PORT_DFPH;
 		break;
 	}
 
 	/* There has to be a way to detect TTL LVDS
 	 * For now we use the DMI to handle this */
 	if (dmi_check_system(via_ttl_lvds))
-		enc->diPort = DISP_DI_DFPL | DISP_DI_DVP1;
+		enc->diPort = VIA_DI_PORT_DFPL | VIA_DI_PORT_DVP1;
 
 	reg_value = 0x00;
-	if (enc->diPort == DISP_DI_DFPH) {
+	if (enc->diPort == VIA_DI_PORT_DFPH) {
 		if (!is_msb)
 			reg_value = BIT(0);
 		svga_wcrt_mask(VGABASE, 0xD2, reg_value, BIT(0));
-	} else if (enc->diPort == DISP_DI_DFPL) {
+	} else if (enc->diPort == VIA_DI_PORT_DFPL) {
 		if (!is_msb)
 			reg_value = BIT(1);
 		svga_wcrt_mask(VGABASE, 0xD2, reg_value, BIT(1));

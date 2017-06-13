@@ -79,13 +79,17 @@ struct via_connector {
 	uint32_t flags;
 };
 
-#define DISP_DI_NONE		0x00
-#define DISP_DI_DVP0		BIT(0)
-#define DISP_DI_DVP1		BIT(1)
-#define DISP_DI_DFPL		BIT(2)
-#define DISP_DI_DFPH		BIT(3)
-#define DISP_DI_DFP		BIT(4)
-#define DISP_DI_DAC		BIT(5)
+#define VIA_DI_PORT_NONE		0x00
+#define VIA_DI_PORT_DIP0		BIT(0)
+#define VIA_DI_PORT_DIP1		BIT(1)
+#define VIA_DI_PORT_DVP0		BIT(2)
+#define VIA_DI_PORT_DVP1		BIT(3)
+#define VIA_DI_PORT_DFPL		BIT(4)
+#define VIA_DI_PORT_DFPH		BIT(5)
+#define VIA_DI_PORT_DFP			BIT(6)
+#define VIA_DI_PORT_LVDS1		BIT(7)
+#define VIA_DI_PORT_LVDS2		BIT(8)
+#define VIA_DI_PORT_DAC			BIT(9)
 
 struct via_encoder {
 	struct drm_encoder base;
