@@ -140,6 +140,25 @@ viaAnalogSetDACOutput(void __iomem *regs, bool outputState)
 }
 
 /*
+ * Sets analog (VGA) DPMS state.
+ */
+static inline void
+via_analog_set_dpms_control(void __iomem *regs, u8 dpmsControl)
+{
+	/* 3X5.36[5:4] - DPMS Control
+	 *               00: On
+	 *               01: Stand-by
+	 *               10: Suspend
+	 *               11: Off */
+	svga_wcrt_mask(regs, 0x36, dpmsControl << 4, BIT(5) | BIT(4));
+	DRM_DEBUG_KMS("Analog (VGA) DPMS: %s\n",
+			((dpmsControl & (BIT(1) | BIT(0))) == 0x03) ? "Off" :
+			((dpmsControl & (BIT(1) | BIT(0))) == 0x02) ? "Suspend" :
+			((dpmsControl & (BIT(1) | BIT(0))) == 0x01) ? "Standby" :
+								      "On");
+}
+
+/*
  * Sets analog (VGA) sync polarity.
  */
 static inline void
