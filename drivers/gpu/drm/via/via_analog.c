@@ -227,7 +227,7 @@ via_analog_init(struct drm_device *dev)
 
 	enc->base.possible_crtcs = BIT(0);
 	enc->base.possible_clones = 0;
-	enc->diPort = VIA_DI_PORT_DAC;
+	enc->diPort = VIA_DI_PORT_NONE;
 
 	drm_mode_connector_attach_encoder(&con->base, &enc->base);
 }

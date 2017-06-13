@@ -89,7 +89,6 @@ struct via_connector {
 #define VIA_DI_PORT_DFP			BIT(6)
 #define VIA_DI_PORT_LVDS1		BIT(7)
 #define VIA_DI_PORT_LVDS2		BIT(8)
-#define VIA_DI_PORT_DAC			BIT(9)
 
 struct via_encoder {
 	struct drm_encoder base;

@@ -132,12 +132,6 @@ via_encoder_commit(struct drm_encoder *encoder)
 		svga_wseq_mask(VGABASE, 0x1E, 0x30, BIT(5) | BIT(4));
 		break;
 
-	case VIA_DI_PORT_DAC:
-		if (iga->index)
-			value = BIT(6);
-		svga_wseq_mask(VGABASE, 0x16, value, BIT(6));
-		break;
-
 	default:
 		DRM_ERROR("Unsupported DIPort.\n");
 	case VIA_DI_PORT_NONE:
@@ -198,10 +192,6 @@ via_encoder_disable(struct drm_encoder *encoder)
 				BIT(3) | BIT(2) | BIT(1) | BIT(0));
 		break;
 
-	case VIA_DI_PORT_DAC:
-		svga_wseq_mask(VGABASE, 0x16, 0x00, BIT(6));
-		break;
-
 	default:
 		DRM_ERROR("Unsupported DIPort.\n");
 	case VIA_DI_PORT_NONE:
@@ -223,10 +213,6 @@ via_set_sync_polarity(struct drm_encoder *encoder, struct drm_display_mode *mode
 		syncreg |= BIT(5);
 
 	switch (enc->diPort) {
-	case VIA_DI_PORT_DAC:
-		svga_wmisc_mask(VGABASE, (syncreg << 1), BIT(7) | BIT(6));
-		break;
-
 	case VIA_DI_PORT_DVP0:
 		svga_wcrt_mask(VGABASE, 0x96, syncreg, BIT(6) | BIT(5));
 		break;
