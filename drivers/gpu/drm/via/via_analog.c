@@ -106,19 +106,19 @@ via_analog_dpms(struct drm_encoder *encoder, int mode)
 	switch (mode) {
 	case DRM_MODE_DPMS_ON:
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_ON);
-		via_analog_power(VGABASE, true);
+		via_analog_power(dev_priv, true);
 		break;
 	case DRM_MODE_DPMS_STANDBY:
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_STANDBY);
-		via_analog_power(VGABASE, true);
+		via_analog_power(dev_priv, true);
 		break;
 	case DRM_MODE_DPMS_SUSPEND:
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_SUSPEND);
-		via_analog_power(VGABASE, true);
+		via_analog_power(dev_priv, true);
 		break;
 	case DRM_MODE_DPMS_OFF:
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_OFF);
-		via_analog_power(VGABASE, false);
+		via_analog_power(dev_priv, false);
 		break;
 	default:
 		DRM_ERROR("Bad DPMS mode.");
@@ -169,7 +169,7 @@ via_analog_prepare(struct drm_encoder *encoder)
 
 	if (encoder->crtc) {
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_OFF);
-		via_analog_power(VGABASE, false);
+		via_analog_power(dev_priv, false);
 	}
 
 	DRM_DEBUG_KMS("Exiting via_analog_prepare.\n");
@@ -184,7 +184,7 @@ via_analog_commit(struct drm_encoder *encoder)
 
 	if (encoder->crtc) {
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_ON);
-		via_analog_power(VGABASE, true);
+		via_analog_power(dev_priv, true);
 	}
 
 	DRM_DEBUG_KMS("Exiting via_analog_commit.\n");
