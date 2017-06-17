@@ -135,7 +135,7 @@ via_dvp1_set_io_pad_state(void __iomem *regs, u8 io_pad_state)
  * Sets analog (VGA) DAC output state.
  */
 static inline void
-viaAnalogSetDACOutput(void __iomem *regs, bool outputState)
+via_analog_set_dac_output(void __iomem *regs, bool outputState)
 {
 	/* Set analog (VGA) DAC output state. */
 	/* 3X5.47[2] - DACOFF Backdoor Register
@@ -169,7 +169,7 @@ via_analog_set_dpms_control(void __iomem *regs, u8 dpmsControl)
  * Sets analog (VGA) sync polarity.
  */
 static inline void
-viaAnalogSetSyncPolarity(void __iomem *regs, u8 syncPolarity)
+via_analog_set_sync_polarity(void __iomem *regs, u8 syncPolarity)
 {
 	/* Set analog (VGA) sync polarity. */
 	/* 3C2[7] - Analog Vertical Sync Polarity
@@ -189,7 +189,7 @@ viaAnalogSetSyncPolarity(void __iomem *regs, u8 syncPolarity)
  * Sets analog (VGA) display source.
  */
 static inline void
-viaAnalogSetDisplaySource(void __iomem *regs, u8 displaySource)
+via_analog_set_display_source(void __iomem *regs, u8 displaySource)
 {
 	/* Set analog (VGA) display source. */
 	/* 3C5.16[6] - CRT Display Source
@@ -242,7 +242,7 @@ via_fpdp_high_set_io_pad_state(void __iomem *regs, u8 io_pad_state)
  * Sets CX700 or later single chipset's LVDS1 power sequence type.
  */
 static inline void
-viaLVDS1SetPowerSeq(void __iomem *regs, bool softCtrl)
+via_lvds1_set_power_seq(void __iomem *regs, bool softCtrl)
 {
 	/* Set LVDS1 power sequence type. */
 	/* 3X5.91[0] - LVDS1 Hardware or Software Control Power Sequence
@@ -258,7 +258,7 @@ viaLVDS1SetPowerSeq(void __iomem *regs, bool softCtrl)
  * data path state.
  */
 static inline void
-viaLVDS1SetSoftData(void __iomem *regs, bool softOn)
+via_lvds1_set_soft_data(void __iomem *regs, bool softOn)
 {
 	/* Set LVDS1 software controlled data path state. */
 	/* 3X5.91[3] - Software Data On
@@ -273,7 +273,7 @@ viaLVDS1SetSoftData(void __iomem *regs, bool softOn)
  * Sets CX700 or later single chipset's LVDS1 software controlled Vdd.
  */
 static inline void
-viaLVDS1SetSoftVdd(void __iomem *regs, bool softOn)
+via_lvds1_set_soft_vdd(void __iomem *regs, bool softOn)
 {
 	/* Set LVDS1 software controlled Vdd. */
 	/* 3X5.91[4] - Software VDD On
@@ -289,7 +289,7 @@ viaLVDS1SetSoftVdd(void __iomem *regs, bool softOn)
  * display period.
  */
 static inline void
-viaLVDS1SetSoftDisplayPeriod(void __iomem *regs, bool softOn)
+via_lvds1_set_soft_display_period(void __iomem *regs, bool softOn)
 {
 	/* Set LVDS1 software controlled display period state. */
 	/* 3X5.91[7] - Software Direct On / Off Display Period
@@ -343,7 +343,7 @@ via_lvds2_set_io_pad_setting(void __iomem *regs, u8 io_pad_state)
  * Sets CX700 / VX700 and VX800 chipsets' TMDS (DVI) power state.
  */
 static inline void
-viaTMDSSetPower(void __iomem *regs, bool powerState)
+via_tmds_set_power(void __iomem *regs, bool powerState)
 {
 	/* Set TMDS (DVI) power state. */
 	/* 3X5.D2[3] - Power Down (Active High) for DVI
@@ -358,7 +358,7 @@ viaTMDSSetPower(void __iomem *regs, bool powerState)
  * Sets CX700 / VX700 and VX800 chipsets' TMDS (DVI) sync polarity.
  */
 static inline void
-viaTMDSSetSyncPolarity(void __iomem *regs, u8 syncPolarity)
+via_tmds_set_sync_polarity(void __iomem *regs, u8 syncPolarity)
 {
 	/* Set TMDS (DVI) sync polarity. */
 	/* 3X5.97[6] - DVI (TMDS) VSYNC Polarity
@@ -378,7 +378,7 @@ viaTMDSSetSyncPolarity(void __iomem *regs, u8 syncPolarity)
  * Sets TMDS (DVI) display source.
  */
 static inline void
-viaTMDSSetDisplaySource(void __iomem *regs, u8 displaySource)
+via_tmds_set_display_source(void __iomem *regs, u8 displaySource)
 {
 	/* Set TMDS (DVI) display source.
 	 * The integrated TMDS transmitter appears to utilize LVDS1's

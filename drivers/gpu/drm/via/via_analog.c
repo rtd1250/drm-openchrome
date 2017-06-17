@@ -31,25 +31,25 @@
  * Enables or disables analog (VGA) output.
  */
 static void
-viaAnalogOutput(struct via_device *dev_priv, bool outputState)
+via_analog_output(struct via_device *dev_priv, bool outputState)
 {
-	DRM_DEBUG_KMS("Entered viaAnalogOutput.\n");
+	DRM_DEBUG_KMS("Entered via_analog_output.\n");
 
-	viaAnalogSetDACOutput(VGABASE, outputState);
+	via_analog_set_dac_output(VGABASE, outputState);
 	DRM_INFO("Analog (VGA) Output: %s\n", outputState ? "On" : "Off");
 
-	DRM_DEBUG_KMS("Exiting viaAnalogOutput.\n");
+	DRM_DEBUG_KMS("Exiting via_analog_output.\n");
 }
 
 /*
  * Set analog (VGA) sync polarity.
  */
 static void
-viaAnalogSyncPolarity(struct via_device *dev_priv, unsigned int flags)
+via_analog_sync_polarity(struct via_device *dev_priv, unsigned int flags)
 {
 	u8 syncPolarity = 0x00;
 
-	DRM_DEBUG_KMS("Entered viaAnalogSyncPolarity.\n");
+	DRM_DEBUG_KMS("Entered via_analog_sync_polarity.\n");
 
 	if (flags & DRM_MODE_FLAG_NHSYNC) {
 		syncPolarity |= BIT(0);
@@ -59,30 +59,30 @@ viaAnalogSyncPolarity(struct via_device *dev_priv, unsigned int flags)
 		syncPolarity |= BIT(1);
 	}
 
-	viaAnalogSetSyncPolarity(VGABASE, syncPolarity);
+	via_analog_set_sync_polarity(VGABASE, syncPolarity);
 	DRM_INFO("Analog (VGA) Horizontal Sync Polarity: %s\n",
 		(syncPolarity & BIT(0)) ? "-" : "+");
 	DRM_INFO("Analog (VGA) Vertical Sync Polarity: %s\n",
 		(syncPolarity & BIT(1)) ? "-" : "+");
 
-	DRM_DEBUG_KMS("Exiting viaAnalogSyncPolarity.\n");
+	DRM_DEBUG_KMS("Exiting via_analog_sync_polarity.\n");
 }
 
 /*
  * Sets analog (VGA) display source.
  */
 static void
-viaAnalogDisplaySource(struct via_device *dev_priv, int index)
+via_analog_display_source(struct via_device *dev_priv, int index)
 {
 	u8 displaySource = index;
 
-	DRM_DEBUG_KMS("Entered viaAnalogDisplaySource.\n");
+	DRM_DEBUG_KMS("Entered via_analog_display_source.\n");
 
-	viaAnalogSetDisplaySource(VGABASE, displaySource & 0x01);
+	via_analog_set_display_source(VGABASE, displaySource & 0x01);
 	DRM_INFO("Analog (VGA) Display Source: IGA%d\n",
 			(displaySource & 0x01) + 1);
 
-	DRM_DEBUG_KMS("Exiting viaAnalogDisplaySource.\n");
+	DRM_DEBUG_KMS("Exiting via_analog_display_source.\n");
 }
 
 /*
@@ -149,8 +149,8 @@ via_analog_mode_set(struct drm_encoder *encoder,
 
 	DRM_DEBUG_KMS("Entered via_analog_mode_set.\n");
 
-	viaAnalogSyncPolarity(dev_priv, adjusted_mode->flags);
-	viaAnalogDisplaySource(dev_priv, iga->index);
+	via_analog_sync_polarity(dev_priv, adjusted_mode->flags);
+	via_analog_display_source(dev_priv, iga->index);
 
 	DRM_DEBUG_KMS("Exiting via_analog_mode_set.\n");
 }

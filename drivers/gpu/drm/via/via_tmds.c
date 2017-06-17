@@ -36,18 +36,18 @@ viaTMDSPower(struct via_device *dev_priv,
 
     if (powerState) {
         /* Software control for LVDS1 power sequence. */
-        viaLVDS1SetPowerSeq(VGABASE, true);
+        via_lvds1_set_power_seq(VGABASE, true);
 
-        viaLVDS1SetSoftDisplayPeriod(VGABASE, true);
-        viaLVDS1SetSoftData(VGABASE, true);
-        viaTMDSSetPower(VGABASE, true);
+        via_lvds1_set_soft_display_period(VGABASE, true);
+        via_lvds1_set_soft_data(VGABASE, true);
+        via_tmds_set_power(VGABASE, true);
     } else {
         /* Software control for LVDS1 power sequence. */
-        viaLVDS1SetPowerSeq(VGABASE, true);
+        via_lvds1_set_power_seq(VGABASE, true);
 
-        viaTMDSSetPower(VGABASE, false);
-        viaLVDS1SetSoftData(VGABASE, false);
-        viaLVDS1SetSoftDisplayPeriod(VGABASE, false);
+        via_tmds_set_power(VGABASE, false);
+        via_lvds1_set_soft_data(VGABASE, false);
+        via_lvds1_set_soft_display_period(VGABASE, false);
     }
 
     DRM_INFO("Integrated TMDS (DVI) Power: %s\n",
@@ -60,11 +60,11 @@ viaTMDSPower(struct via_device *dev_priv,
  * Set TMDS (DVI) sync polarity.
  */
 static void
-viaTMDSSyncPolarity(struct via_device *dev_priv, unsigned int flags)
+via_tmds_sync_polarity(struct via_device *dev_priv, unsigned int flags)
 {
 	u8 syncPolarity = 0x00;
 
-	DRM_DEBUG_KMS("Entered viaTMDSSyncPolarity.\n");
+	DRM_DEBUG_KMS("Entered via_tmds_sync_polarity.\n");
 
 	if (flags & DRM_MODE_FLAG_NHSYNC) {
 		syncPolarity |= BIT(0);
@@ -74,30 +74,30 @@ viaTMDSSyncPolarity(struct via_device *dev_priv, unsigned int flags)
 		syncPolarity |= BIT(1);
 	}
 
-	viaTMDSSetSyncPolarity(VGABASE, syncPolarity);
+	via_tmds_set_sync_polarity(VGABASE, syncPolarity);
 	DRM_INFO("TMDS (DVI) Horizontal Sync Polarity: %s\n",
 		(syncPolarity & BIT(0)) ? "-" : "+");
 	DRM_INFO("TMDS (DVI) Vertical Sync Polarity: %s\n",
 		(syncPolarity & BIT(1)) ? "-" : "+");
 
-	DRM_DEBUG_KMS("Exiting viaTMDSSyncPolarity.\n");
+	DRM_DEBUG_KMS("Exiting via_tmds_sync_polarity.\n");
 }
 
 /*
  * Sets TMDS (DVI) display source.
  */
 static void
-viaTMDSDisplaySource(struct via_device *dev_priv, int index)
+via_tmds_display_source(struct via_device *dev_priv, int index)
 {
 	u8 displaySource = index;
 
-	DRM_DEBUG_KMS("Entered viaTMDSDisplaySource.\n");
+	DRM_DEBUG_KMS("Entered via_tmds_display_source.\n");
 
-	viaTMDSSetDisplaySource(VGABASE, displaySource & 0x01);
+	via_tmds_set_display_source(VGABASE, displaySource & 0x01);
 	DRM_INFO("TMDS (DVI) Display Source: IGA%d\n",
 			(displaySource & 0x01) + 1);
 
-	DRM_DEBUG_KMS("Exiting viaTMDSDisplaySource.\n");
+	DRM_DEBUG_KMS("Exiting via_tmds_display_source.\n");
 }
 
 /*
@@ -158,8 +158,8 @@ via_tmds_mode_set(struct drm_encoder *encoder,
 
 	DRM_DEBUG_KMS("Entered via_tmds_mode_set.\n");
 
-	viaTMDSSyncPolarity(dev_priv, adjusted_mode->flags);
-	viaTMDSDisplaySource(dev_priv, iga->index);
+	via_tmds_sync_polarity(dev_priv, adjusted_mode->flags);
+	via_tmds_display_source(dev_priv, iga->index);
 
 	DRM_DEBUG_KMS("Exiting via_tmds_mode_set.\n");
 }

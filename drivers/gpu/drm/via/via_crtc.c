@@ -46,9 +46,9 @@ static struct vga_regset vpit_table[] = {
 };
 
 static void
-viaIGACommonInit(void __iomem *regs)
+via_iga_common_init(void __iomem *regs)
 {
-    DRM_DEBUG("Entered viaIGACommonInit.\n");
+    DRM_DEBUG("Entered via_iga_common_init.\n");
 
     /* Be careful with 3C5.15[5] - Wrap Around Disable.
      * It must be set to 1 for proper operation. */
@@ -60,16 +60,16 @@ viaIGACommonInit(void __iomem *regs)
      *               1: Enable */
     svga_wseq_mask(regs, 0x15, BIT(5) | BIT(1), BIT(5) | BIT(1));
 
-    DRM_DEBUG("Exiting viaIGACommonInit.\n");
+    DRM_DEBUG("Exiting via_iga_common_init.\n");
 }
 
 static void
-viaIGA1SetColorDepth(struct via_device *dev_priv,
+via_iga1_set_color_depth(struct via_device *dev_priv,
                         u8 depth)
 {
     u8 value;
 
-    DRM_DEBUG("Entered viaIGA1SetColorDepth.\n");
+    DRM_DEBUG("Entered via_iga1_set_color_depth.\n");
 
     value = 0x00;
 
@@ -104,11 +104,11 @@ viaIGA1SetColorDepth(struct via_device *dev_priv,
         DRM_ERROR("Unsupported IGA1 Color Depth: %d bit\n", depth);
     }
 
-    DRM_DEBUG("Exiting viaIGA1SetColorDepth.\n");
+    DRM_DEBUG("Exiting via_iga1_set_color_depth.\n");
 }
 
 static inline void
-viaIGA1SetPaletteLUTResolution(void __iomem *regs, bool paletteLUT)
+via_iga1_set_palette_lut_resolution(void __iomem *regs, bool paletteLUT)
 {
     /* Set the palette LUT resolution for IGA1. */
     /* 3C5.15[7] - IGA1 6 / 8 Bit LUT
@@ -120,7 +120,7 @@ viaIGA1SetPaletteLUTResolution(void __iomem *regs, bool paletteLUT)
 }
 
 static inline void
-viaIGA1InterlaceMode(void __iomem *regs, bool interlaceMode)
+via_iga1_interlace_mode(void __iomem *regs, bool interlaceMode)
 {
     svga_wcrt_mask(regs, 0x33, interlaceMode ? BIT(6) : 0, BIT(6));
     DRM_INFO("IGA1 Interlace Mode: %s\n",
@@ -128,12 +128,12 @@ viaIGA1InterlaceMode(void __iomem *regs, bool interlaceMode)
 }
 
 static void
-viaIGA2SetColorDepth(struct via_device *dev_priv,
+via_iga2_set_color_depth(struct via_device *dev_priv,
                         u8 depth)
 {
     u8 value;
 
-    DRM_DEBUG("Entered viaIGA2SetColorDepth.\n");
+    DRM_DEBUG("Entered via_iga2_set_color_depth.\n");
 
     value = 0x00;
 
@@ -164,11 +164,11 @@ viaIGA2SetColorDepth(struct via_device *dev_priv,
         DRM_ERROR("Unsupported IGA2 Color Depth: %d bit\n", depth);
     }
 
-    DRM_DEBUG("Exiting viaIGA2SetColorDepth.\n");
+    DRM_DEBUG("Exiting via_iga2_set_color_depth.\n");
 }
 
 static inline void
-viaIGA2SetPaletteLUTResolution(void __iomem *regs, bool paletteLUT)
+via_iga2_set_palette_lut_resolution(void __iomem *regs, bool paletteLUT)
 {
     /* Set the palette LUT resolution for IGA2. */
     /* 3X5.6A[5] - IGA2 6 / 8 Bit LUT
@@ -180,7 +180,7 @@ viaIGA2SetPaletteLUTResolution(void __iomem *regs, bool paletteLUT)
 }
 
 static inline void
-viaIGA2InterlaceMode(void __iomem *regs, bool interlaceMode)
+via_iga2_interlace_mode(void __iomem *regs, bool interlaceMode)
 {
     svga_wcrt_mask(regs, 0x67, interlaceMode ? BIT(5) : 0, BIT(5));
     DRM_INFO("IGA2 Interlace Mode: %s\n",
@@ -1195,7 +1195,7 @@ via_iga1_crtc_mode_set(struct drm_crtc *crtc,
     via_lock_crtc(VGABASE);
 
     /* Set non-interlace / interlace mode. */
-    viaIGA1InterlaceMode(VGABASE,
+    via_iga1_interlace_mode(VGABASE,
                             adjusted_mode->flags & DRM_MODE_FLAG_INTERLACE);
 
     /* Load FIFO */
@@ -1296,12 +1296,12 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc,
         return -EINVAL;
     }
 
-    viaIGACommonInit(VGABASE);
+    via_iga_common_init(VGABASE);
 
     /* Set palette LUT to 8-bit mode. */
-    viaIGA1SetPaletteLUTResolution(VGABASE, true);
+    via_iga1_set_palette_lut_resolution(VGABASE, true);
 
-    viaIGA1SetColorDepth(dev_priv, fb->depth);
+    via_iga1_set_color_depth(dev_priv, fb->depth);
 
     /* Set the framebuffer offset */
     addr = round_up(bo->offset + pitch, 16) >> 1;
@@ -1508,7 +1508,7 @@ via_iga2_crtc_mode_set(struct drm_crtc *crtc,
     via_lock_crtc(VGABASE);
 
     /* Set non-interlace / interlace mode. */
-    viaIGA2InterlaceMode(VGABASE,
+    via_iga2_interlace_mode(VGABASE,
                             adjusted_mode->flags & DRM_MODE_FLAG_INTERLACE);
 
     /* Load FIFO */
@@ -1609,12 +1609,12 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc,
         return -EINVAL;
     }
 
-    viaIGACommonInit(VGABASE);
+    via_iga_common_init(VGABASE);
 
     /* Set palette LUT to 8-bit mode. */
-    viaIGA2SetPaletteLUTResolution(VGABASE, true);
+    via_iga2_set_palette_lut_resolution(VGABASE, true);
 
-    viaIGA2SetColorDepth(dev_priv, fb->depth);
+    via_iga2_set_color_depth(dev_priv, fb->depth);
 
     /* Set the framebuffer offset */
     addr = round_up(bo->offset + pitch, 16);
