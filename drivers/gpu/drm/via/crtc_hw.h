@@ -135,14 +135,14 @@ via_dvp1_set_io_pad_state(void __iomem *regs, u8 io_pad_state)
  * Sets analog (VGA) DAC output state.
  */
 static inline void
-via_analog_set_dac_output(void __iomem *regs, bool outputState)
+via_analog_set_power(void __iomem *regs, bool outputState)
 {
-	/* Set analog (VGA) DAC output state. */
 	/* 3X5.47[2] - DACOFF Backdoor Register
 	 *             0: DAC on
 	 *             1: DAC off */
-	svga_wcrt_mask(regs, 0x47, outputState ? 0x00 : BIT(2), BIT(2));
-	DRM_DEBUG_KMS("Analog (VGA) DAC Output: %s\n",
+	svga_wcrt_mask(regs, 0x47, outputState ? 0x00 : BIT(2),
+			BIT(2));
+	DRM_DEBUG_KMS("Analog (VGA) Power: %s\n",
 			outputState ? "On" : "Off");
 }
 

@@ -35,7 +35,7 @@ via_analog_output(struct via_device *dev_priv, bool outputState)
 {
 	DRM_DEBUG_KMS("Entered via_analog_output.\n");
 
-	via_analog_set_dac_output(VGABASE, outputState);
+	via_analog_set_power(VGABASE, outputState);
 	DRM_INFO("Analog (VGA) Output: %s\n", outputState ? "On" : "Off");
 
 	DRM_DEBUG_KMS("Exiting via_analog_output.\n");
