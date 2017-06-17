@@ -190,13 +190,26 @@ via_analog_commit(struct drm_encoder *encoder)
 	DRM_DEBUG_KMS("Exiting via_analog_commit.\n");
 }
 
+static void
+via_analog_disable(struct drm_encoder *encoder)
+{
+	struct via_device *dev_priv = encoder->dev->dev_private;
+
+	DRM_DEBUG_KMS("Entered via_analog_disable.\n");
+
+	via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_OFF);
+	via_analog_power(dev_priv, false);
+
+	DRM_DEBUG_KMS("Exiting via_analog_disable.\n");
+}
+
 static const struct drm_encoder_helper_funcs via_dac_enc_helper_funcs = {
 	.dpms = via_analog_dpms,
 	.mode_fixup = via_analog_mode_fixup,
 	.mode_set = via_analog_mode_set,
 	.prepare = via_analog_prepare,
 	.commit = via_analog_commit,
-	.disable = via_encoder_disable,
+	.disable = via_analog_disable,
 };
 
 static enum drm_connector_status
