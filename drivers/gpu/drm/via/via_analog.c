@@ -31,14 +31,15 @@
  * Enables or disables analog (VGA) output.
  */
 static void
-via_analog_output(struct via_device *dev_priv, bool outputState)
+via_analog_power(struct via_device *dev_priv, bool outputState)
 {
-	DRM_DEBUG_KMS("Entered via_analog_output.\n");
+	DRM_DEBUG_KMS("Entered via_analog_power.\n");
 
 	via_analog_set_power(VGABASE, outputState);
-	DRM_INFO("Analog (VGA) Output: %s\n", outputState ? "On" : "Off");
+	DRM_INFO("Analog (VGA) Power: %s\n",
+			outputState ? "On" : "Off");
 
-	DRM_DEBUG_KMS("Exiting via_analog_output.\n");
+	DRM_DEBUG_KMS("Exiting via_analog_power.\n");
 }
 
 /*
