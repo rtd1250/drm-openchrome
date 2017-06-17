@@ -130,10 +130,10 @@ via_analog_dpms(struct drm_encoder *encoder, int mode)
 
 /* Pass our mode to the connectors and the CRTC to give them a chance to
  * adjust it according to limitations or connector properties, and also
- * a chance to reject the mode entirely. Usefule for things like scaling.
+ * a chance to reject the mode entirely. Useful for things like scaling.
  */
 static bool
-via_dac_mode_fixup(struct drm_encoder *encoder,
+via_analog_mode_fixup(struct drm_encoder *encoder,
 		 const struct drm_display_mode *mode,
 		 struct drm_display_mode *adjusted_mode)
 {
@@ -192,7 +192,7 @@ via_analog_commit(struct drm_encoder *encoder)
 
 static const struct drm_encoder_helper_funcs via_dac_enc_helper_funcs = {
 	.dpms = via_analog_dpms,
-	.mode_fixup = via_dac_mode_fixup,
+	.mode_fixup = via_analog_mode_fixup,
 	.mode_set = via_analog_mode_set,
 	.prepare = via_analog_prepare,
 	.commit = via_analog_commit,
