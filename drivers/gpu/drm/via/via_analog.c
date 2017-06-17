@@ -106,15 +106,19 @@ via_analog_dpms(struct drm_encoder *encoder, int mode)
 	switch (mode) {
 	case DRM_MODE_DPMS_ON:
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_ON);
+		via_analog_power(VGABASE, true);
 		break;
 	case DRM_MODE_DPMS_STANDBY:
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_STANDBY);
+		via_analog_power(VGABASE, true);
 		break;
 	case DRM_MODE_DPMS_SUSPEND:
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_SUSPEND);
+		via_analog_power(VGABASE, true);
 		break;
 	case DRM_MODE_DPMS_OFF:
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_OFF);
+		via_analog_power(VGABASE, false);
 		break;
 	default:
 		DRM_ERROR("Bad DPMS mode.");
