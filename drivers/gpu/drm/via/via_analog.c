@@ -161,6 +161,21 @@ via_analog_mode_set(struct drm_encoder *encoder,
 }
 
 static void
+via_analog_prepare(struct drm_encoder *encoder)
+{
+	struct via_device *dev_priv = encoder->dev->dev_private;
+
+	DRM_DEBUG_KMS("Entered via_analog_prepare.\n");
+
+	if (encoder->crtc) {
+		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_OFF);
+		via_analog_power(VGABASE, false);
+	}
+
+	DRM_DEBUG_KMS("Exiting via_analog_prepare.\n");
+}
+
+static void
 via_analog_commit(struct drm_encoder *encoder)
 {
 	struct via_device *dev_priv = encoder->dev->dev_private;
@@ -179,7 +194,7 @@ static const struct drm_encoder_helper_funcs via_dac_enc_helper_funcs = {
 	.dpms = via_analog_dpms,
 	.mode_fixup = via_dac_mode_fixup,
 	.mode_set = via_analog_mode_set,
-	.prepare = via_encoder_prepare,
+	.prepare = via_analog_prepare,
 	.commit = via_analog_commit,
 	.disable = via_encoder_disable,
 };
