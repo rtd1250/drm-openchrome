@@ -113,6 +113,20 @@ via_dvp0_set_io_pad_state(void __iomem *regs, u8 io_pad_state)
 }
 
 /*
+ * Sets the display source of DVP0 (Digital Video Port 0) interface.
+ */
+static inline void
+via_dvp0_set_display_source(void __iomem *regs, u8 display_source)
+{
+	/* 3X5.96[4] - DVP0 Data Source Selection
+	*             0: Primary Display
+	*             1: Secondary Display */
+	svga_wcrt_mask(regs, 0x96, display_source << 4, BIT(4));
+	DRM_DEBUG_KMS("DVP0 Display Source: IGA%d\n",
+			(display_source & 0x01) + 1);
+}
+
+/*
  * Sets DVP1 (Digital Video Port 1) I/O pad state.
  */
 static inline void
