@@ -254,7 +254,7 @@ via_hdmi_enc_mode_set(struct drm_encoder *encoder,
 		struct via_connector *con = container_of(connector, struct via_connector, base);
 		bool audio_off = (con->flags & HDMI_AUDIO_ENABLED);
 
-		if (enc->diPort == VIA_DI_PORT_NONE)
+		if (enc->di_port == VIA_DI_PORT_NONE)
 			via_hdmi_native_mode_set(iga, adjusted_mode, audio_off);
 
 		if (!iga->index)
@@ -344,7 +344,7 @@ via_hdmi_enc_mode_set(struct drm_encoder *encoder,
 	}
 
 	/* Patch for clock skew */
-	if (enc->diPort == VIA_DI_PORT_DVP1) {
+	if (enc->di_port == VIA_DI_PORT_DVP1) {
 		switch (dev->pdev->device) {
 		case PCI_DEVICE_ID_VIA_VT3157:	/* CX700 */
 			svga_wcrt_mask(VGABASE, 0x65, 0x0B, 0x0F);
@@ -645,7 +645,7 @@ static const struct drm_connector_helper_funcs via_hdmi_connector_helper_funcs =
 };
 
 void
-via_hdmi_init(struct drm_device *dev, int diport)
+via_hdmi_init(struct drm_device *dev, u32 di_port)
 {
 	struct via_connector *dvi, *hdmi;
 	struct via_encoder *enc;
@@ -664,7 +664,7 @@ via_hdmi_init(struct drm_device *dev, int diport)
 
 	enc->base.possible_crtcs = BIT(1) | BIT(0);
 	enc->base.possible_clones = 0;
-	enc->diPort = diport;
+	enc->di_port = di_port;
 
 	/* Setup the HDMI connector */
 	drm_connector_init(dev, &hdmi->base, &via_hdmi_connector_funcs,

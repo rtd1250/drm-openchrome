@@ -49,7 +49,7 @@ via_encoder_commit(struct drm_encoder *encoder)
 		value = BIT(4);
 
 	/* Set IGA source and turn on DI port clock */
-	switch (enc->diPort) {
+	switch (enc->di_port) {
 	case VIA_DI_PORT_DVP0:
 		/* DVP0 Data Source Selection. */
 		svga_wcrt_mask(VGABASE, 0x96, value, BIT(4));
@@ -158,7 +158,7 @@ via_encoder_disable(struct drm_encoder *encoder)
 	/* First turn off the display */
 	encoder_funcs->dpms(encoder, DRM_MODE_DPMS_OFF);
 
-	switch (enc->diPort) {
+	switch (enc->di_port) {
 	case VIA_DI_PORT_DVP0:
 		svga_wseq_mask(VGABASE, 0x1E, 0x00, BIT(7) | BIT(6));
 		break;
@@ -212,7 +212,7 @@ via_set_sync_polarity(struct drm_encoder *encoder, struct drm_display_mode *mode
 	if (adjusted_mode->flags & DRM_MODE_FLAG_NHSYNC)
 		syncreg |= BIT(5);
 
-	switch (enc->diPort) {
+	switch (enc->di_port) {
 	case VIA_DI_PORT_DVP0:
 		svga_wcrt_mask(VGABASE, 0x96, syncreg, BIT(6) | BIT(5));
 		break;
