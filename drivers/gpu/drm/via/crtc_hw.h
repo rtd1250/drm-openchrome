@@ -377,6 +377,20 @@ via_lvds1_set_io_pad_setting(void __iomem *regs, u8 io_pad_state)
 }
 
 /*
+ * Sets CX700 or later single chipset's LVDS1 display source.
+ */
+static inline void
+via_lvds1_set_display_source(void __iomem *regs, u8 display_source)
+{
+	/* 3X5.99[4] - LVDS Channel 1 Data Source Selection
+	 *             0: Primary Display
+	 *             1: Secondary Display */
+	svga_wcrt_mask(regs, 0x99, display_source << 4, BIT(4));
+	DRM_DEBUG_KMS("LVDS1 Display Source: IGA%d\n",
+			(display_source & 0x01) + 1);
+}
+
+/*
  * Sets LVDS2 I/O pad state.
  */
 static inline void
