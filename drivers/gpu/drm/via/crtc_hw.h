@@ -146,6 +146,20 @@ via_dvp1_set_io_pad_state(void __iomem *regs, u8 io_pad_state)
 }
 
 /*
+ * Sets the display source of DVP1 (Digital Video Port 1) interface.
+ */
+static inline void
+via_dvp1_set_display_source(void __iomem *regs, u8 display_source)
+{
+	/* 3X5.9B[4] - DVP1 Data Source Selection
+	*             0: Primary Display
+	*             1: Secondary Display */
+	svga_wcrt_mask(regs, 0x9B, display_source << 4, BIT(4));
+	DRM_DEBUG_KMS("DVP1 Display Source: IGA%d\n",
+			(display_source & 0x01) + 1);
+}
+
+/*
  * Sets analog (VGA) DAC output state.
  */
 static inline void
