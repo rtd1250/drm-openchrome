@@ -227,6 +227,57 @@ via_disable_internal_lvds(struct drm_encoder *encoder)
 	}
 }
 
+/*
+ * Sets flat panel display source.
+ */
+static void
+via_fp_display_source(struct via_device *dev_priv, int di_port, int index)
+{
+	u8 display_source = index & 0x01;
+
+	DRM_DEBUG_KMS("Entered via_fp_display_source.\n");
+
+	switch(di_port) {
+	case VIA_DI_PORT_DVP0:
+		via_dvp0_set_display_source(VGABASE, display_source);
+		break;
+	case VIA_DI_PORT_DVP1:
+		via_dvp1_set_display_source(VGABASE, display_source);
+		break;
+	case VIA_DI_PORT_FPDPLOW:
+		via_fpdp_low_set_display_source(VGABASE, display_source);
+		via_dvp1_set_display_source(VGABASE, display_source);
+		break;
+	case VIA_DI_PORT_FPDPHIGH:
+		via_fpdp_high_set_display_source(VGABASE, display_source);
+		via_dvp0_set_display_source(VGABASE, display_source);
+		break;
+	case (VIA_DI_PORT_FPDPLOW |
+		VIA_DI_PORT_FPDPHIGH):
+		via_fpdp_low_set_display_source(VGABASE, display_source);
+		via_fpdp_high_set_display_source(VGABASE, display_source);
+		break;
+	case VIA_DI_PORT_LVDS1:
+		via_lvds1_set_display_source(VGABASE, display_source);
+		break;
+	case VIA_DI_PORT_LVDS2:
+		via_lvds2_set_display_source(VGABASE, display_source);
+		break;
+	case (VIA_DI_PORT_LVDS1 |
+		VIA_DI_PORT_LVDS2):
+		via_lvds1_set_display_source(VGABASE, display_source);
+		via_lvds2_set_display_source(VGABASE, display_source);
+		break;
+	default:
+		break;
+	}
+
+	DRM_DEBUG_KMS("FP Display Source: IGA%d\n",
+			display_source + 1);
+
+	DRM_DEBUG_KMS("Exiting via_fp_display_source.\n");
+}
+
 static void
 via_lvds_dpms(struct drm_encoder *encoder, int mode)
 {
