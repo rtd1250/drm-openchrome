@@ -248,6 +248,20 @@ via_fpdp_low_set_io_pad_state(void __iomem *regs, u8 io_pad_state)
 }
 
 /*
+ * Sets FPDP (Flat Panel Display Port) Low interface display source.
+ */
+static inline void
+via_fpdp_low_set_display_source(void __iomem *regs, u8 display_source)
+{
+	/* 3X5.99[4] - FPDP Low Data Source Selection
+	*             0: Primary Display
+	*             1: Secondary Display */
+	svga_wcrt_mask(regs, 0x99, display_source << 4, BIT(4));
+	DRM_DEBUG_KMS("FPDP Low Display Source: IGA%d\n",
+			(display_source & 0x01) + 1);
+}
+
+/*
  * Sets FPDP (Flat Panel Display Port) High I/O pad state
  */
 static inline void
