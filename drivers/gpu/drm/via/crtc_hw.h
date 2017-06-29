@@ -119,8 +119,8 @@ static inline void
 via_dvp0_set_display_source(void __iomem *regs, u8 display_source)
 {
 	/* 3X5.96[4] - DVP0 Data Source Selection
-	*             0: Primary Display
-	*             1: Secondary Display */
+	 *             0: Primary Display
+	 *             1: Secondary Display */
 	svga_wcrt_mask(regs, 0x96, display_source << 4, BIT(4));
 	DRM_DEBUG_KMS("DVP0 Display Source: IGA%d\n",
 			(display_source & 0x01) + 1);
@@ -152,8 +152,8 @@ static inline void
 via_dvp1_set_display_source(void __iomem *regs, u8 display_source)
 {
 	/* 3X5.9B[4] - DVP1 Data Source Selection
-	*             0: Primary Display
-	*             1: Secondary Display */
+	 *             0: Primary Display
+	 *             1: Secondary Display */
 	svga_wcrt_mask(regs, 0x9B, display_source << 4, BIT(4));
 	DRM_DEBUG_KMS("DVP1 Display Source: IGA%d\n",
 			(display_source & 0x01) + 1);
@@ -235,10 +235,10 @@ static inline void
 via_fpdp_low_set_io_pad_state(void __iomem *regs, u8 io_pad_state)
 {
 	/* 3C5.2A[1:0] - FPDP Low I/O Pad Control
-	*               0x: Pad always off
-	*               10: Depend on the other control signal
-	*               11: Pad on/off according to the
-	*                   Power Management Status (PMS) */
+	 *               0x: Pad always off
+	 *               10: Depend on the other control signal
+	 *               11: Pad on/off according to the
+	 *                   Power Management Status (PMS) */
 	svga_wcrt_mask(regs, 0x2A, io_pad_state, BIT(1) | BIT(0));
 	DRM_DEBUG_KMS("FPDP Low I/O Pad State: %s\n",
 			((io_pad_state & (BIT(1) | BIT(0))) == 0x03) ? "On" :
@@ -254,8 +254,8 @@ static inline void
 via_fpdp_low_set_display_source(void __iomem *regs, u8 display_source)
 {
 	/* 3X5.99[4] - FPDP Low Data Source Selection
-	*             0: Primary Display
-	*             1: Secondary Display */
+	 *             0: Primary Display
+	 *             1: Secondary Display */
 	svga_wcrt_mask(regs, 0x99, display_source << 4, BIT(4));
 	DRM_DEBUG_KMS("FPDP Low Display Source: IGA%d\n",
 			(display_source & 0x01) + 1);
@@ -287,8 +287,8 @@ static inline void
 via_fpdp_high_set_display_source(void __iomem *regs, u8 display_source)
 {
 	/* 3X5.97[4] - FPDP High Data Source Selection
-	*             0: Primary Display
-	*             1: Secondary Display */
+	 *             0: Primary Display
+	 *             1: Secondary Display */
 	svga_wcrt_mask(regs, 0x97, display_source << 4, BIT(4));
 	DRM_DEBUG_KMS("FPDP High Display Source: IGA%d\n",
 			(display_source & 0x01) + 1);
@@ -446,11 +446,11 @@ via_tmds_set_sync_polarity(void __iomem *regs, u8 syncPolarity)
 {
 	/* Set TMDS (DVI) sync polarity. */
 	/* 3X5.97[6] - DVI (TMDS) VSYNC Polarity
-	*              0: Positive
-	*              1: Negative
-	* 3X5.97[5] - DVI (TMDS) HSYNC Polarity
-	*              0: Positive
-	*              1: Negative */
+	 *              0: Positive
+	 *              1: Negative
+	 * 3X5.97[5] - DVI (TMDS) HSYNC Polarity
+	 *              0: Positive
+	 *              1: Negative */
 	svga_wcrt_mask(regs, 0x97, syncPolarity << 5, BIT(6) | BIT(5));
 	DRM_DEBUG_KMS("TMDS (DVI) Horizontal Sync Polarity: %s\n",
 			(syncPolarity & BIT(0)) ? "-" : "+");
