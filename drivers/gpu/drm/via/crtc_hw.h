@@ -113,6 +113,25 @@ via_dvp0_set_io_pad_state(void __iomem *regs, u8 io_pad_state)
 }
 
 /*
+ * Sets DVP0 (Digital Video Port 0) clock I/O pad drive strength.
+ */
+static inline void
+via_dvp0_set_clock_drive_strength(void __iomem *regs,
+					u8 clock_drive_strength)
+{
+	/* 3C5.1E[2] - DVP0 Clock Drive Strength Bit [0] */
+	svga_wseq_mask(regs, 0x1E,
+			clock_drive_strength << 2, BIT(2));
+
+	/* 3C5.2A[4] - DVP0 Clock Drive Strength Bit [1] */
+	svga_wseq_mask(regs, 0x2A,
+			clock_drive_strength << 3, BIT(4));
+
+	DRM_DEBUG_KMS("DVP0 Clock I/O Pad Drive Strength: %lu\n",
+			clock_drive_strength & (BIT(1) | BIT(0)));
+}
+
+/*
  * Sets the display source of DVP0 (Digital Video Port 0) interface.
  */
 static inline void
