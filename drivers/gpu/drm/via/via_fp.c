@@ -331,13 +331,11 @@ via_fp_dpms(struct drm_encoder *encoder, int mode)
 	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
 	struct via_device *dev_priv = encoder->dev->dev_private;
 	struct drm_device *dev = encoder->dev;
-	struct via_crtc *iga = NULL;
 
 	switch (mode) {
 	case DRM_MODE_DPMS_ON:
 		if (encoder->crtc == NULL)
 			return;
-		iga = container_of(encoder->crtc, struct via_crtc, base);
 
 		/* when using the EPIA-EX board, if we do not set this bit,
 		 * light LCD will failed in nonRandR structure,
