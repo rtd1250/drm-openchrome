@@ -279,7 +279,7 @@ via_fp_display_source(struct via_device *dev_priv, u32 di_port, int index)
 }
 
 static void
-via_lvds_dpms(struct drm_encoder *encoder, int mode)
+via_fp_dpms(struct drm_encoder *encoder, int mode)
 {
 	struct via_device *dev_priv = encoder->dev->dev_private;
 	struct drm_device *dev = encoder->dev;
@@ -386,7 +386,7 @@ via_lvds_mode_fixup(struct drm_encoder *encoder,
 }
 
 const struct drm_encoder_helper_funcs via_lvds_helper_funcs = {
-	.dpms = via_lvds_dpms,
+	.dpms = via_fp_dpms,
 	.mode_fixup = via_lvds_mode_fixup,
 	.mode_set = via_set_sync_polarity,
 	.prepare = via_encoder_prepare,
