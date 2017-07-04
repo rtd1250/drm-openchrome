@@ -228,6 +228,53 @@ via_disable_internal_lvds(struct drm_encoder *encoder)
 }
 
 /*
+ * Sets flat panel I/O pad state.
+ */
+static void
+via_fp_io_pad_state(struct via_device *dev_priv, u32 di_port, bool io_pad_on)
+{
+	DRM_DEBUG_KMS("Entered via_fp_io_pad_state.\n");
+
+	switch(di_port) {
+	case VIA_DI_PORT_DVP0:
+		via_dvp0_set_io_pad_state(VGABASE, io_pad_on ? 0x03 : 0x00);
+		break;
+	case VIA_DI_PORT_DVP1:
+		via_dvp1_set_io_pad_state(VGABASE, io_pad_on ? 0x03 : 0x00);
+		break;
+	case VIA_DI_PORT_FPDPLOW:
+		via_fpdp_low_set_io_pad_state(VGABASE, io_pad_on ? 0x03 : 0x00);
+		break;
+	case VIA_DI_PORT_FPDPHIGH:
+		via_fpdp_high_set_io_pad_state(VGABASE, io_pad_on ? 0x03 : 0x00);
+		break;
+	case (VIA_DI_PORT_FPDPLOW |
+	      VIA_DI_PORT_FPDPHIGH):
+		via_fpdp_low_set_io_pad_state(VGABASE, io_pad_on ? 0x03 : 0x00);
+		via_fpdp_high_set_io_pad_state(VGABASE, io_pad_on ? 0x03 : 0x00);
+		break;
+	case VIA_DI_PORT_LVDS1:
+		via_lvds1_set_io_pad_setting(VGABASE, io_pad_on ? 0x03 : 0x00);
+		break;
+	case VIA_DI_PORT_LVDS2:
+		via_lvds2_set_io_pad_setting(VGABASE, io_pad_on ? 0x03 : 0x00);
+		break;
+	case (VIA_DI_PORT_LVDS1 |
+	      VIA_DI_PORT_LVDS2):
+		via_lvds1_set_io_pad_setting(VGABASE, io_pad_on ? 0x03 : 0x00);
+		via_lvds2_set_io_pad_setting(VGABASE, io_pad_on ? 0x03 : 0x00);
+		break;
+	default:
+		break;
+	}
+
+	DRM_DEBUG_KMS("FP I/O Pad: %s\n", io_pad_on ? "On": "Off");
+
+	DRM_DEBUG_KMS("Exiting via_fp_io_pad_state.\n");
+}
+
+
+/*
  * Sets flat panel display source.
  */
 static void
