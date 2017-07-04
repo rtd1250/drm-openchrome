@@ -132,6 +132,25 @@ via_dvp0_set_clock_drive_strength(void __iomem *regs,
 }
 
 /*
+ * Sets DVP0 (Digital Video Port 0) data I/O pads drive strength.
+ */
+static inline void
+via_dvp0_set_data_drive_strength(void __iomem *regs,
+					u8 data_drive_strength)
+{
+	/* 3C5.1B[1] - DVP0 Data Drive Strength Bit [0] */
+	svga_wseq_mask(regs, 0x1B,
+			data_drive_strength << 1, BIT(1));
+
+	/* 3C5.2A[5] - DVP0 Data Drive Strength Bit [1] */
+	svga_wseq_mask(regs, 0x2A,
+			data_drive_strength << 4, BIT(5));
+
+	DRM_DEBUG_KMS("DVP0 Data I/O Pads Drive Strength: %lu\n",
+			data_drive_strength & (BIT(1) | BIT(0)));
+}
+
+/*
  * Sets the display source of DVP0 (Digital Video Port 0) interface.
  */
 static inline void
