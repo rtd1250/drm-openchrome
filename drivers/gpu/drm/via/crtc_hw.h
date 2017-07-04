@@ -234,72 +234,76 @@ via_dvp1_set_display_source(void __iomem *regs, u8 display_source)
 }
 
 /*
- * Sets analog (VGA) DAC output state.
+ * Sets analog (VGA) DAC power.
  */
 static inline void
-via_analog_set_power(void __iomem *regs, bool outputState)
+via_analog_set_power(void __iomem *regs, bool output_state)
 {
 	/* 3X5.47[2] - DACOFF Backdoor Register
 	 *             0: DAC on
 	 *             1: DAC off */
-	svga_wcrt_mask(regs, 0x47, outputState ? 0x00 : BIT(2),
-			BIT(2));
+	svga_wcrt_mask(regs, 0x47,
+			output_state ? 0x00 : BIT(2), BIT(2));
 	DRM_DEBUG_KMS("Analog (VGA) Power: %s\n",
-			outputState ? "On" : "Off");
+			output_state ? "On" : "Off");
 }
 
 /*
  * Sets analog (VGA) DPMS state.
  */
 static inline void
-via_analog_set_dpms_control(void __iomem *regs, u8 dpmsControl)
+via_analog_set_dpms_control(void __iomem *regs, u8 dpms_control)
 {
 	/* 3X5.36[5:4] - DPMS Control
 	 *               00: On
 	 *               01: Stand-by
 	 *               10: Suspend
 	 *               11: Off */
-	svga_wcrt_mask(regs, 0x36, dpmsControl << 4, BIT(5) | BIT(4));
+	svga_wcrt_mask(regs, 0x36,
+			dpms_control << 4, BIT(5) | BIT(4));
 	DRM_DEBUG_KMS("Analog (VGA) DPMS: %s\n",
-			((dpmsControl & (BIT(1) | BIT(0))) == 0x03) ? "Off" :
-			((dpmsControl & (BIT(1) | BIT(0))) == 0x02) ? "Suspend" :
-			((dpmsControl & (BIT(1) | BIT(0))) == 0x01) ? "Standby" :
-								      "On");
+			((dpms_control & (BIT(1) | BIT(0))) == 0x03) ?
+				"Off" :
+			((dpms_control & (BIT(1) | BIT(0))) == 0x02) ?
+				"Suspend" :
+			((dpms_control & (BIT(1) | BIT(0))) == 0x01) ?
+				"Standby" :
+				"On");
 }
 
 /*
  * Sets analog (VGA) sync polarity.
  */
 static inline void
-via_analog_set_sync_polarity(void __iomem *regs, u8 syncPolarity)
+via_analog_set_sync_polarity(void __iomem *regs, u8 sync_polarity)
 {
-	/* Set analog (VGA) sync polarity. */
 	/* 3C2[7] - Analog Vertical Sync Polarity
 	 *          0: Positive
 	 *          1: Negative
 	 * 3C2[6] - Analog Horizontal Sync Polarity
 	 *          0: Positive
 	 *          1: Negative */
-	svga_wmisc_mask(regs, syncPolarity << 6, (BIT(1) | BIT(0)) << 6);
+	svga_wmisc_mask(regs,
+			sync_polarity << 6, (BIT(1) | BIT(0)) << 6);
 	DRM_DEBUG_KMS("Analog (VGA) Horizontal Sync Polarity: %s\n",
-			(syncPolarity & BIT(0)) ? "-" : "+");
+			(sync_polarity & BIT(0)) ? "-" : "+");
 	DRM_DEBUG_KMS("Analog (VGA) Vertical Sync Polarity: %s\n",
-			(syncPolarity & BIT(1)) ? "-" : "+");
+			(sync_polarity & BIT(1)) ? "-" : "+");
 }
 
 /*
  * Sets analog (VGA) display source.
  */
 static inline void
-via_analog_set_display_source(void __iomem *regs, u8 displaySource)
+via_analog_set_display_source(void __iomem *regs, u8 display_source)
 {
-	/* Set analog (VGA) display source. */
 	/* 3C5.16[6] - CRT Display Source
 	 *             0: Primary Display Stream (IGA1)
 	 *             1: Secondary Display Stream (IGA2) */
-	svga_wseq_mask(regs, 0x16, displaySource << 6, BIT(6));
+	svga_wseq_mask(regs, 0x16,
+			display_source << 6, BIT(6));
 	DRM_DEBUG_KMS("Analog (VGA) Display Source: IGA%d\n",
-			(displaySource & 0x01) + 1);
+			(display_source & 0x01) + 1);
 }
 
 /*
@@ -313,12 +317,16 @@ via_fpdp_low_set_io_pad_state(void __iomem *regs, u8 io_pad_state)
 	 *               10: Depend on the other control signal
 	 *               11: Pad on/off according to the
 	 *                   Power Management Status (PMS) */
-	svga_wcrt_mask(regs, 0x2A, io_pad_state, BIT(1) | BIT(0));
+	svga_wcrt_mask(regs, 0x2A,
+			io_pad_state, BIT(1) | BIT(0));
 	DRM_DEBUG_KMS("FPDP Low I/O Pad State: %s\n",
-			((io_pad_state & (BIT(1) | BIT(0))) == 0x03) ? "On" :
-			((io_pad_state & (BIT(1) | BIT(0))) == 0x02) ? "Conditional" :
-			((io_pad_state & (BIT(1) | BIT(0))) == 0x01) ? "Off" :
-								       "Off");
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x03) ?
+				"On" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x02) ?
+				"Conditional" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x01) ?
+				"Off" :
+				"Off");
 }
 
 /*
@@ -330,13 +338,14 @@ via_fpdp_low_set_display_source(void __iomem *regs, u8 display_source)
 	/* 3X5.99[4] - FPDP Low Data Source Selection
 	 *             0: Primary Display
 	 *             1: Secondary Display */
-	svga_wcrt_mask(regs, 0x99, display_source << 4, BIT(4));
+	svga_wcrt_mask(regs, 0x99,
+			display_source << 4, BIT(4));
 	DRM_DEBUG_KMS("FPDP Low Display Source: IGA%d\n",
 			(display_source & 0x01) + 1);
 }
 
 /*
- * Sets FPDP (Flat Panel Display Port) High I/O pad state
+ * Sets FPDP (Flat Panel Display Port) High I/O pad state.
  */
 static inline void
 via_fpdp_high_set_io_pad_state(void __iomem *regs, u8 io_pad_state)
@@ -346,12 +355,16 @@ via_fpdp_high_set_io_pad_state(void __iomem *regs, u8 io_pad_state)
 	 *               10: Depend on the other control signal
 	 *               11: Pad on/off according to the
 	 *                   Power Management Status (PMS) */
-	svga_wcrt_mask(regs, 0x2A, io_pad_state << 2, BIT(3) | BIT(2));
+	svga_wcrt_mask(regs, 0x2A,
+			io_pad_state << 2, BIT(3) | BIT(2));
 	DRM_DEBUG_KMS("FPDP High I/O Pad State: %s\n",
-			((io_pad_state & (BIT(1) | BIT(0))) == 0x03) ? "On" :
-			((io_pad_state & (BIT(1) | BIT(0))) == 0x02) ? "Conditional" :
-			((io_pad_state & (BIT(1) | BIT(0))) == 0x01) ? "Off" :
-								       "Off");
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x03) ?
+				"On" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x02) ?
+				"Conditional" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x01) ?
+				"Off" :
+				"Off");
 }
 
 /*
@@ -363,7 +376,8 @@ via_fpdp_high_set_display_source(void __iomem *regs, u8 display_source)
 	/* 3X5.97[4] - FPDP High Data Source Selection
 	 *             0: Primary Display
 	 *             1: Secondary Display */
-	svga_wcrt_mask(regs, 0x97, display_source << 4, BIT(4));
+	svga_wcrt_mask(regs, 0x97,
+			display_source << 4, BIT(4));
 	DRM_DEBUG_KMS("FPDP High Display Source: IGA%d\n",
 			(display_source & 0x01) + 1);
 }
@@ -442,16 +456,20 @@ via_lvds1_set_io_pad_setting(void __iomem *regs, u8 io_pad_state)
 	 *               10: Depend on the other control signal
 	 *               11: Pad on/off according to the
 	 *                   Power Management Status (PMS) */
-	svga_wcrt_mask(regs, 0x2A, io_pad_state, BIT(1) | BIT(0));
+	svga_wcrt_mask(regs, 0x2A,
+			io_pad_state, BIT(1) | BIT(0));
 	DRM_DEBUG_KMS("LVDS1 I/O Pad State: %s\n",
-			((io_pad_state & (BIT(1) | BIT(0))) == 0x03) ? "On" :
-			((io_pad_state & (BIT(1) | BIT(0))) == 0x02) ? "Conditional" :
-			((io_pad_state & (BIT(1) | BIT(0))) == 0x01) ? "Off" :
-								       "Off");
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x03) ?
+				"On" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x02) ?
+				"Conditional" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x01) ?
+				"Off" :
+				"Off");
 }
 
 /*
- * Sets CX700 or later single chipset's LVDS1 display source.
+ * Sets LVDS1 display source.
  */
 static inline void
 via_lvds1_set_display_source(void __iomem *regs, u8 display_source)
@@ -459,7 +477,8 @@ via_lvds1_set_display_source(void __iomem *regs, u8 display_source)
 	/* 3X5.99[4] - LVDS Channel 1 Data Source Selection
 	 *             0: Primary Display
 	 *             1: Secondary Display */
-	svga_wcrt_mask(regs, 0x99, display_source << 4, BIT(4));
+	svga_wcrt_mask(regs, 0x99,
+			display_source << 4, BIT(4));
 	DRM_DEBUG_KMS("LVDS1 Display Source: IGA%d\n",
 			(display_source & 0x01) + 1);
 }
@@ -475,16 +494,20 @@ via_lvds2_set_io_pad_setting(void __iomem *regs, u8 io_pad_state)
 	 *               10: Depend on the other control signal
 	 *               11: Pad on/off according to the
 	 *                   Power Management Status (PMS) */
-	svga_wcrt_mask(regs, 0x2A, io_pad_state << 2, BIT(3) | BIT(2));
+	svga_wcrt_mask(regs, 0x2A,
+			io_pad_state << 2, BIT(3) | BIT(2));
 	DRM_DEBUG_KMS("LVDS2 I/O Pad State: %s\n",
-			((io_pad_state & (BIT(1) | BIT(0))) == 0x03) ? "On" :
-			((io_pad_state & (BIT(1) | BIT(0))) == 0x02) ? "Conditional" :
-			((io_pad_state & (BIT(1) | BIT(0))) == 0x01) ? "Off" :
-								       "Off");
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x03) ?
+				"On" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x02) ?
+				"Conditional" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x01) ?
+				"Off" :
+				"Off");
 }
 
 /*
- * Sets CX700 or later single chipset's LVDS2 display source.
+ * Sets LVDS2 display source.
  */
 static inline void
 via_lvds2_set_display_source(void __iomem *regs, u8 display_source)
@@ -492,7 +515,8 @@ via_lvds2_set_display_source(void __iomem *regs, u8 display_source)
 	/* 3X5.97[4] - LVDS Channel 2 Data Source Selection
 	 *             0: Primary Display
 	 *             1: Secondary Display */
-	svga_wcrt_mask(regs, 0x97, display_source << 4, BIT(4));
+	svga_wcrt_mask(regs, 0x97,
+			display_source << 4, BIT(4));
 	DRM_DEBUG_KMS("LVDS2 Display Source: IGA%d\n",
 			(display_source & 0x01) + 1);
 }
@@ -503,11 +527,11 @@ via_lvds2_set_display_source(void __iomem *regs, u8 display_source)
 static inline void
 via_tmds_set_power(void __iomem *regs, bool powerState)
 {
-	/* Set TMDS (DVI) power state. */
 	/* 3X5.D2[3] - Power Down (Active High) for DVI
 	 *             0: TMDS power on
 	 *             1: TMDS power down */
-	svga_wcrt_mask(regs, 0xD2, powerState ? 0 : BIT(3), BIT(3));
+	svga_wcrt_mask(regs, 0xD2,
+			powerState ? 0x00 : BIT(3), BIT(3));
 	DRM_DEBUG_KMS("TMDS (DVI) Power State: %s\n",
 			powerState ? "On" : "Off");
 }
@@ -525,7 +549,8 @@ via_tmds_set_sync_polarity(void __iomem *regs, u8 syncPolarity)
 	 * 3X5.97[5] - DVI (TMDS) HSYNC Polarity
 	 *              0: Positive
 	 *              1: Negative */
-	svga_wcrt_mask(regs, 0x97, syncPolarity << 5, BIT(6) | BIT(5));
+	svga_wcrt_mask(regs, 0x97,
+			syncPolarity << 5, BIT(6) | BIT(5));
 	DRM_DEBUG_KMS("TMDS (DVI) Horizontal Sync Polarity: %s\n",
 			(syncPolarity & BIT(0)) ? "-" : "+");
 	DRM_DEBUG_KMS("TMDS (DVI) Vertical Sync Polarity: %s\n",
@@ -538,13 +563,13 @@ via_tmds_set_sync_polarity(void __iomem *regs, u8 syncPolarity)
 static inline void
 via_tmds_set_display_source(void __iomem *regs, u8 displaySource)
 {
-	/* Set TMDS (DVI) display source.
-	 * The integrated TMDS transmitter appears to utilize LVDS1's
+	/* The integrated TMDS transmitter appears to utilize LVDS1's
 	 * data source selection bit (3X5.99[4]). */
 	/* 3X5.99[4] - LVDS Channel1 Data Source Selection
 	 *             0: Primary Display
 	 *             1: Secondary Display */
-	svga_wcrt_mask(regs, 0x99, displaySource << 4, BIT(4));
+	svga_wcrt_mask(regs, 0x99,
+			displaySource << 4, BIT(4));
 	DRM_DEBUG_KMS("TMDS (DVI) Display Source: IGA%d\n",
 			(displaySource & 0x01) + 1);
 }
