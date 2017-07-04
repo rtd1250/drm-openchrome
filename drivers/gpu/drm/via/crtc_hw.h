@@ -184,6 +184,24 @@ via_dvp1_set_io_pad_state(void __iomem *regs, u8 io_pad_state)
 }
 
 /*
+ * Sets DVP1 (Digital Video Port 1) clock I/O pad drive strength.
+ */
+static inline void
+via_dvp1_set_clock_drive_strength(void __iomem *regs,
+					u8 clock_drive_strength)
+{
+	/* 3C5.65[3:2] - DVP1 Clock Pads Driving Select [1:0]
+	 *               00: lowest
+	 *               01: low
+	 *               10: high
+	 *               11: highest */
+	svga_wseq_mask(regs, 0x65,
+			clock_drive_strength << 2, BIT(3) | BIT(2));
+	DRM_DEBUG_KMS("DVP1 Clock I/O Pad Drive Strength: %lu\n",
+			clock_drive_strength & (BIT(1) | BIT(0)));
+}
+
+/*
  * Sets the display source of DVP1 (Digital Video Port 1) interface.
  */
 static inline void
