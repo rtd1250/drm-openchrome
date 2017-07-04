@@ -328,6 +328,7 @@ via_fp_display_source(struct via_device *dev_priv, u32 di_port, int index)
 static void
 via_fp_dpms(struct drm_encoder *encoder, int mode)
 {
+	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
 	struct via_device *dev_priv = encoder->dev->dev_private;
 	struct drm_device *dev = encoder->dev;
 	struct via_crtc *iga = NULL;
@@ -357,12 +358,14 @@ via_fp_dpms(struct drm_encoder *encoder, int mode)
 			svga_wseq_mask(VGABASE, 0x1E, BIT(3), BIT(3));
 		}
 		via_enable_internal_lvds(encoder);
+		via_fp_io_pad_state(dev_priv, enc->di_port, true);
 		break;
 
 	case DRM_MODE_DPMS_STANDBY:
 	case DRM_MODE_DPMS_SUSPEND:
 	case DRM_MODE_DPMS_OFF:
 		via_disable_internal_lvds(encoder);
+		via_fp_io_pad_state(dev_priv, enc->di_port, false);
 		break;
 	}
 }
