@@ -324,6 +324,22 @@ via_fp_set_primary_power_seq_type(void __iomem *regs, bool ctrl_type)
 }
 
 /*
+ * Sets KM400 or later chipset's FP primary software controlled
+ * back light.
+ */
+static inline void
+via_fp_set_primary_soft_back_light(void __iomem *regs, bool soft_on)
+{
+	/* 3X5.91[1] - FP Primary Software Back Light On
+	 *             0: Off
+	 *             1: On */
+	svga_wcrt_mask(regs, 0x91,
+			soft_on ? BIT(1) : 0x00, BIT(1));
+	DRM_DEBUG_KMS("FP Primary Software Controlled Back Light: "
+			"%s\n", soft_on ? "On" : "Off");
+}
+
+/*
  * Sets FPDP (Flat Panel Display Port) Low I/O pad state.
  */
 static inline void
