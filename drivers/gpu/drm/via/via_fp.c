@@ -364,6 +364,37 @@ via_fp_secondary_soft_power_seq(struct via_device *dev_priv, bool power_state)
 	DRM_DEBUG_KMS("Exiting via_fp_secondary_soft_power_seq.\n");
 }
 
+static void
+via_fp_primary_hard_power_seq(struct via_device *dev_priv, bool power_state)
+{
+	DRM_DEBUG_KMS("Entered via_fp_primary_hard_power_seq.\n");
+
+	/* Use hardware FP power sequence control. */
+	via_fp_set_primary_power_seq_type(VGABASE, true);
+
+	if (power_state) {
+		/* Turn on FP Display Period. */
+		via_fp_set_primary_direct_display_period(VGABASE, true);
+
+		/* Turn on FP hardware power sequence. */
+		via_fp_set_primary_hard_power(VGABASE, true);
+
+		/* Turn on FP back light. */
+		via_fp_set_primary_direct_back_light_ctrl(VGABASE, true);
+	} else {
+		/* Turn off FP back light. */
+		via_fp_set_primary_direct_back_light_ctrl(VGABASE, false);
+
+		/* Turn off FP hardware power sequence. */
+		via_fp_set_primary_hard_power(VGABASE, false);
+
+		/* Turn on FP Display Period. */
+		via_fp_set_primary_direct_display_period(VGABASE, false);
+	}
+
+	DRM_DEBUG_KMS("Entered via_fp_primary_hard_power_seq.\n");
+}
+
 /*
  * Sets flat panel I/O pad state.
  */
