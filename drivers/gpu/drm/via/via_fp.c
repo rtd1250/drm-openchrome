@@ -26,6 +26,12 @@
 /* Encoder flags for LVDS */
 #define LVDS_DUAL_CHANNEL	1
 
+#define TD0 200
+#define TD1 25
+#define TD2 0
+#define TD3 25
+
+
 /* caculate the cetering timing using mode and adjusted_mode */
 static void
 via_centering_timing(const struct drm_display_mode *mode,
