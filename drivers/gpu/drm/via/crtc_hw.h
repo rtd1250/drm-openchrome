@@ -420,6 +420,22 @@ via_fp_set_primary_direct_display_period(void __iomem *regs, bool direct_on)
 }
 
 /*
+ * Sets KM400 or later chipset's FP primary hardware controlled
+ * power sequence.
+ */
+static inline void
+via_fp_set_primary_hard_power(void __iomem *regs, bool power_state)
+{
+	/* 3X5.6A[3] - FP Primary Hardware Controlled Power Sequence
+	 *             0: Hardware Controlled Power Off
+	 *             1: Hardware Controlled Power On */
+	svga_wcrt_mask(regs, 0x6A,
+			power_state ? BIT(3) : 0x00, BIT(3));
+	DRM_DEBUG_KMS("FP Primary Hardware Controlled Power "
+			"Sequence: %s\n", power_state ? "On" : "Off");
+}
+
+/*
  * Sets FPDP (Flat Panel Display Port) Low I/O pad state.
  */
 static inline void
