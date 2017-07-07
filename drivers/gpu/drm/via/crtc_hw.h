@@ -436,6 +436,24 @@ via_fp_set_primary_hard_power(void __iomem *regs, bool power_state)
 }
 
 /*
+ * Sets CX700 / VX700 or later chipset's FP secondary
+ * power sequence control type.
+ */
+static inline void
+via_fp_set_secondary_power_seq_type(void __iomem *regs,
+					bool ctrl_type)
+{
+	/* 3X5.D3[0] - FP Secondary Power Sequence Control Type
+	 *             0: Hardware Control
+	 *             1: Software Control */
+	svga_wcrt_mask(regs, 0xD3,
+			ctrl_type ? 0x00 : BIT(0), BIT(0));
+	DRM_DEBUG_KMS("FP Secondary Power Sequence Control Type: "
+			"%s Control\n",
+			ctrl_type ? "Hardware" : "Software");
+}
+
+/*
  * Sets FPDP (Flat Panel Display Port) Low I/O pad state.
  */
 static inline void
