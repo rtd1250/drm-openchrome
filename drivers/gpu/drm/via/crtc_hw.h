@@ -404,6 +404,22 @@ via_fp_set_primary_direct_back_light_ctrl(void __iomem *regs, bool direct_on)
 }
 
 /*
+ * Sets KM400 or later chipset's FP primary direct display
+ * period control.
+ */
+static inline void
+via_fp_set_primary_direct_display_period(void __iomem *regs, bool direct_on)
+{
+	/* 3X5.91[7] - FP Primary Direct Display Period Control
+	 *             0: On
+	 *             1: Off */
+	svga_wcrt_mask(regs, 0x91,
+			direct_on ? 0x00 : BIT(7), BIT(7));
+	DRM_DEBUG_KMS("FP Primary Direct Display Period Control: %s\n",
+			direct_on ? "On" : "Off");
+}
+
+/*
  * Sets FPDP (Flat Panel Display Port) Low I/O pad state.
  */
 static inline void
