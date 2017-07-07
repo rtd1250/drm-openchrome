@@ -471,6 +471,23 @@ via_fp_set_secondary_soft_back_light(void __iomem *regs,
 }
 
 /*
+ * Sets CX700 / VX700 or later chipset's FP secondary software
+ * controlled VEE.
+ */
+static inline void
+via_fp_set_secondary_soft_vee(void __iomem *regs,
+				bool soft_on)
+{
+	/* 3X5.D3[2] - FP Secondary Software VEE On
+	 *             0: Off
+	 *             1: On */
+	svga_wcrt_mask(regs, 0xD3,
+			soft_on ? BIT(2) : 0x00, BIT(2));
+	DRM_DEBUG_KMS("FP Secondary Software Controlled VEE: %s\n",
+			soft_on ? "On" : "Off");
+}
+
+/*
  * Sets FPDP (Flat Panel Display Port) Low I/O pad state.
  */
 static inline void
