@@ -297,6 +297,73 @@ via_fp_primary_soft_power_seq(struct via_device *dev_priv, bool power_state)
 	DRM_DEBUG_KMS("Exiting via_fp_primary_soft_power_seq.\n");
 }
 
+static void
+via_fp_secondary_soft_power_seq(struct via_device *dev_priv, bool power_state)
+{
+	DRM_DEBUG_KMS("Entered via_fp_secondary_soft_power_seq.\n");
+
+	/* Turn off FP hardware power sequence. */
+	via_fp_set_secondary_hard_power(VGABASE, false);
+
+	/* Use software FP power sequence control. */
+	via_fp_set_secondary_power_seq_type(VGABASE, false);
+
+	if (power_state) {
+		/* Turn on FP Display Period. */
+		via_fp_set_secondary_direct_display_period(VGABASE, true);
+
+		/* Wait for TD0 ms. */
+		mdelay(TD0);
+
+		/* Turn on FP VDD rail. */
+		via_fp_set_secondary_soft_vdd(VGABASE, true);
+
+		/* Wait for TD1 ms. */
+		mdelay(TD1);
+
+		/* Turn on FP data transmission. */
+		via_fp_set_secondary_soft_data(VGABASE, true);
+
+		/* Wait for TD2 ms. */
+		mdelay(TD2);
+
+		/* Turn on FP VEE rail. */
+		via_fp_set_secondary_soft_vee(VGABASE, true);
+
+		/* Wait for TD3 ms. */
+		mdelay(TD3);
+
+		/* Turn on FP back light. */
+		via_fp_set_secondary_soft_back_light(VGABASE, true);
+	} else {
+		/* Turn off FP back light. */
+		via_fp_set_secondary_soft_back_light(VGABASE, false);
+
+		/* Wait for TD3 ms. */
+		mdelay(TD3);
+
+		/* Turn off FP VEE rail. */
+		via_fp_set_secondary_soft_vee(VGABASE, false);
+
+		/* Wait for TD2 ms. */
+		mdelay(TD2);
+
+		/* Turn off FP data transmission. */
+		via_fp_set_secondary_soft_data(VGABASE, false);
+
+		/* Wait for TD1 ms. */
+		mdelay(TD1);
+
+		/* Turn off FP VDD rail. */
+		via_fp_set_secondary_soft_vdd(VGABASE, false);
+
+		/* Turn off FP Display Period. */
+		via_fp_set_secondary_direct_display_period(VGABASE, false);
+	}
+
+	DRM_DEBUG_KMS("Exiting via_fp_secondary_soft_power_seq.\n");
+}
+
 /*
  * Sets flat panel I/O pad state.
  */
