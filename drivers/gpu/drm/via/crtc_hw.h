@@ -340,6 +340,22 @@ via_fp_set_primary_soft_back_light(void __iomem *regs, bool soft_on)
 }
 
 /*
+ * Sets KM400 or later chipset's FP primary software controlled
+ * VEE.
+ */
+static inline void
+via_fp_set_primary_soft_vee(void __iomem *regs, bool soft_on)
+{
+	/* 3X5.91[2] - FP Primary Software VEE On
+	 *             0: Off
+	 *             1: On */
+	svga_wcrt_mask(regs, 0x91,
+			soft_on ? BIT(2) : 0x00, BIT(2));
+	DRM_DEBUG_KMS("FP Primary Software Controlled VEE: %s\n",
+			soft_on ? "On" : "Off");
+}
+
+/*
  * Sets FPDP (Flat Panel Display Port) Low I/O pad state.
  */
 static inline void
