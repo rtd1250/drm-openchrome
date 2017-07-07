@@ -764,6 +764,21 @@ via_lvds1_set_display_source(void __iomem *regs, u8 display_source)
 }
 
 /*
+ * Sets CX700 / VX700 and VX800 chipset's LVDS2 power state.
+ */
+static inline void
+via_lvds2_set_power(void __iomem *regs, bool power_state)
+{
+	/* 3X5.D2[6] - Power Down (Active High) for Channel 2 LVDS
+	 *             0: Power on
+	 *             1: Power off */
+	svga_wcrt_mask(regs, 0xD2,
+			power_state ? 0x00 : BIT(6), BIT(6));
+	DRM_DEBUG_KMS("LVDS2 Power State: %s\n",
+			power_state ? "On" : "Off");
+}
+
+/*
  * Sets LVDS2 I/O pad state.
  */
 static inline void
