@@ -556,6 +556,22 @@ via_fp_set_secondary_direct_display_period(void __iomem *regs,
 }
 
 /*
+ * Sets FP secondary hardware controlled power sequence enable.
+ */
+static inline void
+via_fp_set_secondary_hard_power(void __iomem *regs,
+				bool power_state)
+{
+	/* 3X5.D4[1] - Secondary Power Hardware Power Sequence Enable
+	 *             0: Off
+	 *             1: On */
+	svga_wcrt_mask(regs, 0xD4,
+			power_state ? BIT(1) : 0x00, BIT(1));
+	DRM_DEBUG_KMS("FP Secondary Hardware Controlled Power "
+			"Sequence: %s\n", power_state ? "On" : "Off");
+}
+
+/*
  * Sets FPDP (Flat Panel Display Port) Low I/O pad state.
  */
 static inline void
