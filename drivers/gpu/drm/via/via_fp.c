@@ -395,6 +395,52 @@ via_fp_primary_hard_power_seq(struct via_device *dev_priv, bool power_state)
 	DRM_DEBUG_KMS("Entered via_fp_primary_hard_power_seq.\n");
 }
 
+static void
+via_fp_power(struct via_device *dev_priv, unsigned short device,
+		u32 di_port, bool power_state)
+{
+	DRM_DEBUG_KMS("Entered via_fp_power.\n");
+
+	switch (device) {
+	case PCI_DEVICE_ID_VIA_CLE266:
+		break;
+	case PCI_DEVICE_ID_VIA_KM400:
+	case PCI_DEVICE_ID_VIA_CN700:
+	case PCI_DEVICE_ID_VIA_PM800:
+	case PCI_DEVICE_ID_VIA_K8M800:
+	case PCI_DEVICE_ID_VIA_VT3343:
+	case PCI_DEVICE_ID_VIA_K8M890:
+	case PCI_DEVICE_ID_VIA_P4M900:
+		via_fp_primary_hard_power_seq(dev_priv, power_state);
+		break;
+	case PCI_DEVICE_ID_VIA_VT3157:
+	case PCI_DEVICE_ID_VIA_VT1122:
+		if (di_port & VIA_DI_PORT_LVDS1) {
+			via_fp_primary_soft_power_seq(dev_priv, power_state);
+			via_lvds1_set_power(VGABASE, power_state);
+		}
+
+		if (di_port & VIA_DI_PORT_LVDS2) {
+			via_fp_secondary_soft_power_seq(dev_priv, power_state);
+			via_lvds2_set_power(VGABASE, power_state);
+		}
+
+		break;
+	case PCI_DEVICE_ID_VIA_VX875:
+	case PCI_DEVICE_ID_VIA_VX900_VGA:
+		via_fp_primary_hard_power_seq(dev_priv, power_state);
+		via_lvds1_set_power(VGABASE, power_state);
+		break;
+	default:
+		DRM_DEBUG_KMS("VIA Technologies Chrome IGP "
+				"FP Power: Unrecognized "
+				"PCI Device ID.\n");
+		break;
+	}
+
+	DRM_DEBUG_KMS("Exiting via_fp_power.\n");
+}
+
 /*
  * Sets flat panel I/O pad state.
  */
@@ -523,14 +569,15 @@ via_fp_dpms(struct drm_encoder *encoder, int mode)
 			}
 			svga_wseq_mask(VGABASE, 0x1E, BIT(3), BIT(3));
 		}
-		via_enable_internal_lvds(encoder);
-		via_fp_io_pad_state(dev_priv, enc->di_port, true);
+
+		via_fp_power(dev_priv, dev->pdev->device, enc->di_port, true);
+	        via_fp_io_pad_state(dev_priv, enc->di_port, true);
 		break;
 
 	case DRM_MODE_DPMS_STANDBY:
 	case DRM_MODE_DPMS_SUSPEND:
 	case DRM_MODE_DPMS_OFF:
-		via_disable_internal_lvds(encoder);
+		via_fp_power(dev_priv, dev->pdev->device, enc->di_port, false);
 		via_fp_io_pad_state(dev_priv, enc->di_port, false);
 		break;
 	}
