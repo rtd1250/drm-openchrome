@@ -539,6 +539,23 @@ via_fp_set_secondary_direct_back_light_ctrl(void __iomem *regs,
 }
 
 /*
+ * Sets CX700 / VX700 or later chipset's FP secondary direct
+ * display period control.
+ */
+static inline void
+via_fp_set_secondary_direct_display_period(void __iomem *regs,
+						bool direct_on)
+{
+	/* 3X5.D3[7] - FP Secondary Direct Display Period Control
+	 *             0: On
+	 *             1: Off */
+	svga_wcrt_mask(regs, 0xD3,
+			direct_on ? 0x00 : BIT(7), BIT(7));
+	DRM_DEBUG_KMS("FP Secondary Direct Display Period "
+			"Control: %s\n", direct_on ? "On" : "Off");
+}
+
+/*
  * Sets FPDP (Flat Panel Display Port) Low I/O pad state.
  */
 static inline void
