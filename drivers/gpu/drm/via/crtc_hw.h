@@ -307,6 +307,23 @@ via_analog_set_display_source(void __iomem *regs, u8 display_source)
 }
 
 /*
+ * Sets KM400 or later chipset's FP primary power sequence control
+ * type.
+ */
+static inline void
+via_fp_set_primary_power_seq_type(void __iomem *regs, bool ctrl_type)
+{
+	/* 3X5.91[0] - FP Primary Power Sequence Control Type
+	 *             0: Hardware Control
+	 *             1: Software Control */
+	svga_wcrt_mask(regs, 0x91,
+			ctrl_type ? 0x00 : BIT(0), BIT(0));
+	DRM_DEBUG_KMS("FP Primary Power Sequence Control Type: "
+			"%s Control\n",
+			ctrl_type ? "Hardware" : "Software");
+}
+
+/*
  * Sets FPDP (Flat Panel Display Port) Low I/O pad state.
  */
 static inline void
