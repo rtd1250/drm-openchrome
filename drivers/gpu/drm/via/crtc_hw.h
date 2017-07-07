@@ -648,6 +648,21 @@ via_fpdp_high_set_display_source(void __iomem *regs, u8 display_source)
 }
 
 /*
+ * Sets CX700 / VX700 or later chipset's LVDS1 power state.
+ */
+static inline void
+via_lvds1_set_power(void __iomem *regs, bool power_state)
+{
+	/* 3X5.D2[7] - Power Down (Active High) for Channel 1 LVDS
+	 *             0: Power on
+	 *             1: Power off */
+	svga_wcrt_mask(regs, 0xD2,
+			power_state ? 0x00 : BIT(7), BIT(7));
+	DRM_DEBUG_KMS("LVDS1 Power State: %s\n",
+			power_state ? "On" : "Off");
+}
+
+/*
  * Sets CX700 or later single chipset's LVDS1 power sequence type.
  */
 static inline void
