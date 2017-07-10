@@ -376,7 +376,7 @@ via_fp_primary_hard_power_seq(struct via_device *dev_priv, bool power_state)
 	via_fp_set_primary_power_seq_type(VGABASE, true);
 
 	if (power_state) {
-		/* Turn on FP Display Period. */
+		/* Turn on FP display period. */
 		via_fp_set_primary_direct_display_period(VGABASE, true);
 
 		/* Turn on FP hardware power sequence. */
@@ -391,7 +391,7 @@ via_fp_primary_hard_power_seq(struct via_device *dev_priv, bool power_state)
 		/* Turn off FP hardware power sequence. */
 		via_fp_set_primary_hard_power(VGABASE, false);
 
-		/* Turn on FP Display Period. */
+		/* Turn on FP display period. */
 		via_fp_set_primary_direct_display_period(VGABASE, false);
 	}
 
