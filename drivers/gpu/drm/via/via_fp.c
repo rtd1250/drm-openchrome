@@ -238,6 +238,9 @@ via_fp_primary_soft_power_seq(struct via_device *dev_priv, bool power_state)
 {
 	DRM_DEBUG_KMS("Entered via_fp_primary_soft_power_seq.\n");
 
+	/* Turn off FP hardware power sequence. */
+	via_fp_set_primary_hard_power(VGABASE, false);
+
 	/* Use software FP power sequence control. */
 	via_fp_set_primary_power_seq_type(VGABASE, false);
 
