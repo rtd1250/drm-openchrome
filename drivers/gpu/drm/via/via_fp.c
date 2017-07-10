@@ -245,31 +245,31 @@ via_fp_primary_soft_power_seq(struct via_device *dev_priv, bool power_state)
 	via_fp_set_primary_power_seq_type(VGABASE, false);
 
 	if (power_state) {
-	        /* Turn on FP Display Period. */
+		/* Turn on FP Display Period. */
 		via_fp_set_primary_direct_display_period(VGABASE, true);
 
 		/* Wait for TD0 ms. */
 		mdelay(TD0);
 
-	        /* Turn on FP VDD rail. */
+		/* Turn on FP VDD rail. */
 		via_fp_set_primary_soft_vdd(VGABASE, true);
 
 		/* Wait for TD1 ms. */
 		mdelay(TD1);
 
-	        /* Turn on FP data transmission. */
+		/* Turn on FP data transmission. */
 		via_fp_set_primary_soft_data(VGABASE, true);
 
 		/* Wait for TD2 ms. */
 		mdelay(TD2);
 
-	        /* Turn on FP VEE rail. */
+		/* Turn on FP VEE rail. */
 		via_fp_set_primary_soft_vee(VGABASE, true);
 
 		/* Wait for TD3 ms. */
 		mdelay(TD3);
 
-	        /* Turn on FP back light. */
+		/* Turn on FP back light. */
 		via_fp_set_primary_soft_back_light(VGABASE, true);
 	} else {
 		/* Turn off FP back light. */
@@ -284,16 +284,16 @@ via_fp_primary_soft_power_seq(struct via_device *dev_priv, bool power_state)
 		/* Wait for TD2 ms. */
 		mdelay(TD2);
 
-	        /* Turn off FP data transmission. */
+		/* Turn off FP data transmission. */
 		via_fp_set_primary_soft_data(VGABASE, false);
 
 		/* Wait for TD1 ms. */
 		mdelay(TD1);
 
-	        /* Turn off FP VDD rail. */
+		/* Turn off FP VDD rail. */
 		via_fp_set_primary_soft_vdd(VGABASE, false);
 
-	        /* Turn off FP Display Period. */
+		/* Turn off FP Display Period. */
 		via_fp_set_primary_direct_display_period(VGABASE, false);
 	}
 
