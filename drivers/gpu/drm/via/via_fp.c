@@ -234,6 +234,59 @@ via_disable_internal_lvds(struct drm_encoder *encoder)
 }
 
 static void
+via_fp_castle_rock_soft_power_seq(struct via_device *dev_priv,
+					bool power_state)
+{
+	DRM_DEBUG_KMS("Entered via_fp_castle_rock_soft_power_seq.\n");
+
+	if (power_state) {
+		/* Wait for 25 ms. */
+		mdelay(25);
+
+		/* Turn on FP VDD rail. */
+		via_fp_set_primary_soft_vdd(VGABASE, true);
+
+		/* Wait for 510 ms. */
+		mdelay(510);
+
+		/* Turn on FP data transmission. */
+		via_fp_set_primary_soft_data(VGABASE, true);
+
+		/* Wait for 1 ms. */
+		mdelay(1);
+
+		/* Turn on FP VEE rail. */
+		via_fp_set_primary_soft_vee(VGABASE, true);
+
+		/* Turn on FP back light. */
+		via_fp_set_primary_soft_back_light(VGABASE, true);
+	} else {
+		/* Wait for 1 ms. */
+		mdelay(1);
+
+		/* Turn off FP back light. */
+		via_fp_set_primary_soft_back_light(VGABASE, false);
+
+		/* Turn off FP VEE rail. */
+		via_fp_set_primary_soft_vee(VGABASE, false);
+
+		/* Wait for 510 ms. */
+		mdelay(510);
+
+		/* Turn off FP data transmission. */
+		via_fp_set_primary_soft_data(VGABASE, false);
+
+		/* Wait for 25 ms. */
+		mdelay(25);
+
+		/* Turn off FP VDD rail. */
+		via_fp_set_primary_soft_vdd(VGABASE, false);
+	}
+
+	DRM_DEBUG_KMS("Exiting via_fp_castle_rock_soft_power_seq.\n");
+}
+
+static void
 via_fp_primary_soft_power_seq(struct via_device *dev_priv, bool power_state)
 {
 	DRM_DEBUG_KMS("Entered via_fp_primary_soft_power_seq.\n");
@@ -406,6 +459,8 @@ via_fp_power(struct via_device *dev_priv, unsigned short device,
 
 	switch (device) {
 	case PCI_DEVICE_ID_VIA_CLE266:
+		via_fp_castle_rock_soft_power_seq(dev_priv,
+							power_state);
 		break;
 	case PCI_DEVICE_ID_VIA_KM400:
 	case PCI_DEVICE_ID_VIA_CN700:
