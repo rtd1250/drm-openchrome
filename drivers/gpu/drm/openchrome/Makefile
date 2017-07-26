@@ -9,4 +9,4 @@ via-y    := via_drv.o via_pm.o via_i2c.o via_irq.o via_verifier.o via_ioc32.o \
 		via_display.o via_crtc.o via_fb.o crtc_hw.o via_clocks.o \
 		via_analog.o via_fp.o via_tmds.o via_hdmi.o
 
-obj-$(CONFIG_DRM_VIA)	+= via.o
+obj-$(CONFIG_DRM_VIA)	+= openchrome.o
