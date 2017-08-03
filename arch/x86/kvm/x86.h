@@ -1,8 +1,13 @@
 #ifndef ARCH_X86_KVM_X86_H
 #define ARCH_X86_KVM_X86_H
 
+#include <asm/processor.h>
+#include <asm/mwait.h>
 #include <linux/kvm_host.h>
+#include <asm/pvclock.h>
 #include "kvm_cache_regs.h"
+
+#define MSR_IA32_CR_PAT_DEFAULT  0x0007040600070406ULL
 
 static inline void kvm_clear_exception_queue(struct kvm_vcpu *vcpu)
 {
@@ -145,11 +150,18 @@ static inline void kvm_register_writel(struct kvm_vcpu *vcpu,
 	return kvm_register_write(vcpu, reg, val);
 }
 
+static inline bool kvm_check_has_quirk(struct kvm *kvm, u64 quirk)
+{
+	return !(kvm->arch.disabled_quirks & quirk);
+}
+
 void kvm_before_handle_nmi(struct kvm_vcpu *vcpu);
 void kvm_after_handle_nmi(struct kvm_vcpu *vcpu);
+void kvm_set_pending_timer(struct kvm_vcpu *vcpu);
 int kvm_inject_realmode_interrupt(struct kvm_vcpu *vcpu, int irq, int inc_eip);
 
 void kvm_write_tsc(struct kvm_vcpu *vcpu, struct msr_data *msr);
+u64 get_kvmclock_ns(struct kvm *kvm);
 
 int kvm_read_guest_virt(struct x86_emulate_ctxt *ctxt,
 	gva_t addr, void *val, unsigned int bytes,
@@ -159,16 +171,81 @@ int kvm_write_guest_virt_system(struct x86_emulate_ctxt *ctxt,
 	gva_t addr, void *val, unsigned int bytes,
 	struct x86_exception *exception);
 
+void kvm_vcpu_mtrr_init(struct kvm_vcpu *vcpu);
+u8 kvm_mtrr_get_guest_memory_type(struct kvm_vcpu *vcpu, gfn_t gfn);
 bool kvm_mtrr_valid(struct kvm_vcpu *vcpu, u32 msr, u64 data);
+int kvm_mtrr_set_msr(struct kvm_vcpu *vcpu, u32 msr, u64 data);
+int kvm_mtrr_get_msr(struct kvm_vcpu *vcpu, u32 msr, u64 *pdata);
+bool kvm_mtrr_check_gfn_range_consistency(struct kvm_vcpu *vcpu, gfn_t gfn,
+					  int page_num);
+bool kvm_vector_hashing_enabled(void);
 
-#define KVM_SUPPORTED_XCR0     (XSTATE_FP | XSTATE_SSE | XSTATE_YMM \
-				| XSTATE_BNDREGS | XSTATE_BNDCSR \
-				| XSTATE_AVX512)
+#define KVM_SUPPORTED_XCR0     (XFEATURE_MASK_FP | XFEATURE_MASK_SSE \
+				| XFEATURE_MASK_YMM | XFEATURE_MASK_BNDREGS \
+				| XFEATURE_MASK_BNDCSR | XFEATURE_MASK_AVX512 \
+				| XFEATURE_MASK_PKRU)
 extern u64 host_xcr0;
 
 extern u64 kvm_supported_xcr0(void);
 
 extern unsigned int min_timer_period_us;
 
+extern unsigned int lapic_timer_advance_ns;
+
 extern struct static_key kvm_no_apic_vcpu;
+
+static inline u64 nsec_to_cycles(struct kvm_vcpu *vcpu, u64 nsec)
+{
+	return pvclock_scale_delta(nsec, vcpu->arch.virtual_tsc_mult,
+				   vcpu->arch.virtual_tsc_shift);
+}
+
+/* Same "calling convention" as do_div:
+ * - divide (n << 32) by base
+ * - put result in n
+ * - return remainder
+ */
+#define do_shl32_div32(n, base)					\
+	({							\
+	    u32 __quot, __rem;					\
+	    asm("divl %2" : "=a" (__quot), "=d" (__rem)		\
+			: "rm" (base), "0" (0), "1" ((u32) n));	\
+	    n = __quot;						\
+	    __rem;						\
+	 })
+
+static inline bool kvm_mwait_in_guest(void)
+{
+	unsigned int eax, ebx, ecx, edx;
+
+	if (!cpu_has(&boot_cpu_data, X86_FEATURE_MWAIT))
+		return false;
+
+	switch (boot_cpu_data.x86_vendor) {
+	case X86_VENDOR_AMD:
+		/* All AMD CPUs have a working MWAIT implementation */
+		return true;
+	case X86_VENDOR_INTEL:
+		/* Handle Intel below */
+		break;
+	default:
+		return false;
+	}
+
+	/*
+	 * Intel CPUs without CPUID5_ECX_INTERRUPT_BREAK are problematic as
+	 * they would allow guest to stop the CPU completely by disabling
+	 * interrupts then invoking MWAIT.
+	 */
+	if (boot_cpu_data.cpuid_level < CPUID_MWAIT_LEAF)
+		return false;
+
+	cpuid(CPUID_MWAIT_LEAF, &eax, &ebx, &ecx, &edx);
+
+	if (!(ecx & CPUID5_ECX_INTERRUPT_BREAK))
+		return false;
+
+	return true;
+}
+
 #endif

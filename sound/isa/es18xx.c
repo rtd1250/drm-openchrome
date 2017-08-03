@@ -84,8 +84,8 @@
 #include <linux/isapnp.h>
 #include <linux/module.h>
 #include <linux/delay.h>
+#include <linux/io.h>
 
-#include <asm/io.h>
 #include <asm/dma.h>
 #include <sound/core.h>
 #include <sound/control.h>
@@ -369,7 +369,7 @@ static int snd_es18xx_reset_fifo(struct snd_es18xx *chip)
 	return 0;
 }
 
-static struct snd_ratnum new_clocks[2] = {
+static const struct snd_ratnum new_clocks[2] = {
 	{
 		.num = 793800,
 		.den_min = 1,
@@ -384,12 +384,12 @@ static struct snd_ratnum new_clocks[2] = {
 	}
 };
 
-static struct snd_pcm_hw_constraint_ratnums new_hw_constraints_clocks = {
+static const struct snd_pcm_hw_constraint_ratnums new_hw_constraints_clocks = {
 	.nrats = 2,
 	.rats = new_clocks,
 };
 
-static struct snd_ratnum old_clocks[2] = {
+static const struct snd_ratnum old_clocks[2] = {
 	{
 		.num = 795444,
 		.den_min = 1,
@@ -404,7 +404,7 @@ static struct snd_ratnum old_clocks[2] = {
 	}
 };
 
-static struct snd_pcm_hw_constraint_ratnums old_hw_constraints_clocks  = {
+static const struct snd_pcm_hw_constraint_ratnums old_hw_constraints_clocks  = {
 	.nrats = 2,
 	.rats = old_clocks,
 };
@@ -1687,16 +1687,13 @@ static struct snd_pcm_ops snd_es18xx_capture_ops = {
 	.pointer =	snd_es18xx_capture_pointer,
 };
 
-static int snd_es18xx_pcm(struct snd_card *card, int device,
-			  struct snd_pcm **rpcm)
+static int snd_es18xx_pcm(struct snd_card *card, int device)
 {
 	struct snd_es18xx *chip = card->private_data;
         struct snd_pcm *pcm;
 	char str[16];
 	int err;
 
-	if (rpcm)
-		*rpcm = NULL;
 	sprintf(str, "ES%x", chip->version);
 	if (chip->caps & ES18XX_PCM2)
 		err = snd_pcm_new(card, str, device, 2, 1, &pcm);
@@ -1722,9 +1719,6 @@ static int snd_es18xx_pcm(struct snd_card *card, int device,
 					      snd_dma_isa_data(),
 					      64*1024,
 					      chip->dma1 > 3 || chip->dma2 > 3 ? 128*1024 : 64*1024);
-
-        if (rpcm)
-        	*rpcm = pcm;
 	return 0;
 }
 
@@ -2005,17 +1999,17 @@ MODULE_PARM_DESC(enable, "Enable ES18xx soundcard.");
 module_param_array(isapnp, bool, NULL, 0444);
 MODULE_PARM_DESC(isapnp, "PnP detection for specified soundcard.");
 #endif
-module_param_array(port, long, NULL, 0444);
+module_param_hw_array(port, long, ioport, NULL, 0444);
 MODULE_PARM_DESC(port, "Port # for ES18xx driver.");
-module_param_array(mpu_port, long, NULL, 0444);
+module_param_hw_array(mpu_port, long, ioport, NULL, 0444);
 MODULE_PARM_DESC(mpu_port, "MPU-401 port # for ES18xx driver.");
-module_param_array(fm_port, long, NULL, 0444);
+module_param_hw_array(fm_port, long, ioport, NULL, 0444);
 MODULE_PARM_DESC(fm_port, "FM port # for ES18xx driver.");
-module_param_array(irq, int, NULL, 0444);
+module_param_hw_array(irq, int, irq, NULL, 0444);
 MODULE_PARM_DESC(irq, "IRQ # for ES18xx driver.");
-module_param_array(dma1, int, NULL, 0444);
+module_param_hw_array(dma1, int, dma, NULL, 0444);
 MODULE_PARM_DESC(dma1, "DMA 1 # for ES18xx driver.");
-module_param_array(dma2, int, NULL, 0444);
+module_param_hw_array(dma2, int, dma, NULL, 0444);
 MODULE_PARM_DESC(dma2, "DMA 2 # for ES18xx driver.");
 
 #ifdef CONFIG_PNP
@@ -2154,7 +2148,7 @@ static int snd_audiodrive_probe(struct snd_card *card, int dev)
 			chip->port,
 			irq[dev], dma1[dev]);
 
-	err = snd_es18xx_pcm(card, 0, NULL);
+	err = snd_es18xx_pcm(card, 0);
 	if (err < 0)
 		return err;
 

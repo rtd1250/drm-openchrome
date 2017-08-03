@@ -30,6 +30,7 @@
 #include <linux/gameport.h>
 #include <linux/module.h>
 #include <linux/dma-mapping.h>
+#include <linux/io.h>
 
 #include <sound/core.h>
 #include <sound/pcm.h>
@@ -39,14 +40,12 @@
 #include <sound/opl3.h>
 #include <sound/initval.h>
 
-#include <asm/io.h>
-
 MODULE_AUTHOR("Jaroslav Kysela <perex@perex.cz>");
 MODULE_DESCRIPTION("S3 SonicVibes PCI");
 MODULE_LICENSE("GPL");
 MODULE_SUPPORTED_DEVICE("{{S3,SonicVibes PCI}}");
 
-#if defined(CONFIG_GAMEPORT) || (defined(MODULE) && defined(CONFIG_GAMEPORT_MODULE))
+#if IS_REACHABLE(CONFIG_GAMEPORT)
 #define SUPPORT_JOYSTICK 1
 #endif
 
@@ -67,7 +66,7 @@ module_param_array(reverb, bool, NULL, 0444);
 MODULE_PARM_DESC(reverb, "Enable reverb (SRAM is present) for S3 SonicVibes soundcard.");
 module_param_array(mge, bool, NULL, 0444);
 MODULE_PARM_DESC(mge, "MIC Gain Enable for S3 SonicVibes soundcard.");
-module_param(dmaio, uint, 0444);
+module_param_hw(dmaio, uint, ioport, 0444);
 MODULE_PARM_DESC(dmaio, "DDMA i/o base address for S3 SonicVibes soundcard.");
 
 /*
@@ -249,13 +248,13 @@ static const struct pci_device_id snd_sonic_ids[] = {
 
 MODULE_DEVICE_TABLE(pci, snd_sonic_ids);
 
-static struct snd_ratden sonicvibes_adc_clock = {
+static const struct snd_ratden sonicvibes_adc_clock = {
 	.num_min = 4000 * 65536,
 	.num_max = 48000UL * 65536,
 	.num_step = 1,
 	.den = 65536,
 };
-static struct snd_pcm_hw_constraint_ratdens snd_sonicvibes_hw_constraints_adc_clock = {
+static const struct snd_pcm_hw_constraint_ratdens snd_sonicvibes_hw_constraints_adc_clock = {
 	.nrats = 1,
 	.rats = &sonicvibes_adc_clock,
 };
@@ -858,7 +857,7 @@ static int snd_sonicvibes_capture_close(struct snd_pcm_substream *substream)
 	return 0;
 }
 
-static struct snd_pcm_ops snd_sonicvibes_playback_ops = {
+static const struct snd_pcm_ops snd_sonicvibes_playback_ops = {
 	.open =		snd_sonicvibes_playback_open,
 	.close =	snd_sonicvibes_playback_close,
 	.ioctl =	snd_pcm_lib_ioctl,
@@ -869,7 +868,7 @@ static struct snd_pcm_ops snd_sonicvibes_playback_ops = {
 	.pointer =	snd_sonicvibes_playback_pointer,
 };
 
-static struct snd_pcm_ops snd_sonicvibes_capture_ops = {
+static const struct snd_pcm_ops snd_sonicvibes_capture_ops = {
 	.open =		snd_sonicvibes_capture_open,
 	.close =	snd_sonicvibes_capture_close,
 	.ioctl =	snd_pcm_lib_ioctl,
@@ -880,8 +879,7 @@ static struct snd_pcm_ops snd_sonicvibes_capture_ops = {
 	.pointer =	snd_sonicvibes_capture_pointer,
 };
 
-static int snd_sonicvibes_pcm(struct sonicvibes *sonic, int device,
-			      struct snd_pcm **rpcm)
+static int snd_sonicvibes_pcm(struct sonicvibes *sonic, int device)
 {
 	struct snd_pcm *pcm;
 	int err;
@@ -902,8 +900,6 @@ static int snd_sonicvibes_pcm(struct sonicvibes *sonic, int device,
 	snd_pcm_lib_preallocate_pages_for_all(pcm, SNDRV_DMA_TYPE_DEV,
 					      snd_dma_pci_data(sonic->pci), 64*1024, 128*1024);
 
-	if (rpcm)
-		*rpcm = pcm;
 	return 0;
 }
 
@@ -1263,8 +1259,8 @@ static int snd_sonicvibes_create(struct snd_card *card,
 	if ((err = pci_enable_device(pci)) < 0)
 		return err;
 	/* check, if we can restrict PCI DMA transfers to 24 bits */
-        if (pci_set_dma_mask(pci, DMA_BIT_MASK(24)) < 0 ||
-	    pci_set_consistent_dma_mask(pci, DMA_BIT_MASK(24)) < 0) {
+	if (dma_set_mask(&pci->dev, DMA_BIT_MASK(24)) < 0 ||
+	    dma_set_coherent_mask(&pci->dev, DMA_BIT_MASK(24)) < 0) {
 		dev_err(card->dev,
 			"architecture does not support 24bit PCI busmaster DMA\n");
 		pci_disable_device(pci);
@@ -1491,7 +1487,7 @@ static int snd_sonic_probe(struct pci_dev *pci,
 		(unsigned long long)pci_resource_start(pci, 1),
 		sonic->irq);
 
-	if ((err = snd_sonicvibes_pcm(sonic, 0, NULL)) < 0) {
+	if ((err = snd_sonicvibes_pcm(sonic, 0)) < 0) {
 		snd_card_free(card);
 		return err;
 	}

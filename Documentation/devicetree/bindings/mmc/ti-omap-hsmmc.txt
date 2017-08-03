@@ -18,7 +18,7 @@ Required properties:
 Optional properties:
 ti,dual-volt: boolean, supports dual voltage cards
 <supply-name>-supply: phandle to the regulator device tree node
-"supply-name" examples are "vmmc", "vmmc_aux" etc
+"supply-name" examples are "vmmc", "vmmc_aux"(deprecated)/"vqmmc" etc
 ti,non-removable: non-removable slot (like eMMC)
 ti,needs-special-reset: Requires a special softreset sequence
 ti,needs-special-hs-handling: HSMMC IP needs special setting for handling High Speed
@@ -102,7 +102,7 @@ not every application needs SDIO irq, e.g. MMC cards.
 		pinctrl-1 = <&mmc1_idle>;
 		pinctrl-2 = <&mmc1_sleep>;
 		...
-		interrupts-extended = <&intc 64 &gpio2 28 0>;
+		interrupts-extended = <&intc 64 &gpio2 28 GPIO_ACTIVE_LOW>;
 	};
 
 	mmc1_idle : pinmux_cirq_pin {

@@ -44,8 +44,11 @@ static bool initialize(struct kernel_queue *kq, struct kfd_dev *dev,
 	BUG_ON(!kq || !dev);
 	BUG_ON(type != KFD_QUEUE_TYPE_DIQ && type != KFD_QUEUE_TYPE_HIQ);
 
-	pr_debug("kfd: In func %s initializing queue type %d size %d\n",
+	pr_debug("amdkfd: In func %s initializing queue type %d size %d\n",
 			__func__, KFD_QUEUE_TYPE_HIQ, queue_size);
+
+	memset(&prop, 0, sizeof(prop));
+	memset(&nop, 0, sizeof(nop));
 
 	nop.opcode = IT_NOP;
 	nop.type = PM4_TYPE_3;
@@ -69,12 +72,16 @@ static bool initialize(struct kernel_queue *kq, struct kfd_dev *dev,
 
 	prop.doorbell_ptr = kfd_get_kernel_doorbell(dev, &prop.doorbell_off);
 
-	if (prop.doorbell_ptr == NULL)
+	if (prop.doorbell_ptr == NULL) {
+		pr_err("amdkfd: error init doorbell");
 		goto err_get_kernel_doorbell;
+	}
 
 	retval = kfd_gtt_sa_allocate(dev, queue_size, &kq->pq);
-	if (retval != 0)
+	if (retval != 0) {
+		pr_err("amdkfd: error init pq queues size (%d)\n", queue_size);
 		goto err_pq_allocate_vidmem;
+	}
 
 	kq->pq_kernel_addr = kq->pq->cpu_ptr;
 	kq->pq_gpu_addr = kq->pq->gpu_addr;
@@ -117,7 +124,7 @@ static bool initialize(struct kernel_queue *kq, struct kfd_dev *dev,
 	prop.eop_ring_buffer_address = kq->eop_gpu_addr;
 	prop.eop_ring_buffer_size = PAGE_SIZE;
 
-	if (init_queue(&kq->queue, prop) != 0)
+	if (init_queue(&kq->queue, &prop) != 0)
 		goto err_init_queue;
 
 	kq->queue->device = dev;
@@ -165,10 +172,8 @@ err_rptr_allocate_vidmem:
 err_eop_allocate_vidmem:
 	kfd_gtt_sa_free(dev, kq->pq);
 err_pq_allocate_vidmem:
-	pr_err("kfd: error init pq\n");
 	kfd_release_kernel_doorbell(dev, prop.doorbell_ptr);
 err_get_kernel_doorbell:
-	pr_err("kfd: error init doorbell");
 	return false;
 
 }
@@ -186,6 +191,8 @@ static void uninitialize(struct kernel_queue *kq)
 					kq->queue->queue);
 	else if (kq->queue->properties.type == KFD_QUEUE_TYPE_DIQ)
 		kfd_gtt_sa_free(kq->dev, kq->fence_mem_obj);
+
+	kq->mqd->uninit_mqd(kq->mqd, kq->queue->mqd, kq->queue->mqd_mem_obj);
 
 	kfd_gtt_sa_free(kq->dev, kq->rptr_mem);
 	kfd_gtt_sa_free(kq->dev, kq->wptr_mem);
@@ -211,8 +218,9 @@ static int acquire_packet_buffer(struct kernel_queue *kq,
 	queue_address = (unsigned int *)kq->pq_kernel_addr;
 	queue_size_dwords = kq->queue->properties.queue_size / sizeof(uint32_t);
 
-	pr_debug("kfd: In func %s\nrptr: %d\nwptr: %d\nqueue_address 0x%p\n",
-			__func__, rptr, wptr, queue_address);
+	pr_debug("rptr: %d\n", rptr);
+	pr_debug("wptr: %d\n", wptr);
+	pr_debug("queue_address 0x%p\n", queue_address);
 
 	available_size = (rptr - 1 - wptr + queue_size_dwords) %
 							queue_size_dwords;
@@ -295,8 +303,8 @@ struct kernel_queue *kernel_queue_init(struct kfd_dev *dev,
 		break;
 	}
 
-	if (kq->ops.initialize(kq, dev, type, KFD_KERNEL_QUEUE_SIZE) == false) {
-		pr_err("kfd: failed to init kernel queue\n");
+	if (!kq->ops.initialize(kq, dev, type, KFD_KERNEL_QUEUE_SIZE)) {
+		pr_err("amdkfd: failed to init kernel queue\n");
 		kfree(kq);
 		return NULL;
 	}
@@ -319,7 +327,7 @@ static __attribute__((unused)) void test_kq(struct kfd_dev *dev)
 
 	BUG_ON(!dev);
 
-	pr_err("kfd: starting kernel queue test\n");
+	pr_err("amdkfd: starting kernel queue test\n");
 
 	kq = kernel_queue_init(dev, KFD_QUEUE_TYPE_HIQ);
 	BUG_ON(!kq);
@@ -330,7 +338,7 @@ static __attribute__((unused)) void test_kq(struct kfd_dev *dev)
 		buffer[i] = kq->nop_packet;
 	kq->ops.submit_packet(kq);
 
-	pr_err("kfd: ending kernel queue test\n");
+	pr_err("amdkfd: ending kernel queue test\n");
 }
 
 

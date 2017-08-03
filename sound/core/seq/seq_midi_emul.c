@@ -236,6 +236,7 @@ snd_midi_process_event(struct snd_midi_op *ops,
 		break;
 	}
 }
+EXPORT_SYMBOL(snd_midi_process_event);
 
 
 /*
@@ -268,6 +269,9 @@ do_control(struct snd_midi_op *ops, void *drv, struct snd_midi_channel_set *chse
 	   struct snd_midi_channel *chan, int control, int value)
 {
 	int  i;
+
+	if (control >= ARRAY_SIZE(chan->control))
+		return;
 
 	/* Switches */
 	if ((control >=64 && control <=69) || (control >= 80 && control <= 83)) {
@@ -406,6 +410,7 @@ snd_midi_channel_set_clear(struct snd_midi_channel_set *chset)
 			chan->drum_channel = 0;
 	}
 }
+EXPORT_SYMBOL(snd_midi_channel_set_clear);
 
 /*
  * Process a rpn message.
@@ -698,6 +703,7 @@ struct snd_midi_channel_set *snd_midi_channel_alloc_set(int n)
 	}
 	return chset;
 }
+EXPORT_SYMBOL(snd_midi_channel_alloc_set);
 
 /*
  * Reset the midi controllers on a particular channel to default values.
@@ -721,6 +727,7 @@ void snd_midi_channel_free_set(struct snd_midi_channel_set *chset)
 	kfree(chset->channels);
 	kfree(chset);
 }
+EXPORT_SYMBOL(snd_midi_channel_free_set);
 
 static int __init alsa_seq_midi_emul_init(void)
 {
@@ -733,8 +740,3 @@ static void __exit alsa_seq_midi_emul_exit(void)
 
 module_init(alsa_seq_midi_emul_init)
 module_exit(alsa_seq_midi_emul_exit)
-
-EXPORT_SYMBOL(snd_midi_process_event);
-EXPORT_SYMBOL(snd_midi_channel_set_clear);
-EXPORT_SYMBOL(snd_midi_channel_alloc_set);
-EXPORT_SYMBOL(snd_midi_channel_free_set);

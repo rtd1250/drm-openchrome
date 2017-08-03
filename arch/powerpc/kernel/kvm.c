@@ -25,6 +25,7 @@
 #include <linux/kvm_para.h>
 #include <linux/slab.h>
 #include <linux/of.h>
+#include <linux/nmi.h> /* hardlockup_detector_disable() */
 
 #include <asm/reg.h>
 #include <asm/sections.h>
@@ -649,7 +650,6 @@ static void kvm_check_ins(u32 *inst, u32 features)
 			kvm_patch_ins_mtsrin(inst, inst_rt, inst_rb);
 		}
 		break;
-		break;
 #endif
 	}
 
@@ -719,6 +719,12 @@ static __init void kvm_free_tmp(void)
 
 static int __init kvm_guest_init(void)
 {
+	/*
+	 * The hardlockup detector is likely to get false positives in
+	 * KVM guests, so disable it by default.
+	 */
+	hardlockup_detector_disable();
+
 	if (!kvm_para_available())
 		goto free_tmp;
 

@@ -44,6 +44,7 @@
 #include <linux/interrupt.h>
 #include <linux/spinlock.h>
 #include <linux/dma-mapping.h>
+#include <linux/io.h>
 
 #include <sound/core.h>
 #include <sound/pcm.h>
@@ -52,7 +53,6 @@
 #include <sound/initval.h>
 #include <sound/info.h>
 
-#include <asm/io.h>
 #include <asm/hardware.h>
 #include <asm/parisc-device.h>
 
@@ -83,14 +83,14 @@ MODULE_DEVICE_TABLE(parisc, snd_harmony_devtable);
 #define NAME "harmony"
 #define PFX  NAME ": "
 
-static unsigned int snd_harmony_rates[] = {
+static const unsigned int snd_harmony_rates[] = {
 	5512, 6615, 8000, 9600,
 	11025, 16000, 18900, 22050,
 	27428, 32000, 33075, 37800,
 	44100, 48000
 };
 
-static unsigned int rate_bits[14] = {
+static const unsigned int rate_bits[14] = {
 	HARMONY_SR_5KHZ, HARMONY_SR_6KHZ, HARMONY_SR_8KHZ,
 	HARMONY_SR_9KHZ, HARMONY_SR_11KHZ, HARMONY_SR_16KHZ,
 	HARMONY_SR_18KHZ, HARMONY_SR_22KHZ, HARMONY_SR_27KHZ,
@@ -98,7 +98,7 @@ static unsigned int rate_bits[14] = {
 	HARMONY_SR_44KHZ, HARMONY_SR_48KHZ
 };
 
-static struct snd_pcm_hw_constraint_list hw_constraint_rates = {
+static const struct snd_pcm_hw_constraint_list hw_constraint_rates = {
 	.count = ARRAY_SIZE(snd_harmony_rates),
 	.list = snd_harmony_rates,
 	.mask = 0,
@@ -893,9 +893,7 @@ snd_harmony_free(struct snd_harmony *h)
 	if (h->irq >= 0)
 		free_irq(h->irq, h);
 
-	if (h->iobase)
-		iounmap(h->iobase);
-
+	iounmap(h->iobase);
 	kfree(h);
 	return 0;
 }

@@ -1,8 +1,5 @@
 /*
- *	w1.c
- *
  * Copyright (c) 2004 Evgeniy Polyakov <zbr@ioremap.net>
- *
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,10 +10,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
 #include <linux/delay.h>
@@ -35,22 +28,20 @@
 
 #include <linux/atomic.h>
 
-#include "w1.h"
-#include "w1_log.h"
-#include "w1_int.h"
-#include "w1_family.h"
+#include "w1_internal.h"
 #include "w1_netlink.h"
 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Evgeniy Polyakov <zbr@ioremap.net>");
-MODULE_DESCRIPTION("Driver for 1-wire Dallas network protocol.");
+#define W1_FAMILY_DEFAULT	0
 
 static int w1_timeout = 10;
-int w1_max_slave_count = 64;
-int w1_max_slave_ttl = 10;
-
 module_param_named(timeout, w1_timeout, int, 0);
 MODULE_PARM_DESC(timeout, "time in seconds between automatic slave searches");
+
+static int w1_timeout_us = 0;
+module_param_named(timeout_us, w1_timeout_us, int, 0);
+MODULE_PARM_DESC(timeout_us,
+		 "time in microseconds between automatic slave searches");
+
 /* A search stops when w1_max_slave_count devices have been found in that
  * search.  The next search will start over and detect the same set of devices
  * on a static 1-wire bus.  Memory is not allocated based on this number, just
@@ -59,9 +50,12 @@ MODULE_PARM_DESC(timeout, "time in seconds between automatic slave searches");
  * device on the network and w1_max_slave_count is set to 1, the device id can
  * be read directly skipping the normal slower search process.
  */
+int w1_max_slave_count = 64;
 module_param_named(max_slave_count, w1_max_slave_count, int, 0);
 MODULE_PARM_DESC(max_slave_count,
 	"maximum number of slaves detected in a search");
+
+int w1_max_slave_ttl = 10;
 module_param_named(slave_ttl, w1_max_slave_ttl, int, 0);
 MODULE_PARM_DESC(slave_ttl,
 	"Number of searches not seeing a slave before it will be removed");
@@ -317,13 +311,21 @@ static ssize_t w1_master_attribute_show_timeout(struct device *dev, struct devic
 	return count;
 }
 
+static ssize_t w1_master_attribute_show_timeout_us(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	ssize_t count;
+	count = sprintf(buf, "%d\n", w1_timeout_us);
+	return count;
+}
+
 static ssize_t w1_master_attribute_store_max_slave_count(struct device *dev,
 	struct device_attribute *attr, const char *buf, size_t count)
 {
 	int tmp;
 	struct w1_master *md = dev_to_w1_master(dev);
 
-	if (kstrtoint(buf, 0, &tmp) == -EINVAL || tmp < 1)
+	if (kstrtoint(buf, 0, &tmp) || tmp < 1)
 		return -EINVAL;
 
 	mutex_lock(&md->mutex);
@@ -543,6 +545,7 @@ static W1_MASTER_ATTR_RO(slave_count, S_IRUGO);
 static W1_MASTER_ATTR_RW(max_slave_count, S_IRUGO | S_IWUSR | S_IWGRP);
 static W1_MASTER_ATTR_RO(attempts, S_IRUGO);
 static W1_MASTER_ATTR_RO(timeout, S_IRUGO);
+static W1_MASTER_ATTR_RO(timeout_us, S_IRUGO);
 static W1_MASTER_ATTR_RO(pointer, S_IRUGO);
 static W1_MASTER_ATTR_RW(search, S_IRUGO | S_IWUSR | S_IWGRP);
 static W1_MASTER_ATTR_RW(pullup, S_IRUGO | S_IWUSR | S_IWGRP);
@@ -556,6 +559,7 @@ static struct attribute *w1_master_default_attrs[] = {
 	&w1_master_attribute_max_slave_count.attr,
 	&w1_master_attribute_attempts.attr,
 	&w1_master_attribute_timeout.attr,
+	&w1_master_attribute_timeout_us.attr,
 	&w1_master_attribute_pointer.attr,
 	&w1_master_attribute_search.attr,
 	&w1_master_attribute_pullup.attr,
@@ -724,6 +728,7 @@ int w1_attach_slave_device(struct w1_master *dev, struct w1_reg_num *rn)
 	memcpy(&sl->reg_num, rn, sizeof(sl->reg_num));
 	atomic_set(&sl->refcnt, 1);
 	atomic_inc(&sl->master->refcnt);
+	dev->slave_count++;
 
 	/* slave modules need to be loaded in a context with unlocked mutex */
 	mutex_unlock(&dev->mutex);
@@ -743,18 +748,18 @@ int w1_attach_slave_device(struct w1_master *dev, struct w1_reg_num *rn)
 
 	sl->family = f;
 
-
 	err = __w1_attach_slave_device(sl);
 	if (err < 0) {
 		dev_err(&dev->dev, "%s: Attaching %s failed.\n", __func__,
 			 sl->name);
+		dev->slave_count--;
 		w1_family_put(sl->family);
+		atomic_dec(&sl->master->refcnt);
 		kfree(sl);
 		return err;
 	}
 
 	sl->ttl = dev->slave_ttl;
-	dev->slave_count++;
 
 	memcpy(msg.id.id, rn, sizeof(msg.id));
 	msg.type = W1_SLAVE_ADD;
@@ -1108,7 +1113,8 @@ int w1_process(void *data)
 	/* As long as w1_timeout is only set by a module parameter the sleep
 	 * time can be calculated in jiffies once.
 	 */
-	const unsigned long jtime = msecs_to_jiffies(w1_timeout * 1000);
+	const unsigned long jtime =
+	  usecs_to_jiffies(w1_timeout * 1000000 + w1_timeout_us);
 	/* remainder if it woke up early */
 	unsigned long jremain = 0;
 
@@ -1132,7 +1138,6 @@ int w1_process(void *data)
 			jremain = 1;
 		}
 
-		try_to_freeze();
 		__set_current_state(TASK_INTERRUPTIBLE);
 
 		/* hold list_mutex until after interruptible to prevent loosing
@@ -1221,3 +1226,7 @@ static void __exit w1_fini(void)
 
 module_init(w1_init);
 module_exit(w1_fini);
+
+MODULE_AUTHOR("Evgeniy Polyakov <zbr@ioremap.net>");
+MODULE_DESCRIPTION("Driver for 1-wire Dallas network protocol.");
+MODULE_LICENSE("GPL");

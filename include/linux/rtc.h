@@ -14,6 +14,7 @@
 
 #include <linux/types.h>
 #include <linux/interrupt.h>
+#include <linux/nvmem-provider.h>
 #include <uapi/linux/rtc.h>
 
 extern int rtc_month_days(unsigned int month, unsigned int year);
@@ -24,17 +25,19 @@ extern void rtc_time64_to_tm(time64_t time, struct rtc_time *tm);
 ktime_t rtc_tm_to_ktime(struct rtc_time tm);
 struct rtc_time rtc_ktime_to_tm(ktime_t kt);
 
-/**
- * Deprecated. Use rtc_time64_to_tm().
+/*
+ * rtc_tm_sub - Return the difference in seconds.
  */
+static inline time64_t rtc_tm_sub(struct rtc_time *lhs, struct rtc_time *rhs)
+{
+	return rtc_tm_to_time64(lhs) - rtc_tm_to_time64(rhs);
+}
+
 static inline void rtc_time_to_tm(unsigned long time, struct rtc_time *tm)
 {
 	rtc_time64_to_tm(time, tm);
 }
 
-/**
- * Deprecated. Use rtc_tm_to_time64().
- */
 static inline int rtc_tm_to_time(struct rtc_time *tm, unsigned long *time)
 {
 	*time = rtc_tm_to_time64(tm);
@@ -77,9 +80,12 @@ struct rtc_class_ops {
 	int (*read_alarm)(struct device *, struct rtc_wkalrm *);
 	int (*set_alarm)(struct device *, struct rtc_wkalrm *);
 	int (*proc)(struct device *, struct seq_file *);
+	int (*set_mmss64)(struct device *, time64_t secs);
 	int (*set_mmss)(struct device *, unsigned long secs);
 	int (*read_callback)(struct device *, int data);
 	int (*alarm_irq_enable)(struct device *, unsigned int enabled);
+	int (*read_offset)(struct device *, long *offset);
+	int (*set_offset)(struct device *, long offset);
 };
 
 #define RTC_DEVICE_NAME_SIZE 20
@@ -100,13 +106,11 @@ struct rtc_timer {
 /* flags */
 #define RTC_DEV_BUSY 0
 
-struct rtc_device
-{
+struct rtc_device {
 	struct device dev;
 	struct module *owner;
 
 	int id;
-	char name[RTC_DEVICE_NAME_SIZE];
 
 	const struct rtc_class_ops *ops;
 	struct mutex ops_lock;
@@ -133,6 +137,14 @@ struct rtc_device
 	/* Some hardware can't support UIE mode */
 	int uie_unsupported;
 
+	bool registered;
+
+	struct nvmem_config *nvmem_config;
+	struct nvmem_device *nvmem;
+	/* Old ABI support */
+	bool nvram_old_abi;
+	struct bin_attribute *nvram;
+
 #ifdef CONFIG_RTC_INTF_DEV_UIE_EMUL
 	struct work_struct uie_task;
 	struct timer_list uie_timer;
@@ -154,14 +166,15 @@ extern struct rtc_device *devm_rtc_device_register(struct device *dev,
 					const char *name,
 					const struct rtc_class_ops *ops,
 					struct module *owner);
+struct rtc_device *devm_rtc_allocate_device(struct device *dev);
+int __rtc_register_device(struct module *owner, struct rtc_device *rtc);
 extern void rtc_device_unregister(struct rtc_device *rtc);
 extern void devm_rtc_device_unregister(struct device *dev,
 					struct rtc_device *rtc);
 
 extern int rtc_read_time(struct rtc_device *rtc, struct rtc_time *tm);
 extern int rtc_set_time(struct rtc_device *rtc, struct rtc_time *tm);
-extern int rtc_set_mmss(struct rtc_device *rtc, unsigned long secs);
-extern int rtc_set_ntp_time(struct timespec now);
+extern int rtc_set_ntp_time(struct timespec64 now);
 int __rtc_read_alarm(struct rtc_device *rtc, struct rtc_wkalrm *alarm);
 extern int rtc_read_alarm(struct rtc_device *rtc,
 			struct rtc_wkalrm *alrm);
@@ -197,16 +210,21 @@ int rtc_register(rtc_task_t *task);
 int rtc_unregister(rtc_task_t *task);
 int rtc_control(rtc_task_t *t, unsigned int cmd, unsigned long arg);
 
-void rtc_timer_init(struct rtc_timer *timer, void (*f)(void* p), void* data);
-int rtc_timer_start(struct rtc_device *rtc, struct rtc_timer* timer,
-			ktime_t expires, ktime_t period);
-int rtc_timer_cancel(struct rtc_device *rtc, struct rtc_timer* timer);
+void rtc_timer_init(struct rtc_timer *timer, void (*f)(void *p), void *data);
+int rtc_timer_start(struct rtc_device *rtc, struct rtc_timer *timer,
+		    ktime_t expires, ktime_t period);
+void rtc_timer_cancel(struct rtc_device *rtc, struct rtc_timer *timer);
+int rtc_read_offset(struct rtc_device *rtc, long *offset);
+int rtc_set_offset(struct rtc_device *rtc, long offset);
 void rtc_timer_do_work(struct work_struct *work);
 
 static inline bool is_leap_year(unsigned int year)
 {
 	return (!(year % 4) && (year % 100)) || !(year % 400);
 }
+
+#define rtc_register_device(device) \
+	__rtc_register_device(THIS_MODULE, device)
 
 #ifdef CONFIG_RTC_HCTOSYS_DEVICE
 extern int rtc_hctosys_ret;

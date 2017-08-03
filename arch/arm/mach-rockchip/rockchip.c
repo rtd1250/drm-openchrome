@@ -27,33 +27,40 @@
 #include <asm/mach/map.h>
 #include <asm/hardware/cache-l2x0.h>
 #include "core.h"
+#include "pm.h"
 
-#define RK3288_GRF_SOC_CON0 0x244
+#define RK3288_TIMER6_7_PHYS 0xff810000
 
 static void __init rockchip_timer_init(void)
 {
 	if (of_machine_is_compatible("rockchip,rk3288")) {
-		struct regmap *grf;
+		void __iomem *reg_base;
 
 		/*
-		 * Disable auto jtag/sdmmc switching that causes issues
-		 * with the mmc controllers making them unreliable
+		 * Most/all uboot versions for rk3288 don't enable timer7
+		 * which is needed for the architected timer to work.
+		 * So make sure it is running during early boot.
 		 */
-		grf = syscon_regmap_lookup_by_compatible("rockchip,rk3288-grf");
-		if (!IS_ERR(grf))
-			regmap_write(grf, RK3288_GRF_SOC_CON0, 0x10000000);
-		else
-			pr_err("rockchip: could not get grf syscon\n");
+		reg_base = ioremap(RK3288_TIMER6_7_PHYS, SZ_16K);
+		if (reg_base) {
+			writel(0, reg_base + 0x30);
+			writel(0xffffffff, reg_base + 0x20);
+			writel(0xffffffff, reg_base + 0x24);
+			writel(1, reg_base + 0x30);
+			dsb();
+			iounmap(reg_base);
+		} else {
+			pr_err("rockchip: could not map timer7 registers\n");
+		}
 	}
 
 	of_clk_init(NULL);
-	clocksource_of_init();
+	timer_probe();
 }
 
 static void __init rockchip_dt_init(void)
 {
-	of_platform_populate(NULL, of_default_bus_match_table, NULL, NULL);
-	platform_device_register_simple("cpufreq-dt", 0, NULL, 0);
+	rockchip_suspend_init();
 }
 
 static const char * const rockchip_board_dt_compat[] = {
@@ -61,11 +68,13 @@ static const char * const rockchip_board_dt_compat[] = {
 	"rockchip,rk3066a",
 	"rockchip,rk3066b",
 	"rockchip,rk3188",
+	"rockchip,rk3228",
 	"rockchip,rk3288",
+	"rockchip,rv1108",
 	NULL,
 };
 
-DT_MACHINE_START(ROCKCHIP_DT, "Rockchip Cortex-A9 (Device Tree)")
+DT_MACHINE_START(ROCKCHIP_DT, "Rockchip (Device Tree)")
 	.l2c_aux_val	= 0,
 	.l2c_aux_mask	= ~0,
 	.init_time	= rockchip_timer_init,

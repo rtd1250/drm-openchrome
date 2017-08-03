@@ -30,13 +30,13 @@
 /* Read a register in a PRM instance */
 static u32 am33xx_prm_read_reg(s16 inst, u16 idx)
 {
-	return readl_relaxed(prm_base + inst + idx);
+	return readl_relaxed(prm_base.va + inst + idx);
 }
 
 /* Write into a register in a PRM instance */
 static void am33xx_prm_write_reg(u32 val, s16 inst, u16 idx)
 {
-	writel_relaxed(val, prm_base + inst + idx);
+	writel_relaxed(val, prm_base.va + inst + idx);
 }
 
 /* Read-modify-write a register in PRM. Caller must lock */
@@ -378,7 +378,7 @@ static struct prm_ll_data am33xx_prm_ll_data = {
 	.reset_system			= am33xx_prm_global_warm_sw_reset,
 };
 
-int __init am33xx_prm_init(void)
+int __init am33xx_prm_init(const struct omap_prcm_init_data *data)
 {
 	return prm_register(&am33xx_prm_ll_data);
 }

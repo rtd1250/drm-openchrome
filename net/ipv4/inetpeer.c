@@ -115,7 +115,7 @@ static void inetpeer_gc_worker(struct work_struct *work)
 
 		n = list_entry(p->gc_list.next, struct inet_peer, gc_list);
 
-		if (!atomic_read(&p->refcnt)) {
+		if (refcount_read(&p->refcnt) == 1) {
 			list_del(&p->gc_list);
 			kmem_cache_free(peer_cachep, p);
 		}
@@ -157,22 +157,6 @@ void __init inet_initpeers(void)
 	INIT_DEFERRABLE_WORK(&gc_work, inetpeer_gc_worker);
 }
 
-static int addr_compare(const struct inetpeer_addr *a,
-			const struct inetpeer_addr *b)
-{
-	int i, n = (a->family == AF_INET ? 1 : 4);
-
-	for (i = 0; i < n; i++) {
-		if (a->addr.a6[i] == b->addr.a6[i])
-			continue;
-		if ((__force u32)a->addr.a6[i] < (__force u32)b->addr.a6[i])
-			return -1;
-		return 1;
-	}
-
-	return 0;
-}
-
 #define rcu_deref_locked(X, BASE)				\
 	rcu_dereference_protected(X, lockdep_is_held(&(BASE)->lock.lock))
 
@@ -188,7 +172,7 @@ static int addr_compare(const struct inetpeer_addr *a,
 	*stackptr++ = &_base->root;				\
 	for (u = rcu_deref_locked(_base->root, _base);		\
 	     u != peer_avl_empty;) {				\
-		int cmp = addr_compare(_daddr, &u->daddr);	\
+		int cmp = inetpeer_addr_cmp(_daddr, &u->daddr);	\
 		if (cmp == 0)					\
 			break;					\
 		if (cmp == -1)					\
@@ -215,13 +199,14 @@ static struct inet_peer *lookup_rcu(const struct inetpeer_addr *daddr,
 	int count = 0;
 
 	while (u != peer_avl_empty) {
-		int cmp = addr_compare(daddr, &u->daddr);
+		int cmp = inetpeer_addr_cmp(daddr, &u->daddr);
 		if (cmp == 0) {
 			/* Before taking a reference, check if this entry was
-			 * deleted (refcnt=-1)
+			 * deleted (refcnt=0)
 			 */
-			if (!atomic_add_unless(&u->refcnt, 1, -1))
+			if (!refcount_inc_not_zero(&u->refcnt)) {
 				u = NULL;
+			}
 			return u;
 		}
 		if (cmp == -1)
@@ -398,11 +383,10 @@ static int inet_peer_gc(struct inet_peer_base *base,
 	while (stackptr > stack) {
 		stackptr--;
 		p = rcu_deref_locked(**stackptr, base);
-		if (atomic_read(&p->refcnt) == 0) {
+		if (refcount_read(&p->refcnt) == 1) {
 			smp_rmb();
 			delta = (__u32)jiffies - p->dtime;
-			if (delta >= ttl &&
-			    atomic_cmpxchg(&p->refcnt, 0, -1) == 0) {
+			if (delta >= ttl && refcount_dec_if_one(&p->refcnt)) {
 				p->gc_next = gchead;
 				gchead = p;
 			}
@@ -448,7 +432,7 @@ struct inet_peer *inet_getpeer(struct inet_peer_base *base,
 relookup:
 	p = lookup(daddr, stack, base);
 	if (p != peer_avl_empty) {
-		atomic_inc(&p->refcnt);
+		refcount_inc(&p->refcnt);
 		write_sequnlock_bh(&base->lock);
 		return p;
 	}
@@ -460,7 +444,7 @@ relookup:
 	p = create ? kmem_cache_alloc(peer_cachep, GFP_ATOMIC) : NULL;
 	if (p) {
 		p->daddr = *daddr;
-		atomic_set(&p->refcnt, 1);
+		refcount_set(&p->refcnt, 2);
 		atomic_set(&p->rid, 0);
 		p->metrics[RTAX_LOCK-1] = INETPEER_METRICS_NEW;
 		p->rate_tokens = 0;
@@ -484,7 +468,7 @@ void inet_putpeer(struct inet_peer *p)
 {
 	p->dtime = (__u32)jiffies;
 	smp_mb__before_atomic();
-	atomic_dec(&p->refcnt);
+	refcount_dec(&p->refcnt);
 }
 EXPORT_SYMBOL_GPL(inet_putpeer);
 

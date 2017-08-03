@@ -81,11 +81,7 @@ static struct cfpkt *cfpkt_create_pfx(u16 len, u16 pfx)
 {
 	struct sk_buff *skb;
 
-	if (likely(in_interrupt()))
-		skb = alloc_skb(len + pfx, GFP_ATOMIC);
-	else
-		skb = alloc_skb(len + pfx, GFP_KERNEL);
-
+	skb = alloc_skb(len + pfx, GFP_ATOMIC);
 	if (unlikely(skb == NULL))
 		return NULL;
 
@@ -255,9 +251,9 @@ inline u16 cfpkt_getlen(struct cfpkt *pkt)
 	return skb->len;
 }
 
-inline u16 cfpkt_iterate(struct cfpkt *pkt,
-			 u16 (*iter_func)(u16, void *, u16),
-			 u16 data)
+int cfpkt_iterate(struct cfpkt *pkt,
+		  u16 (*iter_func)(u16, void *, u16),
+		  u16 data)
 {
 	/*
 	 * Don't care about the performance hit of linearizing,
@@ -286,7 +282,7 @@ int cfpkt_setlen(struct cfpkt *pkt, u16 len)
 		else
 			skb_trim(skb, len);
 
-			return cfpkt_getlen(pkt);
+		return cfpkt_getlen(pkt);
 	}
 
 	/* Need to expand SKB */

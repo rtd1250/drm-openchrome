@@ -3,7 +3,7 @@
 
 #include <linux/list.h>
 #include <linux/elf.h>
-#include <asm/uaccess.h>
+#include <asm/extable.h>
 
 struct mod_arch_specific {
 	/* Data Bus Error exception tables */
@@ -47,8 +47,8 @@ typedef struct {
 #define Elf_Mips_Rel	Elf32_Rel
 #define Elf_Mips_Rela	Elf32_Rela
 
-#define ELF_MIPS_R_SYM(rel) ELF32_R_SYM(rel.r_info)
-#define ELF_MIPS_R_TYPE(rel) ELF32_R_TYPE(rel.r_info)
+#define ELF_MIPS_R_SYM(rel) ELF32_R_SYM((rel).r_info)
+#define ELF_MIPS_R_TYPE(rel) ELF32_R_TYPE((rel).r_info)
 
 #endif
 
@@ -65,8 +65,8 @@ typedef struct {
 #define Elf_Mips_Rel	Elf64_Mips_Rel
 #define Elf_Mips_Rela	Elf64_Mips_Rela
 
-#define ELF_MIPS_R_SYM(rel) (rel.r_sym)
-#define ELF_MIPS_R_TYPE(rel) (rel.r_type)
+#define ELF_MIPS_R_SYM(rel) ((rel).r_sym)
+#define ELF_MIPS_R_TYPE(rel) ((rel).r_type)
 
 #endif
 
@@ -88,10 +88,14 @@ search_module_dbetables(unsigned long addr)
 #define MODULE_PROC_FAMILY "MIPS32_R1 "
 #elif defined CONFIG_CPU_MIPS32_R2
 #define MODULE_PROC_FAMILY "MIPS32_R2 "
+#elif defined CONFIG_CPU_MIPS32_R6
+#define MODULE_PROC_FAMILY "MIPS32_R6 "
 #elif defined CONFIG_CPU_MIPS64_R1
 #define MODULE_PROC_FAMILY "MIPS64_R1 "
 #elif defined CONFIG_CPU_MIPS64_R2
 #define MODULE_PROC_FAMILY "MIPS64_R2 "
+#elif defined CONFIG_CPU_MIPS64_R6
+#define MODULE_PROC_FAMILY "MIPS64_R6 "
 #elif defined CONFIG_CPU_R3000
 #define MODULE_PROC_FAMILY "R3000 "
 #elif defined CONFIG_CPU_TX39XX

@@ -49,6 +49,7 @@
 #include <linux/init.h>
 #include <linux/kgdb.h>
 #include <linux/kdb.h>
+#include <linux/nmi.h>
 #include <linux/pid.h>
 #include <linux/smp.h>
 #include <linux/mm.h>
@@ -232,9 +233,9 @@ static void kgdb_flush_swbreak_addr(unsigned long addr)
 		int i;
 
 		for (i = 0; i < VMACACHE_SIZE; i++) {
-			if (!current->vmacache[i])
+			if (!current->vmacache.vmas[i])
 				continue;
-			flush_cache_range(current->vmacache[i],
+			flush_cache_range(current->vmacache.vmas[i],
 					  addr, addr + BREAK_INSTR_SIZE);
 		}
 	}
@@ -598,13 +599,13 @@ return_normal:
 	/*
 	 * Wait for the other CPUs to be notified and be waiting for us:
 	 */
-	time_left = loops_per_jiffy * HZ;
+	time_left = MSEC_PER_SEC;
 	while (kgdb_do_roundup && --time_left &&
 	       (atomic_read(&masters_in_kgdb) + atomic_read(&slaves_in_kgdb)) !=
 		   online_cpus)
-		cpu_relax();
+		udelay(1000);
 	if (!time_left)
-		pr_crit("KGDB: Timed out waiting for secondary CPUs.\n");
+		pr_crit("Timed out waiting for secondary CPUs.\n");
 
 	/*
 	 * At this point the primary processor is completely
@@ -696,6 +697,14 @@ kgdb_handle_exception(int evector, int signo, int ecode, struct pt_regs *regs)
 
 	if (arch_kgdb_ops.enable_nmi)
 		arch_kgdb_ops.enable_nmi(0);
+	/*
+	 * Avoid entering the debugger if we were triggered due to an oops
+	 * but panic_timeout indicates the system should automatically
+	 * reboot on panic. We don't want to get stuck waiting for input
+	 * on such systems, especially if its "just" an oops.
+	 */
+	if (signo != SIGTRAP && panic_timeout)
+		return 1;
 
 	memset(ks, 0, sizeof(struct kgdb_state));
 	ks->cpu			= raw_smp_processor_id();
@@ -828,6 +837,15 @@ static int kgdb_panic_event(struct notifier_block *self,
 			    unsigned long val,
 			    void *data)
 {
+	/*
+	 * Avoid entering the debugger if we were triggered due to a panic
+	 * We don't want to get stuck waiting for input from user in such case.
+	 * panic_timeout indicates the system should automatically
+	 * reboot on panic.
+	 */
+	if (panic_timeout)
+		return NOTIFY_DONE;
+
 	if (dbg_kdb_mode)
 		kdb_printf("PANIC: %s\n", (char *)data);
 	kgdb_breakpoint();

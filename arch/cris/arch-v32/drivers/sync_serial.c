@@ -11,7 +11,7 @@
 #include <linux/types.h>
 #include <linux/errno.h>
 #include <linux/major.h>
-#include <linux/sched.h>
+#include <linux/sched/signal.h>
 #include <linux/mutex.h>
 #include <linux/interrupt.h>
 #include <linux/poll.h>
@@ -1286,7 +1286,7 @@ static void start_dma_out(struct sync_port *port, const char *data, int count)
 
 		tr_cfg.tr_en = regk_sser_yes;
 		REG_WR(sser, port->regi_sser, rw_tr_cfg, tr_cfg);
-		DEBUGTRDMA(pr_info(KERN_INFO "dma s\n"););
+		DEBUGTRDMA(pr_info("dma s\n"););
 	} else {
 		DMA_CONTINUE_DATA(port->regi_dmaout);
 		DEBUGTRDMA(pr_info("dma c\n"););
@@ -1443,7 +1443,7 @@ static inline void handle_rx_packet(struct sync_port *port)
 	reg_dma_rw_ack_intr ack_intr = { .data = regk_dma_yes };
 	unsigned long flags;
 
-	DEBUGRXINT(pr_info(KERN_INFO "!"));
+	DEBUGRXINT(pr_info("!"));
 	spin_lock_irqsave(&port->lock, flags);
 
 	/* If we overrun the user experience is crap regardless if we
@@ -1464,7 +1464,7 @@ static inline void handle_rx_packet(struct sync_port *port)
 		if (port->write_ts_idx == NBR_IN_DESCR)
 			port->write_ts_idx = 0;
 		idx = port->write_ts_idx++;
-		do_posix_clock_monotonic_gettime(&port->timestamp[idx]);
+		ktime_get_ts(&port->timestamp[idx]);
 		port->in_buffer_len += port->inbufchunk;
 	}
 	spin_unlock_irqrestore(&port->lock, flags);
@@ -1627,6 +1627,12 @@ static int __init etrax_sync_serial_init(void)
 
 	/* Create a sysfs class for syncser */
 	syncser_class = class_create(THIS_MODULE, "syncser_class");
+	if (IS_ERR(syncser_class)) {
+		pr_err("Failed to create a sysfs class for syncser\n");
+		unregister_chrdev_region(syncser_first, minor_count);
+		cdev_del(syncser_cdev);
+		return -1;
+	}
 
 	/* Initialize Ports */
 #if defined(CONFIG_ETRAX_SYNCHRONOUS_SERIAL_PORT0)

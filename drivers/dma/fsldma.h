@@ -36,6 +36,10 @@
 #define FSL_DMA_MR_DAHE		0x00002000
 #define FSL_DMA_MR_SAHE		0x00001000
 
+#define FSL_DMA_MR_SAHTS_MASK	0x0000C000
+#define FSL_DMA_MR_DAHTS_MASK	0x00030000
+#define FSL_DMA_MR_BWC_MASK	0x0f000000
+
 /*
  * Bandwidth/pause control determines how many bytes a given
  * channel is allowed to transfer before the DMA engine pauses
@@ -83,6 +87,10 @@
 #define FSL_DMA_DGSR_EOSI	0x02
 #define FSL_DMA_DGSR_EOLSI	0x01
 
+#define FSL_DMA_BUSWIDTHS	(BIT(DMA_SLAVE_BUSWIDTH_1_BYTE) | \
+				BIT(DMA_SLAVE_BUSWIDTH_2_BYTES) | \
+				BIT(DMA_SLAVE_BUSWIDTH_4_BYTES) | \
+				BIT(DMA_SLAVE_BUSWIDTH_8_BYTES))
 typedef u64 __bitwise v64;
 typedef u32 __bitwise v32;
 

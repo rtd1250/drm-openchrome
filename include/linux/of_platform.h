@@ -64,6 +64,7 @@ extern struct platform_device *of_platform_device_create(struct device_node *np,
 						   const char *bus_id,
 						   struct device *parent);
 
+extern int of_platform_device_destroy(struct device *dev, void *data);
 extern int of_platform_bus_probe(struct device_node *root,
 				 const struct of_device_id *matches,
 				 struct device *parent);
@@ -72,7 +73,14 @@ extern int of_platform_populate(struct device_node *root,
 				const struct of_device_id *matches,
 				const struct of_dev_auxdata *lookup,
 				struct device *parent);
+extern int of_platform_default_populate(struct device_node *root,
+					const struct of_dev_auxdata *lookup,
+					struct device *parent);
 extern void of_platform_depopulate(struct device *parent);
+
+extern int devm_of_platform_populate(struct device *dev);
+
+extern void devm_of_platform_depopulate(struct device *dev);
 #else
 static inline int of_platform_populate(struct device_node *root,
 					const struct of_device_id *matches,
@@ -81,10 +89,23 @@ static inline int of_platform_populate(struct device_node *root,
 {
 	return -ENODEV;
 }
+static inline int of_platform_default_populate(struct device_node *root,
+					       const struct of_dev_auxdata *lookup,
+					       struct device *parent)
+{
+	return -ENODEV;
+}
 static inline void of_platform_depopulate(struct device *parent) { }
+
+static inline int devm_of_platform_populate(struct device *dev)
+{
+	return -ENODEV;
+}
+
+static inline void devm_of_platform_depopulate(struct device *dev) { }
 #endif
 
-#ifdef CONFIG_OF_DYNAMIC
+#if defined(CONFIG_OF_DYNAMIC) && defined(CONFIG_OF_ADDRESS)
 extern void of_platform_register_reconfig_notifier(void);
 #else
 static inline void of_platform_register_reconfig_notifier(void) { }

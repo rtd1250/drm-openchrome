@@ -33,7 +33,7 @@
  *
  */
 
-#include <asm/io.h>
+#include <linux/io.h>
 #include <asm/dma.h>
 #include <linux/init.h>
 #include <linux/time.h>
@@ -737,7 +737,7 @@ static int snd_sb16_dma_control_put(struct snd_kcontrol *kcontrol, struct snd_ct
 	return change;
 }
 
-static struct snd_kcontrol_new snd_sb16_dma_control = {
+static const struct snd_kcontrol_new snd_sb16_dma_control = {
 	.iface = SNDRV_CTL_ELEM_IFACE_CARD,
 	.name = "16-bit DMA Allocation",
 	.info = snd_sb16_dma_control_info,
@@ -860,19 +860,18 @@ static struct snd_pcm_ops snd_sb16_capture_ops = {
 	.pointer =	snd_sb16_capture_pointer,
 };
 
-int snd_sb16dsp_pcm(struct snd_sb * chip, int device, struct snd_pcm ** rpcm)
+int snd_sb16dsp_pcm(struct snd_sb *chip, int device)
 {
 	struct snd_card *card = chip->card;
 	struct snd_pcm *pcm;
 	int err;
 
-	if (rpcm)
-		*rpcm = NULL;
 	if ((err = snd_pcm_new(card, "SB16 DSP", device, 1, 1, &pcm)) < 0)
 		return err;
 	sprintf(pcm->name, "DSP v%i.%i", chip->version >> 8, chip->version & 0xff);
 	pcm->info_flags = SNDRV_PCM_INFO_JOINT_DUPLEX;
 	pcm->private_data = chip;
+	chip->pcm = pcm;
 
 	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_PLAYBACK, &snd_sb16_playback_ops);
 	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_CAPTURE, &snd_sb16_capture_ops);
@@ -885,9 +884,6 @@ int snd_sb16dsp_pcm(struct snd_sb * chip, int device, struct snd_pcm ** rpcm)
 	snd_pcm_lib_preallocate_pages_for_all(pcm, SNDRV_DMA_TYPE_DEV,
 					      snd_dma_isa_data(),
 					      64*1024, 128*1024);
-
-	if (rpcm)
-		*rpcm = pcm;
 	return 0;
 }
 

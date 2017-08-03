@@ -22,6 +22,11 @@ static LIST_HEAD(phy_list);
 static LIST_HEAD(phy_bind_list);
 static DEFINE_SPINLOCK(phy_lock);
 
+struct phy_devm {
+	struct usb_phy *phy;
+	struct notifier_block *nb;
+};
+
 static struct usb_phy *__usb_find_phy(struct list_head *list,
 	enum usb_phy_type type)
 {
@@ -34,7 +39,7 @@ static struct usb_phy *__usb_find_phy(struct list_head *list,
 		return phy;
 	}
 
-	return ERR_PTR(-EPROBE_DEFER);
+	return ERR_PTR(-ENODEV);
 }
 
 static struct usb_phy *__usb_find_phy_dev(struct device *dev,
@@ -79,9 +84,68 @@ static void devm_usb_phy_release(struct device *dev, void *res)
 	usb_put_phy(phy);
 }
 
+static void devm_usb_phy_release2(struct device *dev, void *_res)
+{
+	struct phy_devm *res = _res;
+
+	if (res->nb)
+		usb_unregister_notifier(res->phy, res->nb);
+	usb_put_phy(res->phy);
+}
+
 static int devm_usb_phy_match(struct device *dev, void *res, void *match_data)
 {
-	return res == match_data;
+	struct usb_phy **phy = res;
+
+	return *phy == match_data;
+}
+
+static int usb_add_extcon(struct usb_phy *x)
+{
+	int ret;
+
+	if (of_property_read_bool(x->dev->of_node, "extcon")) {
+		x->edev = extcon_get_edev_by_phandle(x->dev, 0);
+		if (IS_ERR(x->edev))
+			return PTR_ERR(x->edev);
+
+		x->id_edev = extcon_get_edev_by_phandle(x->dev, 1);
+		if (IS_ERR(x->id_edev)) {
+			x->id_edev = NULL;
+			dev_info(x->dev, "No separate ID extcon device\n");
+		}
+
+		if (x->vbus_nb.notifier_call) {
+			ret = devm_extcon_register_notifier(x->dev, x->edev,
+							    EXTCON_USB,
+							    &x->vbus_nb);
+			if (ret < 0) {
+				dev_err(x->dev,
+					"register VBUS notifier failed\n");
+				return ret;
+			}
+		}
+
+		if (x->id_nb.notifier_call) {
+			struct extcon_dev *id_ext;
+
+			if (x->id_edev)
+				id_ext = x->id_edev;
+			else
+				id_ext = x->edev;
+
+			ret = devm_extcon_register_notifier(x->dev, id_ext,
+							    EXTCON_USB_HOST,
+							    &x->id_nb);
+			if (ret < 0) {
+				dev_err(x->dev,
+					"register ID notifier failed\n");
+				return ret;
+			}
+		}
+	}
+
+	return 0;
 }
 
 /**
@@ -151,40 +215,30 @@ err0:
 EXPORT_SYMBOL_GPL(usb_get_phy);
 
 /**
- * devm_usb_get_phy_by_phandle - find the USB PHY by phandle
+ * devm_usb_get_phy_by_node - find the USB PHY by device_node
  * @dev - device that requests this phy
- * @phandle - name of the property holding the phy phandle value
- * @index - the index of the phy
+ * @node - the device_node for the phy device.
+ * @nb - a notifier_block to register with the phy.
  *
- * Returns the phy driver associated with the given phandle value,
+ * Returns the phy driver associated with the given device_node,
  * after getting a refcount to it, -ENODEV if there is no such phy or
- * -EPROBE_DEFER if there is a phandle to the phy, but the device is
- * not yet loaded. While at that, it also associates the device with
+ * -EPROBE_DEFER if the device is not yet loaded. While at that, it
+ * also associates the device with
  * the phy using devres. On driver detach, release function is invoked
  * on the devres data, then, devres data is freed.
  *
- * For use by USB host and peripheral drivers.
+ * For use by peripheral drivers for devices related to a phy,
+ * such as a charger.
  */
-struct usb_phy *devm_usb_get_phy_by_phandle(struct device *dev,
-	const char *phandle, u8 index)
+struct  usb_phy *devm_usb_get_phy_by_node(struct device *dev,
+					  struct device_node *node,
+					  struct notifier_block *nb)
 {
-	struct usb_phy	*phy = ERR_PTR(-ENOMEM), **ptr;
+	struct usb_phy	*phy = ERR_PTR(-ENOMEM);
+	struct phy_devm	*ptr;
 	unsigned long	flags;
-	struct device_node *node;
 
-	if (!dev->of_node) {
-		dev_dbg(dev, "device does not have a device node entry\n");
-		return ERR_PTR(-EINVAL);
-	}
-
-	node = of_parse_phandle(dev->of_node, phandle, index);
-	if (!node) {
-		dev_dbg(dev, "failed to get %s phandle in %s node\n", phandle,
-			dev->of_node->full_name);
-		return ERR_PTR(-ENODEV);
-	}
-
-	ptr = devres_alloc(devm_usb_phy_release, sizeof(*ptr), GFP_KERNEL);
+	ptr = devres_alloc(devm_usb_phy_release2, sizeof(*ptr), GFP_KERNEL);
 	if (!ptr) {
 		dev_dbg(dev, "failed to allocate memory for devres\n");
 		goto err0;
@@ -203,8 +257,10 @@ struct usb_phy *devm_usb_get_phy_by_phandle(struct device *dev,
 		devres_free(ptr);
 		goto err1;
 	}
-
-	*ptr = phy;
+	if (nb)
+		usb_register_notifier(phy, nb);
+	ptr->phy = phy;
+	ptr->nb = nb;
 	devres_add(dev, ptr);
 
 	get_device(phy->dev);
@@ -213,8 +269,45 @@ err1:
 	spin_unlock_irqrestore(&phy_lock, flags);
 
 err0:
-	of_node_put(node);
 
+	return phy;
+}
+EXPORT_SYMBOL_GPL(devm_usb_get_phy_by_node);
+
+/**
+ * devm_usb_get_phy_by_phandle - find the USB PHY by phandle
+ * @dev - device that requests this phy
+ * @phandle - name of the property holding the phy phandle value
+ * @index - the index of the phy
+ *
+ * Returns the phy driver associated with the given phandle value,
+ * after getting a refcount to it, -ENODEV if there is no such phy or
+ * -EPROBE_DEFER if there is a phandle to the phy, but the device is
+ * not yet loaded. While at that, it also associates the device with
+ * the phy using devres. On driver detach, release function is invoked
+ * on the devres data, then, devres data is freed.
+ *
+ * For use by USB host and peripheral drivers.
+ */
+struct usb_phy *devm_usb_get_phy_by_phandle(struct device *dev,
+	const char *phandle, u8 index)
+{
+	struct device_node *node;
+	struct usb_phy	*phy;
+
+	if (!dev->of_node) {
+		dev_dbg(dev, "device does not have a device node entry\n");
+		return ERR_PTR(-EINVAL);
+	}
+
+	node = of_parse_phandle(dev->of_node, phandle, index);
+	if (!node) {
+		dev_dbg(dev, "failed to get %s phandle in %s node\n", phandle,
+			dev->of_node->full_name);
+		return ERR_PTR(-ENODEV);
+	}
+	phy = devm_usb_get_phy_by_node(dev, node, NULL);
+	of_node_put(node);
 	return phy;
 }
 EXPORT_SYMBOL_GPL(devm_usb_get_phy_by_phandle);
@@ -343,6 +436,10 @@ int usb_add_phy(struct usb_phy *x, enum usb_phy_type type)
 		return -EINVAL;
 	}
 
+	ret = usb_add_extcon(x);
+	if (ret)
+		return ret;
+
 	ATOMIC_INIT_NOTIFIER_HEAD(&x->notifier);
 
 	spin_lock_irqsave(&phy_lock, flags);
@@ -377,11 +474,16 @@ int usb_add_phy_dev(struct usb_phy *x)
 {
 	struct usb_phy_bind *phy_bind;
 	unsigned long flags;
+	int ret;
 
 	if (!x->dev) {
 		dev_err(x->dev, "no device provided for PHY\n");
 		return -EINVAL;
 	}
+
+	ret = usb_add_extcon(x);
+	if (ret)
+		return ret;
 
 	ATOMIC_INIT_NOTIFIER_HEAD(&x->notifier);
 

@@ -36,6 +36,7 @@
 #include <linux/gameport.h>
 #include <linux/dma-mapping.h>
 #include <linux/export.h>
+#include <linux/io.h>
 
 #include <sound/core.h>
 #include <sound/info.h>
@@ -43,8 +44,6 @@
 #include <sound/tlv.h>
 #include "trident.h"
 #include <sound/asoundef.h>
-
-#include <asm/io.h>
 
 static int snd_trident_pcm_mixer_build(struct snd_trident *trident,
 				       struct snd_trident_voice * voice,
@@ -2071,7 +2070,7 @@ static int snd_trident_foldback_close(struct snd_pcm_substream *substream)
    PCM operations
   ---------------------------------------------------------------------------*/
 
-static struct snd_pcm_ops snd_trident_playback_ops = {
+static const struct snd_pcm_ops snd_trident_playback_ops = {
 	.open =		snd_trident_playback_open,
 	.close =	snd_trident_playback_close,
 	.ioctl =	snd_trident_ioctl,
@@ -2082,7 +2081,7 @@ static struct snd_pcm_ops snd_trident_playback_ops = {
 	.pointer =	snd_trident_playback_pointer,
 };
 
-static struct snd_pcm_ops snd_trident_nx_playback_ops = {
+static const struct snd_pcm_ops snd_trident_nx_playback_ops = {
 	.open =		snd_trident_playback_open,
 	.close =	snd_trident_playback_close,
 	.ioctl =	snd_trident_ioctl,
@@ -2116,7 +2115,7 @@ static struct snd_pcm_ops snd_trident_si7018_capture_ops = {
 	.pointer =	snd_trident_playback_pointer,
 };
 
-static struct snd_pcm_ops snd_trident_foldback_ops = {
+static const struct snd_pcm_ops snd_trident_foldback_ops = {
 	.open =		snd_trident_foldback_open,
 	.close =	snd_trident_foldback_close,
 	.ioctl =	snd_trident_ioctl,
@@ -2127,7 +2126,7 @@ static struct snd_pcm_ops snd_trident_foldback_ops = {
 	.pointer =	snd_trident_playback_pointer,
 };
 
-static struct snd_pcm_ops snd_trident_nx_foldback_ops = {
+static const struct snd_pcm_ops snd_trident_nx_foldback_ops = {
 	.open =		snd_trident_foldback_open,
 	.close =	snd_trident_foldback_close,
 	.ioctl =	snd_trident_ioctl,
@@ -2139,7 +2138,7 @@ static struct snd_pcm_ops snd_trident_nx_foldback_ops = {
 	.page =		snd_pcm_sgbuf_ops_page,
 };
 
-static struct snd_pcm_ops snd_trident_spdif_ops = {
+static const struct snd_pcm_ops snd_trident_spdif_ops = {
 	.open =		snd_trident_spdif_open,
 	.close =	snd_trident_spdif_close,
 	.ioctl =	snd_trident_ioctl,
@@ -2150,7 +2149,7 @@ static struct snd_pcm_ops snd_trident_spdif_ops = {
 	.pointer =	snd_trident_spdif_pointer,
 };
 
-static struct snd_pcm_ops snd_trident_spdif_7018_ops = {
+static const struct snd_pcm_ops snd_trident_spdif_7018_ops = {
 	.open =		snd_trident_spdif_open,
 	.close =	snd_trident_spdif_close,
 	.ioctl =	snd_trident_ioctl,
@@ -2172,14 +2171,11 @@ static struct snd_pcm_ops snd_trident_spdif_7018_ops = {
   
   ---------------------------------------------------------------------------*/
 
-int snd_trident_pcm(struct snd_trident *trident,
-		    int device, struct snd_pcm **rpcm)
+int snd_trident_pcm(struct snd_trident *trident, int device)
 {
 	struct snd_pcm *pcm;
 	int err;
 
-	if (rpcm)
-		*rpcm = NULL;
 	if ((err = snd_pcm_new(trident->card, "trident_dx_nx", device, trident->ChanPCM, 1, &pcm)) < 0)
 		return err;
 
@@ -2214,8 +2210,6 @@ int snd_trident_pcm(struct snd_trident *trident,
 						      snd_dma_pci_data(trident->pci), 64*1024, 128*1024);
 	}
 
-	if (rpcm)
-		*rpcm = pcm;
 	return 0;
 }
 
@@ -2230,16 +2224,13 @@ int snd_trident_pcm(struct snd_trident *trident,
   
   ---------------------------------------------------------------------------*/
 
-int snd_trident_foldback_pcm(struct snd_trident *trident,
-			     int device, struct snd_pcm **rpcm)
+int snd_trident_foldback_pcm(struct snd_trident *trident, int device)
 {
 	struct snd_pcm *foldback;
 	int err;
 	int num_chan = 3;
 	struct snd_pcm_substream *substream;
 
-	if (rpcm)
-		*rpcm = NULL;
 	if (trident->device == TRIDENT_DEVICE_ID_NX)
 		num_chan = 4;
 	if ((err = snd_pcm_new(trident->card, "trident_dx_nx", device, 0, num_chan, &foldback)) < 0)
@@ -2271,8 +2262,6 @@ int snd_trident_foldback_pcm(struct snd_trident *trident,
 		snd_pcm_lib_preallocate_pages_for_all(foldback, SNDRV_DMA_TYPE_DEV,
 						      snd_dma_pci_data(trident->pci), 64*1024, 128*1024);
 
-	if (rpcm)
-		*rpcm = foldback;
 	return 0;
 }
 
@@ -2287,14 +2276,11 @@ int snd_trident_foldback_pcm(struct snd_trident *trident,
   
   ---------------------------------------------------------------------------*/
 
-int snd_trident_spdif_pcm(struct snd_trident *trident,
-			  int device, struct snd_pcm **rpcm)
+int snd_trident_spdif_pcm(struct snd_trident *trident, int device)
 {
 	struct snd_pcm *spdif;
 	int err;
 
-	if (rpcm)
-		*rpcm = NULL;
 	if ((err = snd_pcm_new(trident->card, "trident_dx_nx IEC958", device, 1, 0, &spdif)) < 0)
 		return err;
 
@@ -2310,8 +2296,6 @@ int snd_trident_spdif_pcm(struct snd_trident *trident,
 
 	snd_pcm_lib_preallocate_pages_for_all(spdif, SNDRV_DMA_TYPE_DEV, snd_dma_pci_data(trident->pci), 64*1024, 128*1024);
 
-	if (rpcm)
-		*rpcm = spdif;
 	return 0;
 }
 
@@ -2372,7 +2356,7 @@ static int snd_trident_spdif_control_put(struct snd_kcontrol *kcontrol,
 	return change;
 }
 
-static struct snd_kcontrol_new snd_trident_spdif_control =
+static const struct snd_kcontrol_new snd_trident_spdif_control =
 {
 	.iface =	SNDRV_CTL_ELEM_IFACE_MIXER,
 	.name =         SNDRV_CTL_NAME_IEC958("",PLAYBACK,SWITCH),
@@ -2435,7 +2419,7 @@ static int snd_trident_spdif_default_put(struct snd_kcontrol *kcontrol,
 	return change;
 }
 
-static struct snd_kcontrol_new snd_trident_spdif_default =
+static const struct snd_kcontrol_new snd_trident_spdif_default =
 {
 	.iface =	SNDRV_CTL_ELEM_IFACE_PCM,
 	.name =         SNDRV_CTL_NAME_IEC958("",PLAYBACK,DEFAULT),
@@ -2468,7 +2452,7 @@ static int snd_trident_spdif_mask_get(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
-static struct snd_kcontrol_new snd_trident_spdif_mask =
+static const struct snd_kcontrol_new snd_trident_spdif_mask =
 {
 	.access =	SNDRV_CTL_ELEM_ACCESS_READ,
 	.iface =	SNDRV_CTL_ELEM_IFACE_PCM,
@@ -2530,7 +2514,7 @@ static int snd_trident_spdif_stream_put(struct snd_kcontrol *kcontrol,
 	return change;
 }
 
-static struct snd_kcontrol_new snd_trident_spdif_stream =
+static const struct snd_kcontrol_new snd_trident_spdif_stream =
 {
 	.access =	SNDRV_CTL_ELEM_ACCESS_READWRITE | SNDRV_CTL_ELEM_ACCESS_INACTIVE,
 	.iface =	SNDRV_CTL_ELEM_IFACE_PCM,
@@ -2580,7 +2564,7 @@ static int snd_trident_ac97_control_put(struct snd_kcontrol *kcontrol,
 	return change;
 }
 
-static struct snd_kcontrol_new snd_trident_ac97_rear_control =
+static const struct snd_kcontrol_new snd_trident_ac97_rear_control =
 {
 	.iface =	SNDRV_CTL_ELEM_IFACE_MIXER,
 	.name =         "Rear Path",
@@ -2638,7 +2622,7 @@ static int snd_trident_vol_control_put(struct snd_kcontrol *kcontrol,
 	return change;
 }
 
-static struct snd_kcontrol_new snd_trident_vol_music_control =
+static const struct snd_kcontrol_new snd_trident_vol_music_control =
 {
 	.iface =	SNDRV_CTL_ELEM_IFACE_MIXER,
 	.name =         "Music Playback Volume",
@@ -2649,7 +2633,7 @@ static struct snd_kcontrol_new snd_trident_vol_music_control =
 	.tlv = { .p = db_scale_gvol },
 };
 
-static struct snd_kcontrol_new snd_trident_vol_wave_control =
+static const struct snd_kcontrol_new snd_trident_vol_wave_control =
 {
 	.iface =	SNDRV_CTL_ELEM_IFACE_MIXER,
 	.name =         "Wave Playback Volume",
@@ -2716,7 +2700,7 @@ static int snd_trident_pcm_vol_control_put(struct snd_kcontrol *kcontrol,
 	return change;
 }
 
-static struct snd_kcontrol_new snd_trident_pcm_vol_control =
+static const struct snd_kcontrol_new snd_trident_pcm_vol_control =
 {
 	.iface =	SNDRV_CTL_ELEM_IFACE_MIXER,
 	.name =         "PCM Front Playback Volume",
@@ -2780,7 +2764,7 @@ static int snd_trident_pcm_pan_control_put(struct snd_kcontrol *kcontrol,
 	return change;
 }
 
-static struct snd_kcontrol_new snd_trident_pcm_pan_control =
+static const struct snd_kcontrol_new snd_trident_pcm_pan_control =
 {
 	.iface =	SNDRV_CTL_ELEM_IFACE_MIXER,
 	.name =         "PCM Pan Playback Control",
@@ -2837,7 +2821,7 @@ static int snd_trident_pcm_rvol_control_put(struct snd_kcontrol *kcontrol,
 
 static const DECLARE_TLV_DB_SCALE(db_scale_crvol, -3175, 25, 1);
 
-static struct snd_kcontrol_new snd_trident_pcm_rvol_control =
+static const struct snd_kcontrol_new snd_trident_pcm_rvol_control =
 {
 	.iface =	SNDRV_CTL_ELEM_IFACE_MIXER,
 	.name =         "PCM Reverb Playback Volume",
@@ -2893,7 +2877,7 @@ static int snd_trident_pcm_cvol_control_put(struct snd_kcontrol *kcontrol,
 	return change;
 }
 
-static struct snd_kcontrol_new snd_trident_pcm_cvol_control =
+static const struct snd_kcontrol_new snd_trident_pcm_cvol_control =
 {
 	.iface =	SNDRV_CTL_ELEM_IFACE_MIXER,
 	.name =         "PCM Chorus Playback Volume",
@@ -3136,7 +3120,7 @@ static int snd_trident_mixer(struct snd_trident *trident, int pcm_spdif_device)
  * gameport interface
  */
 
-#if defined(CONFIG_GAMEPORT) || (defined(MODULE) && defined(CONFIG_GAMEPORT_MODULE))
+#if IS_REACHABLE(CONFIG_GAMEPORT)
 
 static unsigned char snd_trident_gameport_read(struct gameport *gameport)
 {
@@ -3567,8 +3551,8 @@ int snd_trident_create(struct snd_card *card,
 	if ((err = pci_enable_device(pci)) < 0)
 		return err;
 	/* check, if we can restrict PCI DMA transfers to 30 bits */
-	if (pci_set_dma_mask(pci, DMA_BIT_MASK(30)) < 0 ||
-	    pci_set_consistent_dma_mask(pci, DMA_BIT_MASK(30)) < 0) {
+	if (dma_set_mask(&pci->dev, DMA_BIT_MASK(30)) < 0 ||
+	    dma_set_coherent_mask(&pci->dev, DMA_BIT_MASK(30)) < 0) {
 		dev_err(card->dev,
 			"architecture does not support 30bit PCI busmaster DMA\n");
 		pci_disable_device(pci);
@@ -3926,7 +3910,6 @@ static void snd_trident_clear_voices(struct snd_trident * trident, unsigned shor
 #ifdef CONFIG_PM_SLEEP
 static int snd_trident_suspend(struct device *dev)
 {
-	struct pci_dev *pci = to_pci_dev(dev);
 	struct snd_card *card = dev_get_drvdata(dev);
 	struct snd_trident *trident = card->private_data;
 
@@ -3938,27 +3921,13 @@ static int snd_trident_suspend(struct device *dev)
 
 	snd_ac97_suspend(trident->ac97);
 	snd_ac97_suspend(trident->ac97_sec);
-
-	pci_disable_device(pci);
-	pci_save_state(pci);
-	pci_set_power_state(pci, PCI_D3hot);
 	return 0;
 }
 
 static int snd_trident_resume(struct device *dev)
 {
-	struct pci_dev *pci = to_pci_dev(dev);
 	struct snd_card *card = dev_get_drvdata(dev);
 	struct snd_trident *trident = card->private_data;
-
-	pci_set_power_state(pci, PCI_D0);
-	pci_restore_state(pci);
-	if (pci_enable_device(pci) < 0) {
-		dev_err(dev, "pci_enable_device failed, disabling device\n");
-		snd_card_disconnect(card);
-		return -EIO;
-	}
-	pci_set_master(pci);
 
 	switch (trident->device) {
 	case TRIDENT_DEVICE_ID_DX:

@@ -77,7 +77,6 @@ extern int kdb_poll_idx;
  * number whenever the kernel debugger is entered.
  */
 extern int kdb_initial_cpu;
-extern atomic_t kdb_event;
 
 /* Types and messages used for dynamically added kdb shell commands */
 
@@ -156,8 +155,15 @@ typedef enum {
 	KDB_REASON_SYSTEM_NMI,	/* In NMI due to SYSTEM cmd; regs valid */
 } kdb_reason_t;
 
+enum kdb_msgsrc {
+	KDB_MSGSRC_INTERNAL, /* direct call to kdb_printf() */
+	KDB_MSGSRC_PRINTK, /* trapped from printk() */
+};
+
 extern int kdb_trap_printk;
-extern __printf(1, 0) int vkdb_printf(const char *fmt, va_list args);
+extern int kdb_printf_cpu;
+extern __printf(2, 0) int vkdb_printf(enum kdb_msgsrc src, const char *fmt,
+				      va_list args);
 extern __printf(1, 2) int kdb_printf(const char *, ...);
 typedef __printf(1, 2) int (*kdb_printf_t)(const char *, ...);
 
@@ -171,7 +177,7 @@ extern int kdb_get_kbd_char(void);
 static inline
 int kdb_process_cpu(const struct task_struct *p)
 {
-	unsigned int cpu = task_thread_info(p)->cpu;
+	unsigned int cpu = task_cpu(p);
 	if (cpu > num_possible_cpus())
 		cpu = 0;
 	return cpu;

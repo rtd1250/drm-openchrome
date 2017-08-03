@@ -10,9 +10,6 @@ struct ibnl_client_cbs {
 	struct module *module;
 };
 
-int ibnl_init(void);
-void ibnl_cleanup(void);
-
 /**
  * Add a a client to the list of IB netlink exporters.
  * @index: Index of the added client

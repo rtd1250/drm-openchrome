@@ -1,7 +1,7 @@
 /*
  * Device tree support
  *
- * Copyright (C) 2013 Altera Corporation
+ * Copyright (C) 2013, 2015 Altera Corporation
  * Copyright (C) 2010 Thomas Chou <thomas@wytron.com.tw>
  *
  * Based on MIPS support for CONFIG_OF device tree support
@@ -45,6 +45,13 @@ void __init early_init_dt_add_memory_arch(u64 base, u64 size)
 void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
 {
 	return alloc_bootmem_align(size, align);
+}
+
+int __init early_init_dt_reserve_memory_arch(phys_addr_t base, phys_addr_t size,
+					     bool nomap)
+{
+	reserve_bootmem(base, size, BOOTMEM_DEFAULT);
+	return 0;
 }
 
 void __init early_init_devtree(void *params)
