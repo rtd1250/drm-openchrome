@@ -25,13 +25,6 @@
 #define _VIA_DRM_H_
 
 #include "drm.h"
-<<<<<<< HEAD
-=======
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
->>>>>>> dd24df657075fdf1e850612ea50634816f3c3581
 
 /* WARNING: These defines must be the same as what the Xserver uses.
  * if you change them, you must change the defines in the Xserver.
@@ -40,10 +33,6 @@ extern "C" {
 #ifndef _VIA_DEFINES_
 #define _VIA_DEFINES_
 
-<<<<<<< HEAD
-=======
-
->>>>>>> dd24df657075fdf1e850612ea50634816f3c3581
 #define VIA_NR_SAREA_CLIPRECTS		8
 #define VIA_NR_XVMC_PORTS		10
 #define VIA_NR_XVMC_LOCKS		5
@@ -297,7 +286,6 @@ typedef struct drm_via_dmablit {
 	drm_via_blitsync_t sync;
 } drm_via_dmablit_t;
 
-<<<<<<< HEAD
 /* Ioctl to query kernel params:
  */
 #define VIA_PARAM_CHIPSET_ID		0
@@ -364,10 +352,5 @@ struct drm_via_gem_wait {
 	uint32_t handle;
 	uint32_t no_wait;
 };
-=======
-#if defined(__cplusplus)
-}
-#endif
->>>>>>> dd24df657075fdf1e850612ea50634816f3c3581
 
 #endif				/* _VIA_DRM_H_ */
