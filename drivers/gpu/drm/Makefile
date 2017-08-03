@@ -64,12 +64,8 @@ obj-$(CONFIG_DRM_CIRRUS_QEMU) += cirrus/
 obj-$(CONFIG_DRM_SIS)   += sis/
 obj-$(CONFIG_DRM_SAVAGE)+= savage/
 obj-$(CONFIG_DRM_VMWGFX)+= vmwgfx/
-<<<<<<< HEAD
-obj-$(CONFIG_DRM_VIA) +=openchrome/
-=======
-obj-$(CONFIG_DRM_VIA)	+=via/
+obj-$(CONFIG_DRM_OPENCHROME) +=openchrome/
 obj-$(CONFIG_DRM_VGEM)	+= vgem/
->>>>>>> dd24df657075fdf1e850612ea50634816f3c3581
 obj-$(CONFIG_DRM_NOUVEAU) +=nouveau/
 obj-$(CONFIG_DRM_EXYNOS) +=exynos/
 obj-$(CONFIG_DRM_ROCKCHIP) +=rockchip/

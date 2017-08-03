@@ -193,22 +193,15 @@ source "drivers/gpu/drm/amd/amdgpu/Kconfig"
 
 source "drivers/gpu/drm/nouveau/Kconfig"
 
-<<<<<<< HEAD
-config DRM_VIA
-	tristate "Via unichrome video cards"
-	depends on DRM && PCI
-	select FB_CFB_FILLRECT
-	select FB_CFB_COPYAREA
-	select FB_CFB_IMAGEBLIT
-	select DRM_KMS_HELPER
-	select DRM_KMS_FB_HELPER
-	select DRM_TTM
-	help
-	  Choose this option if you have a Via unichrome or compatible video
-	  chipset. If M is selected the module will be called via.
-=======
 source "drivers/gpu/drm/i915/Kconfig"
->>>>>>> dd24df657075fdf1e850612ea50634816f3c3581
+
+config DRM_OPENCHROME
+	tristate "OpenChrome (VIA Technologies)"
+	depends on DRM && PCI
+	help
+	  Choose this option if you have a VIA Technologies UniChrome or 
+	  Chrome9 integrated graphics. If M is selected the module will 
+	  be called openchrome.
 
 config DRM_VGEM
 	tristate "Virtual GEM provider"
@@ -355,13 +348,6 @@ config DRM_SIS
 	  Choose this option if you have a SiS 630 or compatible video
 	  chipset. If M is selected the module will be called sis. AGP
 	  support is required for this driver to work.
-
-config DRM_VIA
-	tristate "Via unichrome video cards"
-	depends on DRM && PCI
-	help
-	  Choose this option if you have a Via unichrome or compatible video
-	  chipset. If M is selected the module will be called via.
 
 config DRM_SAVAGE
 	tristate "Savage video cards"
