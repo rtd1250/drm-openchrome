@@ -479,7 +479,6 @@ static struct drm_driver via_driver = {
 	.irq_handler = via_driver_irq_handler,
 	.dma_quiescent = via_driver_dma_quiescent,
 	.lastclose = via_driver_lastclose,
-	.set_busid = drm_pci_set_busid,
 	.gem_open_object = ttm_gem_open_object,
 	.gem_free_object = ttm_gem_free_object,
 	.dumb_create = via_dumb_create,
