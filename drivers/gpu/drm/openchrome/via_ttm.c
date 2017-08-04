@@ -750,7 +750,7 @@ via_bo_pin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
     struct ttm_placement placement;
     int ret;
 
-    ret = ttm_bo_reserve(bo, true, false, false, 0);
+    ret = ttm_bo_reserve(bo, true, false, NULL);
     if (!ret) {
         placement.placement = heap->placements;
         placement.num_placement = 1;
@@ -771,7 +771,7 @@ via_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
     struct ttm_placement placement;
     int ret;
 
-    ret = ttm_bo_reserve(bo, true, false, false, 0);
+    ret = ttm_bo_reserve(bo, true, false, NULL);
     if (!ret) {
         if (kmap)
             ttm_bo_kunmap(kmap);

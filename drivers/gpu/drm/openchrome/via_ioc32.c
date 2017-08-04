@@ -107,7 +107,7 @@ via_gem_state(struct drm_device *dev, void *data, struct drm_file *file_priv)
 	/* Don't bother to migrate to same domain */
 	args->domains &= ~(bo->mem.placement & TTM_PL_MASK_MEM);
 	if (args->domains) {
-		ret = ttm_bo_reserve(bo, true, false, false, 0);
+		ret = ttm_bo_reserve(bo, true, false, NULL);
 		if (unlikely(ret))
 			return ret;
 
@@ -148,7 +148,7 @@ via_gem_wait(struct drm_device *dev, void *data, struct drm_file *file_priv)
 		return ret;
 
 	no_wait = (args->no_wait != 0);
-	ret = ttm_bo_reserve(bo, true, no_wait, false, 0);
+	ret = ttm_bo_reserve(bo, true, no_wait, NULL);
 	if (unlikely(ret != 0))
 		return ret;
 
