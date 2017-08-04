@@ -270,7 +270,8 @@ via_analog_init(struct drm_device *dev)
 	con->base.interlace_allowed = true;
 
 	/* Setup the encoders and attach them */
-	drm_encoder_init(dev, &enc->base, &via_dac_enc_funcs, DRM_MODE_ENCODER_DAC);
+	drm_encoder_init(dev, &enc->base, &via_dac_enc_funcs,
+						DRM_MODE_ENCODER_DAC, NULL);
 	drm_encoder_helper_add(&enc->base, &via_dac_enc_helper_funcs);
 
 	enc->base.possible_crtcs = BIT(0);

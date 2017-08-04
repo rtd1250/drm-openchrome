@@ -1180,7 +1180,7 @@ via_lvds_init(struct drm_device *dev)
 
 	/* Now setup the encoder */
 	drm_encoder_init(dev, &enc->base, &via_lvds_enc_funcs,
-				DRM_MODE_ENCODER_LVDS);
+						DRM_MODE_ENCODER_LVDS, NULL);
 	drm_encoder_helper_add(&enc->base, &via_lvds_helper_funcs);
 
 	enc->base.possible_crtcs = BIT(1);

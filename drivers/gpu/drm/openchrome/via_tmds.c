@@ -229,7 +229,8 @@ via_tmds_init(struct drm_device *dev)
 	}
 
 	/* Setup the encoders and attach them */
-	drm_encoder_init(dev, &enc->base, &via_tmds_enc_funcs, DRM_MODE_ENCODER_DAC);
+	drm_encoder_init(dev, &enc->base, &via_tmds_enc_funcs,
+						DRM_MODE_ENCODER_DAC, NULL);
 	drm_encoder_helper_add(&enc->base, &via_tmds_enc_helper_funcs);
 
 	enc->base.possible_crtcs = BIT(1) | BIT(0);

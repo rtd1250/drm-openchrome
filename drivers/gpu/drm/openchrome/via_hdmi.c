@@ -659,7 +659,8 @@ via_hdmi_init(struct drm_device *dev, u32 di_port)
 	dvi = &enc->cons[1];
 
 	/* Setup the encoders and attach them */
-	drm_encoder_init(dev, &enc->base, &via_hdmi_enc_funcs, DRM_MODE_ENCODER_TMDS);
+	drm_encoder_init(dev, &enc->base, &via_hdmi_enc_funcs,
+						DRM_MODE_ENCODER_TMDS, NULL);
 	drm_encoder_helper_add(&enc->base, &via_hdmi_enc_helper_funcs);
 
 	enc->base.possible_crtcs = BIT(1) | BIT(0);
