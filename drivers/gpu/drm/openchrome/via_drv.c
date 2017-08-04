@@ -218,7 +218,7 @@ static int via_dumb_mmap(struct drm_file *filp, struct drm_device *dev,
 	struct drm_gem_object *obj;
 	int rc = -ENOENT;
 
-	obj = drm_gem_object_lookup(dev, filp, handle);
+	obj = drm_gem_object_lookup(filp, handle);
 	if (obj == NULL)
 		return rc;
 

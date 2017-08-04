@@ -96,7 +96,7 @@ via_gem_state(struct drm_device *dev, void *data, struct drm_file *file_priv)
 	struct ttm_placement placement;
 	int ret = -EINVAL;
 
-	obj = drm_gem_object_lookup(dev, file_priv, args->handle);
+	obj = drm_gem_object_lookup(file_priv, args->handle);
 	if (obj == NULL)
 		return ret;
 
@@ -139,7 +139,7 @@ via_gem_wait(struct drm_device *dev, void *data, struct drm_file *file_priv)
 	int ret = -EINVAL;
 	bool no_wait;
 
-	obj = drm_gem_object_lookup(dev, file_priv, args->handle);
+	obj = drm_gem_object_lookup(file_priv, args->handle);
 	if (obj == NULL)
 		return ret;
 

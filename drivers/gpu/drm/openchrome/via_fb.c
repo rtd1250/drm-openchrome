@@ -960,7 +960,7 @@ via_user_framebuffer_create(struct drm_device *dev,
 	struct drm_gem_object *obj;
 	int ret;
 
-	obj = drm_gem_object_lookup(dev, file_priv, mode_cmd->handles[0]);
+	obj = drm_gem_object_lookup(file_priv, mode_cmd->handles[0]);
 	if (obj ==  NULL) {
 		DRM_ERROR("No GEM object found for handle 0x%08X\n",
 				mode_cmd->handles[0]);

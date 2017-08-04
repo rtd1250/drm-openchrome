@@ -252,7 +252,7 @@ via_crtc_cursor_set(struct drm_crtc *crtc, struct drm_file *file_priv,
         return -EINVAL;
     }
 
-    obj = drm_gem_object_lookup(dev, file_priv, handle);
+    obj = drm_gem_object_lookup(file_priv, handle);
     if (!obj) {
         DRM_ERROR("Cannot find cursor object %x for crtc %d\n", handle,
                 crtc->base.id);
