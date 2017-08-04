@@ -152,7 +152,7 @@ via_gem_wait(struct drm_device *dev, void *data, struct drm_file *file_priv)
 	if (unlikely(ret != 0))
 		return ret;
 
-	ret = ttm_bo_wait(bo, true, true, no_wait);
+	ret = ttm_bo_wait(bo, true, no_wait);
 	ttm_bo_unreserve(bo);
 
 	mutex_lock(&dev->struct_mutex);
