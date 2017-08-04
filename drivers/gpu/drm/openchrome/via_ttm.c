@@ -258,7 +258,7 @@ via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
 		man->gpu_offset = 0;
 		break;
 
-	case TTM_PL_PRIV0:
+	case TTM_PL_FLAG_PRIV:
 		/* MMIO region */
 		man->func = &ttm_bo_manager_func;
 		man->flags = TTM_MEMTYPE_FLAG_FIXED | TTM_MEMTYPE_FLAG_MAPPABLE;
@@ -468,7 +468,7 @@ via_bo_move(struct ttm_buffer_object *bo, bool evict, bool interruptible,
 	        && (new_mem->mem_type == TTM_PL_TT))
         || ((old_mem->mem_type == TTM_PL_TT)
             && (new_mem->mem_type == TTM_PL_SYSTEM))
-	    || (new_mem->mem_type == TTM_PL_PRIV0)) {
+	    || (new_mem->mem_type == TTM_PL_FLAG_PRIV)) {
 		BUG_ON(old_mem->mm_node != NULL);
 		*old_mem = *new_mem;
 		new_mem->mm_node = NULL;
@@ -527,7 +527,7 @@ via_ttm_io_mem_reserve(struct ttm_bo_device *bdev, struct ttm_mem_reg *mem)
 #endif
 		break;
 
-	case TTM_PL_PRIV0:
+	case TTM_PL_FLAG_PRIV:
 		mem->bus.base = pci_resource_start(dev->pdev, 1);
 		break;
 
@@ -609,7 +609,7 @@ int via_mm_init(struct via_device *dev_priv)
 
     start = (unsigned long long) pci_resource_start(dev->pdev, 1);
     len = pci_resource_len(dev->pdev, 1);
-    ret = ttm_bo_init_mm(&dev_priv->bdev, TTM_PL_PRIV0, len >> PAGE_SHIFT);
+    ret = ttm_bo_init_mm(&dev_priv->bdev, TTM_PL_FLAG_PRIV, len >> PAGE_SHIFT);
     if (ret) {
         DRM_ERROR("Failed to map MMIO: %d\n", ret);
         goto exit;
@@ -625,7 +625,7 @@ int via_mm_init(struct via_device *dev_priv)
     ret = via_bo_pin(bo, &dev_priv->mmio);
     if (ret) {
         DRM_ERROR("Failed to map a buffer object for MMIO: %d\n", ret);
-        ttm_bo_clean_mm(&dev_priv->bdev, TTM_PL_PRIV0);
+        ttm_bo_clean_mm(&dev_priv->bdev, TTM_PL_FLAG_PRIV);
         goto exit;
     }
 
