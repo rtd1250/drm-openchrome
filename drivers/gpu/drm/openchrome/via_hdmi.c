@@ -498,7 +498,7 @@ via_hdmi_get_edid(struct drm_connector *connector)
 		if (!via_ddc_read_bytes_by_hdmi(dev_priv, 0, block))
 			goto out;
 
-		if (drm_edid_block_valid(block, 0, print_bad_edid))
+		if (drm_edid_block_valid(block, 0, print_bad_edid, NULL))
 			break;
 
 		if (i == 0 && !memchr_inv(block, 0, EDID_LENGTH)) {
@@ -526,7 +526,7 @@ via_hdmi_get_edid(struct drm_connector *connector)
 				if (!via_ddc_read_bytes_by_hdmi(dev_priv, offset, new))
 					goto out;
 
-				if (drm_edid_block_valid(new, j, print_bad_edid)) {
+				if (drm_edid_block_valid(new, j, print_bad_edid, NULL)) {
 					valid_extensions++;
 					break;
 				}
