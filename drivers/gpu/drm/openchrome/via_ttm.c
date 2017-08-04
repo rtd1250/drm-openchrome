@@ -362,7 +362,7 @@ via_move_blit(struct ttm_buffer_object *bo, bool evict, bool no_wait_gpu,
 	fence = via_fence_create_and_emit(dev_priv->dma_fences, vsg, 0);
 	if (unlikely(IS_ERR(fence)))
 		return PTR_ERR(fence);
-	return ttm_bo_move_accel_cleanup(bo, (void *)fence, evict, no_wait_gpu, new_mem);
+	return ttm_bo_move_accel_cleanup(bo, (void *)fence, evict, new_mem);
 }
 
 static int
