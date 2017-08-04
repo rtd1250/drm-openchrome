@@ -257,7 +257,7 @@ exit:
     return ret;
 }
 
-static int via_driver_unload(struct drm_device *dev)
+static void via_driver_unload(struct drm_device *dev)
 {
 	struct via_device *dev_priv = dev->dev_private;
 	struct ttm_buffer_object *bo;
@@ -265,7 +265,7 @@ static int via_driver_unload(struct drm_device *dev)
 
 	ret = via_dma_cleanup(dev);
 	if (ret)
-		return ret;
+		return;
 
 	drm_irq_uninstall(dev);
 
@@ -308,7 +308,7 @@ static int via_driver_unload(struct drm_device *dev)
 		drm_agp_release(dev);
 #endif
 	kfree(dev_priv);
-	return ret;
+	return;
 }
 
 static int
