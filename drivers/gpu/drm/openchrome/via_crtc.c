@@ -1059,9 +1059,6 @@ via_iga1_crtc_dpms(struct drm_crtc *crtc, int mode)
     case DRM_MODE_DPMS_SUSPEND:
     case DRM_MODE_DPMS_STANDBY:
     case DRM_MODE_DPMS_OFF:
-        if (crtc->dev->num_crtcs)
-            drm_vblank_pre_modeset(crtc->dev, iga->index);
-
         /* turn off CRT screen (IGA1) */
         svga_wseq_mask(VGABASE, 0x01, BIT(5), BIT(5));
 
@@ -1070,9 +1067,6 @@ via_iga1_crtc_dpms(struct drm_crtc *crtc, int mode)
         break;
 
     case DRM_MODE_DPMS_ON:
-        if (crtc->dev->num_crtcs)
-            drm_vblank_post_modeset(crtc->dev, iga->index);
-
         /* turn on CRT screen (IGA1) */
         svga_wseq_mask(VGABASE, 0x01, 0x00, BIT(5));
 
@@ -1110,6 +1104,8 @@ via_iga1_crtc_prepare(struct drm_crtc *crtc)
     /* Turn off the cursor */
     via_hide_cursor(crtc);
 
+    drm_crtc_vblank_off(crtc);
+
     /* Blank the screen */
     if (crtc->enabled)
         via_iga1_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
@@ -1124,6 +1120,8 @@ via_iga1_crtc_commit(struct drm_crtc *crtc)
 
     /* Turn on the cursor */
     via_show_cursor(crtc);
+
+    drm_crtc_vblank_on(crtc);
 
     /* Turn on the monitor */
     if (crtc->enabled)
@@ -1343,9 +1341,6 @@ via_iga2_crtc_dpms(struct drm_crtc *crtc, int mode)
     case DRM_MODE_DPMS_SUSPEND:
     case DRM_MODE_DPMS_STANDBY:
     case DRM_MODE_DPMS_OFF:
-        if (crtc->dev->num_crtcs)
-            drm_vblank_pre_modeset(crtc->dev, iga->index);
-
         /* turn off CRT screen (IGA2) */
         svga_wcrt_mask(VGABASE, 0x6B, BIT(2), BIT(2));
 
@@ -1354,9 +1349,6 @@ via_iga2_crtc_dpms(struct drm_crtc *crtc, int mode)
         break;
 
     case DRM_MODE_DPMS_ON:
-        if (crtc->dev->num_crtcs)
-            drm_vblank_post_modeset(crtc->dev, iga->index);
-
         /* turn on CRT screen (IGA2) */
         svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(2));
 
@@ -1394,6 +1386,8 @@ via_iga2_crtc_prepare(struct drm_crtc *crtc)
     /* Turn off the cursor */
     via_hide_cursor(crtc);
 
+    drm_crtc_vblank_off(crtc);
+
     /* Blank the screen */
     if (crtc->enabled)
         via_iga2_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
@@ -1408,6 +1402,8 @@ via_iga2_crtc_commit(struct drm_crtc *crtc)
 
     /* Turn on the cursor */
     via_show_cursor(crtc);
+
+    drm_crtc_vblank_on(crtc);
 
     /* Turn on the monitor */
     if (crtc->enabled)
