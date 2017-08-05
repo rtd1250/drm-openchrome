@@ -274,8 +274,6 @@ static void via_driver_unload(struct drm_device *dev)
 
 	via_fence_pool_fini(dev_priv->dma_fences);
 
-	drm_vblank_cleanup(dev);
-
 	/* destroy work queue. */
 	if (dev_priv->wq)
 		destroy_workqueue(dev_priv->wq);
