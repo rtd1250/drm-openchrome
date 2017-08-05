@@ -306,16 +306,17 @@ via_crtc_cursor_move(struct drm_crtc *crtc, int x, int y)
     return 0;
 }
 
-static void
-via_iga1_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
-                    u16 *blue, uint32_t start, uint32_t size)
+static int
+via_iga1_gamma_set(struct drm_crtc *crtc, u16 *r, u16 *g, u16 *b,
+                    uint32_t size,
+                    struct drm_modeset_acquire_ctx *ctx)
 {
     struct via_device *dev_priv = crtc->dev->dev_private;
-    int end = (start + size > 256) ? 256 : start + size, i;
+    int end = (size > 256) ? 256 : size, i;
     u8 val, sr1a = vga_rseq(VGABASE, 0x1A);
 
     if (!crtc->enabled || !crtc->primary->fb)
-        return;
+        return -EINVAL;
 
     if (crtc->primary->fb->format->cpp[0] * 8 == 8) {
         /* Prepare for initialize IGA1's LUT: */
@@ -327,13 +328,13 @@ via_iga1_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
         vga_wcrt(VGABASE, 0x67, val);
 
         /* Fill in IGA1's LUT */
-        for (i = start; i < end; i++) {
+        for (i = 0; i < end; i++) {
             /* Bit mask of palette */
             vga_w(VGABASE, VGA_PEL_MSK, 0xFF);
             vga_w(VGABASE, VGA_PEL_IW, i);
-            vga_w(VGABASE, VGA_PEL_D, red[i] >> 8);
-            vga_w(VGABASE, VGA_PEL_D, green[i] >> 8);
-            vga_w(VGABASE, VGA_PEL_D, blue[i] >> 8);
+            vga_w(VGABASE, VGA_PEL_D, r[i] >> 8);
+            vga_w(VGABASE, VGA_PEL_D, g[i] >> 8);
+            vga_w(VGABASE, VGA_PEL_D, b[i] >> 8);
         }
         /* enable LUT */
         svga_wseq_mask(VGABASE, 0x1B, 0x00, BIT(0));
@@ -347,16 +348,18 @@ via_iga1_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
         svga_wseq_mask(VGABASE, 0x1A, 0x00, BIT(0));
 
         /* Fill in IGA1's gamma */
-        for (i = start; i < end; i++) {
+        for (i = 0; i < end; i++) {
             /* bit mask of palette */
             vga_w(VGABASE, VGA_PEL_MSK, 0xFF);
             vga_w(VGABASE, VGA_PEL_IW, i);
-            vga_w(VGABASE, VGA_PEL_D, red[i] >> 8);
-            vga_w(VGABASE, VGA_PEL_D, green[i] >> 8);
-            vga_w(VGABASE, VGA_PEL_D, blue[i] >> 8);
+            vga_w(VGABASE, VGA_PEL_D, r[i] >> 8);
+            vga_w(VGABASE, VGA_PEL_D, g[i] >> 8);
+            vga_w(VGABASE, VGA_PEL_D, b[i] >> 8);
         }
         vga_wseq(VGABASE, 0x1A, sr1a);
     }
+
+    return 0;
 }
 
 static void
