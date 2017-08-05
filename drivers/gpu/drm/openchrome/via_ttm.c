@@ -616,7 +616,7 @@ int via_mm_init(struct via_device *dev_priv)
     }
 
     ret = via_bo_create(&dev_priv->bdev, VIA_MMIO_REGSIZE, ttm_bo_type_kernel,
-                        TTM_PL_FLAG_PRIV0, 1, PAGE_SIZE, false, NULL, NULL, &bo);
+                        TTM_PL_FLAG_PRIV, 1, PAGE_SIZE, false, NULL, NULL, &bo);
     if (ret) {
         DRM_ERROR("Failed to create a buffer object for MMIO: %d\n", ret);
         goto exit;
