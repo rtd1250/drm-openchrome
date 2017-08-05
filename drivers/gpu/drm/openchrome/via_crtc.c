@@ -317,7 +317,7 @@ via_iga1_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
     if (!crtc->enabled || !crtc->primary->fb)
         return;
 
-    if (crtc->primary->fb->bits_per_pixel == 8) {
+    if (crtc->primary->fb->format->cpp[0] * 8 == 8) {
         /* Prepare for initialize IGA1's LUT: */
         vga_wseq(VGABASE, 0x1A, sr1a & 0xFE);
         /* Change to Primary Display's LUT */
@@ -370,7 +370,7 @@ via_iga2_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
     if (!crtc->enabled || !crtc->primary->fb)
         return;
 
-    if (crtc->primary->fb->bits_per_pixel == 8) {
+    if (crtc->primary->fb->format->cpp[0] * 8 == 8) {
         /* Change Shadow to Secondary Display's LUT */
         svga_wseq_mask(VGABASE, 0x1A, BIT(0), BIT(0));
         /* Enable Secondary Display Engine */
@@ -1284,7 +1284,7 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc,
                                 struct drm_framebuffer *fb, int x, int y,
                                 enum mode_set_atomic state)
 {
-    u32 pitch = y * fb->pitches[0] + ((x * fb->bits_per_pixel) >> 3), addr;
+    u32 pitch = y * fb->pitches[0] + ((x * fb->format->cpp[0] * 8) >> 3), addr;
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
     struct via_device *dev_priv = crtc->dev->dev_private;
     struct drm_gem_object *obj = fb->helper_private;
@@ -1312,7 +1312,7 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc,
     vga_wcrt(VGABASE, 0x34, (addr >> 16) & 0xFF);
 
     /* Load fetch count registers */
-    pitch = ALIGN(crtc->mode.hdisplay * fb->bits_per_pixel >> 3, 16);
+    pitch = ALIGN(crtc->mode.hdisplay * (fb->format->cpp[0] * 8) >> 3, 16);
     load_value_to_registers(VGABASE, &iga->fetch, (pitch >> 4) + 1);
 
     /* Set the primary pitch */
@@ -1597,7 +1597,7 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc,
                                 struct drm_framebuffer *fb,
                                 int x, int y, enum mode_set_atomic state)
 {
-    u32 pitch = y * fb->pitches[0] + ((x * fb->bits_per_pixel) >> 3), addr;
+    u32 pitch = y * fb->pitches[0] + ((x * fb->format->cpp[0] * 8) >> 3), addr;
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
     struct via_device *dev_priv = crtc->dev->dev_private;
     struct drm_gem_object *obj = fb->helper_private;
@@ -1627,7 +1627,7 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc,
     svga_wcrt_mask(VGABASE, 0xA3, ((addr >> 26) & 0x07), 0x07);
 
     /* Load fetch count registers */
-    pitch = ALIGN(crtc->mode.hdisplay * fb->bits_per_pixel >> 3, 16);
+    pitch = ALIGN(crtc->mode.hdisplay * (fb->format->cpp[0] * 8) >> 3, 16);
     load_value_to_registers(VGABASE, &iga->fetch, (pitch >> 4) + 1);
 
     /* Set secondary pitch */
