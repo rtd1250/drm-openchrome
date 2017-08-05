@@ -1086,7 +1086,7 @@ via_iga1_crtc_disable(struct drm_crtc *crtc)
 
     DRM_DEBUG("Entered via_iga1_crtc_disable.\n");
 
-    drm_vblank_off(crtc->dev, iga->index);
+    drm_crtc_vblank_off(crtc);
 
     /* Turn off the cursor */
     via_hide_cursor(crtc);
@@ -1370,7 +1370,7 @@ via_iga2_crtc_disable(struct drm_crtc *crtc)
 
     DRM_DEBUG("Entered via_iga2_crtc_disable.\n");
 
-    drm_vblank_off(crtc->dev, iga->index);
+    drm_crtc_vblank_off(crtc);
 
     /* Turn off the cursor */
     via_hide_cursor(crtc);
