@@ -1290,9 +1290,9 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc,
     struct drm_gem_object *obj = fb->helper_private;
     struct ttm_buffer_object *bo = ttm_gem_mapping(obj);
 
-    if ((fb->depth != 8) && (fb->depth != 16) && (fb->depth != 24)
-            && (fb->depth != 32)) {
-        DRM_ERROR("Unsupported IGA1 Color Depth: %d bit\n", fb->depth);
+    if ((fb->format->depth != 8) && (fb->format->depth != 16) &&
+		(fb->format->depth != 24) && (fb->format->depth != 32)) {
+        DRM_ERROR("Unsupported IGA1 Color Depth: %d bit\n", fb->format->depth);
         return -EINVAL;
     }
 
@@ -1301,7 +1301,7 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc,
     /* Set palette LUT to 8-bit mode. */
     via_iga1_set_palette_lut_resolution(VGABASE, true);
 
-    via_iga1_set_color_depth(dev_priv, fb->depth);
+    via_iga1_set_color_depth(dev_priv, fb->format->depth);
 
     /* Set the framebuffer offset */
     addr = round_up(bo->offset + pitch, 16) >> 1;
@@ -1603,9 +1603,9 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc,
     struct drm_gem_object *obj = fb->helper_private;
     struct ttm_buffer_object *bo = ttm_gem_mapping(obj);
 
-    if ((fb->depth != 8) && (fb->depth != 16)
-            && (fb->depth != 24) && (fb->depth != 32)) {
-        DRM_ERROR("Unsupported IGA2 Color Depth: %d bit\n", fb->depth);
+    if ((fb->format->depth != 8) && (fb->format->depth != 16) &&
+		(fb->format->depth != 24) && (fb->format->depth != 32)) {
+        DRM_ERROR("Unsupported IGA2 Color Depth: %d bit\n", fb->format->depth);
         return -EINVAL;
     }
 
@@ -1614,7 +1614,7 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc,
     /* Set palette LUT to 8-bit mode. */
     via_iga2_set_palette_lut_resolution(VGABASE, true);
 
-    via_iga2_set_color_depth(dev_priv, fb->depth);
+    via_iga2_set_color_depth(dev_priv, fb->format->depth);
 
     /* Set the framebuffer offset */
     addr = round_up(bo->offset + pitch, 16);
