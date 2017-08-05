@@ -1042,8 +1042,8 @@ drm_mode_crtc_load_lut(struct drm_crtc *crtc)
         r_base = crtc->gamma_store;
         g_base = r_base + size;
         b_base = g_base + size;
-        crtc->funcs->gamma_set(crtc, r_base, g_base, b_base, 0,
-                crtc->gamma_size);
+        crtc->funcs->gamma_set(crtc, r_base, g_base, b_base,
+                                crtc->gamma_size, NULL);
     }
 }
 
