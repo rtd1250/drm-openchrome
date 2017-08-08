@@ -1204,8 +1204,8 @@ via_fbdev_init(struct drm_device *dev, struct drm_fb_helper **ptr)
 	if (ret)
 		goto out_err;
 
-	ret = drm_fb_helper_init(dev, &helper->base, dev->num_crtcs,
-				dev->mode_config.num_connector);
+	ret = drm_fb_helper_init(dev, &helper->base,
+								dev->mode_config.num_connector);
 	if (ret) {
 		fb_dealloc_cmap(&info->cmap);
 		goto out_err;
