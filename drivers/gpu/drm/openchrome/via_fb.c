@@ -978,7 +978,7 @@ via_user_framebuffer_create(struct drm_device *dev,
 		return ERR_PTR(ret);
 	}
 	fb->helper_private = obj;
-	drm_helper_mode_fill_fb_struct(fb, mode_cmd);
+	drm_helper_mode_fill_fb_struct(dev, fb, mode_cmd);
 	return fb;
 }
 
@@ -1041,7 +1041,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 	fb->helper_private = obj;
 	ttmfb->base.fb = fb;
 
-	drm_helper_mode_fill_fb_struct(fb, &mode_cmd);
+	drm_helper_mode_fill_fb_struct(dev, fb, &mode_cmd);
 	info->fix.smem_start = kmap->bo->mem.bus.base +
 				kmap->bo->mem.bus.offset;
 	info->fix.smem_len = info->screen_size = size;
