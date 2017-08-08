@@ -992,6 +992,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 		struct drm_fb_helper_surface_size *sizes)
 {
 	struct ttm_fb_helper *ttmfb = container_of(helper, struct ttm_fb_helper, base);
+	struct drm_device *dev = helper->dev;
 	struct via_device *dev_priv = helper->dev->dev_private;
 	struct ttm_bo_kmap_obj *kmap = &ttmfb->kmap;
 	struct fb_info *info = helper->fbdev;
