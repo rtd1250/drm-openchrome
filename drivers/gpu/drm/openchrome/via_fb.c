@@ -954,7 +954,7 @@ via_output_poll_changed(struct drm_device *dev)
 static struct drm_framebuffer *
 via_user_framebuffer_create(struct drm_device *dev,
 				struct drm_file *file_priv,
-				struct drm_mode_fb_cmd2 *mode_cmd)
+				const struct drm_mode_fb_cmd2 *mode_cmd)
 {
 	struct via_framebuffer *via_fb;
 	struct drm_gem_object *gem_obj;
