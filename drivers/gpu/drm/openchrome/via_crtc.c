@@ -1235,9 +1235,11 @@ via_iga1_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
                             struct drm_framebuffer *old_fb)
 {
     struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
-    struct drm_framebuffer *new_fb = crtc->primary->fb;
     struct ttm_buffer_object *bo;
-    struct drm_gem_object *obj;
+    struct via_framebuffer *via_fb =
+            container_of(crtc->primary->fb, struct via_framebuffer, fb);
+    struct drm_framebuffer *new_fb = &via_fb->fb;
+    struct drm_gem_object *gem_obj = via_fb->gem_obj;
     int ret = 0;
 
     DRM_DEBUG("Entered via_iga1_crtc_mode_set_base.\n");
@@ -1252,8 +1254,8 @@ via_iga1_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
     if (new_fb == old_fb)
         return ret;
 
-    obj = new_fb->helper_private;
-    bo = ttm_gem_mapping(obj);
+    gem_obj = via_fb->gem_obj;
+    bo = ttm_gem_mapping(gem_obj);
 
     ret = via_bo_pin(bo, NULL);
     if (unlikely(ret)) {
@@ -1271,8 +1273,10 @@ via_iga1_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 
     /* Free the old framebuffer if it exist */
     if (old_fb) {
-        obj = old_fb->helper_private;
-        bo = ttm_gem_mapping(obj);
+        via_fb = container_of(old_fb,
+                                struct via_framebuffer, fb);
+        gem_obj = via_fb->gem_obj;
+        bo = ttm_gem_mapping(gem_obj);
 
         ret = via_bo_unpin(bo, NULL);
         if (unlikely(ret))
@@ -1291,8 +1295,10 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc,
     u32 pitch = y * fb->pitches[0] + ((x * fb->format->cpp[0] * 8) >> 3), addr;
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
     struct via_device *dev_priv = crtc->dev->dev_private;
-    struct drm_gem_object *obj = fb->helper_private;
-    struct ttm_buffer_object *bo = ttm_gem_mapping(obj);
+    struct via_framebuffer *via_fb =
+            container_of(fb, struct via_framebuffer, fb);
+    struct drm_gem_object *gem_obj = via_fb->gem_obj;
+    struct ttm_buffer_object *bo = ttm_gem_mapping(gem_obj);
 
     if ((fb->format->depth != 8) && (fb->format->depth != 16) &&
 		(fb->format->depth != 24) && (fb->format->depth != 32)) {
@@ -1546,9 +1552,11 @@ via_iga2_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
                         struct drm_framebuffer *old_fb)
 {
     struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
-    struct drm_framebuffer *new_fb = crtc->primary->fb;
     struct ttm_buffer_object *bo;
-    struct drm_gem_object *obj;
+    struct via_framebuffer *via_fb =
+            container_of(crtc->primary->fb, struct via_framebuffer, fb);
+    struct drm_framebuffer *new_fb = &via_fb->fb;
+    struct drm_gem_object *gem_obj = via_fb->gem_obj;
     int ret = 0;
 
     DRM_DEBUG("Entered via_iga2_crtc_mode_set_base.\n");
@@ -1563,8 +1571,8 @@ via_iga2_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
     if (new_fb == old_fb)
         return ret;
 
-    obj = new_fb->helper_private;
-    bo = ttm_gem_mapping(obj);
+    gem_obj = via_fb->gem_obj;
+    bo = ttm_gem_mapping(gem_obj);
 
     ret = via_bo_pin(bo, NULL);
     if (unlikely(ret)) {
@@ -1582,8 +1590,10 @@ via_iga2_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 
     /* Free the old framebuffer if it exist */
     if (old_fb) {
-        obj = old_fb->helper_private;
-        bo = ttm_gem_mapping(obj);
+        via_fb = container_of(old_fb,
+                                struct via_framebuffer, fb);
+        gem_obj = via_fb->gem_obj;
+        bo = ttm_gem_mapping(gem_obj);
 
         ret = via_bo_unpin(bo, NULL);
         if (unlikely(ret))
@@ -1602,8 +1612,10 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc,
     u32 pitch = y * fb->pitches[0] + ((x * fb->format->cpp[0] * 8) >> 3), addr;
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
     struct via_device *dev_priv = crtc->dev->dev_private;
-    struct drm_gem_object *obj = fb->helper_private;
-    struct ttm_buffer_object *bo = ttm_gem_mapping(obj);
+    struct via_framebuffer *via_fb =
+            container_of(fb, struct via_framebuffer, fb);
+    struct drm_gem_object *gem_obj = via_fb->gem_obj;
+    struct ttm_buffer_object *bo = ttm_gem_mapping(gem_obj);
 
     if ((fb->format->depth != 8) && (fb->format->depth != 16) &&
 		(fb->format->depth != 24) && (fb->format->depth != 32)) {
