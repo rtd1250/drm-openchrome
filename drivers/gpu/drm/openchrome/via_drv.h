@@ -274,12 +274,15 @@ extern int ttm_mmap(struct file *filp, struct vm_area_struct *vma);
 
 extern int ttm_gem_open_object(struct drm_gem_object *obj, struct drm_file *file_priv);
 extern void ttm_gem_free_object(struct drm_gem_object *obj);
-extern struct drm_gem_object *ttm_gem_create(struct drm_device *dev,
-                         struct ttm_bo_device *bdev,
-                         enum ttm_bo_type origin,
-                         int type, bool interruptible,
-                         int byte_align, int page_align,
-                         unsigned long size);
+extern struct drm_gem_object *
+ttm_gem_create(struct drm_device *dev,
+		struct ttm_bo_device *bdev,
+		enum ttm_bo_type origin,
+		uint32_t domains,
+		bool interruptible,
+		int byte_align,
+		int page_align,
+		unsigned long size);
 extern struct ttm_buffer_object *ttm_gem_mapping(struct drm_gem_object *obj);
 
 extern struct ttm_tt *
