@@ -1537,7 +1537,6 @@ static void exynos_dsi_connector_destroy(struct drm_connector *connector)
 }
 
 static const struct drm_connector_funcs exynos_dsi_connector_funcs = {
-	.dpms = drm_atomic_helper_connector_dpms,
 	.detect = exynos_dsi_detect,
 	.fill_modes = drm_helper_probe_single_connector_modes,
 	.destroy = exynos_dsi_connector_destroy,
@@ -1650,8 +1649,6 @@ static int exynos_dsi_parse_dt(struct exynos_dsi *dsi)
 		return ret;
 
 	dsi->bridge_node = of_graph_get_remote_node(node, DSI_PORT_IN, 0);
-	if (!dsi->bridge_node)
-		return -EINVAL;
 
 	return 0;
 }
@@ -1686,9 +1683,11 @@ static int exynos_dsi_bind(struct device *dev, struct device *master,
 		return ret;
 	}
 
-	bridge = of_drm_find_bridge(dsi->bridge_node);
-	if (bridge)
-		drm_bridge_attach(encoder, bridge, NULL);
+	if (dsi->bridge_node) {
+		bridge = of_drm_find_bridge(dsi->bridge_node);
+		if (bridge)
+			drm_bridge_attach(encoder, bridge, NULL);
+	}
 
 	return mipi_dsi_host_register(&dsi->dsi_host);
 }

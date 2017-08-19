@@ -251,7 +251,7 @@ static int cirrus_fbdev_destroy(struct drm_device *dev,
 	drm_fb_helper_unregister_fbi(&gfbdev->helper);
 
 	if (gfb->obj) {
-		drm_gem_object_unreference_unlocked(gfb->obj);
+		drm_gem_object_put_unlocked(gfb->obj);
 		gfb->obj = NULL;
 	}
 
@@ -264,8 +264,6 @@ static int cirrus_fbdev_destroy(struct drm_device *dev,
 }
 
 static const struct drm_fb_helper_funcs cirrus_fb_helper_funcs = {
-	.gamma_set = cirrus_crtc_fb_gamma_set,
-	.gamma_get = cirrus_crtc_fb_gamma_get,
 	.fb_probe = cirrusfb_create,
 };
 
