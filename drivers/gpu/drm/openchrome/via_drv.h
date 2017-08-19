@@ -281,12 +281,12 @@ extern void ttm_gem_free_object(struct drm_gem_object *obj);
 extern struct drm_gem_object *
 ttm_gem_create(struct drm_device *dev,
 		struct ttm_bo_device *bdev,
-		enum ttm_bo_type origin,
+		unsigned long size,
+		enum ttm_bo_type type,
 		uint32_t domains,
-		bool interruptible,
-		int byte_align,
-		int page_align,
-		unsigned long size);
+		uint32_t byte_alignment,
+		uint32_t page_alignment,
+		bool interruptible);
 extern struct ttm_buffer_object *ttm_gem_mapping(struct drm_gem_object *obj);
 
 extern struct ttm_tt *
