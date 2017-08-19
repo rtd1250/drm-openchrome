@@ -95,8 +95,9 @@ ttm_gem_create(struct drm_device *dev,
 	size = round_up(size, byte_align);
 	size = ALIGN(size, page_align);
 
-	ret = via_bo_create(bdev, size, origin, domains, byte_align,
-			      page_align, interruptible, NULL, NULL, &bo);
+	ret = via_bo_create(bdev, &bo, size, origin, domains,
+				byte_align, page_align,
+				interruptible, NULL, NULL);
 	if (ret) {
 		DRM_ERROR("Failed to create buffer object\n");
 		return ERR_PTR(ret);
