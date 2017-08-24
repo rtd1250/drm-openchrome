@@ -1152,42 +1152,7 @@ exit:
 	return ret;
 }
 
-/** Sets the color ramps on behalf of fbcon */
-static void
-via_fb_gamma_set(struct drm_crtc *crtc, u16 red, u16 green,
-		u16 blue, int regno)
-{
-	int size = crtc->gamma_size * sizeof(uint16_t);
-	u16 *r_base, *g_base, *b_base;
-
-	r_base = crtc->gamma_store;
-	g_base = r_base + size;
-	b_base = g_base + size;
-
-	r_base[regno] = red;
-	g_base[regno] = green;
-	b_base[regno] = blue;
-}
-
-static void
-via_fb_gamma_get(struct drm_crtc *crtc, u16 *red, u16 *green,
-		u16 *blue, int regno)
-{
-	int size = crtc->gamma_size * sizeof(uint16_t);
-	u16 *r_base, *g_base, *b_base;
-
-	r_base = crtc->gamma_store;
-	g_base = r_base + size;
-	b_base = g_base + size;
-
-	*red = r_base[regno];
-	*green = g_base[regno];
-	*blue = b_base[regno];
-}
-
 static struct drm_fb_helper_funcs via_drm_fb_helper_funcs = {
-	.gamma_set = via_fb_gamma_set,
-	.gamma_get = via_fb_gamma_get,
 	.fb_probe = via_fb_probe,
 };
 
