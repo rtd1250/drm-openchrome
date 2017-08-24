@@ -268,22 +268,19 @@ irqreturn_t via_driver_irq_handler(int irq, void *arg)
 	return ret;
 }
 
-int
-via_enable_vblank(struct drm_device *dev, int crtc)
+int via_enable_vblank(struct drm_crtc *crtc)
 {
+	struct drm_device *dev = crtc->dev;
+	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct via_device *dev_priv = dev->dev_private;
 	u32 status;
 
-	if (crtc < 0 || crtc >= dev->num_crtcs) {
-		DRM_ERROR("%s: Invalid crtc %d\n", __func__, crtc);
-		return -EINVAL;
-	}
-
 	status = VIA_READ(INTERRUPT_CTRL_REG1);
-	if (crtc == 1)
+	if (iga->index) {
 		status |= VIA_IRQ_IGA2_VSYNC_ENABLE | VIA_IRQ_IGA2_VSYNC_STATUS;
-	else if (!crtc)
+	} else {
 		status |= VIA_IRQ_IGA1_VSYNC_ENABLE | VIA_IRQ_IGA1_VSYNC_STATUS;
+	}
 
 	svga_wcrt_mask(VGABASE, 0xF3, 0, BIT(1));
 	svga_wcrt_mask(VGABASE, 0x11, BIT(4), BIT(4));
@@ -292,22 +289,19 @@ via_enable_vblank(struct drm_device *dev, int crtc)
 	return 0;
 }
 
-void
-via_disable_vblank(struct drm_device *dev, int crtc)
+void via_disable_vblank(struct drm_crtc *crtc)
 {
+	struct drm_device *dev = crtc->dev;
+	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct via_device *dev_priv = dev->dev_private;
 	u32 status;
 
-	if (crtc < 0 || crtc >= dev->num_crtcs) {
-		DRM_ERROR("%s: Invalid crtc %d\n", __func__, crtc);
-		return;
-	}
-
 	status = VIA_READ(INTERRUPT_CTRL_REG1);
-	if (crtc == 1)
+	if (iga->index) {
 		status &= ~VIA_IRQ_IGA2_VSYNC_ENABLE;
-	else if (!crtc)
+	} else {
 		status &= ~VIA_IRQ_IGA1_VSYNC_ENABLE;
+	}
 
 	VIA_WRITE(INTERRUPT_CTRL_REG1, status);
 }

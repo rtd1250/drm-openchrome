@@ -465,6 +465,8 @@ static const struct drm_crtc_funcs via_iga1_funcs = {
     .gamma_set = via_iga1_gamma_set,
     .set_config = drm_crtc_helper_set_config,
     .destroy = via_crtc_destroy,
+    .enable_vblank = via_enable_vblank,
+    .disable_vblank = via_disable_vblank,
 };
 
 static const struct drm_crtc_funcs via_iga2_funcs = {
@@ -473,6 +475,8 @@ static const struct drm_crtc_funcs via_iga2_funcs = {
     .gamma_set = via_iga2_gamma_set,
     .set_config = drm_crtc_helper_set_config,
     .destroy = via_crtc_destroy,
+    .enable_vblank = via_enable_vblank,
+    .disable_vblank = via_disable_vblank,
 };
 
 static void

@@ -237,8 +237,8 @@ extern int via_wait_idle(struct via_device *dev_priv);
 
 extern int via_vram_init(struct via_device *dev_priv);
 
-extern int via_enable_vblank(struct drm_device *dev, int crtc);
-extern void via_disable_vblank(struct drm_device *dev, int crtc);
+extern int via_enable_vblank(struct drm_crtc *crtc);
+extern void via_disable_vblank(struct drm_crtc *crtc);
 
 extern irqreturn_t via_driver_irq_handler(int irq, void *arg);
 extern void via_driver_irq_preinstall(struct drm_device *dev);
