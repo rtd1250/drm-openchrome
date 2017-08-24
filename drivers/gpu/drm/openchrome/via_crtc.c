@@ -1662,7 +1662,6 @@ static const struct drm_crtc_helper_funcs via_iga1_helper_funcs = {
     .mode_set = via_iga1_crtc_mode_set,
     .mode_set_base = via_iga1_crtc_mode_set_base,
     .mode_set_base_atomic = via_iga1_mode_set_base_atomic,
-    .load_lut = drm_mode_crtc_load_lut,
 };
 
 static const struct drm_crtc_helper_funcs via_iga2_helper_funcs = {
@@ -1674,7 +1673,6 @@ static const struct drm_crtc_helper_funcs via_iga2_helper_funcs = {
     .mode_set = via_iga2_crtc_mode_set,
     .mode_set_base = via_iga2_crtc_mode_set_base,
     .mode_set_base_atomic = via_iga2_mode_set_base_atomic,
-    .load_lut = drm_mode_crtc_load_lut,
 };
 
 void
