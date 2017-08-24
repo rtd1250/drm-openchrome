@@ -1225,6 +1225,7 @@ int via_fbdev_init(struct drm_device *dev)
 		goto free_fb_helper;
 	}
 
+	drm_helper_disable_unused_functions(dev);
 	ret = drm_fb_helper_initial_config(&via_fbdev->helper, bpp_sel);
 	if (ret) {
 		goto free_fb_helper;
