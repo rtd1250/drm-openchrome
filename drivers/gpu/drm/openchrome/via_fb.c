@@ -994,7 +994,6 @@ int drmfb_helper_pan_display(struct fb_var_screeninfo *var,
 				struct fb_info *info)
 {
 	struct drm_fb_helper *fb_helper = info->par;
-	struct drm_crtc_helper_funcs *crtc_funcs;
 	struct drm_device *dev = fb_helper->dev;
 	struct drm_mode_set *modeset;
 	struct drm_crtc *crtc;
@@ -1003,9 +1002,8 @@ int drmfb_helper_pan_display(struct fb_var_screeninfo *var,
 	mutex_lock(&dev->mode_config.mutex);
 	for (i = 0; i < fb_helper->crtc_count; i++) {
 		crtc = fb_helper->crtc_info[i].mode_set.crtc;
-		crtc_funcs = crtc->helper_private;
 
-		if (!crtc_funcs->mode_set_base)
+		if (!crtc->helper_private->mode_set_base)
 			continue;
 
 		modeset = &fb_helper->crtc_info[i].mode_set;
@@ -1013,9 +1011,10 @@ int drmfb_helper_pan_display(struct fb_var_screeninfo *var,
 		modeset->y = var->yoffset;
 
 		if (modeset->num_connectors) {
-			ret = crtc_funcs->mode_set_base(crtc, modeset->x,
-							modeset->y,
-							crtc->primary->fb);
+			ret = crtc->helper_private->mode_set_base(
+						crtc,
+						modeset->x, modeset->y,
+						crtc->primary->fb);
 			if (!ret) {
 				info->flags |= FBINFO_HWACCEL_YPAN;
 				info->var.xoffset = var->xoffset;
