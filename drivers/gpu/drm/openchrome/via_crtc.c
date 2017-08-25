@@ -1151,7 +1151,6 @@ via_iga1_crtc_mode_set(struct drm_crtc *crtc,
                         int x, int y, struct drm_framebuffer *fb)
 {
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-    struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
     struct via_device *dev_priv = crtc->dev->dev_private;
     struct drm_device *dev = crtc->dev;
     u8 reg_value = 0;
@@ -1227,7 +1226,7 @@ via_iga1_crtc_mode_set(struct drm_crtc *crtc,
         via_set_vclock(crtc, pll_regs);
     }
 
-    ret = crtc_funcs->mode_set_base(crtc, x, y, fb);
+    ret = crtc->helper_private->mode_set_base(crtc, x, y, fb);
 
 exit:
     DRM_DEBUG("Exiting via_iga1_crtc_mode_set.\n");
@@ -1238,7 +1237,6 @@ static int
 via_iga1_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
                             struct drm_framebuffer *old_fb)
 {
-    struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
     struct ttm_buffer_object *bo;
     struct via_framebuffer *via_fb =
             container_of(crtc->primary->fb, struct via_framebuffer, fb);
@@ -1267,7 +1265,7 @@ via_iga1_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
         return ret;
     }
 
-    ret = crtc_funcs->mode_set_base_atomic(crtc, new_fb, x, y,
+    ret = crtc->helper_private->mode_set_base_atomic(crtc, new_fb, x, y,
             ENTER_ATOMIC_MODE_SET);
     if (unlikely(ret)) {
         DRM_DEBUG("failed to set new framebuffer\n");
@@ -1439,7 +1437,6 @@ via_iga2_crtc_mode_set(struct drm_crtc *crtc,
                         int x, int y, struct drm_framebuffer *fb)
 {
     struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-    struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
     struct via_device *dev_priv = crtc->dev->dev_private;
     struct drm_device *dev = crtc->dev;
     int ret;
@@ -1544,7 +1541,7 @@ via_iga2_crtc_mode_set(struct drm_crtc *crtc,
         via_set_vclock(crtc, pll_regs);
     }
 
-    ret = crtc_funcs->mode_set_base(crtc, x, y, fb);
+    ret = crtc->helper_private->mode_set_base(crtc, x, y, fb);
 
 exit:
     DRM_DEBUG("Exiting via_iga2_crtc_mode_set.\n");
@@ -1555,7 +1552,6 @@ static int
 via_iga2_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
                         struct drm_framebuffer *old_fb)
 {
-    struct drm_crtc_helper_funcs *crtc_funcs = crtc->helper_private;
     struct ttm_buffer_object *bo;
     struct via_framebuffer *via_fb =
             container_of(crtc->primary->fb, struct via_framebuffer, fb);
@@ -1584,7 +1580,7 @@ via_iga2_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
         return ret;
     }
 
-    ret = crtc_funcs->mode_set_base_atomic(crtc, new_fb, x, y,
+    ret = crtc->helper_private->mode_set_base_atomic(crtc, new_fb, x, y,
             ENTER_ATOMIC_MODE_SET);
     if (unlikely(ret)) {
         DRM_DEBUG("failed to set new framebuffer\n");
