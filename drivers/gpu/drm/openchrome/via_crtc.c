@@ -1054,7 +1054,6 @@ drm_mode_crtc_load_lut(struct drm_crtc *crtc)
 static void
 via_iga1_crtc_dpms(struct drm_crtc *crtc, int mode)
 {
-    struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
     struct via_device *dev_priv = crtc->dev->dev_private;
 
     DRM_DEBUG("Entered via_iga1_crtc_dpms.\n");
@@ -1086,8 +1085,6 @@ via_iga1_crtc_dpms(struct drm_crtc *crtc, int mode)
 static void
 via_iga1_crtc_disable(struct drm_crtc *crtc)
 {
-    struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-
     DRM_DEBUG("Entered via_iga1_crtc_disable.\n");
 
     drm_crtc_vblank_off(crtc);
@@ -1340,7 +1337,6 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc,
 static void
 via_iga2_crtc_dpms(struct drm_crtc *crtc, int mode)
 {
-    struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
     struct via_device *dev_priv = crtc->dev->dev_private;
 
     DRM_DEBUG("Entered via_iga2_crtc_dpms.\n");
@@ -1372,8 +1368,6 @@ via_iga2_crtc_dpms(struct drm_crtc *crtc, int mode)
 static void
 via_iga2_crtc_disable(struct drm_crtc *crtc)
 {
-    struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-
     DRM_DEBUG("Entered via_iga2_crtc_disable.\n");
 
     drm_crtc_vblank_off(crtc);
