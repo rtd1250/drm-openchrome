@@ -35,7 +35,6 @@ void
 via_encoder_commit(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
-	struct drm_encoder_helper_funcs *encoder_funcs = encoder->helper_private;
 	struct via_device *dev_priv = encoder->dev->dev_private;
 	struct drm_device *dev = encoder->dev;
 	struct via_crtc *iga = NULL;
@@ -145,18 +144,17 @@ via_encoder_commit(struct drm_encoder *encoder)
 		svga_wcrt_mask(VGABASE, 0x91, 0x00, BIT(5));
 
 	/* Now turn on the display */
-	encoder_funcs->dpms(encoder, DRM_MODE_DPMS_ON);
+	encoder->helper_private->dpms(encoder, DRM_MODE_DPMS_ON);
 }
 
 void
 via_encoder_disable(struct drm_encoder *encoder)
 {
-	struct drm_encoder_helper_funcs *encoder_funcs = encoder->helper_private;
 	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
 	struct via_device *dev_priv = encoder->dev->dev_private;
 
 	/* First turn off the display */
-	encoder_funcs->dpms(encoder, DRM_MODE_DPMS_OFF);
+	encoder->helper_private->dpms(encoder, DRM_MODE_DPMS_OFF);
 
 	switch (enc->di_port) {
 	case VIA_DI_PORT_DVP0:
@@ -245,9 +243,7 @@ via_set_sync_polarity(struct drm_encoder *encoder, struct drm_display_mode *mode
 void
 via_encoder_prepare(struct drm_encoder *encoder)
 {
-	struct drm_encoder_helper_funcs *encoder_funcs = encoder->helper_private;
-
-	encoder_funcs->dpms(encoder, DRM_MODE_DPMS_OFF);
+	encoder->helper_private->dpms(encoder, DRM_MODE_DPMS_OFF);
 }
 
 struct drm_encoder *
@@ -306,14 +302,11 @@ via_connector_set_property(struct drm_connector *connector,
 				struct drm_property *property, uint64_t value)
 {
 	struct drm_encoder *encoder = connector->encoder;
-	struct drm_encoder_helper_funcs *encoder_funcs;
 	struct drm_device *dev = connector->dev;
 
 	if (encoder) {
-		encoder_funcs = encoder->helper_private;
-
 		if (property == dev->mode_config.dpms_property)
-			encoder_funcs->dpms(encoder, (uint32_t)(value & 0xf));
+			encoder->helper_private->dpms(encoder, (uint32_t)(value & 0xf));
 	}
 	return 0;
 }
