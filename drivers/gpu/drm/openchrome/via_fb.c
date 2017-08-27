@@ -1108,6 +1108,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 
 	via_fb->gem_obj = gem_obj;
 	via_fbdev->helper.fb = fb;
+	via_fbdev->helper.fbdev = info;
 
 	strcpy(info->fix.id, dev->driver->name);
 	strcat(info->fix.id, "drmfb");
