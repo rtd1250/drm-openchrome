@@ -568,6 +568,7 @@ static struct ttm_bo_driver via_bo_driver = {
 	.verify_access		= via_verify_access,
 	.io_mem_reserve		= via_ttm_io_mem_reserve,
 	.io_mem_free		= via_ttm_io_mem_free,
+	.io_mem_pfn		= ttm_bo_default_io_mem_pfn,
 };
 
 int via_mm_init(struct via_device *dev_priv)
