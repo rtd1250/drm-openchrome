@@ -1143,6 +1143,62 @@ via_iga1_crtc_mode_fixup(struct drm_crtc *crtc,
 }
 
 static int
+via_iga1_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
+                            struct drm_framebuffer *old_fb)
+{
+    struct ttm_buffer_object *bo;
+    struct via_framebuffer *via_fb =
+            container_of(crtc->primary->fb, struct via_framebuffer, fb);
+    struct drm_framebuffer *new_fb = &via_fb->fb;
+    struct drm_gem_object *gem_obj = via_fb->gem_obj;
+    int ret = 0;
+
+    DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+    /* No FB found. */
+    if (!new_fb) {
+        ret = -ENOMEM;
+        DRM_DEBUG_KMS("No FB found.\n");
+        goto exit;
+    }
+
+    gem_obj = via_fb->gem_obj;
+    bo = ttm_gem_mapping(gem_obj);
+
+    ret = via_bo_pin(bo, NULL);
+    if (unlikely(ret)) {
+        DRM_DEBUG_KMS("Failed to pin FB.\n");
+        goto exit;
+    }
+
+    ret = crtc->helper_private->mode_set_base_atomic(crtc, new_fb, x, y,
+            ENTER_ATOMIC_MODE_SET);
+    if (unlikely(ret)) {
+        DRM_DEBUG_KMS("Failed to set a new FB.\n");
+        via_bo_unpin(bo, NULL);
+        goto exit;
+    }
+
+    /* Free the old framebuffer if it exist */
+    if (old_fb) {
+        via_fb = container_of(old_fb,
+                                struct via_framebuffer, fb);
+        gem_obj = via_fb->gem_obj;
+        bo = ttm_gem_mapping(gem_obj);
+
+        ret = via_bo_unpin(bo, NULL);
+        if (unlikely(ret)) {
+            DRM_DEBUG_KMS("FB still locked.\n");
+            goto exit;
+        }
+    }
+
+exit:
+    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+    return ret;
+}
+
+static int
 via_iga1_crtc_mode_set(struct drm_crtc *crtc,
                         struct drm_display_mode *mode, struct drm_display_mode *adjusted_mode,
                         int x, int y, struct drm_framebuffer *fb)
@@ -1223,66 +1279,10 @@ via_iga1_crtc_mode_set(struct drm_crtc *crtc,
         via_set_vclock(crtc, pll_regs);
     }
 
-    ret = crtc->helper_private->mode_set_base(crtc, x, y, fb);
+    ret = via_iga1_crtc_mode_set_base(crtc, x, y, fb);
 
 exit:
     DRM_DEBUG("Exiting via_iga1_crtc_mode_set.\n");
-    return ret;
-}
-
-static int
-via_iga1_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
-                            struct drm_framebuffer *old_fb)
-{
-    struct ttm_buffer_object *bo;
-    struct via_framebuffer *via_fb =
-            container_of(crtc->primary->fb, struct via_framebuffer, fb);
-    struct drm_framebuffer *new_fb = &via_fb->fb;
-    struct drm_gem_object *gem_obj = via_fb->gem_obj;
-    int ret = 0;
-
-    DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-    /* No FB found. */
-    if (!new_fb) {
-        ret = -ENOMEM;
-        DRM_DEBUG_KMS("No FB found.\n");
-        goto exit;
-    }
-
-    gem_obj = via_fb->gem_obj;
-    bo = ttm_gem_mapping(gem_obj);
-
-    ret = via_bo_pin(bo, NULL);
-    if (unlikely(ret)) {
-        DRM_DEBUG_KMS("Failed to pin FB.\n");
-        goto exit;
-    }
-
-    ret = crtc->helper_private->mode_set_base_atomic(crtc, new_fb, x, y,
-            ENTER_ATOMIC_MODE_SET);
-    if (unlikely(ret)) {
-        DRM_DEBUG_KMS("Failed to set a new FB.\n");
-        via_bo_unpin(bo, NULL);
-        goto exit;
-    }
-
-    /* Free the old framebuffer if it exist */
-    if (old_fb) {
-        via_fb = container_of(old_fb,
-                                struct via_framebuffer, fb);
-        gem_obj = via_fb->gem_obj;
-        bo = ttm_gem_mapping(gem_obj);
-
-        ret = via_bo_unpin(bo, NULL);
-        if (unlikely(ret)) {
-            DRM_DEBUG_KMS("FB still locked.\n");
-            goto exit;
-        }
-    }
-
-exit:
-    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
     return ret;
 }
 
@@ -1426,6 +1426,62 @@ via_iga2_crtc_mode_fixup(struct drm_crtc *crtc,
 }
 
 static int
+via_iga2_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
+                            struct drm_framebuffer *old_fb)
+{
+    struct ttm_buffer_object *bo;
+    struct via_framebuffer *via_fb =
+            container_of(crtc->primary->fb, struct via_framebuffer, fb);
+    struct drm_framebuffer *new_fb = &via_fb->fb;
+    struct drm_gem_object *gem_obj = via_fb->gem_obj;
+    int ret = 0;
+
+    DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+    /* No FB found. */
+    if (!new_fb) {
+        ret = -ENOMEM;
+        DRM_DEBUG_KMS("No FB found.\n");
+        goto exit;
+    }
+
+    gem_obj = via_fb->gem_obj;
+    bo = ttm_gem_mapping(gem_obj);
+
+    ret = via_bo_pin(bo, NULL);
+    if (unlikely(ret)) {
+        DRM_DEBUG_KMS("Failed to pin FB.\n");
+        goto exit;
+    }
+
+    ret = crtc->helper_private->mode_set_base_atomic(crtc, new_fb, x, y,
+            ENTER_ATOMIC_MODE_SET);
+    if (unlikely(ret)) {
+        DRM_DEBUG_KMS("Failed to set a new FB.\n");
+        via_bo_unpin(bo, NULL);
+        goto exit;
+    }
+
+    /* Free the old framebuffer if it exist */
+    if (old_fb) {
+        via_fb = container_of(old_fb,
+                                struct via_framebuffer, fb);
+        gem_obj = via_fb->gem_obj;
+        bo = ttm_gem_mapping(gem_obj);
+
+        ret = via_bo_unpin(bo, NULL);
+        if (unlikely(ret)) {
+            DRM_DEBUG_KMS("FB still locked.\n");
+            goto exit;
+        }
+    }
+
+exit:
+    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+    return ret;
+}
+
+static int
 via_iga2_crtc_mode_set(struct drm_crtc *crtc,
                         struct drm_display_mode *mode, struct drm_display_mode *adjusted_mode,
                         int x, int y, struct drm_framebuffer *fb)
@@ -1535,66 +1591,10 @@ via_iga2_crtc_mode_set(struct drm_crtc *crtc,
         via_set_vclock(crtc, pll_regs);
     }
 
-    ret = crtc->helper_private->mode_set_base(crtc, x, y, fb);
+    ret = via_iga2_crtc_mode_set_base(crtc, x, y, fb);
 
 exit:
     DRM_DEBUG("Exiting via_iga2_crtc_mode_set.\n");
-    return ret;
-}
-
-static int
-via_iga2_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
-                            struct drm_framebuffer *old_fb)
-{
-    struct ttm_buffer_object *bo;
-    struct via_framebuffer *via_fb =
-            container_of(crtc->primary->fb, struct via_framebuffer, fb);
-    struct drm_framebuffer *new_fb = &via_fb->fb;
-    struct drm_gem_object *gem_obj = via_fb->gem_obj;
-    int ret = 0;
-
-    DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-    /* No FB found. */
-    if (!new_fb) {
-        ret = -ENOMEM;
-        DRM_DEBUG_KMS("No FB found.\n");
-        goto exit;
-    }
-
-    gem_obj = via_fb->gem_obj;
-    bo = ttm_gem_mapping(gem_obj);
-
-    ret = via_bo_pin(bo, NULL);
-    if (unlikely(ret)) {
-        DRM_DEBUG_KMS("Failed to pin FB.\n");
-        goto exit;
-    }
-
-    ret = crtc->helper_private->mode_set_base_atomic(crtc, new_fb, x, y,
-            ENTER_ATOMIC_MODE_SET);
-    if (unlikely(ret)) {
-        DRM_DEBUG_KMS("Failed to set a new FB.\n");
-        via_bo_unpin(bo, NULL);
-        goto exit;
-    }
-
-    /* Free the old framebuffer if it exist */
-    if (old_fb) {
-        via_fb = container_of(old_fb,
-                                struct via_framebuffer, fb);
-        gem_obj = via_fb->gem_obj;
-        bo = ttm_gem_mapping(gem_obj);
-
-        ret = via_bo_unpin(bo, NULL);
-        if (unlikely(ret)) {
-            DRM_DEBUG_KMS("FB still locked.\n");
-            goto exit;
-        }
-    }
-
-exit:
-    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
     return ret;
 }
 
@@ -1654,7 +1654,6 @@ static const struct drm_crtc_helper_funcs via_iga1_helper_funcs = {
     .commit = via_iga1_crtc_commit,
     .mode_fixup = via_iga1_crtc_mode_fixup,
     .mode_set = via_iga1_crtc_mode_set,
-    .mode_set_base = via_iga1_crtc_mode_set_base,
     .mode_set_base_atomic = via_iga1_mode_set_base_atomic,
 };
 
@@ -1665,7 +1664,6 @@ static const struct drm_crtc_helper_funcs via_iga2_helper_funcs = {
     .commit = via_iga2_crtc_commit,
     .mode_fixup = via_iga2_crtc_mode_fixup,
     .mode_set = via_iga2_crtc_mode_set,
-    .mode_set_base = via_iga2_crtc_mode_set_base,
     .mode_set_base_atomic = via_iga2_mode_set_base_atomic,
 };
 
