@@ -274,7 +274,7 @@ via_analog_init(struct drm_device *dev)
 						DRM_MODE_ENCODER_DAC, NULL);
 	drm_encoder_helper_add(&enc->base, &via_dac_enc_helper_funcs);
 
-	enc->base.possible_crtcs = BIT(0);
+	enc->base.possible_crtcs = BIT(1);
 	enc->base.possible_clones = 0;
 	enc->di_port = VIA_DI_PORT_NONE;
 
