@@ -30,11 +30,11 @@
 #define DRIVER_AUTHOR       "OpenChrome Project"
 #define DRIVER_NAME         "openchrome"
 #define DRIVER_DESC         "OpenChrome DRM for VIA Technologies Chrome IGP"
-#define DRIVER_DATE         "20171007"
+#define DRIVER_DATE         "20171008"
 
 #define DRIVER_MAJOR		3
 #define DRIVER_MINOR		0
-#define DRIVER_PATCHLEVEL	48
+#define DRIVER_PATCHLEVEL	49
 
 #include <linux/module.h>
 
