@@ -497,6 +497,10 @@ via_modeset_init(struct drm_device *dev)
 	dev->mode_config.max_width = 2044;
 	dev->mode_config.max_height = 4096;
 
+	/* Initialize the number of display connectors. */
+	dev_priv->number_fp = 0;
+	dev_priv->number_dvi = 0;
+
 	via_display_init(dev);
 	via_i2c_reg_init(dev_priv);
 	via_i2c_init(dev);
@@ -505,8 +509,7 @@ via_modeset_init(struct drm_device *dev)
 	for (i = 0; i < 2; i++)
 		via_crtc_init(dev, i);
 
-	/* Initialize the number of FP connectors. */
-	dev_priv->number_fp = 0;
+	via_tmds_probe(dev);
 
 	via_fp_probe(dev);
 
