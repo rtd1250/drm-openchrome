@@ -127,13 +127,6 @@ static const struct drm_connector_funcs sun4i_rgb_con_funcs = {
 	.atomic_destroy_state	= drm_atomic_helper_connector_destroy_state,
 };
 
-static int sun4i_rgb_atomic_check(struct drm_encoder *encoder,
-				  struct drm_crtc_state *crtc_state,
-				  struct drm_connector_state *conn_state)
-{
-	return 0;
-}
-
 static void sun4i_rgb_encoder_enable(struct drm_encoder *encoder)
 {
 	struct sun4i_rgb *rgb = drm_encoder_to_sun4i_rgb(encoder);
@@ -141,13 +134,10 @@ static void sun4i_rgb_encoder_enable(struct drm_encoder *encoder)
 
 	DRM_DEBUG_DRIVER("Enabling RGB output\n");
 
-	if (!IS_ERR(tcon->panel))
+	if (!IS_ERR(tcon->panel)) {
 		drm_panel_prepare(tcon->panel);
-
-	sun4i_tcon_channel_enable(tcon, 0);
-
-	if (!IS_ERR(tcon->panel))
 		drm_panel_enable(tcon->panel);
+	}
 }
 
 static void sun4i_rgb_encoder_disable(struct drm_encoder *encoder)
@@ -157,32 +147,13 @@ static void sun4i_rgb_encoder_disable(struct drm_encoder *encoder)
 
 	DRM_DEBUG_DRIVER("Disabling RGB output\n");
 
-	if (!IS_ERR(tcon->panel))
+	if (!IS_ERR(tcon->panel)) {
 		drm_panel_disable(tcon->panel);
-
-	sun4i_tcon_channel_disable(tcon, 0);
-
-	if (!IS_ERR(tcon->panel))
 		drm_panel_unprepare(tcon->panel);
-}
-
-static void sun4i_rgb_encoder_mode_set(struct drm_encoder *encoder,
-				       struct drm_display_mode *mode,
-				       struct drm_display_mode *adjusted_mode)
-{
-	struct sun4i_rgb *rgb = drm_encoder_to_sun4i_rgb(encoder);
-	struct sun4i_tcon *tcon = rgb->tcon;
-
-	sun4i_tcon0_mode_set(tcon, mode);
-	sun4i_tcon_set_mux(tcon, 0, encoder);
-
-	/* FIXME: This seems to be board specific */
-	clk_set_phase(tcon->dclk, 120);
+	}
 }
 
 static struct drm_encoder_helper_funcs sun4i_rgb_enc_helper_funcs = {
-	.atomic_check	= sun4i_rgb_atomic_check,
-	.mode_set	= sun4i_rgb_encoder_mode_set,
 	.disable	= sun4i_rgb_encoder_disable,
 	.enable		= sun4i_rgb_encoder_enable,
 };

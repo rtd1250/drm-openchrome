@@ -216,7 +216,7 @@ static void gen9_set_dc_state_debugmask(struct drm_i915_private *dev_priv)
 
 	mask = DC_STATE_DEBUG_MASK_MEMORY_UP;
 
-	if (IS_BROXTON(dev_priv))
+	if (IS_GEN9_LP(dev_priv))
 		mask |= DC_STATE_DEBUG_MASK_CORES;
 
 	/* The below bit doesn't need to be cleared ever afterwards */
@@ -252,8 +252,14 @@ void intel_csr_load_program(struct drm_i915_private *dev_priv)
 	}
 
 	fw_size = dev_priv->csr.dmc_fw_size;
+	assert_rpm_wakelock_held(dev_priv);
+
+	preempt_disable();
+
 	for (i = 0; i < fw_size; i++)
-		I915_WRITE(CSR_PROGRAM(i), payload[i]);
+		I915_WRITE_FW(CSR_PROGRAM(i), payload[i]);
+
+	preempt_enable();
 
 	for (i = 0; i < dev_priv->csr.mmio_count; i++) {
 		I915_WRITE(dev_priv->csr.mmioaddr[i],

@@ -1131,10 +1131,7 @@ setup_hazard_table(struct hz_init init_table[], enum hazard table[], int size)
 
 void via_init_command_verifier(void)
 {
-	setup_hazard_table(init_table1, table1,
-			   sizeof(init_table1) / sizeof(struct hz_init));
-	setup_hazard_table(init_table2, table2,
-			   sizeof(init_table2) / sizeof(struct hz_init));
-	setup_hazard_table(init_table3, table3,
-			   sizeof(init_table3) / sizeof(struct hz_init));
+	setup_hazard_table(init_table1, table1, ARRAY_SIZE(init_table1));
+	setup_hazard_table(init_table2, table2, ARRAY_SIZE(init_table2));
+	setup_hazard_table(init_table3, table3, ARRAY_SIZE(init_table3));
 }

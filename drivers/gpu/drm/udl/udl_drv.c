@@ -14,6 +14,9 @@
 static int udl_usb_suspend(struct usb_interface *interface,
 			   pm_message_t message)
 {
+	struct drm_device *dev = usb_get_intfdata(interface);
+
+	drm_kms_helper_poll_disable(dev);
 	return 0;
 }
 
@@ -21,6 +24,7 @@ static int udl_usb_resume(struct usb_interface *interface)
 {
 	struct drm_device *dev = usb_get_intfdata(interface);
 
+	drm_kms_helper_poll_enable(dev);
 	udl_modeset_restore(dev);
 	return 0;
 }
@@ -111,7 +115,7 @@ static void udl_usb_disconnect(struct usb_interface *interface)
  * which is compatible with all known USB 2.0 era graphics chips and firmware,
  * but allows DisplayLink to increment those for any future incompatible chips
  */
-static struct usb_device_id id_table[] = {
+static const struct usb_device_id id_table[] = {
 	{.idVendor = 0x17e9, .bInterfaceClass = 0xff,
 	 .bInterfaceSubClass = 0x00,
 	 .bInterfaceProtocol = 0x00,

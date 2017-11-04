@@ -57,18 +57,6 @@
  */
 
 /**
- * amdgpu_gart_set_defaults - set the default gart_size
- *
- * @adev: amdgpu_device pointer
- *
- * Set the default gart_size based on parameters and available VRAM.
- */
-void amdgpu_gart_set_defaults(struct amdgpu_device *adev)
-{
-	adev->mc.gart_size = (uint64_t)amdgpu_gart_size << 20;
-}
-
-/**
  * amdgpu_gart_table_ram_alloc - allocate system ram for gart page table
  *
  * @adev: amdgpu_device pointer
@@ -344,12 +332,13 @@ int amdgpu_gart_bind(struct amdgpu_device *adev, uint64_t offset,
 		adev->gart.pages[p] = pagelist[i];
 #endif
 
-	if (adev->gart.ptr) {
-		r = amdgpu_gart_map(adev, offset, pages, dma_addr, flags,
-			    adev->gart.ptr);
-		if (r)
-			return r;
-	}
+	if (!adev->gart.ptr)
+		return 0;
+
+	r = amdgpu_gart_map(adev, offset, pages, dma_addr, flags,
+		    adev->gart.ptr);
+	if (r)
+		return r;
 
 	mb();
 	amdgpu_gart_flush_gpu_tlb(adev, 0);
