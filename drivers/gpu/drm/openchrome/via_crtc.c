@@ -48,7 +48,7 @@ static struct vga_regset vpit_table[] = {
 static void
 via_iga_common_init(void __iomem *regs)
 {
-    DRM_DEBUG("Entered via_iga_common_init.\n");
+    DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
     /* Be careful with 3C5.15[5] - Wrap Around Disable.
      * It must be set to 1 for proper operation. */
@@ -60,7 +60,7 @@ via_iga_common_init(void __iomem *regs)
      *               1: Enable */
     svga_wseq_mask(regs, 0x15, BIT(5) | BIT(1), BIT(5) | BIT(1));
 
-    DRM_DEBUG("Exiting via_iga_common_init.\n");
+    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static void
@@ -69,7 +69,7 @@ via_iga1_set_color_depth(struct via_device *dev_priv,
 {
     u8 value;
 
-    DRM_DEBUG("Entered via_iga1_set_color_depth.\n");
+    DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
     value = 0x00;
 
@@ -104,7 +104,7 @@ via_iga1_set_color_depth(struct via_device *dev_priv,
         DRM_ERROR("Unsupported IGA1 Color Depth: %d bit\n", depth);
     }
 
-    DRM_DEBUG("Exiting via_iga1_set_color_depth.\n");
+    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static inline void
@@ -133,7 +133,7 @@ via_iga2_set_color_depth(struct via_device *dev_priv,
 {
     u8 value;
 
-    DRM_DEBUG("Entered via_iga2_set_color_depth.\n");
+    DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
     value = 0x00;
 
@@ -164,7 +164,7 @@ via_iga2_set_color_depth(struct via_device *dev_priv,
         DRM_ERROR("Unsupported IGA2 Color Depth: %d bit\n", depth);
     }
 
-    DRM_DEBUG("Exiting via_iga2_set_color_depth.\n");
+    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static inline void
@@ -1355,7 +1355,7 @@ via_iga1_crtc_dpms(struct drm_crtc *crtc, int mode)
 {
     struct via_device *dev_priv = crtc->dev->dev_private;
 
-    DRM_DEBUG("Entered via_iga1_crtc_dpms.\n");
+    DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
     switch (mode) {
     case DRM_MODE_DPMS_SUSPEND:
@@ -1378,13 +1378,13 @@ via_iga1_crtc_dpms(struct drm_crtc *crtc, int mode)
         break;
     }
 
-    DRM_DEBUG("Exiting via_iga1_crtc_dpms.\n");
+    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static void
 via_iga1_crtc_disable(struct drm_crtc *crtc)
 {
-    DRM_DEBUG("Entered via_iga1_crtc_disable.\n");
+    DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
     drm_crtc_vblank_off(crtc);
 
@@ -1393,13 +1393,13 @@ via_iga1_crtc_disable(struct drm_crtc *crtc)
 
     via_iga1_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
 
-    DRM_DEBUG("Exiting via_iga1_crtc_disable.\n");
+    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static void
 via_iga1_crtc_prepare(struct drm_crtc *crtc)
 {
-    DRM_DEBUG("Entered via_iga1_crtc_prepare.\n");
+    DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
     /* Turn off the cursor */
     via_hide_cursor(crtc);
@@ -1410,13 +1410,13 @@ via_iga1_crtc_prepare(struct drm_crtc *crtc)
     if (crtc->enabled)
         via_iga1_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
 
-    DRM_DEBUG("Exiting via_iga1_crtc_prepare.\n");
+    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static void
 via_iga1_crtc_commit(struct drm_crtc *crtc)
 {
-    DRM_DEBUG("Entered via_iga1_crtc_commit.\n");
+    DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
     /* Turn on the cursor */
     via_show_cursor(crtc);
@@ -1427,7 +1427,7 @@ via_iga1_crtc_commit(struct drm_crtc *crtc)
     if (crtc->enabled)
         via_iga1_crtc_dpms(crtc, DRM_MODE_DPMS_ON);
 
-    DRM_DEBUG("Exiting via_iga1_crtc_commit.\n");
+    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static bool
@@ -1435,9 +1435,9 @@ via_iga1_crtc_mode_fixup(struct drm_crtc *crtc,
                     const struct drm_display_mode *mode,
                     struct drm_display_mode *adjusted_mode)
 {
-    DRM_DEBUG("Entered via_iga1_crtc_mode_fixup.\n");
+    DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-    DRM_DEBUG("Exiting via_iga1_crtc_mode_fixup.\n");
+    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
     return true;
 }
 
@@ -1508,7 +1508,7 @@ via_iga1_crtc_mode_set(struct drm_crtc *crtc,
     u8 reg_value = 0;
     int ret;
 
-    DRM_DEBUG("Entered via_iga1_crtc_mode_set.\n");
+    DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
     /* Check for IGA2. */
     if (iga->index) {
@@ -1584,7 +1584,7 @@ via_iga1_crtc_mode_set(struct drm_crtc *crtc,
     ret = via_iga1_crtc_mode_set_base(crtc, x, y, fb);
 
 exit:
-    DRM_DEBUG("Exiting via_iga1_crtc_mode_set.\n");
+    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
     return ret;
 }
 
@@ -1641,7 +1641,7 @@ via_iga2_crtc_dpms(struct drm_crtc *crtc, int mode)
 {
     struct via_device *dev_priv = crtc->dev->dev_private;
 
-    DRM_DEBUG("Entered via_iga2_crtc_dpms.\n");
+    DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
     switch (mode) {
     case DRM_MODE_DPMS_SUSPEND:
@@ -1664,13 +1664,13 @@ via_iga2_crtc_dpms(struct drm_crtc *crtc, int mode)
         break;
     }
 
-    DRM_DEBUG("Exiting via_iga2_crtc_dpms.\n");
+    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static void
 via_iga2_crtc_disable(struct drm_crtc *crtc)
 {
-    DRM_DEBUG("Entered via_iga2_crtc_disable.\n");
+    DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
     drm_crtc_vblank_off(crtc);
 
@@ -1679,13 +1679,13 @@ via_iga2_crtc_disable(struct drm_crtc *crtc)
 
     via_iga2_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
 
-    DRM_DEBUG("Exiting via_iga2_crtc_disable.\n");
+    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static void
 via_iga2_crtc_prepare(struct drm_crtc *crtc)
 {
-    DRM_DEBUG("Entered via_iga2_crtc_prepare.\n");
+    DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
     /* Turn off the cursor */
     via_hide_cursor(crtc);
@@ -1696,13 +1696,13 @@ via_iga2_crtc_prepare(struct drm_crtc *crtc)
     if (crtc->enabled)
         via_iga2_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
 
-    DRM_DEBUG("Exiting via_iga2_crtc_prepare.\n");
+    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static void
 via_iga2_crtc_commit(struct drm_crtc *crtc)
 {
-    DRM_DEBUG("Entered via_iga2_crtc_commit.\n");
+    DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
     /* Turn on the cursor */
     via_show_cursor(crtc);
@@ -1713,7 +1713,7 @@ via_iga2_crtc_commit(struct drm_crtc *crtc)
     if (crtc->enabled)
         via_iga2_crtc_dpms(crtc, DRM_MODE_DPMS_ON);
 
-    DRM_DEBUG("Exiting via_iga2_crtc_commit.\n");
+    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static bool
@@ -1721,9 +1721,9 @@ via_iga2_crtc_mode_fixup(struct drm_crtc *crtc,
                     const struct drm_display_mode *mode,
                     struct drm_display_mode *adjusted_mode)
 {
-    DRM_DEBUG("Entered via_iga2_crtc_mode_fixup.\n");
+    DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-    DRM_DEBUG("Exiting via_iga2_crtc_mode_fixup.\n");
+    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
     return true;
 }
 
@@ -1793,7 +1793,7 @@ via_iga2_crtc_mode_set(struct drm_crtc *crtc,
     struct drm_device *dev = crtc->dev;
     int ret;
 
-    DRM_DEBUG("Entered via_iga2_crtc_mode_set.\n");
+    DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
     /* Check for IGA1. */
     if (!iga->index) {
@@ -1896,7 +1896,7 @@ via_iga2_crtc_mode_set(struct drm_crtc *crtc,
     ret = via_iga2_crtc_mode_set_base(crtc, x, y, fb);
 
 exit:
-    DRM_DEBUG("Exiting via_iga2_crtc_mode_set.\n");
+    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
     return ret;
 }
 
