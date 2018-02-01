@@ -193,7 +193,6 @@ static const struct intel_device_info intel_i965gm_info __initconst = {
 static const struct intel_device_info intel_g45_info __initconst = {
 	GEN4_FEATURES,
 	.platform = INTEL_G45,
-	.has_pipe_cxsr = 1,
 	.ring_mask = RENDER_RING | BSD_RING,
 };
 
@@ -201,7 +200,6 @@ static const struct intel_device_info intel_gm45_info __initconst = {
 	GEN4_FEATURES,
 	.platform = INTEL_GM45,
 	.is_mobile = 1, .has_fbc = 1,
-	.has_pipe_cxsr = 1,
 	.supports_tv = 1,
 	.ring_mask = RENDER_RING | BSD_RING,
 };
@@ -211,6 +209,8 @@ static const struct intel_device_info intel_gm45_info __initconst = {
 	.has_hotplug = 1, \
 	.ring_mask = RENDER_RING | BSD_RING, \
 	.has_snoop = true, \
+	/* ilk does support rc6, but we do not implement [power] contexts */ \
+	.has_rc6 = 0, \
 	GEN_DEFAULT_PIPEOFFSETS, \
 	GEN_DEFAULT_PAGE_SIZES, \
 	CURSOR_OFFSETS
@@ -633,6 +633,8 @@ static const struct pci_device_id pciidlist[] = {
 	INTEL_CFL_S_GT1_IDS(&intel_coffeelake_gt1_info),
 	INTEL_CFL_S_GT2_IDS(&intel_coffeelake_gt2_info),
 	INTEL_CFL_H_GT2_IDS(&intel_coffeelake_gt2_info),
+	INTEL_CFL_U_GT1_IDS(&intel_coffeelake_gt1_info),
+	INTEL_CFL_U_GT2_IDS(&intel_coffeelake_gt2_info),
 	INTEL_CFL_U_GT3_IDS(&intel_coffeelake_gt3_info),
 	INTEL_CNL_U_GT2_IDS(&intel_cannonlake_gt2_info),
 	INTEL_CNL_Y_GT2_IDS(&intel_cannonlake_gt2_info),
@@ -645,7 +647,7 @@ static void i915_pci_remove(struct pci_dev *pdev)
 	struct drm_device *dev = pci_get_drvdata(pdev);
 
 	i915_driver_unload(dev);
-	drm_dev_unref(dev);
+	drm_dev_put(dev);
 }
 
 static int i915_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)

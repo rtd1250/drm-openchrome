@@ -312,10 +312,10 @@ vc4_reset_work(struct work_struct *work)
 }
 
 static void
-vc4_hangcheck_elapsed(unsigned long data)
+vc4_hangcheck_elapsed(struct timer_list *t)
 {
-	struct drm_device *dev = (struct drm_device *)data;
-	struct vc4_dev *vc4 = to_vc4_dev(dev);
+	struct vc4_dev *vc4 = from_timer(vc4, t, hangcheck.timer);
+	struct drm_device *dev = vc4->dev;
 	uint32_t ct0ca, ct1ca;
 	unsigned long irqflags;
 	struct vc4_exec_info *bin_exec, *render_exec;
@@ -888,8 +888,10 @@ vc4_complete_exec(struct drm_device *dev, struct vc4_exec_info *exec)
 	/* If we got force-completed because of GPU reset rather than
 	 * through our IRQ handler, signal the fence now.
 	 */
-	if (exec->fence)
+	if (exec->fence) {
 		dma_fence_signal(exec->fence);
+		dma_fence_put(exec->fence);
+	}
 
 	if (exec->bo) {
 		for (i = 0; i < exec->bo_count; i++) {
@@ -1154,9 +1156,7 @@ vc4_gem_init(struct drm_device *dev)
 	spin_lock_init(&vc4->job_lock);
 
 	INIT_WORK(&vc4->hangcheck.reset_work, vc4_reset_work);
-	setup_timer(&vc4->hangcheck.timer,
-		    vc4_hangcheck_elapsed,
-		    (unsigned long)dev);
+	timer_setup(&vc4->hangcheck.timer, vc4_hangcheck_elapsed, 0);
 
 	INIT_WORK(&vc4->job_done_work, vc4_job_done_work);
 
