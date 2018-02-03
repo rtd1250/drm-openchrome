@@ -631,8 +631,6 @@ via_hdmi_get_modes(struct drm_connector *connector)
 
 			if (drm_rgb_quant_range_selectable(edid))
 				con->flags |= HDMI_COLOR_RANGE;
-
-			drm_edid_to_eld(connector, edid);
 		}
 	}
 	return drm_add_edid_modes(connector, edid);
