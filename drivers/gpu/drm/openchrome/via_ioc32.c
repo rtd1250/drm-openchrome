@@ -94,6 +94,8 @@ via_gem_state(struct drm_device *dev, void *data, struct drm_file *file_priv)
 	struct ttm_buffer_object *bo = NULL;
 	struct drm_gem_object *obj = NULL;
 	struct ttm_placement placement;
+	struct ttm_operation_ctx ctx = {.interruptible = false,
+					.no_wait_gpu = false};
 	int ret = -EINVAL;
 
 	obj = drm_gem_object_lookup(file_priv, args->handle);
@@ -112,7 +114,7 @@ via_gem_state(struct drm_device *dev, void *data, struct drm_file *file_priv)
 			return ret;
 
 		ttm_placement_from_domain(bo, &placement, args->domains, bo->bdev);
-		ret = ttm_bo_validate(bo, &placement, false, false);
+		ret = ttm_bo_validate(bo, &placement, &ctx);
 		ttm_bo_unreserve(bo);
 
 		if (!ret) {

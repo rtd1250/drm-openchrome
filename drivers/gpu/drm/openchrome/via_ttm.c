@@ -125,8 +125,8 @@ via_ttm_tt_create(struct ttm_bo_device *bdev, unsigned long size,
 
 }
 
-static int
-via_ttm_tt_populate(struct ttm_tt *ttm)
+static int via_ttm_tt_populate(struct ttm_tt *ttm,
+				struct ttm_operation_ctx *ctx)
 {
 	struct sgdma_tt *dma_tt = (struct sgdma_tt *) ttm;
 	struct ttm_dma_tt *sgdma = &dma_tt->sgdma;
@@ -141,15 +141,15 @@ via_ttm_tt_populate(struct ttm_tt *ttm)
 
 #if IS_ENABLED(CONFIG_AGP)
 	if (pci_find_capability(dev->pdev, PCI_CAP_ID_AGP))
-		return ttm_agp_tt_populate(ttm);
+		return ttm_agp_tt_populate(ttm, ctx);
 #endif
 
 #ifdef CONFIG_SWIOTLB
 	if (swiotlb_nr_tbl())
-		return ttm_dma_populate(sgdma, dev->dev);
+		return ttm_dma_populate(sgdma, dev->dev, ctx);
 #endif
 
-	ret = ttm_pool_populate(ttm);
+	ret = ttm_pool_populate(ttm, ctx);
 	if (ret)
 		return ret;
 
@@ -368,9 +368,9 @@ via_move_blit(struct ttm_buffer_object *bo, bool evict, bool no_wait_gpu,
 	return ttm_bo_move_accel_cleanup(bo, (void *)fence, evict, new_mem);
 }
 
-static int
-via_move_from_vram(struct ttm_buffer_object *bo, bool interruptible,
-			bool no_wait_gpu, struct ttm_mem_reg *new_mem)
+static int via_move_from_vram(struct ttm_buffer_object *bo,
+				struct ttm_operation_ctx *ctx,
+				struct ttm_mem_reg *new_mem)
 {
 	struct ttm_mem_reg *old_mem = &bo->mem;
 	struct ttm_mem_reg tmp_mem;
@@ -387,8 +387,7 @@ via_move_from_vram(struct ttm_buffer_object *bo, bool interruptible,
 	placement.num_busy_placement = placement.num_placement = 1;
 	placement.busy_placement = placement.placement = &place;
 
-	ret = ttm_bo_mem_space(bo, &placement, &tmp_mem,
-				interruptible, no_wait_gpu);
+	ret = ttm_bo_mem_space(bo, &placement, &tmp_mem, ctx);
 	if (unlikely(ret))
 		return ret;
 
@@ -397,25 +396,25 @@ via_move_from_vram(struct ttm_buffer_object *bo, bool interruptible,
 	if (unlikely(ret))
 		goto out_cleanup;
 
-	ret = ttm_tt_bind(bo->ttm, &tmp_mem);
+	ret = ttm_tt_bind(bo->ttm, &tmp_mem, ctx);
 	if (unlikely(ret))
 		goto out_cleanup;
 
 	/* Move from the VRAM to GART space */
-	ret = via_move_blit(bo, true, no_wait_gpu, &tmp_mem, old_mem);
+	ret = via_move_blit(bo, true, ctx->no_wait_gpu, &tmp_mem, old_mem);
 	if (unlikely(ret))
 		goto out_cleanup;
 
 	/* Expose the GART region to the system memory */
-	ret = ttm_bo_move_ttm(bo, true, no_wait_gpu, new_mem);
+	ret = ttm_bo_move_ttm(bo, ctx, new_mem);
 out_cleanup:
 	ttm_bo_mem_put(bo, &tmp_mem);
 	return ret;
 }
 
-static int
-via_move_to_vram(struct ttm_buffer_object *bo, bool interruptible,
-			bool no_wait_gpu, struct ttm_mem_reg *new_mem)
+static int via_move_to_vram(struct ttm_buffer_object *bo,
+				struct ttm_operation_ctx *ctx,
+				struct ttm_mem_reg *new_mem)
 {
 	struct ttm_mem_reg *old_mem = &bo->mem;
 	struct ttm_mem_reg tmp_mem;
@@ -432,26 +431,27 @@ via_move_to_vram(struct ttm_buffer_object *bo, bool interruptible,
 	placement.busy_placement = placement.placement = &place;
 	placement.num_busy_placement = placement.num_placement = 1;
 
-	ret = ttm_bo_mem_space(bo, &placement, &tmp_mem,
-				interruptible, no_wait_gpu);
+	ret = ttm_bo_mem_space(bo, &placement, &tmp_mem, ctx);
 	if (unlikely(ret))
 		return ret;
 
 	/* Expose the GART region to the system memory */
-	ret = ttm_bo_move_ttm(bo, true, no_wait_gpu, &tmp_mem);
+	ret = ttm_bo_move_ttm(bo, ctx, &tmp_mem);
 	if (unlikely(ret))
 		goto out_cleanup;
 
 	/* Move from the GART to VRAM */
-	ret = via_move_blit(bo, true, no_wait_gpu, new_mem, old_mem);
+	ret = via_move_blit(bo, true, ctx->no_wait_gpu, new_mem, old_mem);
 out_cleanup:
 	ttm_bo_mem_put(bo, &tmp_mem);
 	return ret;
 }
 
-static int
-via_bo_move(struct ttm_buffer_object *bo, bool evict, bool interruptible,
-		bool no_wait_gpu, struct ttm_mem_reg *new_mem)
+static int via_bo_move(struct ttm_buffer_object *bo,
+			bool evict,
+			struct ttm_operation_ctx *ctx,
+			struct ttm_mem_reg *new_mem)
+
 {
     struct ttm_mem_reg *old_mem = &bo->mem;
 	int ret = 0;
@@ -481,16 +481,16 @@ via_bo_move(struct ttm_buffer_object *bo, bool evict, bool interruptible,
 	/* Accelerated copy involving the VRAM. */
 	if ((old_mem->mem_type == TTM_PL_VRAM)
         && (new_mem->mem_type == TTM_PL_SYSTEM)) {
-		ret = via_move_from_vram(bo, interruptible, no_wait_gpu, new_mem);
+		ret = via_move_from_vram(bo, ctx, new_mem);
 	} else if ((old_mem->mem_type == TTM_PL_SYSTEM)
         && (new_mem->mem_type == TTM_PL_VRAM)) {
-		ret = via_move_to_vram(bo, interruptible, no_wait_gpu, new_mem);
+		ret = via_move_to_vram(bo, ctx, new_mem);
 	} else {
-		ret = via_move_blit(bo, evict, no_wait_gpu, new_mem, old_mem);
+		ret = via_move_blit(bo, evict, ctx->no_wait_gpu, new_mem, old_mem);
 	}
 
 	if (ret) {
-		ret = ttm_bo_move_memcpy(bo, evict, no_wait_gpu, new_mem);
+		ret = ttm_bo_move_memcpy(bo, ctx, new_mem);
 	}
 
 exit:
@@ -751,6 +751,8 @@ via_bo_pin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
 {
     struct ttm_heap *heap = container_of(bo, struct ttm_heap, bo);
     struct ttm_placement placement;
+    struct ttm_operation_ctx ctx = {.interruptible = false,
+                                        .no_wait_gpu = false};
     int ret;
 
     ret = ttm_bo_reserve(bo, true, false, NULL);
@@ -759,7 +761,7 @@ via_bo_pin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
         placement.num_placement = 1;
 
         heap->placements[0].flags = (bo->mem.placement | TTM_PL_FLAG_NO_EVICT);
-        ret = ttm_bo_validate(bo, &placement, false, false);
+        ret = ttm_bo_validate(bo, &placement, &ctx);
         if (!ret && kmap)
             ret = ttm_bo_kmap(bo, 0, bo->num_pages, kmap);
         ttm_bo_unreserve(bo);
@@ -772,6 +774,8 @@ via_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
 {
     struct ttm_heap *heap = container_of(bo, struct ttm_heap, bo);
     struct ttm_placement placement;
+    struct ttm_operation_ctx ctx = {.interruptible = false,
+                                        .no_wait_gpu = false};
     int ret;
 
     ret = ttm_bo_reserve(bo, true, false, NULL);
@@ -783,7 +787,7 @@ via_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
         placement.num_placement = 1;
 
         heap->placements[0].flags = (bo->mem.placement & ~TTM_PL_FLAG_NO_EVICT);
-        ret = ttm_bo_validate(bo, &placement, false, false);
+        ret = ttm_bo_validate(bo, &placement, &ctx);
         ttm_bo_unreserve(bo);
     }
     return ret;
