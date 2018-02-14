@@ -503,6 +503,8 @@ via_modeset_init(struct drm_device *dev)
 
 	via_fp_probe(dev);
 
+	via_analog_probe(dev);
+
 
 	via_tmds_init(dev);
 
