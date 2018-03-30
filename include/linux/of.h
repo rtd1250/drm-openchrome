@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
 #ifndef _LINUX_OF_H
 #define _LINUX_OF_H
 /*
@@ -9,11 +10,6 @@
  * Updates for PPC64 by Peter Bergner & David Engebretsen, IBM Corp.
  * Updates for SPARC64 by David S. Miller
  * Derived from PowerPC and Sparc prom.h files by Stephen Rothwell, IBM Corp.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version
- * 2 of the License, or (at your option) any later version.
  */
 #include <linux/types.h>
 #include <linux/bitops.h>
@@ -544,6 +540,8 @@ const char *of_prop_next_string(struct property *prop, const char *cur);
 
 bool of_console_check(struct device_node *dn, char *name, int index);
 
+extern int of_cpu_node_to_id(struct device_node *np);
+
 #else /* CONFIG_OF */
 
 static inline void of_core_init(void)
@@ -914,6 +912,11 @@ static inline void of_property_set_flag(struct property *p, unsigned long flag)
 
 static inline void of_property_clear_flag(struct property *p, unsigned long flag)
 {
+}
+
+static inline int of_cpu_node_to_id(struct device_node *np)
+{
+	return -ENODEV;
 }
 
 #define of_match_ptr(_ptr)	NULL
@@ -1356,8 +1359,8 @@ struct of_overlay_notify_data {
 
 #ifdef CONFIG_OF_OVERLAY
 
-/* ID based overlays; the API for external users */
-int of_overlay_apply(struct device_node *tree, int *ovcs_id);
+int of_overlay_fdt_apply(const void *overlay_fdt, u32 overlay_fdt_size,
+			 int *ovcs_id);
 int of_overlay_remove(int *ovcs_id);
 int of_overlay_remove_all(void);
 
@@ -1366,7 +1369,7 @@ int of_overlay_notifier_unregister(struct notifier_block *nb);
 
 #else
 
-static inline int of_overlay_apply(struct device_node *tree, int *ovcs_id)
+static inline int of_overlay_fdt_apply(void *overlay_fdt, int *ovcs_id)
 {
 	return -ENOTSUPP;
 }

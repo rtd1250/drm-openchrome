@@ -298,7 +298,7 @@ nouveau_bo_new(struct nouveau_cli *cli, u64 size, int align,
 
 	ret = ttm_bo_init(&drm->ttm.bdev, &nvbo->bo, size,
 			  type, &nvbo->placement,
-			  align >> PAGE_SHIFT, false, NULL, acc_size, sg,
+			  align >> PAGE_SHIFT, false, acc_size, sg,
 			  robj, nouveau_bo_del_ttm);
 	if (ret) {
 		/* ttm will call nouveau_bo_del_ttm if it fails.. */
@@ -604,19 +604,17 @@ nouveau_bo_wr32(struct nouveau_bo *nvbo, unsigned index, u32 val)
 }
 
 static struct ttm_tt *
-nouveau_ttm_tt_create(struct ttm_bo_device *bdev, unsigned long size,
-		      uint32_t page_flags, struct page *dummy_read)
+nouveau_ttm_tt_create(struct ttm_buffer_object *bo, uint32_t page_flags)
 {
 #if IS_ENABLED(CONFIG_AGP)
-	struct nouveau_drm *drm = nouveau_bdev(bdev);
+	struct nouveau_drm *drm = nouveau_bdev(bo->bdev);
 
 	if (drm->agp.bridge) {
-		return ttm_agp_tt_create(bdev, drm->agp.bridge, size,
-					 page_flags, dummy_read);
+		return ttm_agp_tt_create(bo, drm->agp.bridge, page_flags);
 	}
 #endif
 
-	return nouveau_sgdma_create_ttm(bdev, size, page_flags, dummy_read);
+	return nouveau_sgdma_create_ttm(bo, page_flags);
 }
 
 static int
@@ -1453,11 +1451,13 @@ nouveau_ttm_io_mem_reserve(struct ttm_bo_device *bdev, struct ttm_mem_reg *reg)
 				args.nv50.ro = 0;
 				args.nv50.kind = mem->kind;
 				args.nv50.comp = mem->comp;
+				argc = sizeof(args.nv50);
 				break;
 			case NVIF_CLASS_MEM_GF100:
 				args.gf100.version = 0;
 				args.gf100.ro = 0;
 				args.gf100.kind = mem->kind;
+				argc = sizeof(args.gf100);
 				break;
 			default:
 				WARN_ON(1);
@@ -1465,7 +1465,7 @@ nouveau_ttm_io_mem_reserve(struct ttm_bo_device *bdev, struct ttm_mem_reg *reg)
 			}
 
 			ret = nvif_object_map_handle(&mem->mem.object,
-						     &argc, argc,
+						     &args, argc,
 						     &handle, &length);
 			if (ret != 1)
 				return ret ? ret : -EINVAL;

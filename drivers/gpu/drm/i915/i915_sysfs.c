@@ -304,8 +304,9 @@ static ssize_t gt_boost_freq_mhz_store(struct device *kdev,
 {
 	struct drm_i915_private *dev_priv = kdev_minor_to_i915(kdev);
 	struct intel_rps *rps = &dev_priv->gt_pm.rps;
-	u32 val;
+	bool boost = false;
 	ssize_t ret;
+	u32 val;
 
 	ret = kstrtou32(buf, 0, &val);
 	if (ret)
@@ -317,8 +318,13 @@ static ssize_t gt_boost_freq_mhz_store(struct device *kdev,
 		return -EINVAL;
 
 	mutex_lock(&dev_priv->pcu_lock);
-	rps->boost_freq = val;
+	if (val != rps->boost_freq) {
+		rps->boost_freq = val;
+		boost = atomic_read(&rps->num_waiters);
+	}
 	mutex_unlock(&dev_priv->pcu_lock);
+	if (boost)
+		schedule_work(&rps->work);
 
 	return count;
 }
@@ -445,13 +451,13 @@ static ssize_t gt_min_freq_mhz_store(struct device *kdev,
 	return ret ?: count;
 }
 
-static DEVICE_ATTR(gt_act_freq_mhz, S_IRUGO, gt_act_freq_mhz_show, NULL);
-static DEVICE_ATTR(gt_cur_freq_mhz, S_IRUGO, gt_cur_freq_mhz_show, NULL);
-static DEVICE_ATTR(gt_boost_freq_mhz, S_IRUGO | S_IWUSR, gt_boost_freq_mhz_show, gt_boost_freq_mhz_store);
-static DEVICE_ATTR(gt_max_freq_mhz, S_IRUGO | S_IWUSR, gt_max_freq_mhz_show, gt_max_freq_mhz_store);
-static DEVICE_ATTR(gt_min_freq_mhz, S_IRUGO | S_IWUSR, gt_min_freq_mhz_show, gt_min_freq_mhz_store);
+static DEVICE_ATTR_RO(gt_act_freq_mhz);
+static DEVICE_ATTR_RO(gt_cur_freq_mhz);
+static DEVICE_ATTR_RW(gt_boost_freq_mhz);
+static DEVICE_ATTR_RW(gt_max_freq_mhz);
+static DEVICE_ATTR_RW(gt_min_freq_mhz);
 
-static DEVICE_ATTR(vlv_rpe_freq_mhz, S_IRUGO, vlv_rpe_freq_mhz_show, NULL);
+static DEVICE_ATTR_RO(vlv_rpe_freq_mhz);
 
 static ssize_t gt_rp_mhz_show(struct device *kdev, struct device_attribute *attr, char *buf);
 static DEVICE_ATTR(gt_RP0_freq_mhz, S_IRUGO, gt_rp_mhz_show, NULL);

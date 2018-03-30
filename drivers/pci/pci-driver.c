@@ -1,11 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
  * drivers/pci/pci-driver.c
  *
  * (C) Copyright 2002-2004, 2007 Greg Kroah-Hartman <greg@kroah.com>
  * (C) Copyright 2007 Novell Inc.
- *
- * Released under the GPL v2 only.
- *
  */
 
 #include <linux/pci.h>
@@ -699,7 +697,7 @@ static void pci_pm_complete(struct device *dev)
 	pm_generic_complete(dev);
 
 	/* Resume device if platform firmware has put it in reset-power-on */
-	if (dev->power.direct_complete && pm_resume_via_firmware()) {
+	if (pm_runtime_suspended(dev) && pm_resume_via_firmware()) {
 		pci_power_t pre_sleep_state = pci_dev->current_state;
 
 		pci_update_current_state(pci_dev, pci_dev->current_state);
@@ -783,8 +781,10 @@ static int pci_pm_suspend_noirq(struct device *dev)
 	struct pci_dev *pci_dev = to_pci_dev(dev);
 	const struct dev_pm_ops *pm = dev->driver ? dev->driver->pm : NULL;
 
-	if (dev_pm_smart_suspend_and_suspended(dev))
+	if (dev_pm_smart_suspend_and_suspended(dev)) {
+		dev->power.may_skip_resume = true;
 		return 0;
+	}
 
 	if (pci_has_legacy_pm_support(pci_dev))
 		return pci_legacy_suspend_late(dev, PMSG_SUSPEND);
@@ -838,6 +838,16 @@ static int pci_pm_suspend_noirq(struct device *dev)
 Fixup:
 	pci_fixup_device(pci_fixup_suspend_late, pci_dev);
 
+	/*
+	 * If the target system sleep state is suspend-to-idle, it is sufficient
+	 * to check whether or not the device's wakeup settings are good for
+	 * runtime PM.  Otherwise, the pm_resume_via_firmware() check will cause
+	 * pci_pm_complete() to take care of fixing up the device's state
+	 * anyway, if need be.
+	 */
+	dev->power.may_skip_resume = device_may_wakeup(dev) ||
+					!device_can_wakeup(dev);
+
 	return 0;
 }
 
@@ -846,6 +856,9 @@ static int pci_pm_resume_noirq(struct device *dev)
 	struct pci_dev *pci_dev = to_pci_dev(dev);
 	struct device_driver *drv = dev->driver;
 	int error = 0;
+
+	if (dev_pm_may_skip_resume(dev))
+		return 0;
 
 	/*
 	 * Devices with DPM_FLAG_SMART_SUSPEND may be left in runtime suspend
@@ -953,7 +966,7 @@ static int pci_pm_freeze_late(struct device *dev)
 	if (dev_pm_smart_suspend_and_suspended(dev))
 		return 0;
 
-	return pm_generic_freeze_late(dev);;
+	return pm_generic_freeze_late(dev);
 }
 
 static int pci_pm_freeze_noirq(struct device *dev)
@@ -1211,11 +1224,14 @@ static int pci_pm_runtime_suspend(struct device *dev)
 	int error;
 
 	/*
-	 * If pci_dev->driver is not set (unbound), the device should
-	 * always remain in D0 regardless of the runtime PM status
+	 * If pci_dev->driver is not set (unbound), we leave the device in D0,
+	 * but it may go to D3cold when the bridge above it runtime suspends.
+	 * Save its config space in case that happens.
 	 */
-	if (!pci_dev->driver)
+	if (!pci_dev->driver) {
+		pci_save_state(pci_dev);
 		return 0;
+	}
 
 	if (!pm || !pm->runtime_suspend)
 		return -ENOSYS;
@@ -1263,16 +1279,18 @@ static int pci_pm_runtime_resume(struct device *dev)
 	const struct dev_pm_ops *pm = dev->driver ? dev->driver->pm : NULL;
 
 	/*
-	 * If pci_dev->driver is not set (unbound), the device should
-	 * always remain in D0 regardless of the runtime PM status
+	 * Restoring config space is necessary even if the device is not bound
+	 * to a driver because although we left it in D0, it may have gone to
+	 * D3cold when the bridge above it runtime suspended.
 	 */
+	pci_restore_standard_config(pci_dev);
+
 	if (!pci_dev->driver)
 		return 0;
 
 	if (!pm || !pm->runtime_resume)
 		return -ENOSYS;
 
-	pci_restore_standard_config(pci_dev);
 	pci_fixup_device(pci_fixup_resume_early, pci_dev);
 	pci_enable_wake(pci_dev, PCI_D0, false);
 	pci_fixup_device(pci_fixup_resume, pci_dev);
