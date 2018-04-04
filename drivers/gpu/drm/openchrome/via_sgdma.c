@@ -95,9 +95,8 @@ static struct ttm_backend_func ttm_sgdma_func = {
 	.destroy = via_sgdma_destroy,
 };
 
-struct ttm_tt *
-via_sgdma_backend_init(struct ttm_bo_device *bdev, unsigned long size,
-			uint32_t page_flags, struct page *dummy_read_page)
+struct ttm_tt* via_sgdma_backend_init(struct ttm_buffer_object *bo,
+					uint32_t page_flags)
 {
 	struct sgdma_tt *dma_tt;
 
@@ -107,7 +106,7 @@ via_sgdma_backend_init(struct ttm_bo_device *bdev, unsigned long size,
 
 	dma_tt->sgdma.ttm.func = &ttm_sgdma_func;
 
-	if (ttm_dma_tt_init(&dma_tt->sgdma, bdev, size, page_flags, dummy_read_page)) {
+	if (ttm_dma_tt_init(&dma_tt->sgdma, bo, page_flags)) {
 		kfree(dma_tt);
 		return NULL;
 	}

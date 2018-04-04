@@ -43,6 +43,7 @@
 #include "ttm/ttm_memory.h"
 #include "ttm/ttm_module.h"
 #include "ttm/ttm_page_alloc.h"
+#include "ttm/ttm_tt.h"
 
 #include <drm/drmP.h>
 #include <drm/drm_gem.h>
@@ -335,8 +336,8 @@ ttm_gem_create(struct drm_device *dev,
 		bool interruptible);
 extern struct ttm_buffer_object *ttm_gem_mapping(struct drm_gem_object *obj);
 
-extern struct ttm_tt *
-via_sgdma_backend_init(struct ttm_bo_device *bdev, unsigned long size,
-               uint32_t page_flags, struct page *dummy_read_page);
+extern struct ttm_tt* via_sgdma_backend_init(
+					struct ttm_buffer_object *bo,
+					uint32_t page_flags);
 
 #endif

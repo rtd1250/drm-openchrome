@@ -105,24 +105,21 @@ via_ttm_bo_destroy(struct ttm_buffer_object *bo)
     heap = NULL;
 }
 
-static struct ttm_tt *
-via_ttm_tt_create(struct ttm_bo_device *bdev, unsigned long size,
-			uint32_t page_flags, struct page *dummy_read_page)
+struct ttm_tt* via_ttm_tt_create(struct ttm_buffer_object *bo,
+					uint32_t page_flags)
 {
-	struct via_device *dev_priv = container_of(bdev,
+	struct via_device *dev_priv = container_of(bo->bdev,
 					struct via_device, ttm.bdev);
 
 #if IS_ENABLED(CONFIG_AGP)
 	if (pci_find_capability(dev_priv->dev->pdev, PCI_CAP_ID_AGP)) {
-		return ttm_agp_tt_create(bdev,
-				dev_priv->dev->agp->bridge,
-				size, page_flags, dummy_read_page);
+		return ttm_agp_tt_create(bo,
+					dev_priv->dev->agp->bridge,
+					page_flags);
 	}
 #endif
 
-	return via_sgdma_backend_init(bdev, size, page_flags,
-					dummy_read_page);
-
+	return via_sgdma_backend_init(bo, page_flags);
 }
 
 static int via_ttm_tt_populate(struct ttm_tt *ttm,
