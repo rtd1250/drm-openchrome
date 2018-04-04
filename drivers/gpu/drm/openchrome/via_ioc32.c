@@ -81,7 +81,6 @@ via_gem_alloc(struct drm_device *dev, void *data,
 			args->offset = bo->offset;
 			args->size = bo->mem.size;
 			args->version = 1;
-			obj->read_domains = obj->write_domain = args->domains;
 		}
 	}
 	return ret;
@@ -122,8 +121,6 @@ via_gem_state(struct drm_device *dev, void *data, struct drm_file *file_priv)
 			args->domains = bo->mem.placement & TTM_PL_MASK_MEM;
 			args->offset = bo->offset;
 			args->size = bo->mem.size;
-
-			obj->read_domains = obj->write_domain = args->domains;
 		}
 	}
 	mutex_lock(&dev->struct_mutex);
