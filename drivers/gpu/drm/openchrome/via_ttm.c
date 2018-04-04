@@ -729,7 +729,7 @@ int via_bo_create(struct ttm_bo_device *bdev,
 
     ret = ttm_bo_init(bdev, bo, size, type, &placement,
               page_alignment >> PAGE_SHIFT,
-              interruptible, NULL, acc_size,
+              interruptible, acc_size,
               sg, NULL, via_ttm_bo_destroy);
 
     if (unlikely(ret)) {
