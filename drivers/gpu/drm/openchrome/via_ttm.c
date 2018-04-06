@@ -20,6 +20,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
+
 #include <linux/dma-mapping.h>
 #ifdef CONFIG_SWIOTLB
 #include <linux/swiotlb.h>
@@ -29,80 +30,76 @@
 
 #define DRM_FILE_PAGE_OFFSET (0x100000000ULL >> PAGE_SHIFT)
 
-static int
-via_ttm_mem_global_init(struct drm_global_reference *ref)
+static int via_ttm_mem_global_init(struct drm_global_reference *ref)
 {
-    return ttm_mem_global_init(ref->object);
+	return ttm_mem_global_init(ref->object);
 }
 
-static void
-via_ttm_mem_global_release(struct drm_global_reference *ref)
+static void via_ttm_mem_global_release(struct drm_global_reference *ref)
 {
-    ttm_mem_global_release(ref->object);
+	ttm_mem_global_release(ref->object);
 }
 
-static int
-via_ttm_global_init(struct via_device *dev_priv)
+static int via_ttm_global_init(struct via_device *dev_priv)
 {
-    struct drm_global_reference *global_ref;
-    struct drm_global_reference *bo_ref;
-    int rc;
+	struct drm_global_reference *global_ref;
+	struct drm_global_reference *bo_ref;
+	int rc;
 
-    global_ref = &dev_priv->ttm.mem_global_ref;
-    global_ref->global_type = DRM_GLOBAL_TTM_MEM;
-    global_ref->size = sizeof(struct ttm_mem_global);
-    global_ref->init = &via_ttm_mem_global_init;
-    global_ref->release = &via_ttm_mem_global_release;
+	global_ref = &dev_priv->ttm.mem_global_ref;
+	global_ref->global_type = DRM_GLOBAL_TTM_MEM;
+	global_ref->size = sizeof(struct ttm_mem_global);
+	global_ref->init = &via_ttm_mem_global_init;
+	global_ref->release = &via_ttm_mem_global_release;
 
-    rc = drm_global_item_ref(global_ref);
-    if (unlikely(rc != 0)) {
-        DRM_ERROR("Failed setting up TTM memory accounting\n");
-        global_ref->release = NULL;
-        return rc;
-    }
+	rc = drm_global_item_ref(global_ref);
+	if (unlikely(rc != 0)) {
+		DRM_ERROR("Failed setting up TTM memory accounting\n");
+		global_ref->release = NULL;
+		return rc;
+	}
 
-    dev_priv->ttm.bo_global_ref.mem_glob = dev_priv->ttm.mem_global_ref.object;
-    bo_ref = &dev_priv->ttm.bo_global_ref.ref;
-    bo_ref->global_type = DRM_GLOBAL_TTM_BO;
-    bo_ref->size = sizeof(struct ttm_bo_global);
-    bo_ref->init = &ttm_bo_global_init;
-    bo_ref->release = &ttm_bo_global_release;
+	dev_priv->ttm.bo_global_ref.mem_glob =
+				dev_priv->ttm.mem_global_ref.object;
+	bo_ref = &dev_priv->ttm.bo_global_ref.ref;
+	bo_ref->global_type = DRM_GLOBAL_TTM_BO;
+	bo_ref->size = sizeof(struct ttm_bo_global);
+	bo_ref->init = &ttm_bo_global_init;
+	bo_ref->release = &ttm_bo_global_release;
 
-    rc = drm_global_item_ref(bo_ref);
-    if (unlikely(rc != 0)) {
-        DRM_ERROR("Failed setting up TTM BO subsystem\n");
-        drm_global_item_unref(global_ref);
-        global_ref->release = NULL;
-        return rc;
-    }
+	rc = drm_global_item_ref(bo_ref);
+	if (unlikely(rc != 0)) {
+		DRM_ERROR("Failed setting up TTM BO subsystem\n");
+		drm_global_item_unref(global_ref);
+		global_ref->release = NULL;
+		return rc;
+	}
 
-    return rc;
+	return rc;
 }
 
-static void
-via_ttm_global_release(struct drm_global_reference *global_ref,
-            struct ttm_bo_global_ref *global_bo,
-            struct ttm_bo_device *bdev)
+static void via_ttm_global_release(struct drm_global_reference *global_ref,
+				struct ttm_bo_global_ref *global_bo,
+				struct ttm_bo_device *bdev)
 {
-    DRM_DEBUG_KMS("Entered %s.\n", __func__);
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-    if (global_ref->release == NULL)
-        return;
+	if (global_ref->release == NULL)
+		return;
 
-    drm_global_item_unref(&global_bo->ref);
-    drm_global_item_unref(global_ref);
-    global_ref->release = NULL;
+	drm_global_item_unref(&global_bo->ref);
+	drm_global_item_unref(global_ref);
+	global_ref->release = NULL;
 
-    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void
-via_ttm_bo_destroy(struct ttm_buffer_object *bo)
+static void via_ttm_bo_destroy(struct ttm_buffer_object *bo)
 {
-    struct ttm_heap *heap = container_of(bo, struct ttm_heap, bo);
+	struct ttm_heap *heap = container_of(bo, struct ttm_heap, bo);
 
-    kfree(heap);
-    heap = NULL;
+	kfree(heap);
+	heap = NULL;
 }
 
 struct ttm_tt* via_ttm_tt_create(struct ttm_buffer_object *bo,
@@ -167,8 +164,7 @@ static int via_ttm_tt_populate(struct ttm_tt *ttm,
 	return ret;
 }
 
-static void
-via_ttm_tt_unpopulate(struct ttm_tt *ttm)
+static void via_ttm_tt_unpopulate(struct ttm_tt *ttm)
 {
 	struct sgdma_tt *dma_tt = (struct sgdma_tt *) ttm;
 	struct ttm_dma_tt *sgdma = &dma_tt->sgdma;
@@ -201,8 +197,8 @@ via_ttm_tt_unpopulate(struct ttm_tt *ttm)
 	ttm_pool_unpopulate(ttm);
 }
 
-static int
-via_invalidate_caches(struct ttm_bo_device *bdev, uint32_t flags)
+static int via_invalidate_caches(struct ttm_bo_device *bdev,
+					uint32_t flags)
 {
 	/*
 	 * FIXME: Invalidate texture caches here.
@@ -210,9 +206,8 @@ via_invalidate_caches(struct ttm_bo_device *bdev, uint32_t flags)
 	return 0;
 }
 
-static int
-via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
-		struct ttm_mem_type_manager *man)
+static int via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
+				struct ttm_mem_type_manager *man)
 {
 #if IS_ENABLED(CONFIG_AGP)
 	struct via_device *dev_priv = container_of(bdev,
@@ -233,14 +228,17 @@ via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
 
 		/* By default we handle PCI/PCIe DMA. If AGP is avaliable
 		 * then we use that instead */
-		man->flags = TTM_MEMTYPE_FLAG_MAPPABLE | TTM_MEMTYPE_FLAG_CMA;
+		man->flags = TTM_MEMTYPE_FLAG_MAPPABLE |
+				TTM_MEMTYPE_FLAG_CMA;
 		man->available_caching = TTM_PL_MASK_CACHING;
 		man->default_caching = TTM_PL_FLAG_CACHED;
 
 #if IS_ENABLED(CONFIG_AGP)
-		if (pci_find_capability(dev->pdev, PCI_CAP_ID_AGP) && dev->agp != NULL) {
+		if (pci_find_capability(dev->pdev, PCI_CAP_ID_AGP) &&
+			dev->agp != NULL) {
 			man->flags = TTM_MEMTYPE_FLAG_MAPPABLE;
-			man->available_caching = TTM_PL_FLAG_UNCACHED | TTM_PL_FLAG_WC;
+			man->available_caching = TTM_PL_FLAG_UNCACHED |
+						TTM_PL_FLAG_WC;
 			man->default_caching = TTM_PL_FLAG_WC;
 		} else
 			DRM_ERROR("AGP is possible but not enabled\n");
@@ -250,8 +248,10 @@ via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
 	case TTM_PL_VRAM:
 		/* "On-card" video ram */
 		man->func = &ttm_bo_manager_func;
-		man->flags = TTM_MEMTYPE_FLAG_FIXED | TTM_MEMTYPE_FLAG_MAPPABLE;
-		man->available_caching = TTM_PL_FLAG_UNCACHED | TTM_PL_FLAG_WC;
+		man->flags = TTM_MEMTYPE_FLAG_FIXED |
+				TTM_MEMTYPE_FLAG_MAPPABLE;
+		man->available_caching = TTM_PL_FLAG_UNCACHED |
+						TTM_PL_FLAG_WC;
 		man->default_caching = TTM_PL_FLAG_WC;
 		/* The display base address does not always equal the start of
 		 * the memory region of the VRAM. In our case it is */
@@ -261,7 +261,8 @@ via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
 	case TTM_PL_PRIV:
 		/* MMIO region */
 		man->func = &ttm_bo_manager_func;
-		man->flags = TTM_MEMTYPE_FLAG_FIXED | TTM_MEMTYPE_FLAG_MAPPABLE;
+		man->flags = TTM_MEMTYPE_FLAG_FIXED |
+				TTM_MEMTYPE_FLAG_MAPPABLE;
 		man->available_caching = TTM_PL_FLAG_UNCACHED;
 		man->default_caching = TTM_PL_FLAG_UNCACHED;
 		break;
@@ -273,17 +274,21 @@ via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
 	return 0;
 }
 
-static void
-via_evict_flags(struct ttm_buffer_object *bo, struct ttm_placement *placement)
+static void via_evict_flags(struct ttm_buffer_object *bo,
+				struct ttm_placement *placement)
 {
 	switch (bo->mem.mem_type) {
 	case TTM_PL_VRAM:
-		ttm_placement_from_domain(bo, placement, TTM_PL_FLAG_TT | TTM_PL_FLAG_SYSTEM, bo->bdev);
+		ttm_placement_from_domain(bo, placement,
+				TTM_PL_FLAG_TT | TTM_PL_FLAG_SYSTEM,
+				bo->bdev);
 		break;
 
 	case TTM_PL_TT:
 	default:
-		ttm_placement_from_domain(bo, placement, TTM_PL_FLAG_SYSTEM, bo->bdev);
+		ttm_placement_from_domain(bo, placement,
+						TTM_PL_FLAG_SYSTEM,
+						bo->bdev);
 		break;
 	}
 }
@@ -294,9 +299,10 @@ via_evict_flags(struct ttm_buffer_object *bo, struct ttm_placement *placement)
  * chain because it may be quite large for some blits, and pages don't need to be
  * contingous.
  */
-struct drm_via_sg_info *
-via_alloc_desc_pages(struct ttm_tt *ttm, struct drm_device *dev,
-			unsigned long dev_start, enum dma_data_direction direction)
+struct drm_via_sg_info* via_alloc_desc_pages(struct ttm_tt *ttm,
+					struct drm_device *dev,
+					unsigned long dev_start,
+					enum dma_data_direction direction)
 {
 	struct drm_via_sg_info *vsg = kzalloc(sizeof(*vsg), GFP_KERNEL);
 	struct via_device *dev_priv = dev->dev_private;
@@ -310,7 +316,8 @@ via_alloc_desc_pages(struct ttm_tt *ttm, struct drm_device *dev,
 	vsg->num_desc_pages = (vsg->num_desc + vsg->descriptors_per_page - 1) /
 				vsg->descriptors_per_page;
 
-	vsg->desc_pages = kzalloc(vsg->num_desc_pages * sizeof(void *), GFP_KERNEL);
+	vsg->desc_pages = kzalloc(vsg->num_desc_pages * sizeof(void *),
+					GFP_KERNEL);
 	if (!vsg->desc_pages)
 		return ERR_PTR(-ENOMEM);
 
@@ -327,9 +334,10 @@ via_alloc_desc_pages(struct ttm_tt *ttm, struct drm_device *dev,
 }
 
 /* Move between GART and VRAM */
-static int
-via_move_blit(struct ttm_buffer_object *bo, bool evict, bool no_wait_gpu,
-		struct ttm_mem_reg *new_mem, struct ttm_mem_reg *old_mem)
+static int via_move_blit(struct ttm_buffer_object *bo,
+				bool evict, bool no_wait_gpu,
+				struct ttm_mem_reg *new_mem,
+				struct ttm_mem_reg *old_mem)
 {
 	struct via_device *dev_priv = container_of(bo->bdev,
 					struct via_device, ttm.bdev);
@@ -355,7 +363,8 @@ via_move_blit(struct ttm_buffer_object *bo, bool evict, bool no_wait_gpu,
 	if (dev_addr & 0x0F)
 		return ret;
 
-	vsg = via_alloc_desc_pages(bo->ttm, dev_priv->dev, dev_addr, direction);
+	vsg = via_alloc_desc_pages(bo->ttm, dev_priv->dev, dev_addr,
+					direction);
 	if (unlikely(IS_ERR(vsg)))
 		return PTR_ERR(vsg);
 
@@ -450,37 +459,37 @@ static int via_bo_move(struct ttm_buffer_object *bo,
 			struct ttm_mem_reg *new_mem)
 
 {
-    struct ttm_mem_reg *old_mem = &bo->mem;
+	struct ttm_mem_reg *old_mem = &bo->mem;
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-    if ((old_mem->mem_type == TTM_PL_SYSTEM) && (!bo->ttm)) {
-        BUG_ON(old_mem->mm_node != NULL);
-        *old_mem = *new_mem;
-        new_mem->mm_node = NULL;
-        goto exit;
-    }
-
-	/* No real memory copy. Just use the new_mem
-	 * directly. */
-	if (((old_mem->mem_type == TTM_PL_SYSTEM)
-	        && (new_mem->mem_type == TTM_PL_TT))
-        || ((old_mem->mem_type == TTM_PL_TT)
-            && (new_mem->mem_type == TTM_PL_SYSTEM))
-	    || (new_mem->mem_type == TTM_PL_PRIV)) {
+	if ((old_mem->mem_type == TTM_PL_SYSTEM) && (!bo->ttm)) {
 		BUG_ON(old_mem->mm_node != NULL);
 		*old_mem = *new_mem;
 		new_mem->mm_node = NULL;
-        goto exit;
+		goto exit;
+	}
+
+	/* No real memory copy. Just use the new_mem
+	 * directly. */
+	if (((old_mem->mem_type == TTM_PL_SYSTEM) &&
+			(new_mem->mem_type == TTM_PL_TT)) ||
+		((old_mem->mem_type == TTM_PL_TT) &&
+			(new_mem->mem_type == TTM_PL_SYSTEM)) ||
+		(new_mem->mem_type == TTM_PL_PRIV)) {
+		BUG_ON(old_mem->mm_node != NULL);
+		*old_mem = *new_mem;
+		new_mem->mm_node = NULL;
+		goto exit;
 	}
 
 	/* Accelerated copy involving the VRAM. */
-	if ((old_mem->mem_type == TTM_PL_VRAM)
-        && (new_mem->mem_type == TTM_PL_SYSTEM)) {
+	if ((old_mem->mem_type == TTM_PL_VRAM) &&
+		(new_mem->mem_type == TTM_PL_SYSTEM)) {
 		ret = via_move_from_vram(bo, ctx, new_mem);
-	} else if ((old_mem->mem_type == TTM_PL_SYSTEM)
-        && (new_mem->mem_type == TTM_PL_VRAM)) {
+	} else if ((old_mem->mem_type == TTM_PL_SYSTEM) &&
+		(new_mem->mem_type == TTM_PL_VRAM)) {
 		ret = via_move_to_vram(bo, ctx, new_mem);
 	} else {
 		ret = via_move_blit(bo, evict, ctx->no_wait_gpu, new_mem, old_mem);
@@ -495,8 +504,8 @@ exit:
 	return ret;
 }
 
-static int
-via_ttm_io_mem_reserve(struct ttm_bo_device *bdev, struct ttm_mem_reg *mem)
+static int via_ttm_io_mem_reserve(struct ttm_bo_device *bdev,
+					struct ttm_mem_reg *mem)
 {
 	struct via_device *dev_priv = container_of(bdev,
 					struct via_device, ttm.bdev);
@@ -545,11 +554,13 @@ via_ttm_io_mem_reserve(struct ttm_bo_device *bdev, struct ttm_mem_reg *mem)
 	return 0;
 }
 
-static void via_ttm_io_mem_free(struct ttm_bo_device *bdev, struct ttm_mem_reg *mem)
+static void via_ttm_io_mem_free(struct ttm_bo_device *bdev,
+				struct ttm_mem_reg *mem)
 {
 }
 
-static int via_verify_access(struct ttm_buffer_object *bo, struct file *filp)
+static int via_verify_access(struct ttm_buffer_object *bo,
+				struct file *filp)
 {
 	return 0;
 }
@@ -569,92 +580,100 @@ static struct ttm_bo_driver via_bo_driver = {
 
 int via_mm_init(struct via_device *dev_priv)
 {
-    struct drm_device *dev = dev_priv->dev;
-    struct ttm_buffer_object *bo;
-    unsigned long long start;
-    int len;
-    int ret;
+	struct drm_device *dev = dev_priv->dev;
+	struct ttm_buffer_object *bo;
+	unsigned long long start;
+	int len;
+	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-    ret = via_ttm_global_init(dev_priv);
+	ret = via_ttm_global_init(dev_priv);
 	if (ret) {
-        DRM_ERROR("Failed to initialise TTM: %d\n", ret);
-        goto exit;
+		DRM_ERROR("Failed to initialise TTM: %d\n", ret);
+		goto exit;
 	}
 
 	dev_priv->ttm.bdev.dev_mapping = dev->anon_inode->i_mapping;
 
-    ret = ttm_bo_device_init(&dev_priv->ttm.bdev,
-                                dev_priv->ttm.bo_global_ref.ref.object,
-                                &via_bo_driver,
-                                dev->anon_inode->i_mapping,
-                                DRM_FILE_PAGE_OFFSET,
-                                false);
-    if (ret) {
-        DRM_ERROR("Error initialising bo driver: %d\n", ret);
-        goto exit;
-    }
+	ret = ttm_bo_device_init(&dev_priv->ttm.bdev,
+				dev_priv->ttm.bo_global_ref.ref.object,
+				&via_bo_driver,
+				dev->anon_inode->i_mapping,
+				DRM_FILE_PAGE_OFFSET,
+				false);
+	if (ret) {
+		DRM_ERROR("Error initialising bo driver: %d\n", ret);
+		goto exit;
+	}
 
-    ret = ttm_bo_init_mm(&dev_priv->ttm.bdev, TTM_PL_VRAM, dev_priv->vram_size >> PAGE_SHIFT);
-    if (ret) {
-        DRM_ERROR("Failed to map video RAM: %d\n", ret);
-        goto exit;
-    }
+	ret = ttm_bo_init_mm(&dev_priv->ttm.bdev, TTM_PL_VRAM,
+				dev_priv->vram_size >> PAGE_SHIFT);
+	if (ret) {
+		DRM_ERROR("Failed to map video RAM: %d\n", ret);
+		goto exit;
+	}
 
-    /* Add an MTRR for the video RAM. */
-    dev_priv->vram_mtrr = arch_phys_wc_add(dev_priv->vram_start, dev_priv->vram_size);
+	/* Add an MTRR for the video RAM. */
+	dev_priv->vram_mtrr = arch_phys_wc_add(dev_priv->vram_start,
+						dev_priv->vram_size);
 
-    DRM_INFO("Mapped %llu MB of video RAM at physical address 0x%08llx.\n",
-                (unsigned long long) dev_priv->vram_size >> 20, dev_priv->vram_start);
+	DRM_INFO("Mapped %llu MB of video RAM at physical "
+		"address 0x%08llx.\n",
+		(unsigned long long) dev_priv->vram_size >> 20,
+		dev_priv->vram_start);
 
-    start = (unsigned long long) pci_resource_start(dev->pdev, 1);
-    len = pci_resource_len(dev->pdev, 1);
-    ret = ttm_bo_init_mm(&dev_priv->ttm.bdev, TTM_PL_PRIV, len >> PAGE_SHIFT);
-    if (ret) {
-        DRM_ERROR("Failed to map MMIO: %d\n", ret);
-        goto exit;
-    }
+	start = (unsigned long long) pci_resource_start(dev->pdev, 1);
+	len = pci_resource_len(dev->pdev, 1);
+	ret = ttm_bo_init_mm(&dev_priv->ttm.bdev,
+				TTM_PL_PRIV, len >> PAGE_SHIFT);
+	if (ret) {
+		DRM_ERROR("Failed to map MMIO: %d\n", ret);
+		goto exit;
+	}
 
-    ret = via_bo_create(&dev_priv->ttm.bdev, &bo, VIA_MMIO_REGSIZE, ttm_bo_type_kernel,
-                        TTM_PL_FLAG_PRIV, 1, PAGE_SIZE, false, NULL, NULL);
-    if (ret) {
-        DRM_ERROR("Failed to create a buffer object for MMIO: %d\n", ret);
-        goto exit;
-    }
+	ret = via_bo_create(&dev_priv->ttm.bdev, &bo, VIA_MMIO_REGSIZE,
+				ttm_bo_type_kernel, TTM_PL_FLAG_PRIV,
+				1, PAGE_SIZE, false, NULL, NULL);
+	if (ret) {
+		DRM_ERROR("Failed to create a buffer object "
+				"for MMIO: %d\n", ret);
+		goto exit;
+	}
 
-    ret = via_bo_pin(bo, &dev_priv->mmio);
-    if (ret) {
-        DRM_ERROR("Failed to map a buffer object for MMIO: %d\n", ret);
-        ttm_bo_clean_mm(&dev_priv->ttm.bdev, TTM_PL_PRIV);
-        goto exit;
-    }
+	ret = via_bo_pin(bo, &dev_priv->mmio);
+	if (ret) {
+		DRM_ERROR("Failed to map a buffer object for "
+				"MMIO: %d\n", ret);
+		ttm_bo_clean_mm(&dev_priv->ttm.bdev, TTM_PL_PRIV);
+		goto exit;
+	}
 
-    DRM_INFO("Mapped MMIO at physical address 0x%08llx.\n",
-                start);
+	DRM_INFO("Mapped MMIO at physical address 0x%08llx.\n",
+			start);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-    return ret;
+	return ret;
 }
 
 void via_mm_fini(struct drm_device *dev)
 {
-    struct via_device *dev_priv = dev->dev_private;
+	struct via_device *dev_priv = dev->dev_private;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-    ttm_bo_device_release(&dev_priv->ttm.bdev);
+	ttm_bo_device_release(&dev_priv->ttm.bdev);
 
-    via_ttm_global_release(&dev_priv->ttm.mem_global_ref,
-            &dev_priv->ttm.bo_global_ref,
-            &dev_priv->ttm.bdev);
+	via_ttm_global_release(&dev_priv->ttm.mem_global_ref,
+				&dev_priv->ttm.bo_global_ref,
+				&dev_priv->ttm.bdev);
 
-    /* mtrr delete the vram */
-    if (dev_priv->vram_mtrr >= 0) {
-        arch_phys_wc_del(dev_priv->vram_mtrr);
-    }
+	/* mtrr delete the vram */
+	if (dev_priv->vram_mtrr >= 0) {
+		arch_phys_wc_del(dev_priv->vram_mtrr);
+	}
 
-    dev_priv->vram_mtrr = 0;
+	dev_priv->vram_mtrr = 0;
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -662,31 +681,36 @@ void via_mm_fini(struct drm_device *dev)
 /*
  * the buffer object domain
  */
-void
-ttm_placement_from_domain(struct ttm_buffer_object *bo, struct ttm_placement *placement, u32 domains,
-                struct ttm_bo_device *bdev)
+void ttm_placement_from_domain(struct ttm_buffer_object *bo,
+				struct ttm_placement *placement,
+				u32 domains,
+				struct ttm_bo_device *bdev)
 {
-    struct ttm_heap *heap = container_of(bo, struct ttm_heap, bo);
-    int cnt = 0, i = 0;
+	struct ttm_heap *heap = container_of(bo, struct ttm_heap, bo);
+	int cnt = 0, i = 0;
 
-    if (!(domains & TTM_PL_MASK_MEM))
-        domains = TTM_PL_FLAG_SYSTEM;
+	if (!(domains & TTM_PL_MASK_MEM))
+		domains = TTM_PL_FLAG_SYSTEM;
 
-    do {
-        int domain = (domains & (1 << i));
+	do {
+		int domain = (domains & (1 << i));
 
-        if (domain) {
-            heap->busy_placements[cnt].flags = (domain | bdev->man[i].default_caching);
-            heap->busy_placements[cnt].fpfn = heap->busy_placements[cnt].lpfn = 0;
-            heap->placements[cnt].flags = (domain | bdev->man[i].available_caching);
-            heap->placements[cnt].fpfn = heap->placements[cnt].lpfn = 0;
-            cnt++;
-        }
-    } while (i++ < TTM_NUM_MEM_TYPES);
+		if (domain) {
+			heap->busy_placements[cnt].flags =
+				(domain | bdev->man[i].default_caching);
+			heap->busy_placements[cnt].fpfn =
+				heap->busy_placements[cnt].lpfn = 0;
+			heap->placements[cnt].flags =
+				(domain | bdev->man[i].available_caching);
+			heap->placements[cnt].fpfn =
+				heap->placements[cnt].lpfn = 0;
+			cnt++;
+		}
+	} while (i++ < TTM_NUM_MEM_TYPES);
 
-    placement->num_busy_placement = placement->num_placement = cnt;
-    placement->busy_placement = heap->busy_placements;
-    placement->placement = heap->placements;
+	placement->num_busy_placement = placement->num_placement = cnt;
+	placement->busy_placement = heap->busy_placements;
+	placement->placement = heap->placements;
 }
 
 int via_bo_create(struct ttm_bo_device *bdev,
@@ -700,112 +724,117 @@ int via_bo_create(struct ttm_bo_device *bdev,
 			struct sg_table *sg,
 			struct reservation_object *resv)
 {
-    struct ttm_buffer_object *bo = NULL;
-    struct ttm_placement placement;
-    struct ttm_heap *heap;
-    size_t acc_size;
-    int ret = -ENOMEM;
+	struct ttm_buffer_object *bo = NULL;
+	struct ttm_placement placement;
+	struct ttm_heap *heap;
+	size_t acc_size;
+	int ret = -ENOMEM;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-    size = round_up(size, byte_alignment);
-    size = ALIGN(size, page_alignment);
+	size = round_up(size, byte_alignment);
+	size = ALIGN(size, page_alignment);
 
-    heap = kzalloc(sizeof(struct ttm_heap), GFP_KERNEL);
-    if (unlikely(!heap)) {
-        DRM_ERROR("Failed to allocate kernel memory.");
-        goto exit;
-    }
+	heap = kzalloc(sizeof(struct ttm_heap), GFP_KERNEL);
+	if (unlikely(!heap)) {
+		DRM_ERROR("Failed to allocate kernel memory.");
+		goto exit;
+	}
 
-    bo = &heap->bo;
+	bo = &heap->bo;
 
-    ttm_placement_from_domain(bo, &placement, domains, bdev);
+	ttm_placement_from_domain(bo, &placement, domains, bdev);
 
-    acc_size = ttm_bo_dma_acc_size(bdev, size,
-                                    sizeof(struct ttm_heap));
+	acc_size = ttm_bo_dma_acc_size(bdev, size,
+					sizeof(struct ttm_heap));
 
-    ret = ttm_bo_init(bdev, bo, size, type, &placement,
-              page_alignment >> PAGE_SHIFT,
-              interruptible, acc_size,
-              sg, NULL, via_ttm_bo_destroy);
+	ret = ttm_bo_init(bdev, bo, size, type, &placement,
+				page_alignment >> PAGE_SHIFT,
+				interruptible, acc_size,
+				sg, NULL, via_ttm_bo_destroy);
 
-    if (unlikely(ret)) {
-        DRM_ERROR("Failed to initialize a TTM Buffer Object.");
-        goto error;
-    }
+	if (unlikely(ret)) {
+		DRM_ERROR("Failed to initialize a TTM Buffer Object.");
+		goto error;
+	}
 
-    *p_bo = bo;
-    goto exit;
+	*p_bo = bo;
+	goto exit;
 error:
-    kfree(heap);
+	kfree(heap);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-    return ret;
+	return ret;
 }
 
-int
-via_bo_pin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
+int via_bo_pin(struct ttm_buffer_object *bo,
+		struct ttm_bo_kmap_obj *kmap)
 {
-    struct ttm_heap *heap = container_of(bo, struct ttm_heap, bo);
-    struct ttm_placement placement;
-    struct ttm_operation_ctx ctx = {.interruptible = false,
-                                        .no_wait_gpu = false};
-    int ret;
+	struct ttm_heap *heap = container_of(bo, struct ttm_heap, bo);
+	struct ttm_placement placement;
+	struct ttm_operation_ctx ctx = {
+					.interruptible = false,
+					.no_wait_gpu = false
+					};
+	int ret;
 
-    ret = ttm_bo_reserve(bo, true, false, NULL);
-    if (!ret) {
-        placement.placement = heap->placements;
-        placement.num_placement = 1;
+	ret = ttm_bo_reserve(bo, true, false, NULL);
+	if (!ret) {
+		placement.placement = heap->placements;
+		placement.num_placement = 1;
 
-        heap->placements[0].flags = (bo->mem.placement | TTM_PL_FLAG_NO_EVICT);
-        ret = ttm_bo_validate(bo, &placement, &ctx);
-        if (!ret && kmap)
-            ret = ttm_bo_kmap(bo, 0, bo->num_pages, kmap);
-        ttm_bo_unreserve(bo);
-    }
-    return ret;
+		heap->placements[0].flags = (bo->mem.placement | TTM_PL_FLAG_NO_EVICT);
+		ret = ttm_bo_validate(bo, &placement, &ctx);
+		if (!ret && kmap)
+			ret = ttm_bo_kmap(bo, 0, bo->num_pages, kmap);
+		ttm_bo_unreserve(bo);
+	}
+	return ret;
 }
 
-int
-via_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap)
+int via_bo_unpin(struct ttm_buffer_object *bo,
+			struct ttm_bo_kmap_obj *kmap)
 {
-    struct ttm_heap *heap = container_of(bo, struct ttm_heap, bo);
-    struct ttm_placement placement;
-    struct ttm_operation_ctx ctx = {.interruptible = false,
-                                        .no_wait_gpu = false};
-    int ret;
+	struct ttm_heap *heap = container_of(bo, struct ttm_heap, bo);
+	struct ttm_placement placement;
+	struct ttm_operation_ctx ctx = {
+					.interruptible = false,
+					.no_wait_gpu = false
+					};
+	int ret;
 
-    ret = ttm_bo_reserve(bo, true, false, NULL);
-    if (!ret) {
-        if (kmap)
-            ttm_bo_kunmap(kmap);
+	ret = ttm_bo_reserve(bo, true, false, NULL);
+	if (!ret) {
+		if (kmap)
+			ttm_bo_kunmap(kmap);
 
-        placement.placement = heap->placements;
-        placement.num_placement = 1;
+		placement.placement = heap->placements;
+		placement.num_placement = 1;
 
-        heap->placements[0].flags = (bo->mem.placement & ~TTM_PL_FLAG_NO_EVICT);
-        ret = ttm_bo_validate(bo, &placement, &ctx);
-        ttm_bo_unreserve(bo);
-    }
-    return ret;
+		heap->placements[0].flags = (bo->mem.placement & ~TTM_PL_FLAG_NO_EVICT);
+		ret = ttm_bo_validate(bo, &placement, &ctx);
+		ttm_bo_unreserve(bo);
+	}
+	return ret;
 }
 
-int
-via_ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev, unsigned long size,
-                uint32_t alignment, uint32_t domain,
-                struct ttm_bo_kmap_obj *kmap)
+int via_ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev,
+					unsigned long size,
+					uint32_t alignment,
+					uint32_t domain,
+					struct ttm_bo_kmap_obj *kmap)
 {
-    int ret = via_bo_create(bdev, &kmap->bo, size,
-                            ttm_bo_type_kernel, domain,
-                            alignment, PAGE_SIZE,
-                            false, NULL, NULL);
-    if (likely(!ret)) {
-        ret = via_bo_pin(kmap->bo, kmap);
-        if (unlikely(ret)) {
-            DRM_ERROR("failed to mmap the buffer\n");
-            ttm_bo_unref(&kmap->bo);
-            kmap->bo = NULL;
-        }
-    }
-    return ret;
+	int ret = via_bo_create(bdev, &kmap->bo, size,
+				ttm_bo_type_kernel, domain,
+				alignment, PAGE_SIZE,
+				false, NULL, NULL);
+	if (likely(!ret)) {
+		ret = via_bo_pin(kmap->bo, kmap);
+		if (unlikely(ret)) {
+			DRM_ERROR("failed to mmap the buffer\n");
+			ttm_bo_unref(&kmap->bo);
+			kmap->bo = NULL;
+		}
+	}
+	return ret;
 }
