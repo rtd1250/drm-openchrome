@@ -98,7 +98,8 @@ static int via_detect_agp(struct drm_device *dev)
 		goto out_err0;
 	}
 
-	ret = ttm_bo_init_mm(&dev_priv->ttm.bdev, TTM_PL_TT, agp_info.aperture_size >> PAGE_SHIFT);
+	ret = ttm_bo_init_mm(&dev_priv->ttm.bdev, TTM_PL_TT,
+				agp_info.aperture_size >> PAGE_SHIFT);
 	if (!ret) {
 		DRM_INFO("Detected %lu MB of AGP Aperture at "
 			"physical address 0x%08lx.\n",
@@ -301,7 +302,8 @@ exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static int via_dumb_create(struct drm_file *filp, struct drm_device *dev,
+static int via_dumb_create(struct drm_file *filp,
+				struct drm_device *dev,
 				struct drm_mode_create_dumb *args)
 {
 	struct via_device *dev_priv = dev->dev_private;
@@ -327,7 +329,7 @@ static int via_dumb_create(struct drm_file *filp, struct drm_device *dev,
 }
 
 static int via_dumb_mmap(struct drm_file *filp, struct drm_device *dev,
-			uint32_t handle, uint64_t *offset_p)
+				uint32_t handle, uint64_t *offset_p)
 {
 	struct ttm_buffer_object *bo;
 	struct drm_gem_object *obj;
@@ -350,8 +352,8 @@ static int via_dumb_mmap(struct drm_file *filp, struct drm_device *dev,
 	return rc;
 }
 
-static int gem_dumb_destroy(struct drm_file *filp, struct drm_device *dev,
-				uint32_t handle)
+static int gem_dumb_destroy(struct drm_file *filp,
+				struct drm_device *dev, uint32_t handle)
 {
 	int ret;
 
@@ -365,24 +367,24 @@ static int gem_dumb_destroy(struct drm_file *filp, struct drm_device *dev,
 
 static int via_device_init(struct via_device *dev_priv)
 {
-    int ret;
+	int ret;
 
-    DRM_DEBUG_KMS("Entered %s.\n", __func__);
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-    /* Temporary implementation. */
-    dev_priv->is_via_nanobook = false;
-    dev_priv->is_quanta_il1 = false;
+	/* Temporary implementation. */
+	dev_priv->is_via_nanobook = false;
+	dev_priv->is_quanta_il1 = false;
 
-    ret = via_vram_init(dev_priv);
-    if (ret) {
-        DRM_ERROR("Failed to initialize video RAM.\n");
-        goto exit;
-    }
+	ret = via_vram_init(dev_priv);
+	if (ret) {
+		DRM_ERROR("Failed to initialize video RAM.\n");
+		goto exit;
+	}
 
-    via_mmio_setup(dev_priv);
+	via_mmio_setup(dev_priv);
 exit:
-    DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-    return ret;
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
 }
 
 static void via_driver_unload(struct drm_device *dev)
@@ -441,18 +443,20 @@ static void via_driver_unload(struct drm_device *dev)
 	return;
 }
 
-static int via_driver_load(struct drm_device *dev, unsigned long chipset)
+static int via_driver_load(struct drm_device *dev,
+				unsigned long chipset)
 {
 	struct via_device *dev_priv;
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-    dev_priv = kzalloc(sizeof(struct via_device), GFP_KERNEL);
+	dev_priv = kzalloc(sizeof(struct via_device), GFP_KERNEL);
 	if (!dev_priv) {
-        ret = -ENOMEM;
-        DRM_ERROR("Failed to allocate private storage memory.\n");
-        goto exit;
+		ret = -ENOMEM;
+		DRM_ERROR("Failed to allocate private "
+				"storage memory.\n");
+		goto exit;
 	}
 
 	dev->dev_private = (void *)dev_priv;
@@ -462,15 +466,15 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 
 	via_init_command_verifier();
 
-    ret = via_device_init(dev_priv);
-    if (ret) {
-        DRM_ERROR("Failed to initialize Chrome IGP.\n");
-        goto init_error;
-    }
-
-    ret = via_mm_init(dev_priv);
+	ret = via_device_init(dev_priv);
 	if (ret) {
-        DRM_ERROR("Failed to initialize TTM.\n");
+		DRM_ERROR("Failed to initialize Chrome IGP.\n");
+		goto init_error;
+	}
+
+	ret = via_mm_init(dev_priv);
+	if (ret) {
+		DRM_ERROR("Failed to initialize TTM.\n");
 		goto init_error;
 	}
 
@@ -478,7 +482,8 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 
 #if IS_ENABLED(CONFIG_AGP)
 	if ((dev_priv->engine_type <= VIA_ENG_H2) ||
-	    (dev->agp && pci_find_capability(dev->pdev, PCI_CAP_ID_AGP))) {
+		(dev->agp &&
+		pci_find_capability(dev->pdev, PCI_CAP_ID_AGP))) {
 		ret = via_detect_agp(dev);
 		if (!ret)
 			via_agp_engine_init(dev_priv);
@@ -488,11 +493,13 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 #endif
 	if (pci_is_pcie(dev->pdev)) {
 		/* Allocate GART. */
-		ret = via_ttm_allocate_kernel_buffer(&dev_priv->ttm.bdev, SGDMA_MEMORY,
-						16, TTM_PL_FLAG_VRAM,
+		ret = via_ttm_allocate_kernel_buffer(&dev_priv->ttm.bdev,
+						SGDMA_MEMORY, 16,
+						TTM_PL_FLAG_VRAM,
 						&dev_priv->gart);
 		if (likely(!ret)) {
-			DRM_INFO("Allocated %u KB of DMA memory.\n", SGDMA_MEMORY >> 10);
+			DRM_INFO("Allocated %u KB of DMA memory.\n",
+					SGDMA_MEMORY >> 10);
 		} else {
 			DRM_ERROR("Failed to allocate DMA memory.\n");
 			goto init_error;
@@ -500,12 +507,16 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 	}
 
 	/* Allocate VQ. (Virtual Queue) */
-	ret = via_ttm_allocate_kernel_buffer(&dev_priv->ttm.bdev, VQ_MEMORY, 16,
-					TTM_PL_FLAG_VRAM, &dev_priv->vq);
+	ret = via_ttm_allocate_kernel_buffer(&dev_priv->ttm.bdev,
+					VQ_MEMORY, 16,
+					TTM_PL_FLAG_VRAM,
+					&dev_priv->vq);
 	if (likely(!ret)) {
-		DRM_INFO("Allocated %u KB of VQ (Virtual Queue) memory.\n", VQ_MEMORY >> 10);
+		DRM_INFO("Allocated %u KB of VQ (Virtual Queue) "
+				"memory.\n", VQ_MEMORY >> 10);
 	} else {
-		DRM_ERROR("Failed to allocate VQ (Virtual Queue) memory.\n");
+		DRM_ERROR("Failed to allocate VQ (Virtual Queue) "
+				"memory.\n");
 		goto init_error;
 	}
 
@@ -521,31 +532,31 @@ static int via_driver_load(struct drm_device *dev, unsigned long chipset)
 
 	ret = drm_vblank_init(dev, 2);
 	if (ret) {
-        DRM_ERROR("Failed to initialize DRM VBlank.\n");
+		DRM_ERROR("Failed to initialize DRM VBlank.\n");
 		goto init_error;
 	}
 
 	ret = via_dmablit_init(dev);
 	if (ret) {
-        DRM_ERROR("Failed to initialize DMA.\n");
+		DRM_ERROR("Failed to initialize DMA.\n");
 		goto init_error;
 	}
 
 	if (drm_core_check_feature(dev, DRIVER_MODESET)) {
 		ret = via_modeset_init(dev);
 		if (ret) {
-            DRM_ERROR("Failed to initialize mode setting.\n");
-            goto init_error;
+		DRM_ERROR("Failed to initialize mode setting.\n");
+		goto init_error;
 		}
 	}
 
 	ret = drm_irq_install(dev, dev->pdev->irq);
-    if (ret) {
-        DRM_ERROR("Failed to initialize DRM IRQ.\n");
-        goto init_error;
-    }
+	if (ret) {
+		DRM_ERROR("Failed to initialize DRM IRQ.\n");
+		goto init_error;
+	}
 
-    goto exit;
+	goto exit;
 init_error:
 	if (ret)
 		via_driver_unload(dev);
@@ -575,7 +586,7 @@ static void via_driver_lastclose(struct drm_device *dev)
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	if (drm_core_check_feature(dev, DRIVER_MODESET) &&
-	    dev->mode_config.funcs->output_poll_changed)
+		dev->mode_config.funcs->output_poll_changed)
 		dev->mode_config.funcs->output_poll_changed(dev);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
@@ -683,8 +694,8 @@ static const struct file_operations via_driver_fops = {
 };
 
 static struct drm_driver via_driver = {
-	.driver_features = DRIVER_USE_AGP | DRIVER_HAVE_IRQ | DRIVER_IRQ_SHARED |
-					   DRIVER_GEM,
+	.driver_features = DRIVER_USE_AGP | DRIVER_HAVE_IRQ |
+				DRIVER_IRQ_SHARED | DRIVER_GEM,
 	.load = via_driver_load,
 	.unload = via_driver_unload,
 	.preclose = via_reclaim_buffers_locked,
