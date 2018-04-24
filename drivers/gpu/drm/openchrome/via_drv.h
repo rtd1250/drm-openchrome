@@ -24,13 +24,14 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
+
 #ifndef _VIA_DRV_H_
 #define _VIA_DRV_H_
 
-#define DRIVER_AUTHOR       "OpenChrome Project"
-#define DRIVER_NAME         "openchrome"
-#define DRIVER_DESC         "OpenChrome DRM for VIA Technologies Chrome IGP"
-#define DRIVER_DATE         "20180406"
+#define DRIVER_AUTHOR		"OpenChrome Project"
+#define DRIVER_NAME		"openchrome"
+#define DRIVER_DESC		"OpenChrome DRM for VIA Technologies Chrome IGP"
+#define DRIVER_DATE		"20180406"
 
 #define DRIVER_MAJOR		3
 #define DRIVER_MINOR		0
@@ -55,11 +56,11 @@
 #include "via_verifier.h"
 #include "via_display.h"
 
-#define VIA_MM_ALIGN_SIZE 16
+#define VIA_MM_ALIGN_SIZE	16
 
-#define VIA_PCI_BUF_SIZE 60000
-#define VIA_FIRE_BUF_SIZE  1024
-#define VIA_NUM_IRQS 4
+#define VIA_PCI_BUF_SIZE	60000
+#define VIA_FIRE_BUF_SIZE	1024
+#define VIA_NUM_IRQS		4
 
 #define DRM_FILE_PAGE_OFFSET (0x100000000ULL >> PAGE_SHIFT)
 
@@ -154,10 +155,10 @@ struct via_device {
 	struct ttm_bo_kmap_obj vq;
 
 	struct via_framebuffer_device *via_fbdev;
-    u8 vram_type;
-    unsigned long long vram_start;
-    unsigned int vram_size;
-    int vram_mtrr;
+	u8 vram_type;
+	unsigned long long vram_start;
+	unsigned int vram_size;
+	int vram_mtrr;
 
 	struct via_state pm_cache;
 
@@ -261,7 +262,7 @@ struct via_device {
 #define VIA_READ8(reg)		ioread8(VIA_BASE + reg)
 #define VIA_WRITE8(reg, val)	iowrite8(val, VIA_BASE + reg)
 
-#define VIA_WRITE_MASK(reg, data, mask)  \
+#define VIA_WRITE_MASK(reg, data, mask) \
 	VIA_WRITE(reg, (data & mask) | (VIA_READ(reg) & ~mask)) \
 
 #define VGABASE (VIA_BASE+VIA_MMIO_VGABASE)
@@ -273,13 +274,20 @@ extern int via_hdmi_audio;
 
 extern void via_engine_init(struct drm_device *dev);
 
-extern int via_dma_init(struct drm_device *dev, void *data, struct drm_file *file_priv);
-extern int via_flush_ioctl(struct drm_device *dev, void *data, struct drm_file *file_priv);
-extern int via_dispatch_cmdbuffer(struct drm_device *dev, drm_via_cmdbuffer_t *cmd);
-extern int via_cmdbuffer(struct drm_device *dev, void *data, struct drm_file *file_priv);
-extern int via_cmdbuf_size(struct drm_device *dev, void *data, struct drm_file *file_priv);
-extern int via_pci_cmdbuffer(struct drm_device *dev, void *data, struct drm_file *file_priv);
-extern int via_wait_irq(struct drm_device *dev, void *data, struct drm_file *file_priv);
+extern int via_dma_init(struct drm_device *dev, void *data,
+			struct drm_file *file_priv);
+extern int via_flush_ioctl(struct drm_device *dev, void *data,
+				struct drm_file *file_priv);
+extern int via_dispatch_cmdbuffer(struct drm_device *dev,
+					drm_via_cmdbuffer_t *cmd);
+extern int via_cmdbuffer(struct drm_device *dev, void *data,
+				struct drm_file *file_priv);
+extern int via_cmdbuf_size(struct drm_device *dev, void *data,
+				struct drm_file *file_priv);
+extern int via_pci_cmdbuffer(struct drm_device *dev, void *data,
+				struct drm_file *file_priv);
+extern int via_wait_irq(struct drm_device *dev, void *data,
+			struct drm_file *file_priv);
 extern int via_wait_idle(struct via_device *dev_priv);
 
 extern int via_vram_init(struct via_device *dev_priv);
@@ -296,14 +304,15 @@ extern void via_init_command_verifier(void);
 extern int via_driver_dma_quiescent(struct drm_device *dev);
 extern int via_dma_cleanup(struct drm_device *dev);
 
-extern void via_dmablit_handler(struct drm_device *dev, int engine, int from_irq);
+extern void via_dmablit_handler(struct drm_device *dev,
+				int engine, int from_irq);
 extern int via_dmablit_init(struct drm_device *dev);
 
 extern int via_mm_init(struct via_device *dev_priv);
 void via_mm_fini(struct drm_device *dev);
 extern void ttm_placement_from_domain(struct ttm_buffer_object *bo,
-                      struct ttm_placement *placement,
-                      u32 domains, struct ttm_bo_device *bdev);
+			struct ttm_placement *placement,
+			u32 domains, struct ttm_bo_device *bdev);
 extern int via_bo_create(struct ttm_bo_device *bdev,
 				struct ttm_buffer_object **p_bo,
 				unsigned long size,
@@ -314,27 +323,31 @@ extern int via_bo_create(struct ttm_bo_device *bdev,
 				bool interruptible,
 				struct sg_table *sg,
 				struct reservation_object *resv);
-extern int via_bo_pin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap);
-extern int via_bo_unpin(struct ttm_buffer_object *bo, struct ttm_bo_kmap_obj *kmap);
-extern int via_ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev, unsigned long size,
-                      uint32_t alignment, uint32_t domain,
-                      struct ttm_bo_kmap_obj *kmap);
+extern int via_bo_pin(struct ttm_buffer_object *bo,
+				struct ttm_bo_kmap_obj *kmap);
+extern int via_bo_unpin(struct ttm_buffer_object *bo,
+				struct ttm_bo_kmap_obj *kmap);
+extern int via_ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev,
+				unsigned long size,
+				uint32_t alignment, uint32_t domain,
+				struct ttm_bo_kmap_obj *kmap);
 
 
 extern int ttm_mmap(struct file *filp, struct vm_area_struct *vma);
 
-extern int ttm_gem_open_object(struct drm_gem_object *obj, struct drm_file *file_priv);
+extern int ttm_gem_open_object(struct drm_gem_object *obj,
+				struct drm_file *file_priv);
 extern void ttm_gem_free_object(struct drm_gem_object *obj);
-extern struct drm_gem_object *
-ttm_gem_create(struct drm_device *dev,
-		struct ttm_bo_device *bdev,
-		unsigned long size,
-		enum ttm_bo_type type,
-		uint32_t domains,
-		uint32_t byte_alignment,
-		uint32_t page_alignment,
-		bool interruptible);
-extern struct ttm_buffer_object *ttm_gem_mapping(struct drm_gem_object *obj);
+extern struct drm_gem_object* ttm_gem_create(struct drm_device *dev,
+					struct ttm_bo_device *bdev,
+					unsigned long size,
+					enum ttm_bo_type type,
+					uint32_t domains,
+					uint32_t byte_alignment,
+					uint32_t page_alignment,
+					bool interruptible);
+extern struct ttm_buffer_object* ttm_gem_mapping(
+					struct drm_gem_object *obj);
 
 extern struct ttm_tt* via_sgdma_backend_init(
 					struct ttm_buffer_object *bo,
