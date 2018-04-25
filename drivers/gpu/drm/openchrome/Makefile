@@ -3,10 +3,26 @@
 # Direct Rendering Infrastructure (DRI) in XFree86 4.1.0 and higher.
 
 ccflags-y := -Iinclude/drm
-openchrome-y    := via_drv.o via_pm.o via_i2c.o via_irq.o via_verifier.o via_ioc32.o \
-		ttm_gem.o via_ttm.o via_fence.o via_sgdma.o \
-		via_h1_dma.o via_h1_cmdbuf.o \
-		via_display.o via_crtc.o crtc_hw.o via_clocks.o \
-		via_analog.o via_fp.o via_tmds.o via_hdmi.o via_fb.o
+openchrome-y := openchrome_analog.o \
+		openchrome_clocks.o \
+		openchrome_crtc.o \
+		openchrome_crtc_hw.o \
+		openchrome_display.o \
+		openchrome_drv.o \
+		openchrome_fb.o \
+		openchrome_fence.o \
+		openchrome_fp.o \
+		openchrome_gem.o \
+		openchrome_h1_cmdbuf.o \
+		openchrome_h1_dma.o \
+		openchrome_hdmi.o \
+		openchrome_i2c.o \
+		openchrome_ioc32.o \
+		openchrome_irq.o \
+		openchrome_pm.o \
+		openchrome_sgdma.o \
+		openchrome_tmds.o \
+		openchrome_ttm.o \
+		openchrome_verifier.o
 
 obj-$(CONFIG_DRM_OPENCHROME)	+= openchrome.o
