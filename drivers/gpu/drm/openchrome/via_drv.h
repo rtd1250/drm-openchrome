@@ -53,8 +53,8 @@
 #include "via_regs.h"
 #include "via_fence.h"
 #include "via_dma.h"
-#include "via_verifier.h"
 #include "via_display.h"
+#include "openchrome_verifier.h"
 
 #define VIA_MM_ALIGN_SIZE	16
 
