@@ -27,7 +27,6 @@
  */
 #include <drm/drmP.h>
 #include "via_drv.h"
-#include "via_dma.h"
 
 /*
  * Fire a blit engine.
