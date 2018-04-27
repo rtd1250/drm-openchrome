@@ -50,10 +50,10 @@
 #include <drm/drm_gem.h>
 #include <drm/via_drm.h>
 
-#include "via_regs.h"
 #include "via_fence.h"
 #include "via_dma.h"
 #include "via_display.h"
+#include "openchrome_regs.h"
 #include "openchrome_verifier.h"
 
 #define VIA_MM_ALIGN_SIZE	16
