@@ -50,7 +50,7 @@
 #include <drm/drm_gem.h>
 #include <drm/via_drm.h>
 
-#include "via_display.h"
+#include "openchrome_display.h"
 #include "openchrome_dma.h"
 #include "openchrome_fence.h"
 #include "openchrome_regs.h"
