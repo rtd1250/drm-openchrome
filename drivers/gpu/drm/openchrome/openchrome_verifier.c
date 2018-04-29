@@ -30,7 +30,7 @@
 #include <drm/drmP.h>
 #include <drm/via_drm.h>
 
-#include "via_3d_reg.h"
+#include "openchrome_3d_reg.h"
 #include "openchrome_verifier.h"
 #include "via_drv.h"
 

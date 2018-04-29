@@ -26,7 +26,7 @@
 #ifndef _VIA_VERIFIER_H_
 #define _VIA_VERIFIER_H_
 
-#include "via_3d_reg.h"
+#include "openchrome_3d_reg.h"
 
 enum drm_via_sequence {
 	no_sequence = 0,
