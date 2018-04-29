@@ -24,13 +24,14 @@
 #define _VIA_DISPLAY_H_
 
 #include <video/vga.h>
-#include "crtc_hw.h"
 
 #include "drm_edid.h"
 #include "drm_crtc.h"
 #include "drm_crtc_helper.h"
 #include "drm_plane_helper.h"
 #include "drm_fb_helper.h"
+
+#include "openchrome_crtc_hw.h"
 
 /* IGA Scaling disable */
 #define VIA_NO_SCALING	0

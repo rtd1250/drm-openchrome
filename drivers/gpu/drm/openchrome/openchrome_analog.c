@@ -24,7 +24,7 @@
  * James Simmons <jsimmons@infradead.org>
  */
 #include "via_drv.h"
-#include "crtc_hw.h"
+#include "openchrome_crtc_hw.h"
 
 
 /*
