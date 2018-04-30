@@ -27,12 +27,14 @@
  * Don't run this code directly on an AGP buffer. Due to cache problems it will
  * be very slow.
  */
+
 #include <drm/drmP.h>
 #include <drm/via_drm.h>
 
 #include "openchrome_3d_reg.h"
 #include "openchrome_verifier.h"
-#include "via_drv.h"
+#include "openchrome_drv.h"
+
 
 enum verifier_state {
 	state_command,

@@ -26,7 +26,8 @@
  *	James Simmons <jsimmons@infradead.org>
  */
 
-#include "via_drv.h"
+#include "openchrome_drv.h"
+
 
 static void via_tmds_power(struct via_device *dev_priv,
 				bool power_state)

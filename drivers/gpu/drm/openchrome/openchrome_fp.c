@@ -26,7 +26,7 @@
 #include <linux/dmi.h>
 #include <asm/olpc.h>
 
-#include "via_drv.h"
+#include "openchrome_drv.h"
 
 #define TD0 200
 #define TD1 25

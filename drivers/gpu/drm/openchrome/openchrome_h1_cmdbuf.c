@@ -35,8 +35,9 @@
  */
 
 #include <drm/drmP.h>
-#include "via_drv.h"
+
 #include "openchrome_3d_reg.h"
+#include "openchrome_drv.h"
 
 #define CMDBUF_ALIGNMENT_SIZE   (0x100)
 #define CMDBUF_ALIGNMENT_MASK   (0x0ff)

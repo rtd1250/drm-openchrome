@@ -21,9 +21,10 @@
  * DEALINGS IN THE SOFTWARE.
  */
 #include "drmP.h"
-#include "via_drv.h"
 #include "drm_fb_helper.h"
 #include "drm_crtc_helper.h"
+
+#include "openchrome_drv.h"
 
 static int
 cle266_mem_type(struct via_device *dev_priv, struct pci_dev *bridge)

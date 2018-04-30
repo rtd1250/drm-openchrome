@@ -26,7 +26,8 @@
 #include <linux/swiotlb.h>
 #endif
 
-#include "via_drv.h"
+#include "openchrome_drv.h"
+
 
 #define DRM_FILE_PAGE_OFFSET (0x100000000ULL >> PAGE_SHIFT)
 

@@ -21,7 +21,8 @@
  * DEALINGS IN THE SOFTWARE.
  */
 #include "drmP.h"
-#include "via_drv.h"
+
+#include "openchrome_drv.h"
 
 /*
  * initialize the gem buffer object

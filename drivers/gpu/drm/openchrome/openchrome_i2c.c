@@ -15,7 +15,8 @@
  * This part was influenced by the via i2c code written for the viafb
  * driver by VIA Technologies and S3 Graphics
  */
-#include "via_drv.h"
+
+#include "openchrome_drv.h"
 
 enum viafb_i2c_adap;
 

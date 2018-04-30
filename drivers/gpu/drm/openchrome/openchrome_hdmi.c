@@ -23,7 +23,9 @@
  * Authors:
  *	James Simmons <jsimmons@infradead.org>
  */
-#include "via_drv.h"
+
+#include "openchrome_drv.h"
+
 
 #define HDMI_AUDIO_ENABLED	BIT(0)
 #define HDMI_COLOR_RANGE	BIT(1)

@@ -26,7 +26,7 @@
 #include "drm_crtc.h"
 #include "drm_crtc_helper.h"
 
-#include "via_drv.h"
+#include "openchrome_drv.h"
 #include "openchrome_disp_reg.h"
 
 static struct vga_regset vpit_table[] = {

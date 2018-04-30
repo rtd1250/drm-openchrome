@@ -22,7 +22,9 @@
  */
 
 #include "drmP.h"
-#include "via_drv.h"
+
+#include "openchrome_drv.h"
+
 
 static void
 via_init_2d(struct via_device *dev_priv, int pci_device)

@@ -23,7 +23,7 @@
 #include <linux/random.h>
 #include "drmP.h"
 
-#include "via_drv.h"
+#include "openchrome_drv.h"
 
 static void
 via_fence_destroy(struct kref *kref)

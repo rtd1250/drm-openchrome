@@ -24,8 +24,10 @@
 /*
  * Authors: Thomas Hellström <thomas-at-tungstengraphics-dot-com>
  */
+
 #include "drmP.h"
-#include "via_drv.h"
+
+#include "openchrome_drv.h"
 
 static int
 via_getparam(struct drm_device *dev, void *data,

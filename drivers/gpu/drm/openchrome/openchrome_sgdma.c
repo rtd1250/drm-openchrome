@@ -23,7 +23,9 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#include "via_drv.h"
+
+#include "openchrome_drv.h"
+
 
 static int
 via_pcie_sgdma_bind(struct ttm_tt *ttm, struct ttm_mem_reg *mem)

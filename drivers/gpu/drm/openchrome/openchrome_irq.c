@@ -34,7 +34,9 @@
  */
 
 #include "drmP.h"
-#include "via_drv.h"
+
+#include "openchrome_drv.h"
+
 
 /* HW Interrupt Register Setting */
 #define INTERRUPT_CTRL_REG1		0x200

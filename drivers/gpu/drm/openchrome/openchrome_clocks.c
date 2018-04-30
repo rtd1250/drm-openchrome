@@ -20,7 +20,8 @@
  */
 
 #include "drmP.h"
-#include "via_drv.h"
+
+#include "openchrome_drv.h"
 
 #define CSR_VCO_UP	600000000
 #define CSR_VCO_DOWN	300000000

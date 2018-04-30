@@ -25,8 +25,11 @@
  *    Thomas Hellstrom.
  *    Partially based on code obtained from Digeo Inc.
  */
+
 #include <drm/drmP.h>
-#include "via_drv.h"
+
+#include "openchrome_drv.h"
+
 
 /*
  * Fire a blit engine.

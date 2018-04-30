@@ -33,7 +33,7 @@
 #include <drm/via_drm.h>
 #include <drm/drm_pciids.h>
 
-#include "via_drv.h"
+#include "openchrome_drv.h"
 
 int via_modeset = 1;
 
