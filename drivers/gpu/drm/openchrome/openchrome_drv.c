@@ -284,6 +284,17 @@ static void chip_revision_info(struct drm_device *dev)
 			dev_priv->is_quanta_il1 = false;
 		}
 
+		/* Samsung NC20 netbook has its FP connected to LVDS2
+		 * rather than the more logical LVDS1, hence, a special
+		 * flag register is needed for properly controlling its
+		 * FP. */
+		if ((subsystem_vendor_id == 0x144d) &&
+			(subsystem_device_id == 0xc04e)) {
+			dev_priv->is_samsung_nc20 = true;
+		} else {
+			dev_priv->is_samsung_nc20 = false;
+		}
+
 		break;
 	/* VX855 / VX875 Chipset */
 	case PCI_DEVICE_ID_VIA_VX875:

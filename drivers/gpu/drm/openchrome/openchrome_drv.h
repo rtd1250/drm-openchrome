@@ -210,6 +210,12 @@ struct via_device {
 	 * is needed for properly controlling its FP. */
 	bool is_quanta_il1;
 
+	/* Samsung NC20 netbook has its FP connected to LVDS2
+	* rather than the more logical LVDS1, hence, a special
+	* flag register is needed for properly controlling its
+	* FP. */
+	bool is_samsung_nc20;
+
 	bool analog_presence;
 	u32 analog_i2c_bus;
 

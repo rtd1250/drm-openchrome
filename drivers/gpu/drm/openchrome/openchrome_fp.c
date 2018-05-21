@@ -1172,6 +1172,14 @@ void via_fp_probe(struct drm_device *dev)
 				dev_priv->int_fp2_di_port =
 						VIA_DI_PORT_NONE;
 
+			} else if (dev_priv->is_samsung_nc20) {
+				dev_priv->int_fp1_presence = false;
+				dev_priv->int_fp1_di_port =
+						VIA_DI_PORT_NONE;
+				dev_priv->int_fp2_presence = true;
+				dev_priv->int_fp2_di_port =
+						VIA_DI_PORT_LVDS2;
+
 			/* 3C5.13[7:6] - Integrated LVDS / DVI
 			 *               Mode Select (DVP1D15-14 pin
 			 *               strapping)
