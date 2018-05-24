@@ -149,6 +149,12 @@ extern void via_modeset_fini(struct drm_device *dev);
 
 /* i2c */
 extern struct i2c_adapter *via_find_ddc_bus(int port);
+extern void via_i2c_readbytes(struct i2c_adapter *adapter,
+				u8 slave_addr, char offset,
+				u8 *buffer, unsigned int size);
+extern void via_i2c_writebytes(struct i2c_adapter *adapter,
+				u8 slave_addr, char offset,
+				u8 *data, unsigned int size);
 extern int via_i2c_init(struct drm_device *dev);
 extern void via_i2c_exit(void);
 
