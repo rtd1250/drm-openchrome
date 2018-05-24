@@ -223,6 +223,11 @@ struct via_device {
 	u32 int_tmds_di_port;
 	u32 int_tmds_i2c_bus;
 
+	bool ext_tmds_presence;
+	u32 ext_tmds_di_port;
+	u32 ext_tmds_i2c_bus;
+	u32 ext_tmds_transmitter;
+
 	bool int_fp1_presence;
 	u32 int_fp1_di_port;
 	u32 int_fp1_i2c_bus;
