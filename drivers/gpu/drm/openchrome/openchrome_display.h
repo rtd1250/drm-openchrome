@@ -108,7 +108,7 @@ struct via_connector {
 
 struct via_encoder {
 	struct drm_encoder base;
-	uint32_t flags;
+	u32 i2c_bus;
 	u32 di_port;
 	struct via_connector cons[];
 };
