@@ -9,6 +9,7 @@ openchrome-y := openchrome_analog.o \
 		openchrome_crtc_hw.o \
 		openchrome_display.o \
 		openchrome_drv.o \
+		openchrome_encoder.o \
 		openchrome_fb.o \
 		openchrome_fence.o \
 		openchrome_fp.o \

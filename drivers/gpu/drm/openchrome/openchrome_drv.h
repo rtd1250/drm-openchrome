@@ -364,4 +364,16 @@ extern struct ttm_tt* via_sgdma_backend_init(
 					struct ttm_buffer_object *bo,
 					uint32_t page_flags);
 
+void openchrome_transmitter_io_pad_state(struct via_device *dev_priv,
+				uint32_t di_port, bool io_pad_on);
+void openchrome_transmitter_clock_drive_strength(
+				struct via_device *dev_priv,
+				u32 di_port, u8 drive_strength);
+void openchrome_transmitter_data_drive_strength(
+				struct via_device *dev_priv,
+				u32 di_port, u8 drive_strength);
+void openchrome_transmitter_display_source(
+				struct via_device *dev_priv,
+				u32 di_port, int index);
+
 #endif
