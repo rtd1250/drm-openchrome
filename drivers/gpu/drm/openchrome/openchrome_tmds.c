@@ -512,3 +512,135 @@ void via_tmds_init(struct drm_device *dev)
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
+
+/*
+ * Probe (pre-initialization detection) of external DVI transmitters.
+ */
+void openchrome_ext_dvi_probe(struct drm_device *dev)
+{
+	struct via_device *dev_priv = dev->dev_private;
+	struct i2c_adapter *i2c_bus;
+	u16 chipset = dev->pdev->device;
+	u8 sr12, sr13;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	dev_priv->ext_tmds_presence = false;
+	dev_priv->ext_tmds_i2c_bus = VIA_I2C_NONE;
+	dev_priv->ext_tmds_transmitter = VIA_TMDS_NONE;
+
+	if ((!dev_priv->ext_tmds_presence) &&
+		(!(dev_priv->mapped_i2c_bus & VIA_I2C_BUS2))) {
+		i2c_bus = via_find_ddc_bus(0x31);
+		if (openchrome_vt1632_probe(i2c_bus)) {
+			dev_priv->ext_tmds_presence = true;
+			dev_priv->ext_tmds_i2c_bus = VIA_I2C_BUS2;
+			dev_priv->ext_tmds_transmitter = VIA_TMDS_VT1632;
+			dev_priv->mapped_i2c_bus |= VIA_I2C_BUS2;
+		}
+	}
+
+	if ((!(dev_priv->ext_tmds_presence)) &&
+		(!(dev_priv->mapped_i2c_bus & VIA_I2C_BUS4))) {
+		i2c_bus = via_find_ddc_bus(0x2c);
+		if (openchrome_vt1632_probe(i2c_bus)) {
+			dev_priv->ext_tmds_presence = true;
+			dev_priv->ext_tmds_i2c_bus = VIA_I2C_BUS4;
+			dev_priv->ext_tmds_transmitter = VIA_TMDS_VT1632;
+			dev_priv->mapped_i2c_bus |= VIA_I2C_BUS4;
+		}
+	}
+
+	sr12 = vga_rseq(VGABASE, 0x12);
+	sr13 = vga_rseq(VGABASE, 0x13);
+	DRM_DEBUG_KMS("SR12: 0x%02x\n", sr12);
+	DRM_DEBUG_KMS("SR13: 0x%02x\n", sr13);
+
+	if (dev_priv->ext_tmds_presence) {
+		switch (chipset) {
+		case PCI_DEVICE_ID_VIA_CLE266:
+
+			/* 3C5.12[4] - FPD17 pin strapping
+			 *             0: TMDS transmitter (DVI) /
+			 *                capture device
+			 *             1: Flat panel */
+			if (!(sr12 & BIT(4))) {
+				dev_priv->ext_tmds_di_port =
+						VIA_DI_PORT_DIP0;
+
+			/* 3C5.12[5] - FPD18 pin strapping
+			 *             0: TMDS transmitter (DVI)
+			 *             1: TV encoder */
+			} else if (!(sr12 & BIT(5))) {
+				dev_priv->ext_tmds_di_port =
+						VIA_DI_PORT_DIP1;
+			} else {
+				dev_priv->ext_tmds_di_port =
+						VIA_DI_PORT_NONE;
+			}
+
+			break;
+		case PCI_DEVICE_ID_VIA_KM400:
+		case PCI_DEVICE_ID_VIA_K8M800:
+		case PCI_DEVICE_ID_VIA_CN700:
+		case PCI_DEVICE_ID_VIA_PM800:
+			/* 3C5.12[6] - DVP0D6 pin strapping
+			 *             0: Disable DVP0 (Digital Video Port 0) for
+			 *                DVI or TV out use
+			 *             1: Enable DVP0 (Digital Video Port 0) for
+			 *                DVI or TV out use
+			 * 3C5.12[5] - DVP0D5 pin strapping
+			 *             0: TMDS transmitter (DVI)
+			 *             1: TV encoder */
+			if ((sr12 & BIT(6)) && (!(sr12 & BIT(5)))) {
+				dev_priv->ext_tmds_di_port =
+						VIA_DI_PORT_DVP0;
+			} else {
+				dev_priv->ext_tmds_di_port =
+						VIA_DI_PORT_DVP1;
+			}
+
+			break;
+		case PCI_DEVICE_ID_VIA_VT3343:
+		case PCI_DEVICE_ID_VIA_K8M890:
+		case PCI_DEVICE_ID_VIA_P4M900:
+			/* Assume DVP2 as DVP0. Hence, VIA_DI_PORT_DVP0
+			 * is used. */
+			/* 3C5.12[6] - DVP2D6 pin strapping
+			 *             0: Disable DVP2 (Digital Video Port 2)
+			 *             1: Enable DVP2 (Digital Video Port 2)
+			 * 3C5.12[5] - DVP2D5 pin strapping
+			 *             0: TMDS transmitter (DVI)
+			 *             1: TV encoder */
+			if ((sr12 & BIT(6)) && (!(sr12 & BIT(5)))) {
+				dev_priv->ext_tmds_di_port =
+						VIA_DI_PORT_DVP0;
+			} else {
+				dev_priv->ext_tmds_di_port =
+						VIA_DI_PORT_NONE;
+			}
+
+			break;
+		case PCI_DEVICE_ID_VIA_VT3157:
+		case PCI_DEVICE_ID_VIA_VT1122:
+		case PCI_DEVICE_ID_VIA_VX875:
+		case PCI_DEVICE_ID_VIA_VX900_VGA:
+			dev_priv->ext_tmds_di_port = VIA_DI_PORT_DVP1;
+			break;
+		default:
+			dev_priv->ext_tmds_di_port = VIA_DI_PORT_NONE;
+			break;
+		}
+	}
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
+void openchrome_ext_dvi_init(struct drm_device *dev)
+{
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	openchrome_vt1632_init(dev);
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}

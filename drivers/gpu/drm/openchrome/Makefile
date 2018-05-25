@@ -24,6 +24,7 @@ openchrome-y := openchrome_analog.o \
 		openchrome_sgdma.o \
 		openchrome_tmds.o \
 		openchrome_ttm.o \
-		openchrome_verifier.o
+		openchrome_verifier.o \
+		openchrome_vt1632.o
 
 obj-$(CONFIG_DRM_OPENCHROME)	+= openchrome.o

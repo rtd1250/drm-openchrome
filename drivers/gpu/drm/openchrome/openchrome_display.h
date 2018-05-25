@@ -190,11 +190,15 @@ extern int via_connector_mode_valid(struct drm_connector *connector,
 extern void via_connector_destroy(struct drm_connector *connector);
 
 extern void via_analog_probe(struct drm_device *dev);
+extern bool openchrome_vt1632_probe(struct i2c_adapter *i2c_bus);
+extern void openchrome_ext_dvi_probe(struct drm_device *dev);
 extern void via_tmds_probe(struct drm_device *dev);
 extern void via_fp_probe(struct drm_device *dev);
 
 extern void via_hdmi_init(struct drm_device *dev, u32 di_port);
 extern void via_analog_init(struct drm_device *dev);
+extern void openchrome_vt1632_init(struct drm_device *dev);
+extern void openchrome_ext_dvi_init(struct drm_device *dev);
 extern void via_tmds_init(struct drm_device *dev);
 extern void via_fp_init(struct drm_device *dev);
 
