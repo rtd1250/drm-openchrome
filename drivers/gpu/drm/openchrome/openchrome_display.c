@@ -499,6 +499,7 @@ via_modeset_init(struct drm_device *dev)
 	for (i = 0; i < 2; i++)
 		via_crtc_init(dev, i);
 
+	openchrome_ext_dvi_probe(dev);
 	via_tmds_probe(dev);
 
 	via_fp_probe(dev);
@@ -506,6 +507,7 @@ via_modeset_init(struct drm_device *dev)
 	via_analog_probe(dev);
 
 
+	openchrome_ext_dvi_init(dev);
 	via_tmds_init(dev);
 
 	via_analog_init(dev);
