@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Kevin Brace
+ * Copyright (C) 2016-2018 Kevin Brace. All Rights Reserved.
  * Copyright © 2013 James Simmons
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -537,6 +537,11 @@ void openchrome_ext_dvi_probe(struct drm_device *dev)
 			dev_priv->ext_tmds_i2c_bus = VIA_I2C_BUS2;
 			dev_priv->ext_tmds_transmitter = VIA_TMDS_VT1632;
 			dev_priv->mapped_i2c_bus |= VIA_I2C_BUS2;
+		} else if (openchrome_sii164_probe(i2c_bus)) {
+			dev_priv->ext_tmds_presence = true;
+			dev_priv->ext_tmds_i2c_bus = VIA_I2C_BUS2;
+			dev_priv->ext_tmds_transmitter = VIA_TMDS_SII164;
+			dev_priv->mapped_i2c_bus |= VIA_I2C_BUS2;
 		}
 	}
 
@@ -547,6 +552,11 @@ void openchrome_ext_dvi_probe(struct drm_device *dev)
 			dev_priv->ext_tmds_presence = true;
 			dev_priv->ext_tmds_i2c_bus = VIA_I2C_BUS4;
 			dev_priv->ext_tmds_transmitter = VIA_TMDS_VT1632;
+			dev_priv->mapped_i2c_bus |= VIA_I2C_BUS4;
+		} else if (openchrome_sii164_probe(i2c_bus)) {
+			dev_priv->ext_tmds_presence = true;
+			dev_priv->ext_tmds_i2c_bus = VIA_I2C_BUS4;
+			dev_priv->ext_tmds_transmitter = VIA_TMDS_SII164;
 			dev_priv->mapped_i2c_bus |= VIA_I2C_BUS4;
 		}
 	}
@@ -641,6 +651,7 @@ void openchrome_ext_dvi_init(struct drm_device *dev)
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	openchrome_vt1632_init(dev);
+	openchrome_sii164_init(dev);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }

@@ -78,6 +78,8 @@
 /* External TMDS (DVI) Transmitter Type */
 #define	VIA_TMDS_NONE	0x0
 #define	VIA_TMDS_VT1632	BIT(0)
+#define	VIA_TMDS_SII164	BIT(1)
+
 
 typedef struct _via_fp_info {
 	u32 x;
