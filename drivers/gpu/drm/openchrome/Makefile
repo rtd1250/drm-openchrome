@@ -21,6 +21,7 @@ openchrome-y := openchrome_analog.o \
 		openchrome_ioc32.o \
 		openchrome_irq.o \
 		openchrome_pm.o \
+		openchrome_sii164.o \
 		openchrome_sgdma.o \
 		openchrome_tmds.o \
 		openchrome_ttm.o \
