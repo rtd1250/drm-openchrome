@@ -205,13 +205,7 @@ source "drivers/gpu/drm/nouveau/Kconfig"
 
 source "drivers/gpu/drm/i915/Kconfig"
 
-config DRM_OPENCHROME
-	tristate "OpenChrome (VIA Technologies)"
-	depends on DRM && PCI
-	help
-	  Choose this option if you have a VIA Technologies UniChrome or 
-	  Chrome9 integrated graphics. If M is selected the module will 
-	  be called openchrome.
+source "drivers/gpu/drm/openchrome/Kconfig"
 
 config DRM_VGEM
 	tristate "Virtual GEM provider"
