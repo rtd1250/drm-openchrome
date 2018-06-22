@@ -102,12 +102,28 @@ static DEFINE_IDR(ovcs_idr);
 
 static BLOCKING_NOTIFIER_HEAD(overlay_notify_chain);
 
+/**
+ * of_overlay_notifier_register() - Register notifier for overlay operations
+ * @nb:		Notifier block to register
+ *
+ * Register for notification on overlay operations on device tree nodes. The
+ * reported actions definied by @of_reconfig_change. The notifier callback
+ * furthermore receives a pointer to the affected device tree node.
+ *
+ * Note that a notifier callback is not supposed to store pointers to a device
+ * tree node or its content beyond @OF_OVERLAY_POST_REMOVE corresponding to the
+ * respective node it received.
+ */
 int of_overlay_notifier_register(struct notifier_block *nb)
 {
 	return blocking_notifier_chain_register(&overlay_notify_chain, nb);
 }
 EXPORT_SYMBOL_GPL(of_overlay_notifier_register);
 
+/**
+ * of_overlay_notifier_register() - Unregister notifier for overlay operations
+ * @nb:		Notifier block to unregister
+ */
 int of_overlay_notifier_unregister(struct notifier_block *nb)
 {
 	return blocking_notifier_chain_unregister(&overlay_notify_chain, nb);
@@ -312,7 +328,20 @@ static int add_changeset_property(struct overlay_changeset *ovcs,
  * If @node has child nodes, add the children recursively via
  * build_changeset_next_level().
  *
- * NOTE: Multiple mods of created nodes not supported.
+ * NOTE_1: A live devicetree created from a flattened device tree (FDT) will
+ *       not contain the full path in node->full_name.  Thus an overlay
+ *       created from an FDT also will not contain the full path in
+ *       node->full_name.  However, a live devicetree created from Open
+ *       Firmware may have the full path in node->full_name.
+ *
+ *       add_changeset_node() follows the FDT convention and does not include
+ *       the full path in node->full_name.  Even though it expects the overlay
+ *       to not contain the full path, it uses kbasename() to remove the
+ *       full path should it exist.  It also uses kbasename() in comparisons
+ *       to nodes in the live devicetree so that it can apply an overlay to
+ *       a live devicetree created from Open Firmware.
+ *
+ * NOTE_2: Multiple mods of created nodes not supported.
  *       If more than one fragment contains a node that does not already exist
  *       in the live tree, then for each fragment of_changeset_attach_node()
  *       will add a changeset entry to add the node.  When the changeset is
@@ -339,8 +368,7 @@ static int add_changeset_node(struct overlay_changeset *ovcs,
 			break;
 
 	if (!tchild) {
-		tchild = __of_node_dup(node, "%pOF/%s",
-				       target_node, node_kbasename);
+		tchild = __of_node_dup(node, node_kbasename);
 		if (!tchild)
 			return -ENOMEM;
 
@@ -659,17 +687,13 @@ static void free_overlay_changeset(struct overlay_changeset *ovcs)
 		of_node_put(ovcs->fragments[i].overlay);
 	}
 	kfree(ovcs->fragments);
-
 	/*
-	 * TODO
-	 *
-	 * would like to: kfree(ovcs->overlay_tree);
-	 * but can not since drivers may have pointers into this data
-	 *
-	 * would like to: kfree(ovcs->fdt);
-	 * but can not since drivers may have pointers into this data
+	 * There should be no live pointers into ovcs->overlay_tree and
+	 * ovcs->fdt due to the policy that overlay notifiers are not allowed
+	 * to retain pointers into the overlay devicetree.
 	 */
-
+	kfree(ovcs->overlay_tree);
+	kfree(ovcs->fdt);
 	kfree(ovcs);
 }
 
@@ -958,7 +982,7 @@ static int overlay_removal_is_ok(struct overlay_changeset *remove_ovcs)
  * @ovcs_id:	Pointer to overlay changeset id
  *
  * Removes an overlay if it is permissible.  @ovcs_id was previously returned
- * by of_overlay_apply().
+ * by of_overlay_fdt_apply().
  *
  * If an error occurred while attempting to revert the overlay changeset,
  * then an attempt is made to re-apply any changeset entry that was
