@@ -2933,32 +2933,54 @@ i915_gem_object_pwrite_gtt(struct drm_i915_gem_object *obj,
 	return 0;
 }
 
+static void i915_gem_client_mark_guilty(struct drm_i915_file_private *file_priv,
+					const struct i915_gem_context *ctx)
+{
+	unsigned int score;
+	unsigned long prev_hang;
+
+	if (i915_gem_context_is_banned(ctx))
+		score = I915_CLIENT_SCORE_CONTEXT_BAN;
+	else
+		score = 0;
+
+	prev_hang = xchg(&file_priv->hang_timestamp, jiffies);
+	if (time_before(jiffies, prev_hang + I915_CLIENT_FAST_HANG_JIFFIES))
+		score += I915_CLIENT_SCORE_HANG_FAST;
+
+	if (score) {
+		atomic_add(score, &file_priv->ban_score);
+
+		DRM_DEBUG_DRIVER("client %s: gained %u ban score, now %u\n",
+				 ctx->name, score,
+				 atomic_read(&file_priv->ban_score));
+	}
+}
+
 static void i915_gem_context_mark_guilty(struct i915_gem_context *ctx)
 {
-	bool banned;
+	unsigned int score;
+	bool banned, bannable;
 
 	atomic_inc(&ctx->guilty_count);
 
-	banned = false;
-	if (i915_gem_context_is_bannable(ctx)) {
-		unsigned int score;
+	bannable = i915_gem_context_is_bannable(ctx);
+	score = atomic_add_return(CONTEXT_SCORE_GUILTY, &ctx->ban_score);
+	banned = score >= CONTEXT_SCORE_BAN_THRESHOLD;
 
-		score = atomic_add_return(CONTEXT_SCORE_GUILTY,
-					  &ctx->ban_score);
-		banned = score >= CONTEXT_SCORE_BAN_THRESHOLD;
+	DRM_DEBUG_DRIVER("context %s: guilty %d, score %u, ban %s\n",
+			 ctx->name, atomic_read(&ctx->guilty_count),
+			 score, yesno(banned && bannable));
 
-		DRM_DEBUG_DRIVER("context %s marked guilty (score %d) banned? %s\n",
-				 ctx->name, score, yesno(banned));
-	}
-	if (!banned)
+	/* Cool contexts don't accumulate client ban score */
+	if (!bannable)
 		return;
 
-	i915_gem_context_set_banned(ctx);
-	if (!IS_ERR_OR_NULL(ctx->file_priv)) {
-		atomic_inc(&ctx->file_priv->context_bans);
-		DRM_DEBUG_DRIVER("client %s has had %d context banned\n",
-				 ctx->name, atomic_read(&ctx->file_priv->context_bans));
-	}
+	if (banned)
+		i915_gem_context_set_banned(ctx);
+
+	if (!IS_ERR_OR_NULL(ctx->file_priv))
+		i915_gem_client_mark_guilty(ctx->file_priv, ctx);
 }
 
 static void i915_gem_context_mark_innocent(struct i915_gem_context *ctx)
@@ -2972,22 +2994,21 @@ i915_gem_find_active_request(struct intel_engine_cs *engine)
 	struct i915_request *request, *active = NULL;
 	unsigned long flags;
 
-	/* We are called by the error capture and reset at a random
-	 * point in time. In particular, note that neither is crucially
-	 * ordered with an interrupt. After a hang, the GPU is dead and we
-	 * assume that no more writes can happen (we waited long enough for
-	 * all writes that were in transaction to be flushed) - adding an
+	/*
+	 * We are called by the error capture, reset and to dump engine
+	 * state at random points in time. In particular, note that neither is
+	 * crucially ordered with an interrupt. After a hang, the GPU is dead
+	 * and we assume that no more writes can happen (we waited long enough
+	 * for all writes that were in transaction to be flushed) - adding an
 	 * extra delay for a recent interrupt is pointless. Hence, we do
 	 * not need an engine->irq_seqno_barrier() before the seqno reads.
+	 * At all other times, we must assume the GPU is still running, but
+	 * we only care about the snapshot of this moment.
 	 */
 	spin_lock_irqsave(&engine->timeline.lock, flags);
 	list_for_each_entry(request, &engine->timeline.requests, link) {
 		if (__i915_request_completed(request, request->global_seqno))
 			continue;
-
-		GEM_BUG_ON(request->engine != engine);
-		GEM_BUG_ON(test_bit(DMA_FENCE_FLAG_SIGNALED_BIT,
-				    &request->fence.flags));
 
 		active = request;
 		break;
@@ -5737,6 +5758,7 @@ int i915_gem_open(struct drm_i915_private *i915, struct drm_file *file)
 	INIT_LIST_HEAD(&file_priv->mm.request_list);
 
 	file_priv->bsd_engine = -1;
+	file_priv->hang_timestamp = jiffies;
 
 	ret = i915_gem_context_open(i915, file);
 	if (ret)
