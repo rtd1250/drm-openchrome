@@ -192,6 +192,31 @@ struct via_device {
 	struct via_crtc iga[2];
 	bool spread_spectrum;
 
+	/*
+	 * Frame Buffer Size Control register (SR14) needs to be saved and
+	 * restored upon standby resume or can lead to a display corruption
+	 * issue. These registers are only available on VX800, VX855, and
+	 * VX900 chipsets. This bug was observed on VIA EPIA-M830 mainboard.
+	 */
+	uint8_t saved_sr14;
+
+	/*
+	 * GTI registers (SR66 through SR6F) need to be saved and restored
+	 * upon standby resume or can lead to a display corruption issue.
+	 * These registers are only available on VX800, VX855, and VX900
+	 * chipsets. This bug was observed on VIA EPIA-M830 mainboard.
+	 */
+	uint8_t saved_sr66;
+	uint8_t saved_sr67;
+	uint8_t saved_sr68;
+	uint8_t saved_sr69;
+	uint8_t saved_sr6a;
+	uint8_t saved_sr6b;
+	uint8_t saved_sr6c;
+	uint8_t saved_sr6d;
+	uint8_t saved_sr6e;
+	uint8_t saved_sr6f;
+
 	/* 3X5.3B through 3X5.3F are scratch pad registers.
 	 * They are important for FP detection. */
 	uint8_t saved_cr3b;

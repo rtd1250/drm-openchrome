@@ -627,6 +627,30 @@ static int via_pm_ops_suspend(struct device *dev)
 	console_lock();
 	drm_fb_helper_set_suspend(&dev_priv->via_fbdev->helper, true);
 
+	/*
+	 * Frame Buffer Size Control register (SR14) and GTI registers
+	 * (SR66 through SR6F) need to be saved and restored upon standby
+	 * resume or can lead to a display corruption issue. These registers
+	 * are only available on VX800, VX855, and VX900 chipsets. This bug
+	 * was observed on VIA EPIA-M830 mainboard.
+	 */
+	if ((drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
+		(drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
+		(drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA)) {
+		dev_priv->saved_sr14 = vga_rseq(VGABASE, 0x14);
+
+		dev_priv->saved_sr66 = vga_rseq(VGABASE, 0x66);
+		dev_priv->saved_sr67 = vga_rseq(VGABASE, 0x67);
+		dev_priv->saved_sr68 = vga_rseq(VGABASE, 0x68);
+		dev_priv->saved_sr69 = vga_rseq(VGABASE, 0x69);
+		dev_priv->saved_sr6a = vga_rseq(VGABASE, 0x6a);
+		dev_priv->saved_sr6b = vga_rseq(VGABASE, 0x6b);
+		dev_priv->saved_sr6c = vga_rseq(VGABASE, 0x6c);
+		dev_priv->saved_sr6d = vga_rseq(VGABASE, 0x6d);
+		dev_priv->saved_sr6e = vga_rseq(VGABASE, 0x6e);
+		dev_priv->saved_sr6f = vga_rseq(VGABASE, 0x6f);
+	}
+
 	/* 3X5.3B through 3X5.3F are scratch pad registers.
 	 * They are important for FP detection.
 	 * Their values need to be saved because they get lost
@@ -670,6 +694,30 @@ static int via_pm_ops_resume(struct device *dev)
 	iowrite8(0x1a, regs + 0x04);
 	val = ioread8(regs + 0x05);
 	iowrite8(val | 0x38, regs + 0x05);
+
+	/*
+	 * Frame Buffer Size Control register (SR14) and GTI registers
+	 * (SR66 through SR6F) need to be saved and restored upon standby
+	 * resume or can lead to a display corruption issue. These registers
+	 * are only available on VX800, VX855, and VX900 chipsets. This bug
+	 * was observed on VIA EPIA-M830 mainboard.
+	 */
+	if ((drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
+		(drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
+		(drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA)) {
+		vga_wseq(VGABASE, 0x14, dev_priv->saved_sr14);
+
+		vga_wseq(VGABASE, 0x66, dev_priv->saved_sr66);
+		vga_wseq(VGABASE, 0x67, dev_priv->saved_sr67);
+		vga_wseq(VGABASE, 0x68, dev_priv->saved_sr68);
+		vga_wseq(VGABASE, 0x69, dev_priv->saved_sr69);
+		vga_wseq(VGABASE, 0x6a, dev_priv->saved_sr6a);
+		vga_wseq(VGABASE, 0x6b, dev_priv->saved_sr6b);
+		vga_wseq(VGABASE, 0x6c, dev_priv->saved_sr6c);
+		vga_wseq(VGABASE, 0x6d, dev_priv->saved_sr6d);
+		vga_wseq(VGABASE, 0x6e, dev_priv->saved_sr6e);
+		vga_wseq(VGABASE, 0x6f, dev_priv->saved_sr6f);
+	}
 
 	/* 3X5.3B through 3X5.3F are scratch pad registers.
 	 * They are important for FP detection.
