@@ -3579,6 +3579,44 @@ void pci_unmap_iospace(struct resource *res)
 }
 EXPORT_SYMBOL(pci_unmap_iospace);
 
+static void devm_pci_unmap_iospace(struct device *dev, void *ptr)
+{
+	struct resource **res = ptr;
+
+	pci_unmap_iospace(*res);
+}
+
+/**
+ * devm_pci_remap_iospace - Managed pci_remap_iospace()
+ * @dev: Generic device to remap IO address for
+ * @res: Resource describing the I/O space
+ * @phys_addr: physical address of range to be mapped
+ *
+ * Managed pci_remap_iospace().  Map is automatically unmapped on driver
+ * detach.
+ */
+int devm_pci_remap_iospace(struct device *dev, const struct resource *res,
+			   phys_addr_t phys_addr)
+{
+	const struct resource **ptr;
+	int error;
+
+	ptr = devres_alloc(devm_pci_unmap_iospace, sizeof(*ptr), GFP_KERNEL);
+	if (!ptr)
+		return -ENOMEM;
+
+	error = pci_remap_iospace(res, phys_addr);
+	if (error) {
+		devres_free(ptr);
+	} else	{
+		*ptr = res;
+		devres_add(dev, ptr);
+	}
+
+	return error;
+}
+EXPORT_SYMBOL(devm_pci_remap_iospace);
+
 /**
  * devm_pci_remap_cfgspace - Managed pci_remap_cfgspace()
  * @dev: Generic device to remap IO address for
@@ -5222,6 +5260,7 @@ enum pci_bus_speed pcie_get_speed_cap(struct pci_dev *dev)
 
 	return PCI_SPEED_UNKNOWN;
 }
+EXPORT_SYMBOL(pcie_get_speed_cap);
 
 /**
  * pcie_get_width_cap - query for the PCI device's link width capability
@@ -5240,6 +5279,7 @@ enum pcie_link_width pcie_get_width_cap(struct pci_dev *dev)
 
 	return PCIE_LNK_WIDTH_UNKNOWN;
 }
+EXPORT_SYMBOL(pcie_get_width_cap);
 
 /**
  * pcie_bandwidth_capable - calculate a PCI device's link bandwidth capability
