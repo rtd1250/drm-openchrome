@@ -311,7 +311,7 @@ via_connector_destroy(struct drm_connector *connector)
 		drm_property_destroy(connector->dev, property);
 	list_del(&con->props);
 
-	drm_mode_connector_update_edid_property(connector, NULL);
+	drm_connector_update_edid_property(connector, NULL);
 	drm_connector_unregister(connector);
 	drm_connector_cleanup(connector);
 }

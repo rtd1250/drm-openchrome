@@ -962,7 +962,7 @@ via_fp_get_modes(struct drm_connector *connector)
 		edid = drm_get_edid(&con->base, i2c_bus);
 		if (edid) {
 			if (edid->input & DRM_EDID_INPUT_DIGITAL) {
-				drm_mode_connector_update_edid_property(connector, edid);
+				drm_connector_update_edid_property(connector, edid);
 				count = drm_add_edid_modes(connector, edid);
 				kfree(edid);
 				DRM_DEBUG_KMS("FP EDID information was obtained.\n");

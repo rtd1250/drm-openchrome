@@ -293,7 +293,7 @@ static int via_analog_get_modes(struct drm_connector *connector)
 		edid = drm_get_edid(&con->base, i2c_bus);
 		if (edid) {
 			if (!(edid->input & DRM_EDID_INPUT_DIGITAL)) {
-				drm_mode_connector_update_edid_property(connector,
+				drm_connector_update_edid_property(connector,
 									edid);
 				count = drm_add_edid_modes(connector, edid);
 			}
@@ -313,7 +313,7 @@ static int via_analog_get_modes(struct drm_connector *connector)
 		edid = drm_get_edid(&con->base, i2c_bus);
 		if (edid) {
 			if (!(edid->input & DRM_EDID_INPUT_DIGITAL)) {
-				drm_mode_connector_update_edid_property(connector,
+				drm_connector_update_edid_property(connector,
 									edid);
 				count = drm_add_edid_modes(connector, edid);
 			}

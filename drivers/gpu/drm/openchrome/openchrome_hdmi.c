@@ -489,7 +489,7 @@ via_hdmi_get_edid(struct drm_connector *connector)
 	u8 *block;
 
 	/* Clear out old EDID block */
-	drm_mode_connector_update_edid_property(connector, edid);
+	drm_connector_update_edid_property(connector, edid);
 
 	block = kmalloc(EDID_LENGTH, GFP_KERNEL);
 	if (!block)
@@ -554,7 +554,7 @@ via_hdmi_get_edid(struct drm_connector *connector)
 		}
 	}
 	edid = (struct edid *) block;
-	drm_mode_connector_update_edid_property(connector, edid);
+	drm_connector_update_edid_property(connector, edid);
 	return edid;
 
 carp:
@@ -577,7 +577,7 @@ via_hdmi_detect(struct drm_connector *connector, bool force)
 	struct edid *edid = NULL;
 
 	if (VIA_IRQ_DP_HOT_UNPLUG == mm_c730) {
-		drm_mode_connector_update_edid_property(connector, NULL);
+		drm_connector_update_edid_property(connector, NULL);
 		return ret;
 	}
 
