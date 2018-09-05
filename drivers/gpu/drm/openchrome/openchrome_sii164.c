@@ -548,7 +548,7 @@ void openchrome_sii164_init(struct drm_device *dev)
 	con->i2c_bus = dev_priv->ext_tmds_i2c_bus;
 
 	INIT_LIST_HEAD(&con->props);
-	drm_mode_connector_attach_encoder(&con->base, &enc->base);
+	drm_connector_attach_encoder(&con->base, &enc->base);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }

@@ -419,5 +419,5 @@ void via_analog_init(struct drm_device *dev)
 	enc->base.possible_clones = 0;
 	enc->di_port = VIA_DI_PORT_NONE;
 
-	drm_mode_connector_attach_encoder(&con->base, &enc->base);
+	drm_connector_attach_encoder(&con->base, &enc->base);
 }

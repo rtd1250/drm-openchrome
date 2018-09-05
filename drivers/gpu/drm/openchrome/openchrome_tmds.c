@@ -508,7 +508,7 @@ void via_tmds_init(struct drm_device *dev)
 	con->base.interlace_allowed = true;
 	INIT_LIST_HEAD(&con->props);
 
-	drm_mode_connector_attach_encoder(&con->base, &enc->base);
+	drm_connector_attach_encoder(&con->base, &enc->base);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }

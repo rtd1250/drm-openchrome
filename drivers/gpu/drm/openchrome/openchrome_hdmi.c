@@ -686,7 +686,7 @@ via_hdmi_init(struct drm_device *dev, u32 di_port)
 		hdmi->base.interlace_allowed = true;
 		break;
 	}
-	drm_mode_connector_attach_encoder(&hdmi->base, &enc->base);
+	drm_connector_attach_encoder(&hdmi->base, &enc->base);
 
 	/* Setup the DVI connector */
 	drm_connector_init(dev, &dvi->base, &via_hdmi_connector_funcs,
@@ -707,5 +707,5 @@ via_hdmi_init(struct drm_device *dev, u32 di_port)
 		dvi->base.interlace_allowed = true;
 		break;
 	}
-	drm_mode_connector_attach_encoder(&dvi->base, &enc->base);
+	drm_connector_attach_encoder(&dvi->base, &enc->base);
 }

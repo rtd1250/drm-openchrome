@@ -1362,7 +1362,7 @@ void via_fp_init(struct drm_device *dev)
 	}
 
 	/* Put it all together */
-	drm_mode_connector_attach_encoder(&con->base, &enc->base);
+	drm_connector_attach_encoder(&con->base, &enc->base);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return;
