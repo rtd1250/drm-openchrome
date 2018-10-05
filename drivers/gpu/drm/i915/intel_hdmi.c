@@ -943,8 +943,12 @@ static int intel_hdmi_hdcp_write(struct intel_digital_port *intel_dig_port,
 
 	ret = i2c_transfer(adapter, &msg, 1);
 	if (ret == 1)
-		return 0;
-	return ret >= 0 ? -EIO : ret;
+		ret = 0;
+	else if (ret >= 0)
+		ret = -EIO;
+
+	kfree(write_buf);
+	return ret;
 }
 
 static
@@ -1899,28 +1903,38 @@ intel_hdmi_set_edid(struct drm_connector *connector)
 		connected = true;
 	}
 
+	cec_notifier_set_phys_addr_from_edid(intel_hdmi->cec_notifier, edid);
+
 	return connected;
 }
 
 static enum drm_connector_status
 intel_hdmi_detect(struct drm_connector *connector, bool force)
 {
-	enum drm_connector_status status;
+	enum drm_connector_status status = connector_status_disconnected;
 	struct drm_i915_private *dev_priv = to_i915(connector->dev);
+	struct intel_hdmi *intel_hdmi = intel_attached_hdmi(connector);
+	struct intel_encoder *encoder = &hdmi_to_dig_port(intel_hdmi)->base;
 
 	DRM_DEBUG_KMS("[CONNECTOR:%d:%s]\n",
 		      connector->base.id, connector->name);
 
 	intel_display_power_get(dev_priv, POWER_DOMAIN_GMBUS);
 
+	if (IS_ICELAKE(dev_priv) &&
+	    !intel_digital_port_connected(encoder))
+		goto out;
+
 	intel_hdmi_unset_edid(connector);
 
 	if (intel_hdmi_set_edid(connector))
 		status = connector_status_connected;
-	else
-		status = connector_status_disconnected;
 
+out:
 	intel_display_power_put(dev_priv, POWER_DOMAIN_GMBUS);
+
+	if (status != connector_status_connected)
+		cec_notifier_phys_addr_invalidate(intel_hdmi->cec_notifier);
 
 	return status;
 }
@@ -2062,6 +2076,8 @@ static void chv_hdmi_pre_enable(struct intel_encoder *encoder,
 
 static void intel_hdmi_destroy(struct drm_connector *connector)
 {
+	if (intel_attached_hdmi(connector)->cec_notifier)
+		cec_notifier_put(intel_attached_hdmi(connector)->cec_notifier);
 	kfree(to_intel_connector(connector)->detect_edid);
 	drm_connector_cleanup(connector);
 	kfree(connector);
@@ -2382,6 +2398,11 @@ void intel_hdmi_init_connector(struct intel_digital_port *intel_dig_port,
 		u32 temp = I915_READ(PEG_BAND_GAP_DATA);
 		I915_WRITE(PEG_BAND_GAP_DATA, (temp & ~0xf) | 0xd);
 	}
+
+	intel_hdmi->cec_notifier = cec_notifier_get_conn(dev->dev,
+							 port_identifier(port));
+	if (!intel_hdmi->cec_notifier)
+		DRM_DEBUG_KMS("CEC notifier get failed\n");
 }
 
 void intel_hdmi_init(struct drm_i915_private *dev_priv,

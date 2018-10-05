@@ -30,7 +30,7 @@
 #include "bios_parser_interface.h"
 #include "dc.h"
 #include "dmcu.h"
-#ifdef CONFIG_X86
+#if defined(CONFIG_DRM_AMD_DC_DCN1_0)
 #include "dcn_calcs.h"
 #endif
 #include "core_types.h"
@@ -106,7 +106,8 @@ enum dentist_base_divider_id {
 	DENTIST_BASE_DID_1 = 0x08,
 	DENTIST_BASE_DID_2 = 0x40,
 	DENTIST_BASE_DID_3 = 0x60,
-	DENTIST_MAX_DID    = 0x80
+	DENTIST_BASE_DID_4 = 0x7e,
+	DENTIST_MAX_DID = 0x7f
 };
 
 /* Starting point and step size for each divider range.*/
@@ -117,6 +118,8 @@ enum dentist_divider_range {
 	DENTIST_DIVIDER_RANGE_2_STEP  = 2,   /* 0.50  */
 	DENTIST_DIVIDER_RANGE_3_START = 128, /* 32.00 */
 	DENTIST_DIVIDER_RANGE_3_STEP  = 4,   /* 1.00  */
+	DENTIST_DIVIDER_RANGE_4_START = 248, /* 62.00 */
+	DENTIST_DIVIDER_RANGE_4_STEP  = 264, /* 66.00 */
 	DENTIST_DIVIDER_RANGE_SCALE_FACTOR = 4
 };
 
@@ -133,9 +136,12 @@ static int dentist_get_divider_from_did(int did)
 	} else if (did < DENTIST_BASE_DID_3) {
 		return DENTIST_DIVIDER_RANGE_2_START + DENTIST_DIVIDER_RANGE_2_STEP
 							* (did - DENTIST_BASE_DID_2);
-	} else {
+	} else if (did < DENTIST_BASE_DID_4) {
 		return DENTIST_DIVIDER_RANGE_3_START + DENTIST_DIVIDER_RANGE_3_STEP
 							* (did - DENTIST_BASE_DID_3);
+	} else {
+		return DENTIST_DIVIDER_RANGE_4_START + DENTIST_DIVIDER_RANGE_4_STEP
+							* (did - DENTIST_BASE_DID_4);
 	}
 }
 
@@ -196,7 +202,7 @@ static int dce12_get_dp_ref_freq_khz(struct dccg *clk)
 {
 	struct dce_dccg *clk_dce = TO_DCE_CLOCKS(clk);
 
-	return dccg_adjust_dp_ref_freq_for_ss(clk_dce, 600000);
+	return dccg_adjust_dp_ref_freq_for_ss(clk_dce, clk_dce->dprefclk_khz);
 }
 
 static enum dm_pp_clocks_state dce_get_required_clocks_state(
@@ -249,10 +255,12 @@ static int dce_set_clock(
 	pxl_clk_params.target_pixel_clock = requested_clk_khz;
 	pxl_clk_params.pll_id = CLOCK_SOURCE_ID_DFS;
 
+	if (clk_dce->dfs_bypass_active)
+		pxl_clk_params.flags.SET_DISPCLK_DFS_BYPASS = true;
+
 	bp->funcs->program_display_engine_pll(bp, &pxl_clk_params);
 
-	if (clk_dce->dfs_bypass_enabled) {
-
+	if (clk_dce->dfs_bypass_active) {
 		/* Cache the fixed display clock*/
 		clk_dce->dfs_bypass_disp_clk =
 			pxl_clk_params.dfs_bypass_display_clock;
@@ -460,6 +468,9 @@ static void dce12_update_clocks(struct dccg *dccg,
 {
 	struct dm_pp_clock_for_voltage_req clock_voltage_req = {0};
 
+	/* TODO: Investigate why this is needed to fix display corruption. */
+	new_clocks->dispclk_khz = new_clocks->dispclk_khz * 115 / 100;
+
 	if (should_set_clock(safe_to_lower, new_clocks->dispclk_khz, dccg->clks.dispclk_khz)) {
 		clock_voltage_req.clk_type = DM_PP_CLOCK_TYPE_DISPLAY_CLK;
 		clock_voltage_req.clocks_in_khz = new_clocks->dispclk_khz;
@@ -478,7 +489,7 @@ static void dce12_update_clocks(struct dccg *dccg,
 	}
 }
 
-#ifdef CONFIG_X86
+#ifdef CONFIG_DRM_AMD_DC_DCN1_0
 static int dcn1_determine_dppclk_threshold(struct dccg *dccg, struct dc_clocks *new_clocks)
 {
 	bool request_dpp_div = new_clocks->dispclk_khz > new_clocks->dppclk_khz;
@@ -668,7 +679,62 @@ static void dce_update_clocks(struct dccg *dccg,
 	}
 }
 
-#ifdef CONFIG_X86
+static bool dce_update_dfs_bypass(
+       struct dccg *dccg,
+       struct dc *dc,
+       struct dc_state *context,
+       int requested_clock_khz)
+{
+       struct dce_dccg *clk_dce = TO_DCE_CLOCKS(dccg);
+       struct resource_context *res_ctx = &context->res_ctx;
+       enum signal_type signal_type = SIGNAL_TYPE_NONE;
+       bool was_active = clk_dce->dfs_bypass_active;
+       int i;
+
+       /* Disable DFS bypass by default. */
+       clk_dce->dfs_bypass_active = false;
+
+       /* Check that DFS bypass is available. */
+       if (!clk_dce->dfs_bypass_enabled)
+               goto update;
+
+       /* Check if the requested display clock is below the threshold. */
+       if (requested_clock_khz >= 400000)
+               goto update;
+
+       /* DFS-bypass should only be enabled on single stream setups */
+       if (context->stream_count != 1)
+               goto update;
+
+       /* Check that the stream's signal type is an embedded panel */
+       for (i = 0; i < dc->res_pool->pipe_count; i++) {
+               if (res_ctx->pipe_ctx[i].stream) {
+                       struct pipe_ctx *pipe_ctx = &res_ctx->pipe_ctx[i];
+
+                       signal_type = pipe_ctx->stream->sink->link->connector_signal;
+                       break;
+               }
+       }
+
+       if (signal_type == SIGNAL_TYPE_EDP ||
+               signal_type == SIGNAL_TYPE_LVDS)
+               clk_dce->dfs_bypass_active = true;
+
+update:
+       /* Update the clock state. We don't need to respect safe_to_lower
+        * because DFS bypass should always be greater than the current
+        * display clock frequency.
+        */
+       if (was_active != clk_dce->dfs_bypass_active) {
+               dccg->clks.dispclk_khz =
+                       dccg->funcs->set_dispclk(dccg, dccg->clks.dispclk_khz);
+               return true;
+       }
+
+       return false;
+}
+
+#ifdef CONFIG_DRM_AMD_DC_DCN1_0
 static const struct display_clock_funcs dcn1_funcs = {
 	.get_dp_ref_clk_frequency = dce12_get_dp_ref_freq_khz,
 	.set_dispclk = dce112_set_clock,
@@ -691,7 +757,8 @@ static const struct display_clock_funcs dce112_funcs = {
 static const struct display_clock_funcs dce110_funcs = {
 	.get_dp_ref_clk_frequency = dce_get_dp_ref_freq_khz,
 	.set_dispclk = dce_psr_set_clock,
-	.update_clocks = dce_update_clocks
+	.update_clocks = dce_update_clocks,
+	.update_dfs_bypass = dce_update_dfs_bypass
 };
 
 static const struct display_clock_funcs dce_funcs = {
@@ -818,12 +885,13 @@ struct dccg *dce120_dccg_create(struct dc_context *ctx)
 	dce_dccg_construct(
 		clk_dce, ctx, NULL, NULL, NULL);
 
+	clk_dce->dprefclk_khz = 600000;
 	clk_dce->base.funcs = &dce120_funcs;
 
 	return &clk_dce->base;
 }
 
-#ifdef CONFIG_X86
+#ifdef CONFIG_DRM_AMD_DC_DCN1_0
 struct dccg *dcn1_dccg_create(struct dc_context *ctx)
 {
 	struct dc_debug_options *debug = &ctx->dc->debug;
@@ -845,6 +913,7 @@ struct dccg *dcn1_dccg_create(struct dc_context *ctx)
 	clk_dce->dprefclk_ss_divider = 1000;
 	clk_dce->ss_on_dprefclk = false;
 
+	clk_dce->dprefclk_khz = 600000;
 	if (bp->integrated_info)
 		clk_dce->dentist_vco_freq_khz = bp->integrated_info->dentist_vco_freq;
 	if (clk_dce->dentist_vco_freq_khz == 0) {
