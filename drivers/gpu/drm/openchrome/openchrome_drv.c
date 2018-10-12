@@ -376,15 +376,26 @@ static int gem_dumb_destroy(struct drm_file *filp,
 	return ret;
 }
 
+static void openchrome_flag_init(struct via_device *dev_priv)
+{
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	/*
+	 * Special handling flags for a few special models.
+	 */
+	dev_priv->is_via_nanobook = false;
+	dev_priv->is_quanta_il1 = false;
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
 static int via_device_init(struct via_device *dev_priv)
 {
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	/* Temporary implementation. */
-	dev_priv->is_via_nanobook = false;
-	dev_priv->is_quanta_il1 = false;
+	openchrome_flag_init(dev_priv);
 
 	ret = via_vram_init(dev_priv);
 	if (ret) {
