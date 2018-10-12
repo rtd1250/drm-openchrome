@@ -447,6 +447,15 @@ static int via_device_init(struct via_device *dev_priv)
 		goto exit;
 	}
 
+	/*
+	 * Map VRAM.
+	 */
+	ret = openchrome_vram_init(dev_priv);
+	if (ret) {
+		DRM_ERROR("Failed to initialize video RAM.\n");
+		goto exit;
+	}
+
 	ret = openchrome_mmio_init(dev_priv);
 	if (ret) {
 		DRM_ERROR("Failed to initialize MMIO.\n");
@@ -498,6 +507,11 @@ static void via_driver_unload(struct drm_device *dev)
 	}
 
 	via_mm_fini(dev);
+
+	/*
+	 * Unmap VRAM.
+	 */
+	openchrome_vram_fini(dev_priv);
 
 	openchrome_mmio_fini(dev_priv);
 

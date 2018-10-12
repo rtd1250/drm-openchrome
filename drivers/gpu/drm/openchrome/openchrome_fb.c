@@ -911,6 +911,41 @@ out_err:
 	return ret;
 }
 
+int openchrome_vram_init(struct via_device *dev_priv)
+{
+	int ret = 0;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	/* Add an MTRR for the video RAM. */
+	dev_priv->vram_mtrr = arch_phys_wc_add(dev_priv->vram_start,
+						dev_priv->vram_size);
+
+	DRM_INFO("VIA Technologies Chrome IGP VRAM "
+			"Physical Address: 0x%08llx\n",
+			dev_priv->vram_start);
+	DRM_INFO("VIA Technologies Chrome IGP VRAM "
+			"Size: %llu\n",
+			(unsigned long long) dev_priv->vram_size >> 20);
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
+}
+
+void openchrome_vram_fini(struct via_device *dev_priv)
+{
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	if (dev_priv->vram_mtrr) {
+		arch_phys_wc_del(dev_priv->vram_mtrr);
+		arch_io_free_memtype_wc(dev_priv->vram_start,
+					dev_priv->vram_size);
+		dev_priv->vram_mtrr = 0;
+	}
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
 static int
 via_user_framebuffer_create_handle(struct drm_framebuffer *fb,
 					struct drm_file *file_priv,

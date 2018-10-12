@@ -612,14 +612,6 @@ int via_mm_init(struct via_device *dev_priv)
 		goto exit;
 	}
 
-	/* Add an MTRR for the video RAM. */
-	dev_priv->vram_mtrr = arch_phys_wc_add(dev_priv->vram_start,
-						dev_priv->vram_size);
-
-	DRM_INFO("Mapped %llu MB of video RAM at physical "
-		"address 0x%08llx.\n",
-		(unsigned long long) dev_priv->vram_size >> 20,
-		dev_priv->vram_start);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
@@ -636,13 +628,6 @@ void via_mm_fini(struct drm_device *dev)
 	via_ttm_global_release(&dev_priv->ttm.mem_global_ref,
 				&dev_priv->ttm.bo_global_ref,
 				&dev_priv->ttm.bdev);
-
-	/* mtrr delete the vram */
-	if (dev_priv->vram_mtrr >= 0) {
-		arch_phys_wc_del(dev_priv->vram_mtrr);
-	}
-
-	dev_priv->vram_mtrr = 0;
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }

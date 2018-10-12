@@ -330,6 +330,8 @@ extern int via_wait_irq(struct drm_device *dev, void *data,
 extern int via_wait_idle(struct via_device *dev_priv);
 
 extern int via_vram_detect(struct via_device *dev_priv);
+extern int openchrome_vram_init(struct via_device *dev_priv);
+extern void openchrome_vram_fini(struct via_device *dev_priv);
 
 extern int via_enable_vblank(struct drm_crtc *crtc);
 extern void via_disable_vblank(struct drm_crtc *crtc);
