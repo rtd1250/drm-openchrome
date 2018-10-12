@@ -441,9 +441,9 @@ static int via_device_init(struct via_device *dev_priv)
 
 	openchrome_flag_init(dev_priv);
 
-	ret = via_vram_init(dev_priv);
+	ret = via_vram_detect(dev_priv);
 	if (ret) {
-		DRM_ERROR("Failed to initialize video RAM.\n");
+		DRM_ERROR("Failed to detect video RAM.\n");
 		goto exit;
 	}
 
