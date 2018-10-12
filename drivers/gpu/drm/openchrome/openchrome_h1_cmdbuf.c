@@ -176,7 +176,7 @@ static int via_initialize(struct drm_device *dev,
 	dev_priv->dma_offset = bo->offset;
 	dev_priv->last_pause_ptr = NULL;
 	dev_priv->hw_addr_ptr =
-		(void *)(dev_priv->mmio.virtual + init->reg_pause_addr);
+		(void *)(dev_priv->mmio + init->reg_pause_addr);
 
 	via_cmdbuf_start(dev_priv);
 out_err:

@@ -150,7 +150,6 @@ struct via_device {
 	int revision;
 
 	struct ttm_bo_kmap_obj dmabuf;
-	struct ttm_bo_kmap_obj mmio;
 	struct ttm_bo_kmap_obj gart;
 	struct ttm_bo_kmap_obj vq;
 
@@ -159,6 +158,10 @@ struct via_device {
 	unsigned long long vram_start;
 	unsigned int vram_size;
 	int vram_mtrr;
+
+	unsigned long long	mmio_base;
+	unsigned int		mmio_size;
+	void __iomem		*mmio;
 
 	struct via_state pm_cache;
 
@@ -291,7 +294,7 @@ struct via_device {
 #define VIA_MEM_DDR3_1600	0x12
 
 /* VIA MMIO register access */
-#define VIA_BASE ((dev_priv->mmio.virtual))
+#define VIA_BASE ((dev_priv->mmio))
 
 #define VIA_READ(reg)		ioread32(VIA_BASE + reg)
 #define VIA_WRITE(reg, val)	iowrite32(val, VIA_BASE + reg)

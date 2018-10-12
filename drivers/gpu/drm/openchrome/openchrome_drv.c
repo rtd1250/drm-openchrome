@@ -135,28 +135,72 @@ static void via_agp_engine_init(struct via_device *dev_priv)
 }
 #endif
 
-static void via_mmio_setup(struct via_device *dev_priv)
+static int openchrome_mmio_init(struct via_device *dev_priv)
 {
-	void __iomem *regs = ioport_map(0x3c0, 100);
-	u8 val;
+	struct drm_device *dev = dev_priv->dev;
+	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	val = ioread8(regs + 0x03);
-	iowrite8(val | 0x1, regs + 0x03);
-	val = ioread8(regs + 0x0C);
-	iowrite8(val | 0x1, regs + 0x02);
+	/*
+	 * PCI BAR1 is the MMIO memory window for all
+	 * VIA Technologies Chrome IGPs.
+	 * Obtain the starting base address and size, and
+	 * map it to the OS for use.
+	 */
+	dev_priv->mmio_base = pci_resource_start(dev->pdev, 1);
+	dev_priv->mmio_size = pci_resource_len(dev->pdev, 1);
+	dev_priv->mmio = ioremap(dev_priv->mmio_base,
+					dev_priv->mmio_size);
+	if (!dev_priv->mmio) {
+		ret = -ENOMEM;
+		goto exit;
+	}
 
-	/* Unlock Extended IO Space */
-	iowrite8(0x10, regs + 0x04);
-	iowrite8(0x01, regs + 0x05);
-	/* Unlock CRTC register protect */
-	iowrite8(0x47, regs + 0x14);
+	DRM_INFO("VIA Technologies Chrome IGP MMIO Physical Address: "
+			"0x%08llx\n",
+			dev_priv->mmio_base);
+exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
+}
 
-	/* Enable MMIO */
-	iowrite8(0x1a, regs + 0x04);
-	val = ioread8(regs + 0x05);
-	iowrite8(val | 0x38, regs + 0x05);
+static void openchrome_mmio_fini(struct via_device *dev_priv)
+{
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	if (dev_priv->mmio) {
+		iounmap(dev_priv->mmio);
+		dev_priv->mmio = NULL;
+	}
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
+static void openchrome_graphics_unlock(struct via_device *dev_priv)
+{
+	uint8_t temp;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	/*
+	 * Enable VGA subsystem.
+	 */
+	temp = vga_io_r(0x03C3);
+	vga_io_w(0x03C3, temp | 0x01);
+	svga_wmisc_mask(VGABASE, BIT(0), BIT(0));
+
+	/*
+	 * Unlock VIA Technologies Chrome IGP extended
+	 * registers.
+	 */
+	svga_wseq_mask(VGABASE, 0x10, BIT(0), BIT(0));
+
+	/*
+	 * Unlock VIA Technologies Chrome IGP extended
+	 * graphics functionality.
+	 */
+	svga_wseq_mask(VGABASE, 0x1a, BIT(3), BIT(3));
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -403,7 +447,13 @@ static int via_device_init(struct via_device *dev_priv)
 		goto exit;
 	}
 
-	via_mmio_setup(dev_priv);
+	ret = openchrome_mmio_init(dev_priv);
+	if (ret) {
+		DRM_ERROR("Failed to initialize MMIO.\n");
+		goto exit;
+	}
+
+	openchrome_graphics_unlock(dev_priv);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
@@ -447,13 +497,9 @@ static void via_driver_unload(struct drm_device *dev)
 		ttm_bo_unref(&bo);
 	}
 
-	bo = dev_priv->mmio.bo;
-	if (bo) {
-		via_bo_unpin(bo, &dev_priv->mmio);
-		ttm_bo_unref(&bo);
-	}
-
 	via_mm_fini(dev);
+
+	openchrome_mmio_fini(dev_priv);
 
 #if IS_ENABLED(CONFIG_AGP)
 	if (dev->agp && dev->agp->acquired)

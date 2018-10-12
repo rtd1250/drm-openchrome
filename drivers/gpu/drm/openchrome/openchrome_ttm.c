@@ -582,9 +582,6 @@ static struct ttm_bo_driver via_bo_driver = {
 int via_mm_init(struct via_device *dev_priv)
 {
 	struct drm_device *dev = dev_priv->dev;
-	struct ttm_buffer_object *bo;
-	unsigned long long start;
-	int len;
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -623,35 +620,6 @@ int via_mm_init(struct via_device *dev_priv)
 		"address 0x%08llx.\n",
 		(unsigned long long) dev_priv->vram_size >> 20,
 		dev_priv->vram_start);
-
-	start = (unsigned long long) pci_resource_start(dev->pdev, 1);
-	len = pci_resource_len(dev->pdev, 1);
-	ret = ttm_bo_init_mm(&dev_priv->ttm.bdev,
-				TTM_PL_PRIV, len >> PAGE_SHIFT);
-	if (ret) {
-		DRM_ERROR("Failed to map MMIO: %d\n", ret);
-		goto exit;
-	}
-
-	ret = via_bo_create(&dev_priv->ttm.bdev, &bo, VIA_MMIO_REGSIZE,
-				ttm_bo_type_kernel, TTM_PL_FLAG_PRIV,
-				1, PAGE_SIZE, false, NULL, NULL);
-	if (ret) {
-		DRM_ERROR("Failed to create a buffer object "
-				"for MMIO: %d\n", ret);
-		goto exit;
-	}
-
-	ret = via_bo_pin(bo, &dev_priv->mmio);
-	if (ret) {
-		DRM_ERROR("Failed to map a buffer object for "
-				"MMIO: %d\n", ret);
-		ttm_bo_clean_mm(&dev_priv->ttm.bdev, TTM_PL_PRIV);
-		goto exit;
-	}
-
-	DRM_INFO("Mapped MMIO at physical address 0x%08llx.\n",
-			start);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
