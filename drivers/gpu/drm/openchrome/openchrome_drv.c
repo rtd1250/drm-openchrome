@@ -161,9 +161,9 @@ static void via_mmio_setup(struct via_device *dev_priv)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void chip_revision_info(struct drm_device *dev)
+static void chip_revision_info(struct via_device *dev_priv)
 {
-	struct via_device *dev_priv = dev->dev_private;
+	struct drm_device *dev = dev_priv->dev;
 	struct pci_bus *bus = NULL;
 	u16 device_id, subsystem_vendor_id, subsystem_device_id;
 	u8 tmp;
@@ -489,7 +489,7 @@ static int via_driver_load(struct drm_device *dev,
 		goto init_error;
 	}
 
-	chip_revision_info(dev);
+	chip_revision_info(dev_priv);
 
 #if IS_ENABLED(CONFIG_AGP)
 	if ((dev_priv->engine_type <= VIA_ENG_H2) ||
