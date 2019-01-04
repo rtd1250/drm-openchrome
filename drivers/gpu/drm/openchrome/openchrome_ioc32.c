@@ -175,8 +175,6 @@ KMS_INVALID_IOCTL(via_agp_init)
 KMS_INVALID_IOCTL(via_fb_init)
 KMS_INVALID_IOCTL(via_map_init)
 KMS_INVALID_IOCTL(via_decoder_futex)
-KMS_INVALID_IOCTL(via_dma_blit)
-KMS_INVALID_IOCTL(via_dma_blit_sync)
 
 const struct drm_ioctl_desc via_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(VIA_ALLOCMEM, via_mem_alloc, DRM_AUTH),
@@ -186,14 +184,6 @@ const struct drm_ioctl_desc via_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(VIA_MAP_INIT, via_map_init, DRM_AUTH | DRM_MASTER),
 	DRM_IOCTL_DEF_DRV(VIA_DEC_FUTEX, via_decoder_futex, DRM_AUTH),
 	DRM_IOCTL_DEF_DRV(VIA_OLD_GEM_CREATE, via_gem_alloc, DRM_AUTH | DRM_UNLOCKED),
-	DRM_IOCTL_DEF_DRV(VIA_DMA_INIT, via_dma_init, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(VIA_CMDBUFFER, via_cmdbuffer, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(VIA_FLUSH, via_flush_ioctl, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(VIA_PCICMD, via_pci_cmdbuffer, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(VIA_CMDBUF_SIZE, via_cmdbuf_size, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(VIA_WAIT_IRQ, via_wait_irq, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(VIA_DMA_BLIT, via_dma_blit, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(VIA_BLIT_SYNC, via_dma_blit_sync, DRM_AUTH),
 	DRM_IOCTL_DEF_DRV(VIA_GETPARAM, via_getparam, DRM_AUTH | DRM_UNLOCKED),
 	DRM_IOCTL_DEF_DRV(VIA_SETPARAM, via_setparam, DRM_AUTH | DRM_MASTER | DRM_ROOT_ONLY),
 	DRM_IOCTL_DEF_DRV(VIA_GEM_CREATE, via_gem_alloc, DRM_AUTH | DRM_UNLOCKED),

@@ -539,8 +539,6 @@ static const struct drm_crtc_funcs via_iga1_funcs = {
 	.gamma_set = via_iga1_gamma_set,
 	.set_config = drm_crtc_helper_set_config,
 	.destroy = via_crtc_destroy,
-	.enable_vblank = via_enable_vblank,
-	.disable_vblank = via_disable_vblank,
 };
 
 static const struct drm_crtc_funcs via_iga2_funcs = {
@@ -549,8 +547,6 @@ static const struct drm_crtc_funcs via_iga2_funcs = {
 	.gamma_set = via_iga2_gamma_set,
 	.set_config = drm_crtc_helper_set_config,
 	.destroy = via_crtc_destroy,
-	.enable_vblank = via_enable_vblank,
-	.disable_vblank = via_disable_vblank,
 };
 
 static void via_load_vpit_regs(struct via_device *dev_priv)
@@ -1816,8 +1812,6 @@ via_iga1_crtc_disable(struct drm_crtc *crtc)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	drm_crtc_vblank_off(crtc);
-
 	/* Turn off the cursor */
 	via_hide_cursor(crtc);
 
@@ -1831,8 +1825,6 @@ via_iga1_crtc_prepare(struct drm_crtc *crtc)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	drm_crtc_vblank_off(crtc);
-
 	/* Blank the screen */
 	if (crtc->enabled)
 		via_iga1_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
@@ -1844,8 +1836,6 @@ static void
 via_iga1_crtc_commit(struct drm_crtc *crtc)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	drm_crtc_vblank_on(crtc);
 
 	/* Turn on the monitor */
 	if (crtc->enabled)
@@ -2098,8 +2088,6 @@ via_iga2_crtc_disable(struct drm_crtc *crtc)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	drm_crtc_vblank_off(crtc);
-
 	/* Turn off the cursor */
 	via_hide_cursor(crtc);
 
@@ -2113,8 +2101,6 @@ via_iga2_crtc_prepare(struct drm_crtc *crtc)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	drm_crtc_vblank_off(crtc);
-
 	/* Blank the screen */
 	if (crtc->enabled)
 		via_iga2_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
@@ -2126,8 +2112,6 @@ static void
 via_iga2_crtc_commit(struct drm_crtc *crtc)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	drm_crtc_vblank_on(crtc);
 
 	/* Turn on the monitor */
 	if (crtc->enabled)

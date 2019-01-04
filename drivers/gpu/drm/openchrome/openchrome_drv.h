@@ -51,16 +51,9 @@
 #include <drm/via_drm.h>
 
 #include "openchrome_display.h"
-#include "openchrome_dma.h"
-#include "openchrome_fence.h"
 #include "openchrome_regs.h"
-#include "openchrome_verifier.h"
 
 #define VIA_MM_ALIGN_SIZE	16
-
-#define VIA_PCI_BUF_SIZE	60000
-#define VIA_FIRE_BUF_SIZE	1024
-#define VIA_NUM_IRQS		4
 
 #define DRM_FILE_PAGE_OFFSET (0x100000000ULL >> PAGE_SHIFT)
 
@@ -86,20 +79,6 @@
 #define VX900_REVISION_A1	0x01
 #define VX900_REVISION_A2	0x02
 #define VX900_REVISION_A3	0x03
-
-typedef uint32_t maskarray_t[5];
-
-typedef struct drm_via_irq {
-	atomic_t irq_received;
-	uint32_t pending_mask;
-	uint32_t enable_mask;
-	wait_queue_head_t irq_queue;
-} drm_via_irq_t;
-
-struct sgdma_tt {
-	struct ttm_dma_tt sgdma;
-	unsigned long offset;
-};
 
 struct via_state {
 	struct vga_regset crt_regs[256];
@@ -149,7 +128,6 @@ struct via_device {
 
 	int revision;
 
-	struct ttm_bo_kmap_obj dmabuf;
 	struct ttm_bo_kmap_obj gart;
 	struct ttm_bo_kmap_obj vq;
 
@@ -166,31 +144,6 @@ struct via_device {
 	struct via_state pm_cache;
 
 	enum via_engine engine_type;
-	struct drm_via_state hc_state;
-	unsigned int dma_low;
-	unsigned int dma_high;
-	unsigned int dma_offset;
-	uint32_t dma_diff;
-	uint32_t dma_wrap;
-	void __iomem *last_pause_ptr;
-	void __iomem *hw_addr_ptr;
-
-	char pci_buf[VIA_PCI_BUF_SIZE];
-	const uint32_t *fire_offsets[VIA_FIRE_BUF_SIZE];
-	uint32_t num_fire_offsets;
-
-	drm_via_irq_t via_irqs[VIA_NUM_IRQS];
-	struct work_struct hotplug_work;
-	struct workqueue_struct *wq;
-	unsigned num_irqs;
-	maskarray_t *irq_masks;
-	uint32_t irq_enable_mask;
-	uint32_t irq_pending_mask;
-	int *irq_map;
-
-	/* fence handling */
-	struct via_fence_pool *dma_fences;
-	int desc_size;
 
 	struct via_crtc iga[2];
 	bool spread_spectrum;
@@ -313,41 +266,9 @@ extern int via_hdmi_audio;
 
 extern void via_engine_init(struct drm_device *dev);
 
-extern int via_dma_init(struct drm_device *dev, void *data,
-			struct drm_file *file_priv);
-extern int via_flush_ioctl(struct drm_device *dev, void *data,
-				struct drm_file *file_priv);
-extern int via_dispatch_cmdbuffer(struct drm_device *dev,
-					drm_via_cmdbuffer_t *cmd);
-extern int via_cmdbuffer(struct drm_device *dev, void *data,
-				struct drm_file *file_priv);
-extern int via_cmdbuf_size(struct drm_device *dev, void *data,
-				struct drm_file *file_priv);
-extern int via_pci_cmdbuffer(struct drm_device *dev, void *data,
-				struct drm_file *file_priv);
-extern int via_wait_irq(struct drm_device *dev, void *data,
-			struct drm_file *file_priv);
-extern int via_wait_idle(struct via_device *dev_priv);
-
 extern int via_vram_detect(struct via_device *dev_priv);
 extern int openchrome_vram_init(struct via_device *dev_priv);
 extern void openchrome_vram_fini(struct via_device *dev_priv);
-
-extern int via_enable_vblank(struct drm_crtc *crtc);
-extern void via_disable_vblank(struct drm_crtc *crtc);
-
-extern irqreturn_t via_driver_irq_handler(int irq, void *arg);
-extern void via_driver_irq_preinstall(struct drm_device *dev);
-extern int via_driver_irq_postinstall(struct drm_device *dev);
-extern void via_driver_irq_uninstall(struct drm_device *dev);
-
-extern void via_init_command_verifier(void);
-extern int via_driver_dma_quiescent(struct drm_device *dev);
-extern int via_dma_cleanup(struct drm_device *dev);
-
-extern void via_dmablit_handler(struct drm_device *dev,
-				int engine, int from_irq);
-extern int via_dmablit_init(struct drm_device *dev);
 
 extern int via_mm_init(struct via_device *dev_priv);
 void via_mm_fini(struct drm_device *dev);
@@ -389,10 +310,6 @@ extern struct drm_gem_object* ttm_gem_create(struct drm_device *dev,
 					bool interruptible);
 extern struct ttm_buffer_object* ttm_gem_mapping(
 					struct drm_gem_object *obj);
-
-extern struct ttm_tt* via_sgdma_backend_init(
-					struct ttm_buffer_object *bo,
-					uint32_t page_flags);
 
 void openchrome_transmitter_io_pad_state(struct via_device *dev_priv,
 				uint32_t di_port, bool io_pad_on);

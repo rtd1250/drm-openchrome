@@ -472,24 +472,11 @@ static void via_driver_unload(struct drm_device *dev)
 {
 	struct via_device *dev_priv = dev->dev_private;
 	struct ttm_buffer_object *bo;
-	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	ret = via_dma_cleanup(dev);
-	if (ret)
-		return;
-
-	drm_irq_uninstall(dev);
-
 	if (drm_core_check_feature(dev, DRIVER_MODESET))
 		via_modeset_fini(dev);
-
-	via_fence_pool_fini(dev_priv->dma_fences);
-
-	/* destroy work queue. */
-	if (dev_priv->wq)
-		destroy_workqueue(dev_priv->wq);
 
 	bo = dev_priv->vq.bo;
 	if (bo) {
@@ -545,8 +532,6 @@ static int via_driver_load(struct drm_device *dev,
 	dev_priv->engine_type = chipset;
 	dev_priv->vram_mtrr = -ENXIO;
 	dev_priv->dev = dev;
-
-	via_init_command_verifier();
 
 	ret = via_device_init(dev_priv);
 	if (ret) {
@@ -604,38 +589,12 @@ static int via_driver_load(struct drm_device *dev,
 
 	via_engine_init(dev);
 
-	/* Setting up a work queue. */
-	dev_priv->wq = create_workqueue("viadrm");
-	if (!dev_priv->wq) {
-		DRM_ERROR("Failed to create a work queue.\n");
-		ret = -EINVAL;
-		goto init_error;
-	}
-
-	ret = drm_vblank_init(dev, 2);
-	if (ret) {
-		DRM_ERROR("Failed to initialize DRM VBlank.\n");
-		goto init_error;
-	}
-
-	ret = via_dmablit_init(dev);
-	if (ret) {
-		DRM_ERROR("Failed to initialize DMA.\n");
-		goto init_error;
-	}
-
 	if (drm_core_check_feature(dev, DRIVER_MODESET)) {
 		ret = via_modeset_init(dev);
 		if (ret) {
 		DRM_ERROR("Failed to initialize mode setting.\n");
 		goto init_error;
 		}
-	}
-
-	ret = drm_irq_install(dev, dev->pdev->irq);
-	if (ret) {
-		DRM_ERROR("Failed to initialize DRM IRQ.\n");
-		goto init_error;
 	}
 
 	goto exit;
@@ -647,22 +606,6 @@ exit:
 	return ret;
 }
 
-static int via_final_context(struct drm_device *dev, int context)
-{
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	/* Linux specific until context tracking code gets ported to BSD */
-	/* Last context, perform cleanup */
-	if (dev->dev_private) {
-		DRM_DEBUG_KMS("Last Context\n");
-		drm_irq_uninstall(dev);
-		via_dma_cleanup(dev);
-	}
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return 1;
-}
-
 static void via_driver_lastclose(struct drm_device *dev)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -672,19 +615,6 @@ static void via_driver_lastclose(struct drm_device *dev)
 		dev->mode_config.funcs->output_poll_changed(dev);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-}
-
-static void via_reclaim_buffers_locked(struct drm_device *dev,
-					struct drm_file *filp)
-{
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	mutex_lock(&dev->struct_mutex);
-	via_driver_dma_quiescent(dev);
-	mutex_unlock(&dev->struct_mutex);
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return;
 }
 
 static int via_pm_ops_suspend(struct device *dev)
@@ -828,13 +758,6 @@ static struct drm_driver via_driver = {
 				DRIVER_IRQ_SHARED | DRIVER_GEM,
 	.load = via_driver_load,
 	.unload = via_driver_unload,
-	.preclose = via_reclaim_buffers_locked,
-	.context_dtor = via_final_context,
-	.irq_preinstall = via_driver_irq_preinstall,
-	.irq_postinstall = via_driver_irq_postinstall,
-	.irq_uninstall = via_driver_irq_uninstall,
-	.irq_handler = via_driver_irq_handler,
-	.dma_quiescent = via_driver_dma_quiescent,
 	.lastclose = via_driver_lastclose,
 	.gem_open_object = ttm_gem_open_object,
 	.gem_free_object = ttm_gem_free_object,

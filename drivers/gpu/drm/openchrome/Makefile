@@ -11,21 +11,15 @@ openchrome-y := openchrome_analog.o \
 		openchrome_drv.o \
 		openchrome_encoder.o \
 		openchrome_fb.o \
-		openchrome_fence.o \
 		openchrome_fp.o \
 		openchrome_gem.o \
-		openchrome_h1_cmdbuf.o \
-		openchrome_h1_dma.o \
 		openchrome_hdmi.o \
 		openchrome_i2c.o \
 		openchrome_ioc32.o \
-		openchrome_irq.o \
 		openchrome_pm.o \
 		openchrome_sii164.o \
-		openchrome_sgdma.o \
 		openchrome_tmds.o \
 		openchrome_ttm.o \
-		openchrome_verifier.o \
 		openchrome_vt1632.o
 
 obj-$(CONFIG_DRM_OPENCHROME)	+= openchrome.o
