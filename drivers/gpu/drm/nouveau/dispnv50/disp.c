@@ -881,22 +881,16 @@ nv50_mstc_atomic_best_encoder(struct drm_connector *connector,
 {
 	struct nv50_head *head = nv50_head(connector_state->crtc);
 	struct nv50_mstc *mstc = nv50_mstc(connector);
-	if (mstc->port) {
-		struct nv50_mstm *mstm = mstc->mstm;
-		return &mstm->msto[head->base.index]->encoder;
-	}
-	return NULL;
+
+	return &mstc->mstm->msto[head->base.index]->encoder;
 }
 
 static struct drm_encoder *
 nv50_mstc_best_encoder(struct drm_connector *connector)
 {
 	struct nv50_mstc *mstc = nv50_mstc(connector);
-	if (mstc->port) {
-		struct nv50_mstm *mstm = mstc->mstm;
-		return &mstm->msto[0]->encoder;
-	}
-	return NULL;
+
+	return &mstc->mstm->msto[0]->encoder;
 }
 
 static enum drm_mode_status
@@ -938,9 +932,22 @@ static enum drm_connector_status
 nv50_mstc_detect(struct drm_connector *connector, bool force)
 {
 	struct nv50_mstc *mstc = nv50_mstc(connector);
+	enum drm_connector_status conn_status;
+	int ret;
+
 	if (!mstc->port)
 		return connector_status_disconnected;
-	return drm_dp_mst_detect_port(connector, mstc->port->mgr, mstc->port);
+
+	ret = pm_runtime_get_sync(connector->dev->dev);
+	if (ret < 0 && ret != -EACCES)
+		return connector_status_disconnected;
+
+	conn_status = drm_dp_mst_detect_port(connector, mstc->port->mgr,
+					     mstc->port);
+
+	pm_runtime_mark_last_busy(connector->dev->dev);
+	pm_runtime_put_autosuspend(connector->dev->dev);
+	return conn_status;
 }
 
 static void
@@ -1248,8 +1255,16 @@ nv50_mstm_fini(struct nv50_mstm *mstm)
 static void
 nv50_mstm_init(struct nv50_mstm *mstm)
 {
-	if (mstm && mstm->mgr.mst_state)
-		drm_dp_mst_topology_mgr_resume(&mstm->mgr);
+	int ret;
+
+	if (!mstm || !mstm->mgr.mst_state)
+		return;
+
+	ret = drm_dp_mst_topology_mgr_resume(&mstm->mgr);
+	if (ret == -1) {
+		drm_dp_mst_topology_mgr_set_mst(&mstm->mgr, false);
+		drm_kms_helper_hotplug_event(mstm->mgr.dev);
+	}
 }
 
 static void
@@ -2286,7 +2301,7 @@ nv50_display_create(struct drm_device *dev)
 
 	/* create encoder/connector objects based on VBIOS DCB table */
 	for (i = 0, dcbe = &dcb->entry[0]; i < dcb->entries; i++, dcbe++) {
-		connector = nouveau_connector_create(dev, dcbe->connector);
+		connector = nouveau_connector_create(dev, dcbe);
 		if (IS_ERR(connector))
 			continue;
 

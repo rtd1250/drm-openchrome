@@ -75,7 +75,17 @@ static void vega20_set_default_registry_data(struct pp_hwmgr *hwmgr)
 	data->phy_clk_quad_eqn_b = PPREGKEY_VEGA20QUADRATICEQUATION_DFLT;
 	data->phy_clk_quad_eqn_c = PPREGKEY_VEGA20QUADRATICEQUATION_DFLT;
 
-	data->registry_data.disallowed_features = 0x0;
+	/*
+	 * Disable the following features for now:
+	 *   GFXCLK DS
+	 *   SOCLK DS
+	 *   LCLK DS
+	 *   DCEFCLK DS
+	 *   FCLK DS
+	 *   MP1CLK DS
+	 *   MP0CLK DS
+	 */
+	data->registry_data.disallowed_features = 0xE0041C00;
 	data->registry_data.od_state_in_dc_support = 0;
 	data->registry_data.thermal_support = 1;
 	data->registry_data.skip_baco_hardware = 0;
@@ -120,6 +130,7 @@ static void vega20_set_default_registry_data(struct pp_hwmgr *hwmgr)
 	data->registry_data.disable_auto_wattman = 1;
 	data->registry_data.auto_wattman_debug = 0;
 	data->registry_data.auto_wattman_sample_period = 100;
+	data->registry_data.fclk_gfxclk_ratio = 0x3F6CCCCD;
 	data->registry_data.auto_wattman_threshold = 50;
 	data->registry_data.gfxoff_controlled_by_driver = 1;
 	data->gfxoff_allowed = false;
@@ -829,6 +840,28 @@ static int vega20_enable_all_smu_features(struct pp_hwmgr *hwmgr)
 	return 0;
 }
 
+static int vega20_notify_smc_display_change(struct pp_hwmgr *hwmgr)
+{
+	struct vega20_hwmgr *data = (struct vega20_hwmgr *)(hwmgr->backend);
+
+	if (data->smu_features[GNLD_DPM_UCLK].enabled)
+		return smum_send_msg_to_smc_with_parameter(hwmgr,
+			PPSMC_MSG_SetUclkFastSwitch,
+			1);
+
+	return 0;
+}
+
+static int vega20_send_clock_ratio(struct pp_hwmgr *hwmgr)
+{
+	struct vega20_hwmgr *data =
+			(struct vega20_hwmgr *)(hwmgr->backend);
+
+	return smum_send_msg_to_smc_with_parameter(hwmgr,
+			PPSMC_MSG_SetFclkGfxClkRatio,
+			data->registry_data.fclk_gfxclk_ratio);
+}
+
 static int vega20_disable_all_smu_features(struct pp_hwmgr *hwmgr)
 {
 	struct vega20_hwmgr *data =
@@ -1290,12 +1323,13 @@ static int vega20_get_sclk_od(
 			&(data->dpm_table.gfx_table);
 	struct vega20_single_dpm_table *golden_sclk_table =
 			&(data->golden_dpm_table.gfx_table);
-	int value;
+	int value = sclk_table->dpm_levels[sclk_table->count - 1].value;
+	int golden_value = golden_sclk_table->dpm_levels
+			[golden_sclk_table->count - 1].value;
 
 	/* od percentage */
-	value = DIV_ROUND_UP((sclk_table->dpm_levels[sclk_table->count - 1].value -
-		golden_sclk_table->dpm_levels[golden_sclk_table->count - 1].value) * 100,
-		golden_sclk_table->dpm_levels[golden_sclk_table->count - 1].value);
+	value -= golden_value;
+	value = DIV_ROUND_UP(value * 100, golden_value);
 
 	return value;
 }
@@ -1335,12 +1369,13 @@ static int vega20_get_mclk_od(
 			&(data->dpm_table.mem_table);
 	struct vega20_single_dpm_table *golden_mclk_table =
 			&(data->golden_dpm_table.mem_table);
-	int value;
+	int value = mclk_table->dpm_levels[mclk_table->count - 1].value;
+	int golden_value = golden_mclk_table->dpm_levels
+			[golden_mclk_table->count - 1].value;
 
 	/* od percentage */
-	value = DIV_ROUND_UP((mclk_table->dpm_levels[mclk_table->count - 1].value -
-		golden_mclk_table->dpm_levels[golden_mclk_table->count - 1].value) * 100,
-		golden_mclk_table->dpm_levels[golden_mclk_table->count - 1].value);
+	value -= golden_value;
+	value = DIV_ROUND_UP(value * 100, golden_value);
 
 	return value;
 }
@@ -1530,6 +1565,16 @@ static int vega20_enable_dpm_tasks(struct pp_hwmgr *hwmgr)
 	result = vega20_enable_all_smu_features(hwmgr);
 	PP_ASSERT_WITH_CODE(!result,
 			"[EnableDPMTasks] Failed to enable all smu features!",
+			return result);
+
+	result = vega20_notify_smc_display_change(hwmgr);
+	PP_ASSERT_WITH_CODE(!result,
+			"[EnableDPMTasks] Failed to notify smc display change!",
+			return result);
+
+	result = vega20_send_clock_ratio(hwmgr);
+	PP_ASSERT_WITH_CODE(!result,
+			"[EnableDPMTasks] Failed to send clock ratio!",
 			return result);
 
 	/* Initialize UVD/VCE powergating state */
@@ -1875,38 +1920,20 @@ static int vega20_get_gpu_power(struct pp_hwmgr *hwmgr,
 	return ret;
 }
 
-static int vega20_get_current_gfx_clk_freq(struct pp_hwmgr *hwmgr, uint32_t *gfx_freq)
+static int vega20_get_current_clk_freq(struct pp_hwmgr *hwmgr,
+		PPCLK_e clk_id, uint32_t *clk_freq)
 {
-	uint32_t gfx_clk = 0;
 	int ret = 0;
 
-	*gfx_freq = 0;
+	*clk_freq = 0;
 
 	PP_ASSERT_WITH_CODE((ret = smum_send_msg_to_smc_with_parameter(hwmgr,
-			PPSMC_MSG_GetDpmClockFreq, (PPCLK_GFXCLK << 16))) == 0,
-			"[GetCurrentGfxClkFreq] Attempt to get Current GFXCLK Frequency Failed!",
+			PPSMC_MSG_GetDpmClockFreq, (clk_id << 16))) == 0,
+			"[GetCurrentClkFreq] Attempt to get Current Frequency Failed!",
 			return ret);
-	gfx_clk = smum_get_argument(hwmgr);
+	*clk_freq = smum_get_argument(hwmgr);
 
-	*gfx_freq = gfx_clk * 100;
-
-	return 0;
-}
-
-static int vega20_get_current_mclk_freq(struct pp_hwmgr *hwmgr, uint32_t *mclk_freq)
-{
-	uint32_t mem_clk = 0;
-	int ret = 0;
-
-	*mclk_freq = 0;
-
-	PP_ASSERT_WITH_CODE((ret = smum_send_msg_to_smc_with_parameter(hwmgr,
-			PPSMC_MSG_GetDpmClockFreq, (PPCLK_UCLK << 16))) == 0,
-			"[GetCurrentMClkFreq] Attempt to get Current MCLK Frequency Failed!",
-			return ret);
-	mem_clk = smum_get_argument(hwmgr);
-
-	*mclk_freq = mem_clk * 100;
+	*clk_freq = *clk_freq * 100;
 
 	return 0;
 }
@@ -1937,12 +1964,16 @@ static int vega20_read_sensor(struct pp_hwmgr *hwmgr, int idx,
 
 	switch (idx) {
 	case AMDGPU_PP_SENSOR_GFX_SCLK:
-		ret = vega20_get_current_gfx_clk_freq(hwmgr, (uint32_t *)value);
+		ret = vega20_get_current_clk_freq(hwmgr,
+				PPCLK_GFXCLK,
+				(uint32_t *)value);
 		if (!ret)
 			*size = 4;
 		break;
 	case AMDGPU_PP_SENSOR_GFX_MCLK:
-		ret = vega20_get_current_mclk_freq(hwmgr, (uint32_t *)value);
+		ret = vega20_get_current_clk_freq(hwmgr,
+				PPCLK_UCLK,
+				(uint32_t *)value);
 		if (!ret)
 			*size = 4;
 		break;
@@ -1986,19 +2017,6 @@ static int vega20_read_sensor(struct pp_hwmgr *hwmgr, int idx,
 	return ret;
 }
 
-static int vega20_notify_smc_display_change(struct pp_hwmgr *hwmgr,
-		bool has_disp)
-{
-	struct vega20_hwmgr *data = (struct vega20_hwmgr *)(hwmgr->backend);
-
-	if (data->smu_features[GNLD_DPM_UCLK].enabled)
-		return smum_send_msg_to_smc_with_parameter(hwmgr,
-			PPSMC_MSG_SetUclkFastSwitch,
-			has_disp ? 1 : 0);
-
-	return 0;
-}
-
 int vega20_display_clock_voltage_request(struct pp_hwmgr *hwmgr,
 		struct pp_display_clock_request *clock_req)
 {
@@ -2012,7 +2030,6 @@ int vega20_display_clock_voltage_request(struct pp_hwmgr *hwmgr,
 	if (data->smu_features[GNLD_DPM_DCEFCLK].enabled) {
 		switch (clk_type) {
 		case amd_pp_dcef_clock:
-			clk_freq = clock_req->clock_freq_in_khz / 100;
 			clk_select = PPCLK_DCEFCLK;
 			break;
 		case amd_pp_disp_clock:
@@ -2041,21 +2058,23 @@ int vega20_display_clock_voltage_request(struct pp_hwmgr *hwmgr,
 	return result;
 }
 
+static int vega20_get_performance_level(struct pp_hwmgr *hwmgr, const struct pp_hw_power_state *state,
+				PHM_PerformanceLevelDesignation designation, uint32_t index,
+				PHM_PerformanceLevel *level)
+{
+	return 0;
+}
+
 static int vega20_notify_smc_display_config_after_ps_adjustment(
 		struct pp_hwmgr *hwmgr)
 {
 	struct vega20_hwmgr *data =
 			(struct vega20_hwmgr *)(hwmgr->backend);
+	struct vega20_single_dpm_table *dpm_table =
+			&data->dpm_table.mem_table;
 	struct PP_Clocks min_clocks = {0};
 	struct pp_display_clock_request clock_req;
 	int ret = 0;
-
-	if ((hwmgr->display_config->num_display > 1) &&
-	     !hwmgr->display_config->multi_monitor_in_sync &&
-	     !hwmgr->display_config->nb_pstate_switch_disable)
-		vega20_notify_smc_display_change(hwmgr, false);
-	else
-		vega20_notify_smc_display_change(hwmgr, true);
 
 	min_clocks.dcefClock = hwmgr->display_config->min_dcef_set_clk;
 	min_clocks.dcefClockInSR = hwmgr->display_config->min_dcef_deep_sleep_set_clk;
@@ -2063,7 +2082,7 @@ static int vega20_notify_smc_display_config_after_ps_adjustment(
 
 	if (data->smu_features[GNLD_DPM_DCEFCLK].supported) {
 		clock_req.clock_type = amd_pp_dcef_clock;
-		clock_req.clock_freq_in_khz = min_clocks.dcefClock;
+		clock_req.clock_freq_in_khz = min_clocks.dcefClock * 10;
 		if (!vega20_display_clock_voltage_request(hwmgr, &clock_req)) {
 			if (data->smu_features[GNLD_DS_DCEFCLK].supported)
 				PP_ASSERT_WITH_CODE((ret = smum_send_msg_to_smc_with_parameter(
@@ -2074,6 +2093,15 @@ static int vega20_notify_smc_display_config_after_ps_adjustment(
 		} else {
 			pr_info("Attempt to set Hard Min for DCEFCLK Failed!");
 		}
+	}
+
+	if (data->smu_features[GNLD_DPM_UCLK].enabled) {
+		dpm_table->dpm_state.hard_min_level = min_clocks.memoryClock / 100;
+		PP_ASSERT_WITH_CODE(!(ret = smum_send_msg_to_smc_with_parameter(hwmgr,
+				PPSMC_MSG_SetHardMinByFreq,
+				(PPCLK_UCLK << 16 ) | dpm_table->dpm_state.hard_min_level)),
+				"[SetHardMinFreq] Set hard min uclk failed!",
+				return ret);
 	}
 
 	return 0;
@@ -2353,7 +2381,7 @@ static int vega20_get_sclks(struct pp_hwmgr *hwmgr,
 
 	for (i = 0; i < count; i++) {
 		clocks->data[i].clocks_in_khz =
-			dpm_table->dpm_levels[i].value * 100;
+			dpm_table->dpm_levels[i].value * 1000;
 		clocks->data[i].latency_in_us = 0;
 	}
 
@@ -2383,7 +2411,7 @@ static int vega20_get_memclocks(struct pp_hwmgr *hwmgr,
 	for (i = 0; i < count; i++) {
 		clocks->data[i].clocks_in_khz =
 			data->mclk_latency_table.entries[i].frequency =
-			dpm_table->dpm_levels[i].value * 100;
+			dpm_table->dpm_levels[i].value * 1000;
 		clocks->data[i].latency_in_us =
 			data->mclk_latency_table.entries[i].latency =
 			vega20_get_mem_latency(hwmgr, dpm_table->dpm_levels[i].value);
@@ -2408,7 +2436,7 @@ static int vega20_get_dcefclocks(struct pp_hwmgr *hwmgr,
 
 	for (i = 0; i < count; i++) {
 		clocks->data[i].clocks_in_khz =
-			dpm_table->dpm_levels[i].value * 100;
+			dpm_table->dpm_levels[i].value * 1000;
 		clocks->data[i].latency_in_us = 0;
 	}
 
@@ -2431,7 +2459,7 @@ static int vega20_get_socclocks(struct pp_hwmgr *hwmgr,
 
 	for (i = 0; i < count; i++) {
 		clocks->data[i].clocks_in_khz =
-			dpm_table->dpm_levels[i].value * 100;
+			dpm_table->dpm_levels[i].value * 1000;
 		clocks->data[i].latency_in_us = 0;
 	}
 
@@ -2582,11 +2610,11 @@ static int vega20_odn_edit_dpm_table(struct pp_hwmgr *hwmgr,
 				return -EINVAL;
 			}
 
-			if (input_clk < clocks.data[0].clocks_in_khz / 100 ||
+			if (input_clk < clocks.data[0].clocks_in_khz / 1000 ||
 			    input_clk > od8_settings[OD8_SETTING_UCLK_FMAX].max_value) {
 				pr_info("clock freq %d is not within allowed range [%d - %d]\n",
 					input_clk,
-					clocks.data[0].clocks_in_khz / 100,
+					clocks.data[0].clocks_in_khz / 1000,
 					od8_settings[OD8_SETTING_UCLK_FMAX].max_value);
 				return -EINVAL;
 			}
@@ -2726,7 +2754,7 @@ static int vega20_print_clock_levels(struct pp_hwmgr *hwmgr,
 
 	switch (type) {
 	case PP_SCLK:
-		ret = vega20_get_current_gfx_clk_freq(hwmgr, &now);
+		ret = vega20_get_current_clk_freq(hwmgr, PPCLK_GFXCLK, &now);
 		PP_ASSERT_WITH_CODE(!ret,
 				"Attempt to get current gfx clk Failed!",
 				return ret);
@@ -2738,12 +2766,12 @@ static int vega20_print_clock_levels(struct pp_hwmgr *hwmgr,
 
 		for (i = 0; i < clocks.num_levels; i++)
 			size += sprintf(buf + size, "%d: %uMhz %s\n",
-				i, clocks.data[i].clocks_in_khz / 100,
-				(clocks.data[i].clocks_in_khz == now) ? "*" : "");
+				i, clocks.data[i].clocks_in_khz / 1000,
+				(clocks.data[i].clocks_in_khz == now * 10) ? "*" : "");
 		break;
 
 	case PP_MCLK:
-		ret = vega20_get_current_mclk_freq(hwmgr, &now);
+		ret = vega20_get_current_clk_freq(hwmgr, PPCLK_UCLK, &now);
 		PP_ASSERT_WITH_CODE(!ret,
 				"Attempt to get current mclk freq Failed!",
 				return ret);
@@ -2755,8 +2783,8 @@ static int vega20_print_clock_levels(struct pp_hwmgr *hwmgr,
 
 		for (i = 0; i < clocks.num_levels; i++)
 			size += sprintf(buf + size, "%d: %uMhz %s\n",
-				i, clocks.data[i].clocks_in_khz / 100,
-				(clocks.data[i].clocks_in_khz == now) ? "*" : "");
+				i, clocks.data[i].clocks_in_khz / 1000,
+				(clocks.data[i].clocks_in_khz == now * 10) ? "*" : "");
 		break;
 
 	case PP_PCIE:
@@ -2820,7 +2848,7 @@ static int vega20_print_clock_levels(struct pp_hwmgr *hwmgr,
 					return ret);
 
 			size += sprintf(buf + size, "MCLK: %7uMhz %10uMhz\n",
-				clocks.data[0].clocks_in_khz / 100,
+				clocks.data[0].clocks_in_khz / 1000,
 				od8_settings[OD8_SETTING_UCLK_FMAX].max_value);
 		}
 
@@ -3438,107 +3466,64 @@ static int vega20_get_thermal_temperature_range(struct pp_hwmgr *hwmgr,
 
 static const struct pp_hwmgr_func vega20_hwmgr_funcs = {
 	/* init/fini related */
-	.backend_init =
-		vega20_hwmgr_backend_init,
-	.backend_fini =
-		vega20_hwmgr_backend_fini,
-	.asic_setup =
-		vega20_setup_asic_task,
-	.power_off_asic =
-		vega20_power_off_asic,
-	.dynamic_state_management_enable =
-		vega20_enable_dpm_tasks,
-	.dynamic_state_management_disable =
-		vega20_disable_dpm_tasks,
+	.backend_init = vega20_hwmgr_backend_init,
+	.backend_fini = vega20_hwmgr_backend_fini,
+	.asic_setup = vega20_setup_asic_task,
+	.power_off_asic = vega20_power_off_asic,
+	.dynamic_state_management_enable = vega20_enable_dpm_tasks,
+	.dynamic_state_management_disable = vega20_disable_dpm_tasks,
 	/* power state related */
-	.apply_clocks_adjust_rules =
-		vega20_apply_clocks_adjust_rules,
-	.pre_display_config_changed =
-		vega20_pre_display_configuration_changed_task,
-	.display_config_changed =
-		vega20_display_configuration_changed_task,
+	.apply_clocks_adjust_rules = vega20_apply_clocks_adjust_rules,
+	.pre_display_config_changed = vega20_pre_display_configuration_changed_task,
+	.display_config_changed = vega20_display_configuration_changed_task,
 	.check_smc_update_required_for_display_configuration =
 		vega20_check_smc_update_required_for_display_configuration,
 	.notify_smc_display_config_after_ps_adjustment =
 		vega20_notify_smc_display_config_after_ps_adjustment,
 	/* export to DAL */
-	.get_sclk =
-		vega20_dpm_get_sclk,
-	.get_mclk =
-		vega20_dpm_get_mclk,
-	.get_dal_power_level =
-		vega20_get_dal_power_level,
-	.get_clock_by_type_with_latency =
-		vega20_get_clock_by_type_with_latency,
-	.get_clock_by_type_with_voltage =
-		vega20_get_clock_by_type_with_voltage,
-	.set_watermarks_for_clocks_ranges =
-		vega20_set_watermarks_for_clocks_ranges,
-	.display_clock_voltage_request =
-		vega20_display_clock_voltage_request,
+	.get_sclk = vega20_dpm_get_sclk,
+	.get_mclk = vega20_dpm_get_mclk,
+	.get_dal_power_level = vega20_get_dal_power_level,
+	.get_clock_by_type_with_latency = vega20_get_clock_by_type_with_latency,
+	.get_clock_by_type_with_voltage = vega20_get_clock_by_type_with_voltage,
+	.set_watermarks_for_clocks_ranges = vega20_set_watermarks_for_clocks_ranges,
+	.display_clock_voltage_request = vega20_display_clock_voltage_request,
+	.get_performance_level = vega20_get_performance_level,
 	/* UMD pstate, profile related */
-	.force_dpm_level =
-		vega20_dpm_force_dpm_level,
-	.get_power_profile_mode =
-		vega20_get_power_profile_mode,
-	.set_power_profile_mode =
-		vega20_set_power_profile_mode,
+	.force_dpm_level = vega20_dpm_force_dpm_level,
+	.get_power_profile_mode = vega20_get_power_profile_mode,
+	.set_power_profile_mode = vega20_set_power_profile_mode,
 	/* od related */
-	.set_power_limit =
-		vega20_set_power_limit,
-	.get_sclk_od =
-		vega20_get_sclk_od,
-	.set_sclk_od =
-		vega20_set_sclk_od,
-	.get_mclk_od =
-		vega20_get_mclk_od,
-	.set_mclk_od =
-		vega20_set_mclk_od,
-	.odn_edit_dpm_table =
-		vega20_odn_edit_dpm_table,
+	.set_power_limit = vega20_set_power_limit,
+	.get_sclk_od = vega20_get_sclk_od,
+	.set_sclk_od = vega20_set_sclk_od,
+	.get_mclk_od = vega20_get_mclk_od,
+	.set_mclk_od = vega20_set_mclk_od,
+	.odn_edit_dpm_table = vega20_odn_edit_dpm_table,
 	/* for sysfs to retrive/set gfxclk/memclk */
-	.force_clock_level =
-		vega20_force_clock_level,
-	.print_clock_levels =
-		vega20_print_clock_levels,
-	.read_sensor =
-		vega20_read_sensor,
+	.force_clock_level = vega20_force_clock_level,
+	.print_clock_levels = vega20_print_clock_levels,
+	.read_sensor = vega20_read_sensor,
 	/* powergate related */
-	.powergate_uvd =
-		vega20_power_gate_uvd,
-	.powergate_vce =
-		vega20_power_gate_vce,
+	.powergate_uvd = vega20_power_gate_uvd,
+	.powergate_vce = vega20_power_gate_vce,
 	/* thermal related */
-	.start_thermal_controller =
-		vega20_start_thermal_controller,
-	.stop_thermal_controller =
-		vega20_thermal_stop_thermal_controller,
-	.get_thermal_temperature_range =
-		vega20_get_thermal_temperature_range,
-	.register_irq_handlers =
-		smu9_register_irq_handlers,
-	.disable_smc_firmware_ctf =
-		vega20_thermal_disable_alert,
+	.start_thermal_controller = vega20_start_thermal_controller,
+	.stop_thermal_controller = vega20_thermal_stop_thermal_controller,
+	.get_thermal_temperature_range = vega20_get_thermal_temperature_range,
+	.register_irq_handlers = smu9_register_irq_handlers,
+	.disable_smc_firmware_ctf = vega20_thermal_disable_alert,
 	/* fan control related */
-	.get_fan_speed_percent =
-		vega20_fan_ctrl_get_fan_speed_percent,
-	.set_fan_speed_percent =
-		vega20_fan_ctrl_set_fan_speed_percent,
-	.get_fan_speed_info =
-		vega20_fan_ctrl_get_fan_speed_info,
-	.get_fan_speed_rpm =
-		vega20_fan_ctrl_get_fan_speed_rpm,
-	.set_fan_speed_rpm =
-		vega20_fan_ctrl_set_fan_speed_rpm,
-	.get_fan_control_mode =
-		vega20_get_fan_control_mode,
-	.set_fan_control_mode =
-		vega20_set_fan_control_mode,
+	.get_fan_speed_percent = vega20_fan_ctrl_get_fan_speed_percent,
+	.set_fan_speed_percent = vega20_fan_ctrl_set_fan_speed_percent,
+	.get_fan_speed_info = vega20_fan_ctrl_get_fan_speed_info,
+	.get_fan_speed_rpm = vega20_fan_ctrl_get_fan_speed_rpm,
+	.set_fan_speed_rpm = vega20_fan_ctrl_set_fan_speed_rpm,
+	.get_fan_control_mode = vega20_get_fan_control_mode,
+	.set_fan_control_mode = vega20_set_fan_control_mode,
 	/* smu memory related */
-	.notify_cac_buffer_info =
-		vega20_notify_cac_buffer_info,
-	.enable_mgpu_fan_boost =
-		vega20_enable_mgpu_fan_boost,
+	.notify_cac_buffer_info = vega20_notify_cac_buffer_info,
+	.enable_mgpu_fan_boost = vega20_enable_mgpu_fan_boost,
 };
 
 int vega20_hwmgr_init(struct pp_hwmgr *hwmgr)

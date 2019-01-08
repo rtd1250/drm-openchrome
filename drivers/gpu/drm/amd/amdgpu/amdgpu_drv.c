@@ -114,8 +114,8 @@ uint amdgpu_pg_mask = 0xffffffff;
 uint amdgpu_sdma_phase_quantum = 32;
 char *amdgpu_disable_cu = NULL;
 char *amdgpu_virtual_display = NULL;
-/* OverDrive(bit 14) disabled by default*/
-uint amdgpu_pp_feature_mask = 0xffffbfff;
+/* OverDrive(bit 14),gfxoff(bit 15),stutter mode(bit 17) disabled by default*/
+uint amdgpu_pp_feature_mask = 0xfffd3fff;
 int amdgpu_ngg = 0;
 int amdgpu_prim_buf_per_se = 0;
 int amdgpu_pos_buf_per_se = 0;
@@ -127,6 +127,9 @@ int amdgpu_compute_multipipe = -1;
 int amdgpu_gpu_recovery = -1; /* auto */
 int amdgpu_emu_mode = 0;
 uint amdgpu_smu_memory_pool_size = 0;
+/* FBC (bit 0) disabled by default*/
+uint amdgpu_dc_feature_mask = 0;
+
 struct amdgpu_mgpu_info mgpu_info = {
 	.mutex = __MUTEX_INITIALIZER(mgpu_info.mutex),
 };
@@ -451,9 +454,10 @@ module_param_named(cntl_sb_buf_per_se, amdgpu_cntl_sb_buf_per_se, int, 0444);
 
 /**
  * DOC: param_buf_per_se (int)
- * Override the size of Off-Chip Pramater Cache per Shader Engine in Byte. The default is 0 (depending on gfx).
+ * Override the size of Off-Chip Parameter Cache per Shader Engine in Byte.
+ * The default is 0 (depending on gfx).
  */
-MODULE_PARM_DESC(param_buf_per_se, "the size of Off-Chip Pramater Cache per Shader Engine (default depending on gfx)");
+MODULE_PARM_DESC(param_buf_per_se, "the size of Off-Chip Parameter Cache per Shader Engine (default depending on gfx)");
 module_param_named(param_buf_per_se, amdgpu_param_buf_per_se, int, 0444);
 
 /**
@@ -630,6 +634,14 @@ int halt_if_hws_hang;
 module_param(halt_if_hws_hang, int, 0644);
 MODULE_PARM_DESC(halt_if_hws_hang, "Halt if HWS hang is detected (0 = off (default), 1 = on)");
 #endif
+
+/**
+ * DOC: dcfeaturemask (uint)
+ * Override display features enabled. See enum DC_FEATURE_MASK in drivers/gpu/drm/amd/include/amd_shared.h.
+ * The default is the current set of stable display features.
+ */
+MODULE_PARM_DESC(dcfeaturemask, "all stable DC features enabled (default))");
+module_param_named(dcfeaturemask, amdgpu_dc_feature_mask, uint, 0444);
 
 static const struct pci_device_id pciidlist[] = {
 #ifdef  CONFIG_DRM_AMDGPU_SI
@@ -1209,9 +1221,6 @@ static struct drm_driver kms_driver = {
 	.patchlevel = KMS_DRIVER_PATCHLEVEL,
 };
 
-static struct drm_driver *driver;
-static struct pci_driver *pdriver;
-
 static struct pci_driver amdgpu_kms_pci_driver = {
 	.name = DRIVER_NAME,
 	.id_table = pciidlist,
@@ -1241,16 +1250,14 @@ static int __init amdgpu_init(void)
 		goto error_fence;
 
 	DRM_INFO("amdgpu kernel modesetting enabled.\n");
-	driver = &kms_driver;
-	pdriver = &amdgpu_kms_pci_driver;
-	driver->num_ioctls = amdgpu_max_kms_ioctl;
+	kms_driver.num_ioctls = amdgpu_max_kms_ioctl;
 	amdgpu_register_atpx_handler();
 
 	/* Ignore KFD init failures. Normal when CONFIG_HSA_AMD is not set. */
 	amdgpu_amdkfd_init();
 
 	/* let modprobe override vga console setting */
-	return pci_register_driver(pdriver);
+	return pci_register_driver(&amdgpu_kms_pci_driver);
 
 error_fence:
 	amdgpu_sync_fini();
@@ -1262,7 +1269,7 @@ error_sync:
 static void __exit amdgpu_exit(void)
 {
 	amdgpu_amdkfd_fini();
-	pci_unregister_driver(pdriver);
+	pci_unregister_driver(&amdgpu_kms_pci_driver);
 	amdgpu_unregister_atpx_handler();
 	amdgpu_sync_fini();
 	amdgpu_fence_slab_fini();
