@@ -31,8 +31,8 @@
 /*
  * Enables or disables analog (VGA) output.
  */
-static void
-via_analog_power(struct via_device *dev_priv, bool outputState)
+static void via_analog_power(struct openchrome_drm_private *dev_private,
+				bool outputState)
 {
 	DRM_DEBUG_KMS("Entered via_analog_power.\n");
 
@@ -46,8 +46,9 @@ via_analog_power(struct via_device *dev_priv, bool outputState)
 /*
  * Set analog (VGA) sync polarity.
  */
-static void
-via_analog_sync_polarity(struct via_device *dev_priv, unsigned int flags)
+static void via_analog_sync_polarity(
+			struct openchrome_drm_private *dev_private,
+			unsigned int flags)
 {
 	u8 syncPolarity = 0x00;
 
@@ -73,8 +74,9 @@ via_analog_sync_polarity(struct via_device *dev_priv, unsigned int flags)
 /*
  * Sets analog (VGA) display source.
  */
-static void
-via_analog_display_source(struct via_device *dev_priv, int index)
+static void via_analog_display_source(
+			struct openchrome_drm_private *dev_private,
+			int index)
 {
 	u8 displaySource = index;
 
@@ -100,26 +102,27 @@ static const struct drm_encoder_funcs via_dac_enc_funcs = {
 static void
 via_analog_dpms(struct drm_encoder *encoder, int mode)
 {
-	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					encoder->dev->dev_private;
 
 	DRM_DEBUG_KMS("Entered via_analog_dpms.\n");
 
 	switch (mode) {
 	case DRM_MODE_DPMS_ON:
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_ON);
-		via_analog_power(dev_priv, true);
+		via_analog_power(dev_private, true);
 		break;
 	case DRM_MODE_DPMS_STANDBY:
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_STANDBY);
-		via_analog_power(dev_priv, true);
+		via_analog_power(dev_private, true);
 		break;
 	case DRM_MODE_DPMS_SUSPEND:
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_SUSPEND);
-		via_analog_power(dev_priv, true);
+		via_analog_power(dev_private, true);
 		break;
 	case DRM_MODE_DPMS_OFF:
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_OFF);
-		via_analog_power(dev_priv, false);
+		via_analog_power(dev_private, false);
 		break;
 	default:
 		DRM_ERROR("Bad DPMS mode.");
@@ -150,13 +153,14 @@ via_analog_mode_set(struct drm_encoder *encoder,
 			struct drm_display_mode *mode,
 			struct drm_display_mode *adjusted_mode)
 {
-	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					encoder->dev->dev_private;
 	struct via_crtc *iga = container_of(encoder->crtc, struct via_crtc, base);
 
 	DRM_DEBUG_KMS("Entered via_analog_mode_set.\n");
 
-	via_analog_sync_polarity(dev_priv, adjusted_mode->flags);
-	via_analog_display_source(dev_priv, iga->index);
+	via_analog_sync_polarity(dev_private, adjusted_mode->flags);
+	via_analog_display_source(dev_private, iga->index);
 
 	DRM_DEBUG_KMS("Exiting via_analog_mode_set.\n");
 }
@@ -164,13 +168,14 @@ via_analog_mode_set(struct drm_encoder *encoder,
 static void
 via_analog_prepare(struct drm_encoder *encoder)
 {
-	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					encoder->dev->dev_private;
 
 	DRM_DEBUG_KMS("Entered via_analog_prepare.\n");
 
 	if (encoder->crtc) {
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_OFF);
-		via_analog_power(dev_priv, false);
+		via_analog_power(dev_private, false);
 	}
 
 	DRM_DEBUG_KMS("Exiting via_analog_prepare.\n");
@@ -179,13 +184,14 @@ via_analog_prepare(struct drm_encoder *encoder)
 static void
 via_analog_commit(struct drm_encoder *encoder)
 {
-	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					encoder->dev->dev_private;
 
 	DRM_DEBUG_KMS("Entered via_analog_commit.\n");
 
 	if (encoder->crtc) {
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_ON);
-		via_analog_power(dev_priv, true);
+		via_analog_power(dev_private, true);
 	}
 
 	DRM_DEBUG_KMS("Exiting via_analog_commit.\n");
@@ -194,12 +200,13 @@ via_analog_commit(struct drm_encoder *encoder)
 static void
 via_analog_disable(struct drm_encoder *encoder)
 {
-	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					encoder->dev->dev_private;
 
 	DRM_DEBUG_KMS("Entered via_analog_disable.\n");
 
 	via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_OFF);
-	via_analog_power(dev_priv, false);
+	via_analog_power(dev_private, false);
 
 	DRM_DEBUG_KMS("Exiting via_analog_disable.\n");
 }
@@ -336,7 +343,8 @@ static const struct drm_connector_helper_funcs via_analog_connector_helper_funcs
 
 void via_analog_probe(struct drm_device *dev)
 {
-	struct via_device *dev_priv = dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						dev->dev_private;
 	u16 chipset = dev->pdev->device;
 	u8 sr13, sr5a;
 
@@ -360,28 +368,28 @@ void via_analog_probe(struct drm_device *dev)
 		DRM_DEBUG_KMS("SR13: 0x%02x\n", sr13);
 
 		if (!(sr13 & BIT(2))) {
-			dev_priv->analog_presence = true;
+			dev_private->analog_presence = true;
 			DRM_DEBUG_KMS("Detected the presence of VGA.\n");
 		} else {
-			dev_priv->analog_presence = false;
+			dev_private->analog_presence = false;
 		}
 
 		/* Restore SR5A. */
 		vga_wseq(VGABASE, 0x5a, sr5a);
 		break;
 	default:
-		dev_priv->analog_presence = true;
+		dev_private->analog_presence = true;
 		DRM_DEBUG_KMS("Detected the presence of VGA.\n");
 		break;
 	}
 
-	dev_priv->analog_i2c_bus = VIA_I2C_NONE;
+	dev_private->analog_i2c_bus = VIA_I2C_NONE;
 
-	if (dev_priv->analog_presence) {
-		dev_priv->analog_i2c_bus = VIA_I2C_BUS2 | VIA_I2C_BUS1;
+	if (dev_private->analog_presence) {
+		dev_private->analog_i2c_bus = VIA_I2C_BUS2 | VIA_I2C_BUS1;
 	}
 
-	dev_priv->mapped_i2c_bus |= dev_priv->analog_i2c_bus;
+	dev_private->mapped_i2c_bus |= dev_private->analog_i2c_bus;
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -390,7 +398,7 @@ void via_analog_init(struct drm_device *dev)
 {
 	struct via_connector *con;
 	struct via_encoder *enc;
-	struct via_device *dev_priv = dev->dev_private;
+	struct openchrome_drm_private *dev_private = dev->dev_private;
 
 	enc = kzalloc(sizeof(*enc) + sizeof(*con), GFP_KERNEL);
 	if (!enc) {
@@ -406,7 +414,7 @@ void via_analog_init(struct drm_device *dev)
 	drm_connector_helper_add(&con->base, &via_analog_connector_helper_funcs);
 	drm_connector_register(&con->base);
 
-	con->i2c_bus = dev_priv->analog_i2c_bus;
+	con->i2c_bus = dev_private->analog_i2c_bus;
 	con->base.doublescan_allowed = false;
 	con->base.interlace_allowed = true;
 

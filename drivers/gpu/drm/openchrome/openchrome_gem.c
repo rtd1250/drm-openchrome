@@ -65,18 +65,18 @@ ttm_gem_mapping(struct drm_gem_object *obj)
  */
 int ttm_mmap(struct file *filp, struct vm_area_struct *vma)
 {
-	struct via_device *dev_priv;
+	struct openchrome_drm_private *dev_private;
 	struct drm_file *file_priv;
 
 	if (unlikely(vma->vm_pgoff < DRM_FILE_PAGE_OFFSET))
 		return -EINVAL;
 
 	file_priv = filp->private_data;
-	dev_priv = file_priv->minor->dev->dev_private;
-	if (!dev_priv)
+	dev_private = file_priv->minor->dev->dev_private;
+	if (!dev_private)
 		return -EINVAL;
 
-	return ttm_bo_mmap(filp, vma, &dev_priv->ttm.bdev);
+	return ttm_bo_mmap(filp, vma, &dev_private->ttm.bdev);
 }
 
 struct drm_gem_object *

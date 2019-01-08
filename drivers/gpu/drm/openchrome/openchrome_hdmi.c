@@ -40,7 +40,8 @@ static const struct drm_encoder_funcs via_hdmi_enc_funcs = {
 static void
 via_hdmi_enc_dpms(struct drm_encoder *encoder, int mode)
 {
-	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+			encoder->dev->dev_private;
 
 	switch (mode) {
 	case DRM_MODE_DPMS_SUSPEND:
@@ -149,7 +150,7 @@ static void
 via_hdmi_native_mode_set(struct via_crtc *iga, struct drm_display_mode *mode,
 			bool audio_off)
 {
-	struct via_device *dev_priv = iga->base.dev->dev_private;
+	struct openchrome_drm_private *dev_private = iga->base.dev->dev_private;
 	u32 reg_c280, reg_c284;
 	int max_packet, delay;
 	u8 value = BIT(0);
@@ -236,7 +237,7 @@ via_hdmi_enc_mode_set(struct drm_encoder *encoder,
 {
 	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
 	struct via_crtc *iga = container_of(encoder->crtc, struct via_crtc, base);
-	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct openchrome_drm_private *dev_private = encoder->dev->dev_private;
 	struct drm_connector *connector = NULL, *con;
 	struct drm_device *dev = encoder->dev;
 
@@ -381,9 +382,10 @@ static const struct drm_encoder_helper_funcs via_hdmi_enc_helper_funcs = {
 	.disable = via_encoder_disable,
 };
 
-static unsigned int
-via_check_hdmi_i2c_status(struct via_device *dev_priv,
-			unsigned int check_bits, unsigned int condition)
+static unsigned int via_check_hdmi_i2c_status(
+			struct openchrome_drm_private *dev_private,
+			unsigned int check_bits,
+			unsigned int condition)
 {
 	unsigned int status = true, max = 50, loop = 0;
 
@@ -407,9 +409,10 @@ via_check_hdmi_i2c_status(struct via_device *dev_priv,
 	return status;
 }
 
-unsigned int
-via_ddc_read_bytes_by_hdmi(struct via_device *dev_priv, unsigned int offset,
-			   unsigned char *block)
+unsigned int via_ddc_read_bytes_by_hdmi(
+			struct openchrome_drm_private *dev_private,
+			unsigned int offset,
+			unsigned char *block)
 {
 	unsigned int status = true, temp = 0, i;
 
@@ -422,7 +425,8 @@ via_ddc_read_bytes_by_hdmi(struct via_device *dev_priv, unsigned int offset,
 	VIA_WRITE(0xC0B8, 0x0011);
 	VIA_WRITE(0xC0B8, 0x0019);
 	if (status)
-		status = via_check_hdmi_i2c_status(dev_priv, 0x0018, true);
+		status = via_check_hdmi_i2c_status(dev_private,
+							0x0018, true);
 
 	/* Slave Address */
 	temp = 0xA0;
@@ -431,7 +435,8 @@ via_ddc_read_bytes_by_hdmi(struct via_device *dev_priv, unsigned int offset,
 	VIA_WRITE(0xC0B4, temp);
 	VIA_WRITE(0xC0B8, 0x0009);
 	if (status)
-		status = via_check_hdmi_i2c_status(dev_priv, 0x0008, true);
+		status = via_check_hdmi_i2c_status(dev_private,
+							0x0008, true);
 
 	/* Offset */
 	temp = offset;
@@ -440,13 +445,15 @@ via_ddc_read_bytes_by_hdmi(struct via_device *dev_priv, unsigned int offset,
 	VIA_WRITE(0xC0B4, temp);
 	VIA_WRITE(0xC0B8, 0x0009);
 	if (status)
-		status = via_check_hdmi_i2c_status(dev_priv, 0x0008, true);
+		status = via_check_hdmi_i2c_status(dev_private,
+							0x0008, true);
 
 	/* START */
 	VIA_WRITE(0xC0B8, 0x0011);
 	VIA_WRITE(0xC0B8, 0x0019);
 	if (status)
-		status = via_check_hdmi_i2c_status(dev_priv, 0x0018, true);
+		status = via_check_hdmi_i2c_status(dev_private,
+							0x0018, true);
 
 	/* Slave Address + 1 */
 	temp = 0xA1;
@@ -455,13 +462,14 @@ via_ddc_read_bytes_by_hdmi(struct via_device *dev_priv, unsigned int offset,
 	VIA_WRITE(0xC0B4, temp);
 	VIA_WRITE(0xC0B8, 0x0009);
 	if (status)
-		status = via_check_hdmi_i2c_status(dev_priv, 0x0008, true);
+		status = via_check_hdmi_i2c_status(dev_private,
+							0x0008, true);
 
 	for (i = 0; i < EDID_LENGTH; i++) {
 		/* Read Data */
 		VIA_WRITE(0xC0B8, 0x0009);
-		via_check_hdmi_i2c_status(dev_priv, 0x0008, true);
-		via_check_hdmi_i2c_status(dev_priv, 0x0080, false);
+		via_check_hdmi_i2c_status(dev_private, 0x0008, true);
+		via_check_hdmi_i2c_status(dev_private, 0x0080, false);
 		*block++ = (unsigned char) ((VIA_READ(0xC0B4) & 0x0000FF00) >> 8);
 		VIA_WRITE(0xC0B8, (VIA_READ(0xC0B8) & ~0x80));
 	}
@@ -470,7 +478,8 @@ via_ddc_read_bytes_by_hdmi(struct via_device *dev_priv, unsigned int offset,
 	VIA_WRITE(0xC0B8, 0x0021);
 	VIA_WRITE(0xC0B8, 0x0029);
 
-	status = via_check_hdmi_i2c_status(dev_priv, 0x0828, true);
+	status = via_check_hdmi_i2c_status(dev_private,
+							0x0828, true);
 	if (!status) {
 		/* Reset */
 		VIA_WRITE_MASK(0xC0C4, 0x00000080, 0x00000080);
@@ -483,7 +492,8 @@ struct edid *
 via_hdmi_get_edid(struct drm_connector *connector)
 {
 	bool print_bad_edid = !connector->bad_edid_counter || (drm_debug & DRM_UT_KMS);
-	struct via_device *dev_priv = connector->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					connector->dev->dev_private;
 	struct edid *edid = NULL;
 	int i, j = 0;
 	u8 *block;
@@ -497,7 +507,8 @@ via_hdmi_get_edid(struct drm_connector *connector)
 
 	/* base block fetch */
 	for (i = 0; i < 4; i++) {
-		if (!via_ddc_read_bytes_by_hdmi(dev_priv, 0, block))
+		if (!via_ddc_read_bytes_by_hdmi(dev_private,
+						0, block))
 			goto out;
 
 		if (drm_edid_block_valid(block, 0, print_bad_edid, NULL))
@@ -525,7 +536,9 @@ via_hdmi_get_edid(struct drm_connector *connector)
 				offset = (valid_extensions + 1) * EDID_LENGTH;
 				new = block + offset;
 
-				if (!via_ddc_read_bytes_by_hdmi(dev_priv, offset, new))
+				if (!via_ddc_read_bytes_by_hdmi(
+							dev_private,
+							offset, new))
 					goto out;
 
 				if (drm_edid_block_valid(new, j, print_bad_edid, NULL)) {
@@ -571,7 +584,8 @@ out:
 static enum drm_connector_status
 via_hdmi_detect(struct drm_connector *connector, bool force)
 {
-	struct via_device *dev_priv = connector->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					connector->dev->dev_private;
 	enum drm_connector_status ret = connector_status_disconnected;
 	u32 mm_c730 = VIA_READ(0xc730) & 0xC0000000;
 	struct edid *edid = NULL;

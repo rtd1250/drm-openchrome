@@ -33,7 +33,7 @@ static int
 via_getparam(struct drm_device *dev, void *data,
 		struct drm_file *filp)
 {
-	struct via_device *dev_priv = dev->dev_private;
+	struct openchrome_drm_private *dev_private = dev->dev_private;
 	struct drm_via_param *args = data;
 	int ret = 0;
 
@@ -42,7 +42,7 @@ via_getparam(struct drm_device *dev, void *data,
 		args->value = dev->pdev->device;
 		break;
 	case VIA_PARAM_REVISION_ID:
-		args->value = dev_priv->revision;
+		args->value = dev_private->revision;
 		break;
 	default:
 		ret = -EINVAL;
@@ -63,12 +63,12 @@ static int
 via_gem_alloc(struct drm_device *dev, void *data,
 		struct drm_file *filp)
 {
-	struct via_device *dev_priv = dev->dev_private;
+	struct openchrome_drm_private *dev_private = dev->dev_private;
 	struct drm_via_gem_object *args = data;
 	struct drm_gem_object *obj;
 	int ret = -ENOMEM;
 
-	obj = ttm_gem_create(dev, &dev_priv->ttm.bdev, args->size,
+	obj = ttm_gem_create(dev, &dev_private->ttm.bdev, args->size,
 				ttm_bo_type_device, args->domains,
 				args->alignment, PAGE_SIZE, false);
 	if (obj != NULL) {

@@ -35,7 +35,8 @@ void
 via_encoder_commit(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
-	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					encoder->dev->dev_private;
 	struct drm_device *dev = encoder->dev;
 	struct via_crtc *iga = NULL;
 	u8 value = 0;
@@ -151,7 +152,8 @@ void
 via_encoder_disable(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
-	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					encoder->dev->dev_private;
 
 	/* First turn off the display */
 	encoder->helper_private->dpms(encoder, DRM_MODE_DPMS_OFF);
@@ -202,7 +204,8 @@ via_set_sync_polarity(struct drm_encoder *encoder, struct drm_display_mode *mode
 			struct drm_display_mode *adjusted_mode)
 {
 	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
-	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					encoder->dev->dev_private;
 	u8 syncreg = 0;
 
 	if (adjusted_mode->flags & DRM_MODE_FLAG_NVSYNC)
@@ -339,7 +342,7 @@ static struct td_timer td_timer_regs[] = {
 static void
 via_init_td_timing_regs(struct drm_device *dev)
 {
-	struct via_device *dev_priv = dev->dev_private;
+	struct openchrome_drm_private *dev_private = dev->dev_private;
 	unsigned int td_timer[4] = { 500, 50, 0, 510 }, i;
 	struct vga_registers timings;
 	u32 reg_value;
@@ -371,8 +374,7 @@ via_init_td_timing_regs(struct drm_device *dev)
 	}
 }
 
-static void
-via_i2c_reg_init(struct via_device *dev_priv)
+static void via_i2c_reg_init(struct openchrome_drm_private *dev_private)
 {
 	svga_wseq_mask(VGABASE, 0x31, 0x30, 0x30);
 	svga_wseq_mask(VGABASE, 0x26, 0x30, 0x30);
@@ -383,7 +385,7 @@ via_i2c_reg_init(struct via_device *dev_priv)
 }
 
 static void
-via_hwcursor_init(struct via_device *dev_priv)
+via_hwcursor_init(struct openchrome_drm_private *dev_private)
 {
 	/* set 0 as transparent color key */
 	VIA_WRITE(PRIM_HI_TRANSCOLOR, 0);
@@ -405,7 +407,7 @@ via_hwcursor_init(struct via_device *dev_priv)
 static void
 via_init_crtc_regs(struct drm_device *dev)
 {
-	struct via_device *dev_priv = dev->dev_private;
+	struct openchrome_drm_private *dev_private = dev->dev_private;
 
 	via_unlock_crtc(VGABASE, dev->pdev->device);
 
@@ -434,7 +436,7 @@ via_init_crtc_regs(struct drm_device *dev)
 		svga_wcrt_mask(VGABASE, 0x33, 0x00, BIT(3));
 
 	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) &&
-	    (dev_priv->revision == CLE266_REVISION_AX))
+	    (dev_private->revision == CLE266_REVISION_AX))
 		svga_wseq_mask(VGABASE, 0x1A, BIT(1), BIT(1));
 
 	via_lock_crtc(VGABASE);
@@ -443,7 +445,7 @@ via_init_crtc_regs(struct drm_device *dev)
 static void
 via_display_init(struct drm_device *dev)
 {
-	struct via_device *dev_priv = dev->dev_private;
+	struct openchrome_drm_private *dev_private = dev->dev_private;
 	u8 index = 0x3D, value;
 
 	/* Check if spread spectrum is enabled */
@@ -458,9 +460,9 @@ via_display_init(struct drm_device *dev)
 		value = vga_rseq(VGABASE, 0x1E);
 		vga_wseq(VGABASE, 0x1E, value & 0xF7);
 
-		dev_priv->spread_spectrum = true;
+		dev_private->spread_spectrum = true;
 	} else
-		dev_priv->spread_spectrum = false;
+		dev_private->spread_spectrum = false;
 
 	/* Load fixed CRTC timing registers */
 	via_init_crtc_regs(dev);
@@ -476,7 +478,7 @@ via_display_init(struct drm_device *dev)
 int
 via_modeset_init(struct drm_device *dev)
 {
-	struct via_device *dev_priv = dev->dev_private;
+	struct openchrome_drm_private *dev_private = dev->dev_private;
 	int ret = 0;
 	int i;
 
@@ -488,13 +490,13 @@ via_modeset_init(struct drm_device *dev)
 	dev->mode_config.max_height = 4096;
 
 	/* Initialize the number of display connectors. */
-	dev_priv->number_fp = 0;
-	dev_priv->number_dvi = 0;
+	dev_private->number_fp = 0;
+	dev_private->number_dvi = 0;
 
 	via_display_init(dev);
-	via_i2c_reg_init(dev_priv);
+	via_i2c_reg_init(dev_private);
 	via_i2c_init(dev);
-	via_hwcursor_init(dev_priv);
+	via_hwcursor_init(dev_private);
 
 	for (i = 0; i < 2; i++)
 		via_crtc_init(dev, i);

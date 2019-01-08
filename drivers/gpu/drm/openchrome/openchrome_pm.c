@@ -26,8 +26,9 @@
 #include "openchrome_drv.h"
 
 
-static void
-via_init_2d(struct via_device *dev_priv, int pci_device)
+static void via_init_2d(
+			struct openchrome_drm_private *dev_private,
+			int pci_device)
 {
 	int i;
 
@@ -39,8 +40,8 @@ via_init_2d(struct via_device *dev_priv, int pci_device)
 		VIA_WRITE(0x60, 0x0);
 }
 
-static void
-via_init_3d(struct via_device *dev_priv)
+static void via_init_3d(
+		struct openchrome_drm_private *dev_private)
 {
 	unsigned long texture_stage;
 	int i;
@@ -171,12 +172,11 @@ via_init_3d(struct via_device *dev_priv)
 	VIA_WRITE(VIA_REG_TRANSPACE, 0x130002db);
 }
 
-static void
-via_init_vq(struct via_device *dev_priv)
+static void via_init_vq(struct openchrome_drm_private *dev_private)
 {
 	unsigned long vq_start_addr, vq_end_addr, vqlen;
 	unsigned long vqstartl, vqendl, vqstart_endh;
-	struct ttm_buffer_object *bo = dev_priv->vq.bo;
+	struct ttm_buffer_object *bo = dev_private->vq.bo;
 
 	if (!bo)
 		return;
@@ -198,11 +198,11 @@ via_init_vq(struct via_device *dev_priv)
 	VIA_WRITE(0x420, 0x00000000);
 }
 
-static void
-via_init_pcie_gart_table(struct via_device *dev_priv,
-				struct pci_dev *pdev)
+static void via_init_pcie_gart_table(
+			struct openchrome_drm_private *dev_private,
+			struct pci_dev *pdev)
 {
-	struct ttm_buffer_object *bo = dev_priv->gart.bo;
+	struct ttm_buffer_object *bo = dev_private->gart.bo;
 	u8 value;
 
 	if (!pci_is_pcie(pdev) || !bo)
@@ -234,16 +234,15 @@ via_init_pcie_gart_table(struct via_device *dev_priv,
  * 2. hw engine intialization:2D;3D;VQ
  * 3. Ring Buffer mechanism setup
  */
-void
-via_engine_init(struct drm_device *dev)
+void via_engine_init(struct drm_device *dev)
 {
-	struct via_device *dev_priv = dev->dev_private;
+	struct openchrome_drm_private *dev_private = dev->dev_private;
 
 	/* initial engines */
-	via_init_2d(dev_priv, dev->pdev->device);
-	via_init_3d(dev_priv);
-	via_init_vq(dev_priv);
+	via_init_2d(dev_private, dev->pdev->device);
+	via_init_3d(dev_private);
+	via_init_vq(dev_private);
 
 	/* pcie gart table setup */
-	via_init_pcie_gart_table(dev_priv, dev->pdev);
+	via_init_pcie_gart_table(dev_private, dev->pdev);
 }

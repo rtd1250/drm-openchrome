@@ -66,7 +66,7 @@ MODULE_DEVICE_TABLE(pci, via_pci_table);
 
 static int via_detect_agp(struct drm_device *dev)
 {
-	struct via_device *dev_priv = dev->dev_private;
+	struct openchrome_drm_private *dev_private = dev->dev_private;
 	struct drm_agp_info agp_info;
 	struct drm_agp_mode mode;
 	int ret = 0;
@@ -98,7 +98,7 @@ static int via_detect_agp(struct drm_device *dev)
 		goto out_err0;
 	}
 
-	ret = ttm_bo_init_mm(&dev_priv->ttm.bdev, TTM_PL_TT,
+	ret = ttm_bo_init_mm(&dev_private->ttm.bdev, TTM_PL_TT,
 				agp_info.aperture_size >> PAGE_SHIFT);
 	if (!ret) {
 		DRM_INFO("Detected %lu MB of AGP Aperture at "
@@ -114,7 +114,8 @@ out_err0:
 	return ret;
 }
 
-static void via_agp_engine_init(struct via_device *dev_priv)
+static void via_agp_engine_init(
+			struct openchrome_drm_private *dev_private)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -135,9 +136,10 @@ static void via_agp_engine_init(struct via_device *dev_priv)
 }
 #endif
 
-static int openchrome_mmio_init(struct via_device *dev_priv)
+static int openchrome_mmio_init(
+			struct openchrome_drm_private *dev_private)
 {
-	struct drm_device *dev = dev_priv->dev;
+	struct drm_device *dev = dev_private->dev;
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -148,36 +150,38 @@ static int openchrome_mmio_init(struct via_device *dev_priv)
 	 * Obtain the starting base address and size, and
 	 * map it to the OS for use.
 	 */
-	dev_priv->mmio_base = pci_resource_start(dev->pdev, 1);
-	dev_priv->mmio_size = pci_resource_len(dev->pdev, 1);
-	dev_priv->mmio = ioremap(dev_priv->mmio_base,
-					dev_priv->mmio_size);
-	if (!dev_priv->mmio) {
+	dev_private->mmio_base = pci_resource_start(dev->pdev, 1);
+	dev_private->mmio_size = pci_resource_len(dev->pdev, 1);
+	dev_private->mmio = ioremap(dev_private->mmio_base,
+					dev_private->mmio_size);
+	if (!dev_private->mmio) {
 		ret = -ENOMEM;
 		goto exit;
 	}
 
 	DRM_INFO("VIA Technologies Chrome IGP MMIO Physical Address: "
 			"0x%08llx\n",
-			dev_priv->mmio_base);
+			dev_private->mmio_base);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
 
-static void openchrome_mmio_fini(struct via_device *dev_priv)
+static void openchrome_mmio_fini(
+			struct openchrome_drm_private *dev_private)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if (dev_priv->mmio) {
-		iounmap(dev_priv->mmio);
-		dev_priv->mmio = NULL;
+	if (dev_private->mmio) {
+		iounmap(dev_private->mmio);
+		dev_private->mmio = NULL;
 	}
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void openchrome_graphics_unlock(struct via_device *dev_priv)
+static void openchrome_graphics_unlock(
+			struct openchrome_drm_private *dev_private)
 {
 	uint8_t temp;
 
@@ -205,9 +209,10 @@ static void openchrome_graphics_unlock(struct via_device *dev_priv)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void chip_revision_info(struct via_device *dev_priv)
+static void chip_revision_info(
+			struct openchrome_drm_private *dev_private)
 {
-	struct drm_device *dev = dev_priv->dev;
+	struct drm_device *dev = dev_private->dev;
 	struct pci_bus *bus = NULL;
 	u16 device_id, subsystem_vendor_id, subsystem_device_id;
 	u8 tmp;
@@ -284,9 +289,9 @@ static void chip_revision_info(struct via_device *dev_priv)
 		tmp = vga_rcrt(VGABASE, 0x4F);
 		vga_wcrt(VGABASE, 0x4F, 0x55);
 		if (vga_rcrt(VGABASE, 0x4F) != 0x55) {
-			dev_priv->revision = CLE266_REVISION_AX;
+			dev_private->revision = CLE266_REVISION_AX;
 		} else {
-			dev_priv->revision = CLE266_REVISION_CX;
+			dev_private->revision = CLE266_REVISION_CX;
 		}
 
 		/* Restore original CR4F value. */
@@ -296,11 +301,11 @@ static void chip_revision_info(struct via_device *dev_priv)
 	case PCI_DEVICE_ID_VIA_VT3157:
 		tmp = vga_rseq(VGABASE, 0x43);
 		if (tmp & 0x02) {
-			dev_priv->revision = CX700_REVISION_700M2;
+			dev_private->revision = CX700_REVISION_700M2;
 		} else if (tmp & 0x40) {
-			dev_priv->revision = CX700_REVISION_700M;
+			dev_private->revision = CX700_REVISION_700M;
 		} else {
-			dev_priv->revision = CX700_REVISION_700;
+			dev_private->revision = CX700_REVISION_700;
 		}
 
 		/* Check for VIA Technologies NanoBook reference
@@ -309,9 +314,9 @@ static void chip_revision_info(struct via_device *dev_priv)
 		 * availability of DVI. */
 		if ((subsystem_vendor_id == 0x1509) &&
 			(subsystem_device_id == 0x2d30)) {
-			dev_priv->is_via_nanobook = true;
+			dev_private->is_via_nanobook = true;
 		} else {
-			dev_priv->is_via_nanobook = false;
+			dev_private->is_via_nanobook = false;
 		}
 
 		break;
@@ -323,9 +328,9 @@ static void chip_revision_info(struct via_device *dev_priv)
 		 * Video Port 1) rather than its LVDS channel. */
 		if ((subsystem_vendor_id == 0x152d) &&
 			(subsystem_device_id == 0x0771)) {
-			dev_priv->is_quanta_il1 = true;
+			dev_private->is_quanta_il1 = true;
 		} else {
-			dev_priv->is_quanta_il1 = false;
+			dev_private->is_quanta_il1 = false;
 		}
 
 		/* Samsung NC20 netbook has its FP connected to LVDS2
@@ -334,9 +339,9 @@ static void chip_revision_info(struct via_device *dev_priv)
 		 * FP. */
 		if ((subsystem_vendor_id == 0x144d) &&
 			(subsystem_device_id == 0xc04e)) {
-			dev_priv->is_samsung_nc20 = true;
+			dev_private->is_samsung_nc20 = true;
 		} else {
-			dev_priv->is_samsung_nc20 = false;
+			dev_private->is_samsung_nc20 = false;
 		}
 
 		break;
@@ -344,7 +349,7 @@ static void chip_revision_info(struct via_device *dev_priv)
 	case PCI_DEVICE_ID_VIA_VX875:
 	/* VX900 Chipset */
 	case PCI_DEVICE_ID_VIA_VX900_VGA:
-		dev_priv->revision = vga_rseq(VGABASE, 0x3B);
+		dev_private->revision = vga_rseq(VGABASE, 0x3B);
 		break;
 	default:
 		break;
@@ -361,7 +366,7 @@ static int via_dumb_create(struct drm_file *filp,
 				struct drm_device *dev,
 				struct drm_mode_create_dumb *args)
 {
-	struct via_device *dev_priv = dev->dev_private;
+	struct openchrome_drm_private *dev_private = dev->dev_private;
 	struct drm_gem_object *obj;
 	int ret;
 
@@ -369,7 +374,7 @@ static int via_dumb_create(struct drm_file *filp,
 
 	args->pitch = round_up(args->width * (args->bpp >> 3), 16);
 	args->size = args->pitch * args->height;
-	obj = ttm_gem_create(dev, &dev_priv->ttm.bdev, args->size,
+	obj = ttm_gem_create(dev, &dev_private->ttm.bdev, args->size,
 				ttm_bo_type_device, TTM_PL_FLAG_VRAM,
 				16, PAGE_SIZE, false);
 	if (IS_ERR(obj))
@@ -420,28 +425,29 @@ static int gem_dumb_destroy(struct drm_file *filp,
 	return ret;
 }
 
-static void openchrome_flag_init(struct via_device *dev_priv)
+static void openchrome_flag_init(
+			struct openchrome_drm_private *dev_private)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	/*
 	 * Special handling flags for a few special models.
 	 */
-	dev_priv->is_via_nanobook = false;
-	dev_priv->is_quanta_il1 = false;
+	dev_private->is_via_nanobook = false;
+	dev_private->is_quanta_il1 = false;
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static int via_device_init(struct via_device *dev_priv)
+static int via_device_init(struct openchrome_drm_private *dev_private)
 {
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	openchrome_flag_init(dev_priv);
+	openchrome_flag_init(dev_private);
 
-	ret = via_vram_detect(dev_priv);
+	ret = via_vram_detect(dev_private);
 	if (ret) {
 		DRM_ERROR("Failed to detect video RAM.\n");
 		goto exit;
@@ -450,19 +456,19 @@ static int via_device_init(struct via_device *dev_priv)
 	/*
 	 * Map VRAM.
 	 */
-	ret = openchrome_vram_init(dev_priv);
+	ret = openchrome_vram_init(dev_private);
 	if (ret) {
 		DRM_ERROR("Failed to initialize video RAM.\n");
 		goto exit;
 	}
 
-	ret = openchrome_mmio_init(dev_priv);
+	ret = openchrome_mmio_init(dev_private);
 	if (ret) {
 		DRM_ERROR("Failed to initialize MMIO.\n");
 		goto exit;
 	}
 
-	openchrome_graphics_unlock(dev_priv);
+	openchrome_graphics_unlock(dev_private);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
@@ -470,7 +476,7 @@ exit:
 
 static void via_driver_unload(struct drm_device *dev)
 {
-	struct via_device *dev_priv = dev->dev_private;
+	struct openchrome_drm_private *dev_private = dev->dev_private;
 	struct ttm_buffer_object *bo;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -478,18 +484,18 @@ static void via_driver_unload(struct drm_device *dev)
 	if (drm_core_check_feature(dev, DRIVER_MODESET))
 		via_modeset_fini(dev);
 
-	bo = dev_priv->vq.bo;
+	bo = dev_private->vq.bo;
 	if (bo) {
-		via_bo_unpin(bo, &dev_priv->vq);
+		via_bo_unpin(bo, &dev_private->vq);
 		ttm_bo_unref(&bo);
 	}
 
-	bo = dev_priv->gart.bo;
+	bo = dev_private->gart.bo;
 	if (bo) {
 		/* enable gtt write */
 		if (pci_is_pcie(dev->pdev))
 			svga_wseq_mask(VGABASE, 0x6C, 0, BIT(7));
-		via_bo_unpin(bo, &dev_priv->gart);
+		via_bo_unpin(bo, &dev_private->gart);
 		ttm_bo_unref(&bo);
 	}
 
@@ -498,15 +504,15 @@ static void via_driver_unload(struct drm_device *dev)
 	/*
 	 * Unmap VRAM.
 	 */
-	openchrome_vram_fini(dev_priv);
+	openchrome_vram_fini(dev_private);
 
-	openchrome_mmio_fini(dev_priv);
+	openchrome_mmio_fini(dev_private);
 
 #if IS_ENABLED(CONFIG_AGP)
 	if (dev->agp && dev->agp->acquired)
 		drm_agp_release(dev);
 #endif
-	kfree(dev_priv);
+	kfree(dev_private);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return;
@@ -515,55 +521,57 @@ static void via_driver_unload(struct drm_device *dev)
 static int via_driver_load(struct drm_device *dev,
 				unsigned long chipset)
 {
-	struct via_device *dev_priv;
+	struct openchrome_drm_private *dev_private;
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	dev_priv = kzalloc(sizeof(struct via_device), GFP_KERNEL);
-	if (!dev_priv) {
+	dev_private = kzalloc(sizeof(struct openchrome_drm_private),
+				GFP_KERNEL);
+	if (!dev_private) {
 		ret = -ENOMEM;
 		DRM_ERROR("Failed to allocate private "
 				"storage memory.\n");
 		goto exit;
 	}
 
-	dev->dev_private = (void *)dev_priv;
-	dev_priv->engine_type = chipset;
-	dev_priv->vram_mtrr = -ENXIO;
-	dev_priv->dev = dev;
+	dev->dev_private = (void *) dev_private;
+	dev_private->engine_type = chipset;
+	dev_private->vram_mtrr = -ENXIO;
+	dev_private->dev = dev;
 
-	ret = via_device_init(dev_priv);
+	ret = via_device_init(dev_private);
 	if (ret) {
 		DRM_ERROR("Failed to initialize Chrome IGP.\n");
 		goto init_error;
 	}
 
-	ret = via_mm_init(dev_priv);
+	ret = via_mm_init(dev_private);
 	if (ret) {
 		DRM_ERROR("Failed to initialize TTM.\n");
 		goto init_error;
 	}
 
-	chip_revision_info(dev_priv);
+	chip_revision_info(dev_private);
 
 #if IS_ENABLED(CONFIG_AGP)
-	if ((dev_priv->engine_type <= VIA_ENG_H2) ||
+	if ((dev_private->engine_type <= VIA_ENG_H2) ||
 		(dev->agp &&
 		pci_find_capability(dev->pdev, PCI_CAP_ID_AGP))) {
 		ret = via_detect_agp(dev);
 		if (!ret)
-			via_agp_engine_init(dev_priv);
+			via_agp_engine_init(dev_private);
 		else
 			DRM_ERROR("Failed to allocate AGP.\n");
 	}
 #endif
 	if (pci_is_pcie(dev->pdev)) {
 		/* Allocate GART. */
-		ret = via_ttm_allocate_kernel_buffer(&dev_priv->ttm.bdev,
+		ret = via_ttm_allocate_kernel_buffer(
+						&dev_private->ttm.bdev,
 						SGDMA_MEMORY, 16,
 						TTM_PL_FLAG_VRAM,
-						&dev_priv->gart);
+						&dev_private->gart);
 		if (likely(!ret)) {
 			DRM_INFO("Allocated %u KB of DMA memory.\n",
 					SGDMA_MEMORY >> 10);
@@ -574,10 +582,10 @@ static int via_driver_load(struct drm_device *dev,
 	}
 
 	/* Allocate VQ. (Virtual Queue) */
-	ret = via_ttm_allocate_kernel_buffer(&dev_priv->ttm.bdev,
+	ret = via_ttm_allocate_kernel_buffer(&dev_private->ttm.bdev,
 					VQ_MEMORY, 16,
 					TTM_PL_FLAG_VRAM,
-					&dev_priv->vq);
+					&dev_private->vq);
 	if (likely(!ret)) {
 		DRM_INFO("Allocated %u KB of VQ (Virtual Queue) "
 				"memory.\n", VQ_MEMORY >> 10);
@@ -621,12 +629,13 @@ static int via_pm_ops_suspend(struct device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev);
 	struct drm_device *drm_dev = pci_get_drvdata(pdev);
-	struct via_device *dev_priv = drm_dev->dev_private;
+	struct openchrome_drm_private *dev_private = drm_dev->dev_private;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	console_lock();
-	drm_fb_helper_set_suspend(&dev_priv->via_fbdev->helper, true);
+	drm_fb_helper_set_suspend(&dev_private->via_fbdev->helper,
+					true);
 
 	/*
 	 * Frame Buffer Size Control register (SR14) and GTI registers
@@ -638,29 +647,29 @@ static int via_pm_ops_suspend(struct device *dev)
 	if ((drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
 		(drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
 		(drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA)) {
-		dev_priv->saved_sr14 = vga_rseq(VGABASE, 0x14);
+		dev_private->saved_sr14 = vga_rseq(VGABASE, 0x14);
 
-		dev_priv->saved_sr66 = vga_rseq(VGABASE, 0x66);
-		dev_priv->saved_sr67 = vga_rseq(VGABASE, 0x67);
-		dev_priv->saved_sr68 = vga_rseq(VGABASE, 0x68);
-		dev_priv->saved_sr69 = vga_rseq(VGABASE, 0x69);
-		dev_priv->saved_sr6a = vga_rseq(VGABASE, 0x6a);
-		dev_priv->saved_sr6b = vga_rseq(VGABASE, 0x6b);
-		dev_priv->saved_sr6c = vga_rseq(VGABASE, 0x6c);
-		dev_priv->saved_sr6d = vga_rseq(VGABASE, 0x6d);
-		dev_priv->saved_sr6e = vga_rseq(VGABASE, 0x6e);
-		dev_priv->saved_sr6f = vga_rseq(VGABASE, 0x6f);
+		dev_private->saved_sr66 = vga_rseq(VGABASE, 0x66);
+		dev_private->saved_sr67 = vga_rseq(VGABASE, 0x67);
+		dev_private->saved_sr68 = vga_rseq(VGABASE, 0x68);
+		dev_private->saved_sr69 = vga_rseq(VGABASE, 0x69);
+		dev_private->saved_sr6a = vga_rseq(VGABASE, 0x6a);
+		dev_private->saved_sr6b = vga_rseq(VGABASE, 0x6b);
+		dev_private->saved_sr6c = vga_rseq(VGABASE, 0x6c);
+		dev_private->saved_sr6d = vga_rseq(VGABASE, 0x6d);
+		dev_private->saved_sr6e = vga_rseq(VGABASE, 0x6e);
+		dev_private->saved_sr6f = vga_rseq(VGABASE, 0x6f);
 	}
 
 	/* 3X5.3B through 3X5.3F are scratch pad registers.
 	 * They are important for FP detection.
 	 * Their values need to be saved because they get lost
 	 * when resuming from standby. */
-	dev_priv->saved_cr3b = vga_rcrt(VGABASE, 0x3b);
-	dev_priv->saved_cr3c = vga_rcrt(VGABASE, 0x3c);
-	dev_priv->saved_cr3d = vga_rcrt(VGABASE, 0x3d);
-	dev_priv->saved_cr3e = vga_rcrt(VGABASE, 0x3e);
-	dev_priv->saved_cr3f = vga_rcrt(VGABASE, 0x3f);
+	dev_private->saved_cr3b = vga_rcrt(VGABASE, 0x3b);
+	dev_private->saved_cr3c = vga_rcrt(VGABASE, 0x3c);
+	dev_private->saved_cr3d = vga_rcrt(VGABASE, 0x3d);
+	dev_private->saved_cr3e = vga_rcrt(VGABASE, 0x3e);
+	dev_private->saved_cr3f = vga_rcrt(VGABASE, 0x3f);
 
 	console_unlock();
 
@@ -672,7 +681,8 @@ static int via_pm_ops_resume(struct device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev);
 	struct drm_device *drm_dev = pci_get_drvdata(pdev);
-	struct via_device *dev_priv = drm_dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						drm_dev->dev_private;
 	void __iomem *regs = ioport_map(0x3c0, 100);
 	u8 val;
 
@@ -706,32 +716,32 @@ static int via_pm_ops_resume(struct device *dev)
 	if ((drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
 		(drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
 		(drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA)) {
-		vga_wseq(VGABASE, 0x14, dev_priv->saved_sr14);
+		vga_wseq(VGABASE, 0x14, dev_private->saved_sr14);
 
-		vga_wseq(VGABASE, 0x66, dev_priv->saved_sr66);
-		vga_wseq(VGABASE, 0x67, dev_priv->saved_sr67);
-		vga_wseq(VGABASE, 0x68, dev_priv->saved_sr68);
-		vga_wseq(VGABASE, 0x69, dev_priv->saved_sr69);
-		vga_wseq(VGABASE, 0x6a, dev_priv->saved_sr6a);
-		vga_wseq(VGABASE, 0x6b, dev_priv->saved_sr6b);
-		vga_wseq(VGABASE, 0x6c, dev_priv->saved_sr6c);
-		vga_wseq(VGABASE, 0x6d, dev_priv->saved_sr6d);
-		vga_wseq(VGABASE, 0x6e, dev_priv->saved_sr6e);
-		vga_wseq(VGABASE, 0x6f, dev_priv->saved_sr6f);
+		vga_wseq(VGABASE, 0x66, dev_private->saved_sr66);
+		vga_wseq(VGABASE, 0x67, dev_private->saved_sr67);
+		vga_wseq(VGABASE, 0x68, dev_private->saved_sr68);
+		vga_wseq(VGABASE, 0x69, dev_private->saved_sr69);
+		vga_wseq(VGABASE, 0x6a, dev_private->saved_sr6a);
+		vga_wseq(VGABASE, 0x6b, dev_private->saved_sr6b);
+		vga_wseq(VGABASE, 0x6c, dev_private->saved_sr6c);
+		vga_wseq(VGABASE, 0x6d, dev_private->saved_sr6d);
+		vga_wseq(VGABASE, 0x6e, dev_private->saved_sr6e);
+		vga_wseq(VGABASE, 0x6f, dev_private->saved_sr6f);
 	}
 
 	/* 3X5.3B through 3X5.3F are scratch pad registers.
 	 * They are important for FP detection.
 	 * Their values need to be restored because they are undefined
 	 * after resuming from standby. */
-	vga_wcrt(VGABASE, 0x3b, dev_priv->saved_cr3b);
-	vga_wcrt(VGABASE, 0x3c, dev_priv->saved_cr3c);
-	vga_wcrt(VGABASE, 0x3d, dev_priv->saved_cr3d);
-	vga_wcrt(VGABASE, 0x3e, dev_priv->saved_cr3e);
-	vga_wcrt(VGABASE, 0x3f, dev_priv->saved_cr3f);
+	vga_wcrt(VGABASE, 0x3b, dev_private->saved_cr3b);
+	vga_wcrt(VGABASE, 0x3c, dev_private->saved_cr3c);
+	vga_wcrt(VGABASE, 0x3d, dev_private->saved_cr3d);
+	vga_wcrt(VGABASE, 0x3e, dev_private->saved_cr3e);
+	vga_wcrt(VGABASE, 0x3f, dev_private->saved_cr3f);
 
 	drm_helper_resume_force_mode(drm_dev);
-	drm_fb_helper_set_suspend(&dev_priv->via_fbdev->helper, false);
+	drm_fb_helper_set_suspend(&dev_private->via_fbdev->helper, false);
 	console_unlock();
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);

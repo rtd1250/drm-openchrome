@@ -41,13 +41,14 @@ static void via_ttm_mem_global_release(struct drm_global_reference *ref)
 	ttm_mem_global_release(ref->object);
 }
 
-static int via_ttm_global_init(struct via_device *dev_priv)
+static int via_ttm_global_init(
+			struct openchrome_drm_private *dev_private)
 {
 	struct drm_global_reference *global_ref;
 	struct drm_global_reference *bo_ref;
 	int rc;
 
-	global_ref = &dev_priv->ttm.mem_global_ref;
+	global_ref = &dev_private->ttm.mem_global_ref;
 	global_ref->global_type = DRM_GLOBAL_TTM_MEM;
 	global_ref->size = sizeof(struct ttm_mem_global);
 	global_ref->init = &via_ttm_mem_global_init;
@@ -60,9 +61,9 @@ static int via_ttm_global_init(struct via_device *dev_priv)
 		return rc;
 	}
 
-	dev_priv->ttm.bo_global_ref.mem_glob =
-				dev_priv->ttm.mem_global_ref.object;
-	bo_ref = &dev_priv->ttm.bo_global_ref.ref;
+	dev_private->ttm.bo_global_ref.mem_glob =
+				dev_private->ttm.mem_global_ref.object;
+	bo_ref = &dev_private->ttm.bo_global_ref.ref;
 	bo_ref->global_type = DRM_GLOBAL_TTM_BO;
 	bo_ref->size = sizeof(struct ttm_bo_global);
 	bo_ref->init = &ttm_bo_global_init;
@@ -116,9 +117,11 @@ static int via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
 				struct ttm_mem_type_manager *man)
 {
 #if IS_ENABLED(CONFIG_AGP)
-	struct via_device *dev_priv = container_of(bdev,
-					struct via_device, ttm.bdev);
-	struct drm_device *dev = dev_priv->dev;
+	struct openchrome_drm_private *dev_private =
+					container_of(bdev,
+					struct openchrome_drm_private,
+					ttm.bdev);
+	struct drm_device *dev = dev_private->dev;
 #endif
 
 	switch (type) {
@@ -202,11 +205,12 @@ static void via_evict_flags(struct ttm_buffer_object *bo,
 static int via_ttm_io_mem_reserve(struct ttm_bo_device *bdev,
 					struct ttm_mem_reg *mem)
 {
-	struct via_device *dev_priv = container_of(bdev,
-					struct via_device, ttm.bdev);
-
+	struct openchrome_drm_private *dev_private =
+					container_of(bdev,
+					struct openchrome_drm_private,
+					ttm.bdev);
 	struct ttm_mem_type_manager *man = &bdev->man[mem->mem_type];
-	struct drm_device *dev = dev_priv->dev;
+	struct drm_device *dev = dev_private->dev;
 
 	mem->bus.base = 0;
 	mem->bus.addr = NULL;
@@ -269,23 +273,23 @@ static struct ttm_bo_driver via_bo_driver = {
 	.io_mem_free		= via_ttm_io_mem_free,
 };
 
-int via_mm_init(struct via_device *dev_priv)
+int via_mm_init(struct openchrome_drm_private *dev_private)
 {
-	struct drm_device *dev = dev_priv->dev;
+	struct drm_device *dev = dev_private->dev;
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	ret = via_ttm_global_init(dev_priv);
+	ret = via_ttm_global_init(dev_private);
 	if (ret) {
 		DRM_ERROR("Failed to initialise TTM: %d\n", ret);
 		goto exit;
 	}
 
-	dev_priv->ttm.bdev.dev_mapping = dev->anon_inode->i_mapping;
+	dev_private->ttm.bdev.dev_mapping = dev->anon_inode->i_mapping;
 
-	ret = ttm_bo_device_init(&dev_priv->ttm.bdev,
-				dev_priv->ttm.bo_global_ref.ref.object,
+	ret = ttm_bo_device_init(&dev_private->ttm.bdev,
+				dev_private->ttm.bo_global_ref.ref.object,
 				&via_bo_driver,
 				dev->anon_inode->i_mapping,
 				DRM_FILE_PAGE_OFFSET,
@@ -295,8 +299,8 @@ int via_mm_init(struct via_device *dev_priv)
 		goto exit;
 	}
 
-	ret = ttm_bo_init_mm(&dev_priv->ttm.bdev, TTM_PL_VRAM,
-				dev_priv->vram_size >> PAGE_SHIFT);
+	ret = ttm_bo_init_mm(&dev_private->ttm.bdev, TTM_PL_VRAM,
+				dev_private->vram_size >> PAGE_SHIFT);
 	if (ret) {
 		DRM_ERROR("Failed to map video RAM: %d\n", ret);
 		goto exit;
@@ -309,15 +313,15 @@ exit:
 
 void via_mm_fini(struct drm_device *dev)
 {
-	struct via_device *dev_priv = dev->dev_private;
+	struct openchrome_drm_private *dev_private = dev->dev_private;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	ttm_bo_device_release(&dev_priv->ttm.bdev);
+	ttm_bo_device_release(&dev_private->ttm.bdev);
 
-	via_ttm_global_release(&dev_priv->ttm.mem_global_ref,
-				&dev_priv->ttm.bo_global_ref,
-				&dev_priv->ttm.bdev);
+	via_ttm_global_release(&dev_private->ttm.mem_global_ref,
+				&dev_private->ttm.bo_global_ref,
+				&dev_private->ttm.bdev);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }

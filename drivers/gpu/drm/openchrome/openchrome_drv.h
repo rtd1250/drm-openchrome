@@ -133,7 +133,7 @@ enum via_engine {
 	VIA_ENG_H6S2
 };
 
-struct via_device {
+struct openchrome_drm_private {
 	struct drm_device *dev;
 
 	struct via_ttm ttm;
@@ -246,7 +246,7 @@ struct via_device {
 
 
 /* VIA MMIO register access */
-#define VIA_BASE ((dev_priv->mmio))
+#define VIA_BASE ((dev_private->mmio))
 
 #define VIA_READ(reg)		ioread32(VIA_BASE + reg)
 #define VIA_WRITE(reg, val)	iowrite32(val, VIA_BASE + reg)
@@ -265,11 +265,13 @@ extern int via_hdmi_audio;
 
 extern void via_engine_init(struct drm_device *dev);
 
-extern int via_vram_detect(struct via_device *dev_priv);
-extern int openchrome_vram_init(struct via_device *dev_priv);
-extern void openchrome_vram_fini(struct via_device *dev_priv);
+extern int via_vram_detect(struct openchrome_drm_private *dev_private);
+extern int openchrome_vram_init(
+			struct openchrome_drm_private *dev_private);
+extern void openchrome_vram_fini(
+			struct openchrome_drm_private *dev_private);
 
-extern int via_mm_init(struct via_device *dev_priv);
+extern int via_mm_init(struct openchrome_drm_private *dev_private);
 void via_mm_fini(struct drm_device *dev);
 extern void ttm_placement_from_domain(struct ttm_buffer_object *bo,
 			struct ttm_placement *placement,
@@ -310,16 +312,17 @@ extern struct drm_gem_object* ttm_gem_create(struct drm_device *dev,
 extern struct ttm_buffer_object* ttm_gem_mapping(
 					struct drm_gem_object *obj);
 
-void openchrome_transmitter_io_pad_state(struct via_device *dev_priv,
-				uint32_t di_port, bool io_pad_on);
+void openchrome_transmitter_io_pad_state(
+			struct openchrome_drm_private *dev_private,
+			uint32_t di_port, bool io_pad_on);
 void openchrome_transmitter_clock_drive_strength(
-				struct via_device *dev_priv,
-				u32 di_port, u8 drive_strength);
+			struct openchrome_drm_private *dev_private,
+			u32 di_port, u8 drive_strength);
 void openchrome_transmitter_data_drive_strength(
-				struct via_device *dev_priv,
-				u32 di_port, u8 drive_strength);
+			struct openchrome_drm_private *dev_private,
+			u32 di_port, u8 drive_strength);
 void openchrome_transmitter_display_source(
-				struct via_device *dev_priv,
-				u32 di_port, int index);
+			struct openchrome_drm_private *dev_private,
+			u32 di_port, int index);
 
 #endif /* _OPENCHROME_DRV_H */

@@ -131,7 +131,8 @@ static void openchrome_sii164_dpms(struct drm_encoder *encoder, int mode)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
-	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					encoder->dev->dev_private;
 	struct i2c_adapter *i2c_bus;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -155,13 +156,15 @@ static void openchrome_sii164_dpms(struct drm_encoder *encoder, int mode)
 	switch (mode) {
 	case DRM_MODE_DPMS_ON:
 		openchrome_sii164_power(i2c_bus, true);
-		openchrome_transmitter_io_pad_state(dev_priv, enc->di_port, true);
+		openchrome_transmitter_io_pad_state(dev_private,
+						enc->di_port, true);
 		break;
 	case DRM_MODE_DPMS_STANDBY:
 	case DRM_MODE_DPMS_SUSPEND:
 	case DRM_MODE_DPMS_OFF:
 		openchrome_sii164_power(i2c_bus, false);
-		openchrome_transmitter_io_pad_state(dev_priv, enc->di_port, false);
+		openchrome_transmitter_io_pad_state(dev_private,
+						enc->di_port, false);
 		break;
 	default:
 		DRM_ERROR("Bad DPMS mode.");
@@ -191,7 +194,8 @@ static void openchrome_sii164_mode_set(struct drm_encoder *encoder,
 	struct via_crtc *iga = container_of(encoder->crtc, struct via_crtc, base);
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
-	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					encoder->dev->dev_private;
 	struct i2c_adapter *i2c_bus;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -211,15 +215,19 @@ static void openchrome_sii164_mode_set(struct drm_encoder *encoder,
 		goto exit;
 	}
 
-	openchrome_transmitter_clock_drive_strength(dev_priv, enc->di_port, 0x03);
-	openchrome_transmitter_data_drive_strength(dev_priv, enc->di_port, 0x03);
-	openchrome_transmitter_io_pad_state(dev_priv, enc->di_port, true);
+	openchrome_transmitter_clock_drive_strength(dev_private,
+						enc->di_port, 0x03);
+	openchrome_transmitter_data_drive_strength(dev_private,
+						enc->di_port, 0x03);
+	openchrome_transmitter_io_pad_state(dev_private,
+						enc->di_port, true);
 
 	openchrome_sii164_display_registers(i2c_bus);
 	openchrome_sii164_init_registers(i2c_bus);
 	openchrome_sii164_display_registers(i2c_bus);
 
-	openchrome_transmitter_display_source(dev_priv, enc->di_port, iga->index);
+	openchrome_transmitter_display_source(dev_private,
+					enc->di_port, iga->index);
 exit:
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
@@ -229,7 +237,8 @@ static void openchrome_sii164_prepare(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
-	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					encoder->dev->dev_private;
 	struct i2c_adapter *i2c_bus;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -250,7 +259,8 @@ static void openchrome_sii164_prepare(struct drm_encoder *encoder)
 	}
 
 	openchrome_sii164_power(i2c_bus, false);
-	openchrome_transmitter_io_pad_state(dev_priv, enc->di_port, false);
+	openchrome_transmitter_io_pad_state(dev_private,
+						enc->di_port, false);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -259,7 +269,8 @@ static void openchrome_sii164_commit(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
-	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					encoder->dev->dev_private;
 	struct i2c_adapter *i2c_bus;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -280,7 +291,8 @@ static void openchrome_sii164_commit(struct drm_encoder *encoder)
 	}
 
 	openchrome_sii164_power(i2c_bus, true);
-	openchrome_transmitter_io_pad_state(dev_priv, enc->di_port, true);
+	openchrome_transmitter_io_pad_state(dev_private,
+						enc->di_port, true);
 
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
@@ -290,7 +302,8 @@ static void openchrome_sii164_disable(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
-	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					encoder->dev->dev_private;
 	struct i2c_adapter *i2c_bus;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -311,7 +324,8 @@ static void openchrome_sii164_disable(struct drm_encoder *encoder)
 	}
 
 	openchrome_sii164_power(i2c_bus, false);
-	openchrome_transmitter_io_pad_state(dev_priv, enc->di_port, false);
+	openchrome_transmitter_io_pad_state(dev_private,
+						enc->di_port, false);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -506,11 +520,11 @@ void openchrome_sii164_init(struct drm_device *dev)
 {
 	struct via_connector *con;
 	struct via_encoder *enc;
-	struct via_device *dev_priv = dev->dev_private;
+	struct openchrome_drm_private *dev_private = dev->dev_private;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if (!dev_priv->ext_tmds_presence) {
+	if (!dev_private->ext_tmds_presence) {
 		goto exit;
 	}
 
@@ -528,11 +542,11 @@ void openchrome_sii164_init(struct drm_device *dev)
 	enc->base.possible_crtcs = BIT(1) | BIT(0);
 	enc->base.possible_clones = 0;
 
-	enc->i2c_bus = dev_priv->ext_tmds_i2c_bus;
-	enc->di_port = dev_priv->ext_tmds_di_port;
+	enc->i2c_bus = dev_private->ext_tmds_i2c_bus;
+	enc->di_port = dev_private->ext_tmds_di_port;
 
 	/* Increment the number of DVI connectors. */
-	dev_priv->number_dvi++;
+	dev_private->number_dvi++;
 
 
 	con = &enc->cons[0];
@@ -545,7 +559,7 @@ void openchrome_sii164_init(struct drm_device *dev)
 	con->base.doublescan_allowed = false;
 	con->base.interlace_allowed = false;
 
-	con->i2c_bus = dev_priv->ext_tmds_i2c_bus;
+	con->i2c_bus = dev_private->ext_tmds_i2c_bus;
 
 	INIT_LIST_HEAD(&con->props);
 	drm_connector_attach_encoder(&con->base, &enc->base);

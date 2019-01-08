@@ -62,8 +62,9 @@ static void via_iga_common_init(void __iomem *regs)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void via_iga1_set_color_depth(struct via_device *dev_priv,
-					u8 depth)
+static void via_iga1_set_color_depth(
+			struct openchrome_drm_private *dev_private,
+			u8 depth)
 {
 	u8 value;
 
@@ -108,8 +109,9 @@ static void via_iga1_set_color_depth(struct via_device *dev_priv,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void via_iga2_set_color_depth(struct via_device *dev_priv,
-					u8 depth)
+static void via_iga2_set_color_depth(
+			struct openchrome_drm_private *dev_private,
+			u8 depth)
 {
 	u8 value;
 
@@ -153,7 +155,8 @@ static void via_hide_cursor(struct drm_crtc *crtc)
 {
 	struct drm_device *dev = crtc->dev;
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	struct via_device *dev_priv = crtc->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
 	uint32_t temp;
 
 	switch (dev->pdev->device) {
@@ -184,7 +187,8 @@ static void via_show_cursor(struct drm_crtc *crtc)
 {
 	struct drm_device *dev = crtc->dev;
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	struct via_device *dev_priv = crtc->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
 
 	switch (dev->pdev->device) {
 	case PCI_DEVICE_ID_VIA_PM800:
@@ -248,7 +252,8 @@ static void via_cursor_address(struct drm_crtc *crtc)
 {
 	struct drm_device *dev = crtc->dev;
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	struct via_device *dev_priv = crtc->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
 
 	if (!iga->cursor_kmap.bo) {
 		return;
@@ -339,7 +344,8 @@ static int via_crtc_cursor_move(struct drm_crtc *crtc, int x, int y)
 {
 	struct drm_device *dev = crtc->dev;
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	struct via_device *dev_priv = crtc->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
 	unsigned char xoff = 0, yoff = 0;
 	int xpos = x, ypos = y;
 
@@ -386,7 +392,8 @@ static int via_iga1_gamma_set(struct drm_crtc *crtc,
 				uint32_t size,
 				struct drm_modeset_acquire_ctx *ctx)
 {
-	struct via_device *dev_priv = crtc->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
 	int end = (size > 256) ? 256 : size, i;
 	u8 val, sr1a = vga_rseq(VGABASE, 0x1A);
 
@@ -442,7 +449,8 @@ static int via_iga2_gamma_set(struct drm_crtc *crtc,
 				uint32_t size,
 				struct drm_modeset_acquire_ctx *ctx)
 {
-	struct via_device *dev_priv = crtc->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
 	int end = (size > 256) ? 256 : size, i;
 	u8 sr1a = vga_rseq(VGABASE, 0x1A);
 
@@ -549,7 +557,8 @@ static const struct drm_crtc_funcs via_iga2_funcs = {
 	.destroy = via_crtc_destroy,
 };
 
-static void via_load_vpit_regs(struct via_device *dev_priv)
+static void via_load_vpit_regs(
+			struct openchrome_drm_private *dev_private)
 {
 	u8 ar[] = {0x00, 0x01, 0x02, 0x03,
 			0x04, 0x05, 0x06, 0x07,
@@ -584,11 +593,12 @@ static void via_load_vpit_regs(struct via_device *dev_priv)
 	vga_w(VGABASE, VGA_ATT_W, BIT(5));
 }
 
-static void via_iga1_display_fifo_regs(struct drm_device *dev,
-					struct via_device *dev_priv,
-					struct via_crtc *iga,
-					struct drm_display_mode *mode,
-					struct drm_framebuffer *fb)
+static void via_iga1_display_fifo_regs(
+			struct drm_device *dev,
+			struct openchrome_drm_private *dev_private,
+			struct via_crtc *iga,
+			struct drm_display_mode *mode,
+			struct drm_framebuffer *fb)
 {
 	u32 reg_value;
 	unsigned int fifo_max_depth;
@@ -601,7 +611,7 @@ static void via_iga1_display_fifo_regs(struct drm_device *dev,
 
 	switch (dev->pdev->device) {
 	case PCI_DEVICE_ID_VIA_CLE266:
-		if (dev_priv->revision == CLE266_REVISION_AX) {
+		if (dev_private->revision == CLE266_REVISION_AX) {
 			if (mode->hdisplay > 1024) {
 				/* SR17[6:0] */
 				fifo_max_depth = 96;
@@ -626,7 +636,7 @@ static void via_iga1_display_fifo_regs(struct drm_device *dev,
 				enable_extended_display_fifo = false;
 			}
 
-			if (dev_priv->vram_type <= VIA_MEM_DDR_200) {
+			if (dev_private->vram_type <= VIA_MEM_DDR_200) {
 				if (fb->format->depth == 32) {
 					if (mode->hdisplay > 1024) {
 						if (mode->vdisplay > 768) {
@@ -667,7 +677,7 @@ static void via_iga1_display_fifo_regs(struct drm_device *dev,
 					display_queue_expire_num = 124;
 				}
 			}
-		/* dev_priv->revision == CLE266_REVISION_CX */
+		/* dev_private->revision == CLE266_REVISION_CX */
 		} else {
 			if (mode->hdisplay >= 1024) {
 				/* SR17[6:0] */
@@ -693,7 +703,7 @@ static void via_iga1_display_fifo_regs(struct drm_device *dev,
 				enable_extended_display_fifo = false;
 			}
 
-			if (dev_priv->vram_type <= VIA_MEM_DDR_200) {
+			if (dev_private->vram_type <= VIA_MEM_DDR_200) {
 				if (mode->hdisplay > 1024) {
 					if (mode->vdisplay > 768) {
 						/* SR22[4:0] */
@@ -723,7 +733,7 @@ static void via_iga1_display_fifo_regs(struct drm_device *dev,
 
 	case PCI_DEVICE_ID_VIA_KM400:
 		if ((mode->hdisplay >= 1600) &&
-			(dev_priv->vram_type <= VIA_MEM_DDR_200)) {
+			(dev_private->vram_type <= VIA_MEM_DDR_200)) {
 			/* SR17[6:0] */
 			fifo_max_depth = 58;
 
@@ -745,7 +755,7 @@ static void via_iga1_display_fifo_regs(struct drm_device *dev,
 
 		enable_extended_display_fifo = false;
 
-		if (dev_priv->vram_type <= VIA_MEM_DDR_200) {
+		if (dev_private->vram_type <= VIA_MEM_DDR_200) {
 			if (mode->hdisplay >= 1600) {
 				/* SR22[4:0] */
 				display_queue_expire_num = 16;
@@ -977,11 +987,12 @@ static void via_iga1_display_fifo_regs(struct drm_device *dev,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void via_iga2_display_fifo_regs(struct drm_device *dev,
-					struct via_device *dev_priv,
-					struct via_crtc *iga,
-					struct drm_display_mode *mode,
-					struct drm_framebuffer *fb)
+static void via_iga2_display_fifo_regs(
+			struct drm_device *dev,
+			struct openchrome_drm_private *dev_private,
+			struct via_crtc *iga,
+			struct drm_display_mode *mode,
+			struct drm_framebuffer *fb)
 {
 	u32 reg_value;
 	unsigned int fifo_max_depth;
@@ -994,11 +1005,11 @@ static void via_iga2_display_fifo_regs(struct drm_device *dev,
 
 	switch (dev->pdev->device) {
 	case PCI_DEVICE_ID_VIA_CLE266:
-		if (dev_priv->revision == CLE266_REVISION_AX) {
-			if (((dev_priv->vram_type <= VIA_MEM_DDR_200) &&
+		if (dev_private->revision == CLE266_REVISION_AX) {
+			if (((dev_private->vram_type <= VIA_MEM_DDR_200) &&
 				(fb->format->depth > 16) &&
 				(mode->vdisplay > 768)) ||
-				((dev_priv->vram_type <= VIA_MEM_DDR_266) &&
+				((dev_private->vram_type <= VIA_MEM_DDR_266) &&
 				(fb->format->depth > 16) &&
 				(mode->hdisplay > 1280))) {
 				/* CR68[7:4] */
@@ -1017,7 +1028,7 @@ static void via_iga2_display_fifo_regs(struct drm_device *dev,
 
 				enable_extended_display_fifo = false;
 			}
-		/* dev_priv->revision == CLE266_REVISION_CX */
+		/* dev_private->revision == CLE266_REVISION_CX */
 		} else {
 			if (mode->hdisplay >= 1024) {
 				/* CR68[7:4] */
@@ -1051,11 +1062,11 @@ static void via_iga2_display_fifo_regs(struct drm_device *dev,
 
 			enable_extended_display_fifo = true;
 		} else if (((mode->hdisplay > 1024) &&
-				(fb->format->depth == 32) &&
-				(dev_priv->vram_type <= VIA_MEM_DDR_333)) ||
-				((mode->hdisplay == 1024) &&
-				(fb->format->depth == 32) &&
-				(dev_priv->vram_type <= VIA_MEM_DDR_200))) {
+			(fb->format->depth == 32) &&
+			(dev_private->vram_type <= VIA_MEM_DDR_333)) ||
+			((mode->hdisplay == 1024) &&
+			(fb->format->depth == 32) &&
+			(dev_private->vram_type <= VIA_MEM_DDR_200))) {
 			/* CR68[7:4] */
 			fifo_max_depth = 104;
 
@@ -1064,11 +1075,11 @@ static void via_iga2_display_fifo_regs(struct drm_device *dev,
 
 			enable_extended_display_fifo = true;
 		} else if (((mode->hdisplay > 1280) &&
-				(fb->format->depth == 16) &&
-				(dev_priv->vram_type <= VIA_MEM_DDR_333)) ||
-				((mode->hdisplay == 1280) &&
-				(fb->format->depth == 16) &&
-				(dev_priv->vram_type <= VIA_MEM_DDR_200))) {
+			(fb->format->depth == 16) &&
+			(dev_private->vram_type <= VIA_MEM_DDR_333)) ||
+			((mode->hdisplay == 1280) &&
+			(fb->format->depth == 16) &&
+			(dev_private->vram_type <= VIA_MEM_DDR_200))) {
 			/* CR68[7:4] */
 			fifo_max_depth = 88;
 
@@ -1290,7 +1301,8 @@ via_load_crtc_pixel_timing(struct drm_crtc *crtc,
 				struct drm_display_mode *mode)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	struct via_device *dev_priv = crtc->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
 	u32 reg_value = 0;
 
 	reg_value = IGA1_PIXELTIMING_HOR_TOTAL_FORMULA(mode->crtc_htotal);
@@ -1364,7 +1376,8 @@ via_load_crtc_pixel_timing(struct drm_crtc *crtc,
 void
 via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 {
-	struct via_device *dev_priv = iga->base.dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					iga->base.dev->dev_private;
 	struct drm_device *dev = iga->base.dev;
 	u32 reg_value = 0;
 
@@ -1461,7 +1474,8 @@ void
 via_set_scale_path(struct drm_crtc *crtc, u32 scale_type)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	struct via_device *dev_priv = crtc->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
 	u8 reg_cr_fd = vga_rcrt(VGABASE, 0xFD);
 	struct drm_device *dev = crtc->dev;
 
@@ -1506,7 +1520,8 @@ static void
 via_disable_iga_scaling(struct drm_crtc *crtc)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	struct via_device *dev_priv = crtc->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
 
 	if (iga->index) {
 		/* IGA2 scalings disable */
@@ -1552,7 +1567,8 @@ bool
 via_set_iga_scale_function(struct drm_crtc *crtc, u32 scale_type)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	struct via_device *dev_priv = crtc->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
 
 	if (!(scale_type & (VIA_SHRINK + VIA_EXPAND)))
 		return false;
@@ -1635,11 +1651,11 @@ via_set_iga_scale_function(struct drm_crtc *crtc, u32 scale_type)
  * 2. load scale factors into registers
  * 3. enable H or V scale ( set CRA2 bit7 or bit3 )
  */
-bool
-via_load_iga_scale_factor_regs(struct via_device *dev_priv,
-				struct drm_display_mode *mode,
-				struct drm_display_mode *adjusted_mode,
-				u32 scale_type, u32 is_hor_or_ver)
+bool via_load_iga_scale_factor_regs(
+			struct openchrome_drm_private *dev_private,
+			struct drm_display_mode *mode,
+			struct drm_display_mode *adjusted_mode,
+			u32 scale_type, u32 is_hor_or_ver)
 {
 	u32 dst_hor_regs = adjusted_mode->crtc_hdisplay;
 	u32 dst_ver_regs = adjusted_mode->crtc_vdisplay;
@@ -1779,7 +1795,8 @@ drm_mode_crtc_load_lut(struct drm_crtc *crtc)
 static void
 via_iga1_crtc_dpms(struct drm_crtc *crtc, int mode)
 {
-	struct via_device *dev_priv = crtc->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -1919,7 +1936,8 @@ via_iga1_crtc_mode_set(struct drm_crtc *crtc,
 			int x, int y, struct drm_framebuffer *fb)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	struct via_device *dev_priv = crtc->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
 	struct drm_device *dev = crtc->dev;
 	u8 reg_value = 0;
 	int ret;
@@ -1934,7 +1952,7 @@ via_iga1_crtc_mode_set(struct drm_crtc *crtc,
 	}
 
 	/* Load standard registers */
-	via_load_vpit_regs(dev_priv);
+	via_load_vpit_regs(dev_private);
 
 	/* Unlock */
 	via_unlock_crtc(VGABASE, dev->pdev->device);
@@ -1977,7 +1995,7 @@ via_iga1_crtc_mode_set(struct drm_crtc *crtc,
 	via_iga1_set_hsync_shift(VGABASE, 0x05);
 
 	/* Load display FIFO. */
-	via_iga1_display_fifo_regs(dev, dev_priv, iga,
+	via_iga1_display_fifo_regs(dev, dev_private, iga,
 				adjusted_mode, crtc->primary->fb);
 
 	/* Set PLL */
@@ -2010,7 +2028,8 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc,
 	u32 pitch = y * fb->pitches[0] +
 			((x * fb->format->cpp[0] * 8) >> 3), addr;
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	struct via_device *dev_priv = crtc->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
 	struct via_framebuffer *via_fb = container_of(fb,
 					struct via_framebuffer, fb);
 	struct drm_gem_object *gem_obj = via_fb->gem_obj;
@@ -2028,7 +2047,7 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc,
 	/* Set palette LUT to 8-bit mode. */
 	via_iga1_set_palette_lut_resolution(VGABASE, true);
 
-	via_iga1_set_color_depth(dev_priv, fb->format->depth);
+	via_iga1_set_color_depth(dev_private, fb->format->depth);
 
 	/* Set the framebuffer offset */
 	addr = round_up(bo->offset + pitch, 16) >> 1;
@@ -2055,7 +2074,8 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc,
 static void
 via_iga2_crtc_dpms(struct drm_crtc *crtc, int mode)
 {
-	struct via_device *dev_priv = crtc->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -2193,7 +2213,8 @@ via_iga2_crtc_mode_set(struct drm_crtc *crtc,
 			int x, int y, struct drm_framebuffer *fb)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	struct via_device *dev_priv = crtc->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
 	struct drm_device *dev = crtc->dev;
 	int ret;
 
@@ -2207,7 +2228,7 @@ via_iga2_crtc_mode_set(struct drm_crtc *crtc,
 	}
 
 	/* Load standard registers */
-	via_load_vpit_regs(dev_priv);
+	via_load_vpit_regs(dev_private);
 
 	/* Unlock */
 	via_unlock_crtc(VGABASE, dev->pdev->device);
@@ -2227,7 +2248,7 @@ via_iga2_crtc_mode_set(struct drm_crtc *crtc,
 		 * because crtc_vdisplay=540, vdisplay=1080,
 		 * we need 540 here, not 1080.
 		 */
-		via_load_iga_scale_factor_regs(dev_priv,
+		via_load_iga_scale_factor_regs(dev_private,
 						mode, adjusted_mode,
 						VIA_SHRINK,
 						HOR_VER_SCALE);
@@ -2256,7 +2277,8 @@ via_iga2_crtc_mode_set(struct drm_crtc *crtc,
 			if (iga->scaling_mode & VIA_HOR_EXPAND) {
 				via_set_iga_scale_function(crtc,
 							VIA_HOR_EXPAND);
-				via_load_iga_scale_factor_regs(dev_priv,
+				via_load_iga_scale_factor_regs(
+						dev_private,
 						mode, adjusted_mode,
 						VIA_EXPAND,
 						HOR_SCALE);
@@ -2266,7 +2288,8 @@ via_iga2_crtc_mode_set(struct drm_crtc *crtc,
 			if (iga->scaling_mode & VIA_VER_EXPAND) {
 				via_set_iga_scale_function(crtc,
 							VIA_VER_EXPAND);
-				via_load_iga_scale_factor_regs(dev_priv,
+				via_load_iga_scale_factor_regs(
+						dev_private,
 						mode, adjusted_mode,
 						VIA_EXPAND,
 						VER_SCALE);
@@ -2282,7 +2305,7 @@ via_iga2_crtc_mode_set(struct drm_crtc *crtc,
 			adjusted_mode->flags & DRM_MODE_FLAG_INTERLACE);
 
 	/* Load display FIFO. */
-	via_iga2_display_fifo_regs(dev, dev_priv, iga,
+	via_iga2_display_fifo_regs(dev, dev_private, iga,
 			adjusted_mode, crtc->primary->fb);
 
 	/* Set PLL */
@@ -2315,7 +2338,8 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc,
 	u32 pitch = y * fb->pitches[0] +
 			((x * fb->format->cpp[0] * 8) >> 3), addr;
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	struct via_device *dev_priv = crtc->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
 	struct via_framebuffer *via_fb = container_of(fb,
 					struct via_framebuffer, fb);
 	struct drm_gem_object *gem_obj = via_fb->gem_obj;
@@ -2333,7 +2357,7 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc,
 	/* Set palette LUT to 8-bit mode. */
 	via_iga2_set_palette_lut_resolution(VGABASE, true);
 
-	via_iga2_set_color_depth(dev_priv, fb->format->depth);
+	via_iga2_set_color_depth(dev_private, fb->format->depth);
 
 	/* Set the framebuffer offset */
 	addr = round_up(bo->offset + pitch, 16);
@@ -2381,8 +2405,9 @@ static const struct drm_crtc_helper_funcs via_iga2_helper_funcs = {
 void
 via_crtc_init(struct drm_device *dev, int index)
 {
-	struct via_device *dev_priv = dev->dev_private;
-	struct via_crtc *iga = &dev_priv->iga[index];
+	struct openchrome_drm_private *dev_private =
+						dev->dev_private;
+	struct via_crtc *iga = &dev_private->iga[index];
 	struct drm_crtc *crtc = &iga->base;
 	int cursor_size = 64 * 64 * 4, i;
 	u16 *gamma;
@@ -2557,7 +2582,7 @@ via_crtc_init(struct drm_device *dev, int index)
 			|| dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)
 		cursor_size = 32 * 32 * 4;
 
-	if (via_ttm_allocate_kernel_buffer(&dev_priv->ttm.bdev,
+	if (via_ttm_allocate_kernel_buffer(&dev_private->ttm.bdev,
 				cursor_size, 16,
 				TTM_PL_FLAG_VRAM, &iga->cursor_kmap))
 		DRM_ERROR("failed to create cursor\n");

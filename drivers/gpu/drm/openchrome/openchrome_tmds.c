@@ -29,7 +29,7 @@
 #include "openchrome_drv.h"
 
 
-static void via_tmds_power(struct via_device *dev_priv,
+static void via_tmds_power(struct openchrome_drm_private *dev_private,
 				bool power_state)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -50,8 +50,9 @@ static void via_tmds_power(struct via_device *dev_priv,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void via_tmds_io_pad_setting(struct via_device *dev_priv,
-					u32 di_port, bool io_pad_on)
+static void via_tmds_io_pad_setting(
+			struct openchrome_drm_private *dev_private,
+			u32 di_port, bool io_pad_on)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -74,7 +75,8 @@ static void via_tmds_io_pad_setting(struct via_device *dev_priv,
  * integrated TMDS transmitter. Synchronization polarity and
  * display output source need to be set separately.
  */
-static void via_tmds_init_reg(struct via_device *dev_priv)
+static void via_tmds_init_reg(
+			struct openchrome_drm_private *dev_private)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -143,8 +145,9 @@ static void via_tmds_init_reg(struct via_device *dev_priv)
 /*
  * Set TMDS (DVI) sync polarity.
  */
-static void
-via_tmds_sync_polarity(struct via_device *dev_priv, unsigned int flags)
+static void via_tmds_sync_polarity(
+			struct openchrome_drm_private *dev_private,
+			unsigned int flags)
 {
 	u8 syncPolarity = 0x00;
 
@@ -170,8 +173,9 @@ via_tmds_sync_polarity(struct via_device *dev_priv, unsigned int flags)
 /*
  * Sets TMDS (DVI) display source.
  */
-static void
-via_tmds_display_source(struct via_device *dev_priv, int index)
+static void via_tmds_display_source(
+			struct openchrome_drm_private *dev_private,
+			int index)
 {
 	u8 displaySource = index;
 
@@ -195,20 +199,23 @@ static void via_tmds_dpms(struct drm_encoder *encoder, int mode)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
-	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					encoder->dev->dev_private;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	switch (mode) {
 	case DRM_MODE_DPMS_ON:
-		via_tmds_power(dev_priv, true);
-		via_tmds_io_pad_setting(dev_priv, enc->di_port, true);
+		via_tmds_power(dev_private, true);
+		via_tmds_io_pad_setting(dev_private,
+						enc->di_port, true);
 		break;
 	case DRM_MODE_DPMS_STANDBY:
 	case DRM_MODE_DPMS_SUSPEND:
 	case DRM_MODE_DPMS_OFF:
-		via_tmds_power(dev_priv, false);
-		via_tmds_io_pad_setting(dev_priv, enc->di_port, false);
+		via_tmds_power(dev_private, false);
+		via_tmds_io_pad_setting(dev_private,
+						enc->di_port, false);
 		break;
 	default:
 		DRM_ERROR("Bad DPMS mode.");
@@ -235,12 +242,13 @@ static void via_tmds_prepare(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
-	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					encoder->dev->dev_private;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	via_tmds_power(dev_priv, false);
-	via_tmds_io_pad_setting(dev_priv, enc->di_port, false);
+	via_tmds_power(dev_private, false);
+	via_tmds_io_pad_setting(dev_private, enc->di_port, false);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -249,12 +257,13 @@ static void via_tmds_commit(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
-	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					encoder->dev->dev_private;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	via_tmds_power(dev_priv, true);
-	via_tmds_io_pad_setting(dev_priv, enc->di_port, true);
+	via_tmds_power(dev_private, true);
+	via_tmds_io_pad_setting(dev_private, enc->di_port, true);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -267,15 +276,16 @@ via_tmds_mode_set(struct drm_encoder *encoder,
 			struct drm_display_mode *mode,
 			struct drm_display_mode *adjusted_mode)
 {
-	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					encoder->dev->dev_private;
 	struct via_crtc *iga = container_of(encoder->crtc,
 						struct via_crtc, base);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	via_tmds_init_reg(dev_priv);
-	via_tmds_sync_polarity(dev_priv, adjusted_mode->flags);
-	via_tmds_display_source(dev_priv, iga->index);
+	via_tmds_init_reg(dev_private);
+	via_tmds_sync_polarity(dev_private, adjusted_mode->flags);
+	via_tmds_display_source(dev_private, iga->index);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -284,12 +294,13 @@ static void via_tmds_disable(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
-	struct via_device *dev_priv = encoder->dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					encoder->dev->dev_private;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	via_tmds_power(dev_priv, false);
-	via_tmds_io_pad_setting(dev_priv, enc->di_port, false);
+	via_tmds_power(dev_private, false);
+	via_tmds_io_pad_setting(dev_private, enc->di_port, false);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -390,7 +401,7 @@ static const struct drm_connector_helper_funcs via_dvi_connector_helper_funcs = 
  */
 void via_tmds_probe(struct drm_device *dev)
 {
-	struct via_device *dev_priv = dev->dev_private;
+	struct openchrome_drm_private *dev_private = dev->dev_private;
 	u16 chipset = dev->pdev->device;
 	u8 sr13, sr5a;
 
@@ -422,57 +433,60 @@ void via_tmds_probe(struct drm_device *dev)
 		 * VIA Technologies NanoBook reference design based products
 		 * have their pin strappings set to a wrong setting to communicate
 		 * the presence of DVI, so it requires special handling here. */
-		if (dev_priv->is_via_nanobook) {
-			dev_priv->int_tmds_presence = true;
-			dev_priv->int_tmds_di_port = VIA_DI_PORT_TMDS;
-			dev_priv->int_tmds_i2c_bus = VIA_I2C_BUS2;
-			dev_priv->mapped_i2c_bus |= VIA_I2C_BUS2;
+		if (dev_private->is_via_nanobook) {
+			dev_private->int_tmds_presence = true;
+			dev_private->int_tmds_di_port =
+						VIA_DI_PORT_TMDS;
+			dev_private->int_tmds_i2c_bus = VIA_I2C_BUS2;
+			dev_private->mapped_i2c_bus |= VIA_I2C_BUS2;
 			DRM_DEBUG_KMS("Integrated TMDS (DVI) "
 					"transmitter detected.\n");
 		} else if (((!(sr13 & BIT(7))) && (sr13 & BIT(6))) ||
 				((sr13 & BIT(7)) && (sr13 & BIT(6)))) {
-			dev_priv->int_tmds_presence = true;
-			dev_priv->int_tmds_di_port = VIA_DI_PORT_TMDS;
-			dev_priv->int_tmds_i2c_bus = VIA_I2C_BUS2;
-			dev_priv->mapped_i2c_bus |= VIA_I2C_BUS2;
+			dev_private->int_tmds_presence = true;
+			dev_private->int_tmds_di_port =
+						VIA_DI_PORT_TMDS;
+			dev_private->int_tmds_i2c_bus = VIA_I2C_BUS2;
+			dev_private->mapped_i2c_bus |= VIA_I2C_BUS2;
 			DRM_DEBUG_KMS("Integrated TMDS (DVI) "
 					"transmitter detected via pin "
 					"strapping.\n");
 		} else {
-			dev_priv->int_tmds_presence = false;
-			dev_priv->int_tmds_di_port = VIA_DI_PORT_NONE;
-			dev_priv->int_tmds_i2c_bus = VIA_I2C_NONE;
+			dev_private->int_tmds_presence = false;
+			dev_private->int_tmds_di_port =
+						VIA_DI_PORT_NONE;
+			dev_private->int_tmds_i2c_bus = VIA_I2C_NONE;
 		}
 
 		break;
 	default:
-		dev_priv->int_tmds_presence = false;
-		dev_priv->int_tmds_di_port = VIA_DI_PORT_NONE;
-		dev_priv->int_tmds_i2c_bus = VIA_I2C_NONE;
+		dev_private->int_tmds_presence = false;
+		dev_private->int_tmds_di_port = VIA_DI_PORT_NONE;
+		dev_private->int_tmds_i2c_bus = VIA_I2C_NONE;
 		break;
 	}
 
 	DRM_DEBUG_KMS("int_tmds_presence: %x\n",
-			dev_priv->int_tmds_presence);
+			dev_private->int_tmds_presence);
 	DRM_DEBUG_KMS("int_tmds_di_port: 0x%08x\n",
-			dev_priv->int_tmds_di_port);
+			dev_private->int_tmds_di_port);
 	DRM_DEBUG_KMS("int_tmds_i2c_bus: 0x%08x\n",
-			dev_priv->int_tmds_i2c_bus);
+			dev_private->int_tmds_i2c_bus);
 	DRM_DEBUG_KMS("mapped_i2c_bus: 0x%08x\n",
-			dev_priv->mapped_i2c_bus);
+			dev_private->mapped_i2c_bus);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 void via_tmds_init(struct drm_device *dev)
 {
-	struct via_device *dev_priv = dev->dev_private;
+	struct openchrome_drm_private *dev_private = dev->dev_private;
 	struct via_connector *con;
 	struct via_encoder *enc;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if (!dev_priv->int_tmds_presence) {
+	if (!dev_private->int_tmds_presence) {
 		goto exit;
 	}
 
@@ -491,10 +505,10 @@ void via_tmds_init(struct drm_device *dev)
 	enc->base.possible_crtcs = BIT(1) | BIT(0);
 	enc->base.possible_clones = 0;
 
-	enc->di_port = dev_priv->int_tmds_di_port;
+	enc->di_port = dev_private->int_tmds_di_port;
 
 	/* Increment the number of DVI connectors. */
-	dev_priv->number_dvi++;
+	dev_private->number_dvi++;
 
 
 	con = &enc->cons[0];
@@ -503,7 +517,7 @@ void via_tmds_init(struct drm_device *dev)
 	drm_connector_helper_add(&con->base, &via_dvi_connector_helper_funcs);
 	drm_connector_register(&con->base);
 
-	con->i2c_bus = dev_priv->int_tmds_i2c_bus;
+	con->i2c_bus = dev_private->int_tmds_i2c_bus;
 	con->base.doublescan_allowed = false;
 	con->base.interlace_allowed = true;
 	INIT_LIST_HEAD(&con->props);
@@ -518,46 +532,50 @@ exit:
  */
 void openchrome_ext_dvi_probe(struct drm_device *dev)
 {
-	struct via_device *dev_priv = dev->dev_private;
+	struct openchrome_drm_private *dev_private = dev->dev_private;
 	struct i2c_adapter *i2c_bus;
 	u16 chipset = dev->pdev->device;
 	u8 sr12, sr13;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	dev_priv->ext_tmds_presence = false;
-	dev_priv->ext_tmds_i2c_bus = VIA_I2C_NONE;
-	dev_priv->ext_tmds_transmitter = VIA_TMDS_NONE;
+	dev_private->ext_tmds_presence = false;
+	dev_private->ext_tmds_i2c_bus = VIA_I2C_NONE;
+	dev_private->ext_tmds_transmitter = VIA_TMDS_NONE;
 
-	if ((!dev_priv->ext_tmds_presence) &&
-		(!(dev_priv->mapped_i2c_bus & VIA_I2C_BUS2))) {
+	if ((!dev_private->ext_tmds_presence) &&
+		(!(dev_private->mapped_i2c_bus & VIA_I2C_BUS2))) {
 		i2c_bus = via_find_ddc_bus(0x31);
 		if (openchrome_vt1632_probe(i2c_bus)) {
-			dev_priv->ext_tmds_presence = true;
-			dev_priv->ext_tmds_i2c_bus = VIA_I2C_BUS2;
-			dev_priv->ext_tmds_transmitter = VIA_TMDS_VT1632;
-			dev_priv->mapped_i2c_bus |= VIA_I2C_BUS2;
+			dev_private->ext_tmds_presence = true;
+			dev_private->ext_tmds_i2c_bus = VIA_I2C_BUS2;
+			dev_private->ext_tmds_transmitter =
+						VIA_TMDS_VT1632;
+			dev_private->mapped_i2c_bus |= VIA_I2C_BUS2;
 		} else if (openchrome_sii164_probe(i2c_bus)) {
-			dev_priv->ext_tmds_presence = true;
-			dev_priv->ext_tmds_i2c_bus = VIA_I2C_BUS2;
-			dev_priv->ext_tmds_transmitter = VIA_TMDS_SII164;
-			dev_priv->mapped_i2c_bus |= VIA_I2C_BUS2;
+			dev_private->ext_tmds_presence = true;
+			dev_private->ext_tmds_i2c_bus = VIA_I2C_BUS2;
+			dev_private->ext_tmds_transmitter =
+						VIA_TMDS_SII164;
+			dev_private->mapped_i2c_bus |= VIA_I2C_BUS2;
 		}
 	}
 
-	if ((!(dev_priv->ext_tmds_presence)) &&
-		(!(dev_priv->mapped_i2c_bus & VIA_I2C_BUS4))) {
+	if ((!(dev_private->ext_tmds_presence)) &&
+		(!(dev_private->mapped_i2c_bus & VIA_I2C_BUS4))) {
 		i2c_bus = via_find_ddc_bus(0x2c);
 		if (openchrome_vt1632_probe(i2c_bus)) {
-			dev_priv->ext_tmds_presence = true;
-			dev_priv->ext_tmds_i2c_bus = VIA_I2C_BUS4;
-			dev_priv->ext_tmds_transmitter = VIA_TMDS_VT1632;
-			dev_priv->mapped_i2c_bus |= VIA_I2C_BUS4;
+			dev_private->ext_tmds_presence = true;
+			dev_private->ext_tmds_i2c_bus = VIA_I2C_BUS4;
+			dev_private->ext_tmds_transmitter =
+						VIA_TMDS_VT1632;
+			dev_private->mapped_i2c_bus |= VIA_I2C_BUS4;
 		} else if (openchrome_sii164_probe(i2c_bus)) {
-			dev_priv->ext_tmds_presence = true;
-			dev_priv->ext_tmds_i2c_bus = VIA_I2C_BUS4;
-			dev_priv->ext_tmds_transmitter = VIA_TMDS_SII164;
-			dev_priv->mapped_i2c_bus |= VIA_I2C_BUS4;
+			dev_private->ext_tmds_presence = true;
+			dev_private->ext_tmds_i2c_bus = VIA_I2C_BUS4;
+			dev_private->ext_tmds_transmitter =
+						VIA_TMDS_SII164;
+			dev_private->mapped_i2c_bus |= VIA_I2C_BUS4;
 		}
 	}
 
@@ -566,7 +584,7 @@ void openchrome_ext_dvi_probe(struct drm_device *dev)
 	DRM_DEBUG_KMS("SR12: 0x%02x\n", sr12);
 	DRM_DEBUG_KMS("SR13: 0x%02x\n", sr13);
 
-	if (dev_priv->ext_tmds_presence) {
+	if (dev_private->ext_tmds_presence) {
 		switch (chipset) {
 		case PCI_DEVICE_ID_VIA_CLE266:
 
@@ -575,17 +593,17 @@ void openchrome_ext_dvi_probe(struct drm_device *dev)
 			 *                capture device
 			 *             1: Flat panel */
 			if (!(sr12 & BIT(4))) {
-				dev_priv->ext_tmds_di_port =
+				dev_private->ext_tmds_di_port =
 						VIA_DI_PORT_DIP0;
 
 			/* 3C5.12[5] - FPD18 pin strapping
 			 *             0: TMDS transmitter (DVI)
 			 *             1: TV encoder */
 			} else if (!(sr12 & BIT(5))) {
-				dev_priv->ext_tmds_di_port =
+				dev_private->ext_tmds_di_port =
 						VIA_DI_PORT_DIP1;
 			} else {
-				dev_priv->ext_tmds_di_port =
+				dev_private->ext_tmds_di_port =
 						VIA_DI_PORT_NONE;
 			}
 
@@ -603,10 +621,10 @@ void openchrome_ext_dvi_probe(struct drm_device *dev)
 			 *             0: TMDS transmitter (DVI)
 			 *             1: TV encoder */
 			if ((sr12 & BIT(6)) && (!(sr12 & BIT(5)))) {
-				dev_priv->ext_tmds_di_port =
+				dev_private->ext_tmds_di_port =
 						VIA_DI_PORT_DVP0;
 			} else {
-				dev_priv->ext_tmds_di_port =
+				dev_private->ext_tmds_di_port =
 						VIA_DI_PORT_DVP1;
 			}
 
@@ -623,10 +641,10 @@ void openchrome_ext_dvi_probe(struct drm_device *dev)
 			 *             0: TMDS transmitter (DVI)
 			 *             1: TV encoder */
 			if ((sr12 & BIT(6)) && (!(sr12 & BIT(5)))) {
-				dev_priv->ext_tmds_di_port =
+				dev_private->ext_tmds_di_port =
 						VIA_DI_PORT_DVP0;
 			} else {
-				dev_priv->ext_tmds_di_port =
+				dev_private->ext_tmds_di_port =
 						VIA_DI_PORT_NONE;
 			}
 
@@ -635,10 +653,12 @@ void openchrome_ext_dvi_probe(struct drm_device *dev)
 		case PCI_DEVICE_ID_VIA_VT1122:
 		case PCI_DEVICE_ID_VIA_VX875:
 		case PCI_DEVICE_ID_VIA_VX900_VGA:
-			dev_priv->ext_tmds_di_port = VIA_DI_PORT_DVP1;
+			dev_private->ext_tmds_di_port =
+						VIA_DI_PORT_DVP1;
 			break;
 		default:
-			dev_priv->ext_tmds_di_port = VIA_DI_PORT_NONE;
+			dev_private->ext_tmds_di_port =
+						VIA_DI_PORT_NONE;
 			break;
 		}
 	}
