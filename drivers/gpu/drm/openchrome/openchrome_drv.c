@@ -26,8 +26,9 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
+
+
 #include <linux/module.h>
-#include <linux/console.h>
 
 #include <drm/drmP.h>
 #include <drm/via_drm.h>
@@ -267,132 +268,9 @@ static void via_driver_lastclose(struct drm_device *dev)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static int via_pm_ops_suspend(struct device *dev)
-{
-	struct pci_dev *pdev = to_pci_dev(dev);
-	struct drm_device *drm_dev = pci_get_drvdata(pdev);
-	struct openchrome_drm_private *dev_private = drm_dev->dev_private;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	console_lock();
-	drm_fb_helper_set_suspend(&dev_private->via_fbdev->helper,
-					true);
-
-	/*
-	 * Frame Buffer Size Control register (SR14) and GTI registers
-	 * (SR66 through SR6F) need to be saved and restored upon standby
-	 * resume or can lead to a display corruption issue. These registers
-	 * are only available on VX800, VX855, and VX900 chipsets. This bug
-	 * was observed on VIA EPIA-M830 mainboard.
-	 */
-	if ((drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
-		(drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
-		(drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA)) {
-		dev_private->saved_sr14 = vga_rseq(VGABASE, 0x14);
-
-		dev_private->saved_sr66 = vga_rseq(VGABASE, 0x66);
-		dev_private->saved_sr67 = vga_rseq(VGABASE, 0x67);
-		dev_private->saved_sr68 = vga_rseq(VGABASE, 0x68);
-		dev_private->saved_sr69 = vga_rseq(VGABASE, 0x69);
-		dev_private->saved_sr6a = vga_rseq(VGABASE, 0x6a);
-		dev_private->saved_sr6b = vga_rseq(VGABASE, 0x6b);
-		dev_private->saved_sr6c = vga_rseq(VGABASE, 0x6c);
-		dev_private->saved_sr6d = vga_rseq(VGABASE, 0x6d);
-		dev_private->saved_sr6e = vga_rseq(VGABASE, 0x6e);
-		dev_private->saved_sr6f = vga_rseq(VGABASE, 0x6f);
-	}
-
-	/* 3X5.3B through 3X5.3F are scratch pad registers.
-	 * They are important for FP detection.
-	 * Their values need to be saved because they get lost
-	 * when resuming from standby. */
-	dev_private->saved_cr3b = vga_rcrt(VGABASE, 0x3b);
-	dev_private->saved_cr3c = vga_rcrt(VGABASE, 0x3c);
-	dev_private->saved_cr3d = vga_rcrt(VGABASE, 0x3d);
-	dev_private->saved_cr3e = vga_rcrt(VGABASE, 0x3e);
-	dev_private->saved_cr3f = vga_rcrt(VGABASE, 0x3f);
-
-	console_unlock();
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return 0;
-}
-
-static int via_pm_ops_resume(struct device *dev)
-{
-	struct pci_dev *pdev = to_pci_dev(dev);
-	struct drm_device *drm_dev = pci_get_drvdata(pdev);
-	struct openchrome_drm_private *dev_private =
-						drm_dev->dev_private;
-	void __iomem *regs = ioport_map(0x3c0, 100);
-	u8 val;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	console_lock();
-
-	val = ioread8(regs + 0x03);
-	iowrite8(val | 0x1, regs + 0x03);
-	val = ioread8(regs + 0x0C);
-	iowrite8(val | 0x1, regs + 0x02);
-
-	/* Unlock Extended IO Space. */
-	iowrite8(0x10, regs + 0x04);
-	iowrite8(0x01, regs + 0x05);
-	/* Unlock CRTC register protect. */
-	iowrite8(0x47, regs + 0x14);
-
-	/* Enable MMIO. */
-	iowrite8(0x1a, regs + 0x04);
-	val = ioread8(regs + 0x05);
-	iowrite8(val | 0x38, regs + 0x05);
-
-	/*
-	 * Frame Buffer Size Control register (SR14) and GTI registers
-	 * (SR66 through SR6F) need to be saved and restored upon standby
-	 * resume or can lead to a display corruption issue. These registers
-	 * are only available on VX800, VX855, and VX900 chipsets. This bug
-	 * was observed on VIA EPIA-M830 mainboard.
-	 */
-	if ((drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
-		(drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
-		(drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA)) {
-		vga_wseq(VGABASE, 0x14, dev_private->saved_sr14);
-
-		vga_wseq(VGABASE, 0x66, dev_private->saved_sr66);
-		vga_wseq(VGABASE, 0x67, dev_private->saved_sr67);
-		vga_wseq(VGABASE, 0x68, dev_private->saved_sr68);
-		vga_wseq(VGABASE, 0x69, dev_private->saved_sr69);
-		vga_wseq(VGABASE, 0x6a, dev_private->saved_sr6a);
-		vga_wseq(VGABASE, 0x6b, dev_private->saved_sr6b);
-		vga_wseq(VGABASE, 0x6c, dev_private->saved_sr6c);
-		vga_wseq(VGABASE, 0x6d, dev_private->saved_sr6d);
-		vga_wseq(VGABASE, 0x6e, dev_private->saved_sr6e);
-		vga_wseq(VGABASE, 0x6f, dev_private->saved_sr6f);
-	}
-
-	/* 3X5.3B through 3X5.3F are scratch pad registers.
-	 * They are important for FP detection.
-	 * Their values need to be restored because they are undefined
-	 * after resuming from standby. */
-	vga_wcrt(VGABASE, 0x3b, dev_private->saved_cr3b);
-	vga_wcrt(VGABASE, 0x3c, dev_private->saved_cr3c);
-	vga_wcrt(VGABASE, 0x3d, dev_private->saved_cr3d);
-	vga_wcrt(VGABASE, 0x3e, dev_private->saved_cr3e);
-	vga_wcrt(VGABASE, 0x3f, dev_private->saved_cr3f);
-
-	drm_helper_resume_force_mode(drm_dev);
-	drm_fb_helper_set_suspend(&dev_private->via_fbdev->helper, false);
-	console_unlock();
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return 0;
-}
-
-static const struct dev_pm_ops via_dev_pm_ops = {
-	.suspend = via_pm_ops_suspend,
-	.resume = via_pm_ops_resume,
+static const struct dev_pm_ops openchrome_dev_pm_ops = {
+	.suspend	= openchrome_dev_pm_ops_suspend,
+	.resume		= openchrome_dev_pm_ops_resume,
 };
 
 static const struct file_operations via_driver_fops = {
@@ -455,7 +333,7 @@ static struct pci_driver via_pci_driver = {
 	.id_table	= via_pci_table,
 	.probe		= via_pci_probe,
 	.remove		= via_pci_remove,
-	.driver.pm	= &via_dev_pm_ops,
+	.driver.pm	= &openchrome_dev_pm_ops,
 };
 
 static int __init via_init(void)

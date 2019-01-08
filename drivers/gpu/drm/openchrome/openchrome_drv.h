@@ -277,6 +277,9 @@ int openchrome_device_init(struct openchrome_drm_private *dev_private);
 
 extern void via_engine_init(struct drm_device *dev);
 
+int openchrome_dev_pm_ops_suspend(struct device *dev);
+int openchrome_dev_pm_ops_resume(struct device *dev);
+
 extern int via_vram_detect(struct openchrome_drm_private *dev_private);
 extern int openchrome_vram_init(
 			struct openchrome_drm_private *dev_private);
