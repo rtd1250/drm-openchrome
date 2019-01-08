@@ -263,6 +263,18 @@ extern int via_max_ioctl;
 
 extern int via_hdmi_audio;
 
+#if IS_ENABLED(CONFIG_AGP)
+int via_detect_agp(struct drm_device *dev);
+void via_agp_engine_init(struct openchrome_drm_private *dev_private);
+#endif /* IS_ENABLED(CONFIG_AGP) */
+int openchrome_mmio_init(struct openchrome_drm_private *dev_private);
+void openchrome_mmio_fini(struct openchrome_drm_private *dev_private);
+void openchrome_graphics_unlock(
+			struct openchrome_drm_private *dev_private);
+void chip_revision_info(struct openchrome_drm_private *dev_private);
+void openchrome_flag_init(struct openchrome_drm_private *dev_private);
+int openchrome_device_init(struct openchrome_drm_private *dev_private);
+
 extern void via_engine_init(struct drm_device *dev);
 
 extern int via_vram_detect(struct openchrome_drm_private *dev_private);
