@@ -36,10 +36,6 @@
 
 #include "openchrome_drv.h"
 
-int via_modeset = 1;
-
-MODULE_PARM_DESC(modeset, "Disable/Enable modesetting");
-module_param_named(modeset, via_modeset, int, 0400);
 
 int via_hdmi_audio = 0;
 
@@ -285,7 +281,8 @@ static const struct file_operations via_driver_fops = {
 
 static struct drm_driver via_driver = {
 	.driver_features = DRIVER_USE_AGP | DRIVER_HAVE_IRQ |
-				DRIVER_IRQ_SHARED | DRIVER_GEM,
+				DRIVER_IRQ_SHARED | DRIVER_GEM |
+				DRIVER_MODESET,
 	.load = via_driver_load,
 	.unload = via_driver_unload,
 	.lastclose = via_driver_lastclose,
@@ -343,10 +340,6 @@ static int __init via_init(void)
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	via_driver.num_ioctls = via_max_ioctl;
-
-	if (via_modeset) {
-		via_driver.driver_features |= DRIVER_MODESET;
-	}
 
 	ret = pci_register_driver(&via_pci_driver);
 
