@@ -31,42 +31,6 @@
 
 #define DRM_FILE_PAGE_OFFSET (0x100000000ULL >> PAGE_SHIFT)
 
-static int via_ttm_global_init(
-			struct openchrome_drm_private *dev_private)
-{
-	struct drm_global_reference *bo_ref;
-	int rc;
-
-	bo_ref = &dev_private->ttm.bo_global_ref.ref;
-	bo_ref->global_type = DRM_GLOBAL_TTM_BO;
-	bo_ref->size = sizeof(struct ttm_bo_global);
-	bo_ref->init = &ttm_bo_global_init;
-	bo_ref->release = &ttm_bo_global_release;
-
-	rc = drm_global_item_ref(bo_ref);
-	if (unlikely(rc != 0)) {
-		DRM_ERROR("Failed setting up TTM BO subsystem\n");
-		return rc;
-	}
-
-	return rc;
-}
-
-static void via_ttm_global_release(struct drm_global_reference *global_ref,
-				struct ttm_bo_global_ref *global_bo,
-				struct ttm_bo_device *bdev)
-{
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	if (global_bo->ref.release == NULL)
-		return;
-
-	drm_global_item_unref(&global_bo->ref);
-	global_bo->ref.release == NULL;
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-}
-
 static void via_ttm_bo_destroy(struct ttm_buffer_object *bo)
 {
 	struct ttm_heap *heap = container_of(bo, struct ttm_heap, bo);
@@ -251,16 +215,9 @@ int via_mm_init(struct openchrome_drm_private *dev_private)
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	ret = via_ttm_global_init(dev_private);
-	if (ret) {
-		DRM_ERROR("Failed to initialise TTM: %d\n", ret);
-		goto exit;
-	}
-
 	dev_private->ttm.bdev.dev_mapping = dev->anon_inode->i_mapping;
 
 	ret = ttm_bo_device_init(&dev_private->ttm.bdev,
-				dev_private->ttm.bo_global_ref.ref.object,
 				&via_bo_driver,
 				dev->anon_inode->i_mapping,
 				DRM_FILE_PAGE_OFFSET,
@@ -289,10 +246,6 @@ void via_mm_fini(struct drm_device *dev)
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	ttm_bo_device_release(&dev_private->ttm.bdev);
-
-	via_ttm_global_release(&dev_private->ttm.mem_global_ref,
-				&dev_private->ttm.bo_global_ref,
-				&dev_private->ttm.bdev);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
