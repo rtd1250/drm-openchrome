@@ -70,7 +70,7 @@ static int via_dumb_create(struct drm_file *filp,
 
 	ret = drm_gem_handle_create(filp, obj, &args->handle);
 	/* drop reference from allocate - handle holds it now */
-	drm_gem_object_unreference_unlocked(obj);
+	drm_gem_object_put_unlocked(obj);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
@@ -94,7 +94,7 @@ static int via_dumb_mmap(struct drm_file *filp, struct drm_device *dev,
 		*offset_p = drm_vma_node_offset_addr(&bo->vma_node);
 		rc = 0;
 	}
-	drm_gem_object_unreference_unlocked(obj);
+	drm_gem_object_put_unlocked(obj);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return rc;

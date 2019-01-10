@@ -966,7 +966,7 @@ via_user_framebuffer_destroy(struct drm_framebuffer *fb)
 	struct drm_gem_object *gem_obj = via_fb->gem_obj;
 
 	if (gem_obj) {
-		drm_gem_object_unreference_unlocked(gem_obj);
+		drm_gem_object_put_unlocked(gem_obj);
 		via_fb->gem_obj = NULL;
 	}
 
@@ -1013,7 +1013,7 @@ via_user_framebuffer_create(struct drm_device *dev,
 	drm_helper_mode_fill_fb_struct(dev, &via_fb->fb, mode_cmd);
 	ret = drm_framebuffer_init(dev, &via_fb->fb, &via_fb_funcs);
 	if (ret) {
-		drm_gem_object_unreference(gem_obj);
+		drm_gem_object_put(gem_obj);
 		kfree(via_fb);
 		return ERR_PTR(ret);
 	}
@@ -1181,7 +1181,7 @@ out_err:
 	}
 
 	if (gem_obj) {
-		drm_gem_object_unreference_unlocked(gem_obj);
+		drm_gem_object_put_unlocked(gem_obj);
 		via_fb->gem_obj = NULL;
 	}
 exit:
@@ -1265,7 +1265,7 @@ void via_fbdev_fini(struct drm_device *dev)
 	}
 
 	if (via_fb->gem_obj) {
-		drm_gem_object_unreference_unlocked(via_fb->gem_obj);
+		drm_gem_object_put_unlocked(via_fb->gem_obj);
 		via_fb->gem_obj = NULL;
 	}
 

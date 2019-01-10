@@ -333,7 +333,7 @@ static int via_crtc_cursor_set(struct drm_crtc *crtc,
 		}
 		ttm_bo_kunmap(&user_kmap);
 	}
-	drm_gem_object_unreference_unlocked(obj);
+	drm_gem_object_put_unlocked(obj);
 	via_cursor_address(crtc);
 	via_show_cursor(crtc);
 

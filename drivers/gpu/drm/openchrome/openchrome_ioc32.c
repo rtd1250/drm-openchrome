@@ -74,7 +74,7 @@ via_gem_alloc(struct drm_device *dev, void *data,
 	if (obj != NULL) {
 		ret = drm_gem_handle_create(filp, obj, &args->handle);
 		/* drop reference from allocate - handle holds it now */
-		drm_gem_object_unreference_unlocked(obj);
+		drm_gem_object_put_unlocked(obj);
 		if (!ret) {
 			struct ttm_buffer_object *bo = ttm_gem_mapping(obj);
 
@@ -126,7 +126,7 @@ via_gem_state(struct drm_device *dev, void *data, struct drm_file *file_priv)
 		}
 	}
 	mutex_lock(&dev->struct_mutex);
-	drm_gem_object_unreference(obj);
+	drm_gem_object_put(obj);
 	mutex_unlock(&dev->struct_mutex);
 	return ret;
 }
@@ -157,7 +157,7 @@ via_gem_wait(struct drm_device *dev, void *data, struct drm_file *file_priv)
 	ttm_bo_unreserve(bo);
 
 	mutex_lock(&dev->struct_mutex);
-	drm_gem_object_unreference(obj);
+	drm_gem_object_put(obj);
 	mutex_unlock(&dev->struct_mutex);
 	return ret;
 }
