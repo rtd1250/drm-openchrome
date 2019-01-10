@@ -37,7 +37,6 @@
 #include <video/vga.h>
 
 #include <drm/drmP.h>
-#include <drm/drm_global.h>
 #include <drm/drm_gem.h>
 
 #include "ttm/ttm_bo_api.h"
