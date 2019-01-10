@@ -31,38 +31,12 @@
 
 #define DRM_FILE_PAGE_OFFSET (0x100000000ULL >> PAGE_SHIFT)
 
-static int via_ttm_mem_global_init(struct drm_global_reference *ref)
-{
-	return ttm_mem_global_init(ref->object);
-}
-
-static void via_ttm_mem_global_release(struct drm_global_reference *ref)
-{
-	ttm_mem_global_release(ref->object);
-}
-
 static int via_ttm_global_init(
 			struct openchrome_drm_private *dev_private)
 {
-	struct drm_global_reference *global_ref;
 	struct drm_global_reference *bo_ref;
 	int rc;
 
-	global_ref = &dev_private->ttm.mem_global_ref;
-	global_ref->global_type = DRM_GLOBAL_TTM_MEM;
-	global_ref->size = sizeof(struct ttm_mem_global);
-	global_ref->init = &via_ttm_mem_global_init;
-	global_ref->release = &via_ttm_mem_global_release;
-
-	rc = drm_global_item_ref(global_ref);
-	if (unlikely(rc != 0)) {
-		DRM_ERROR("Failed setting up TTM memory accounting\n");
-		global_ref->release = NULL;
-		return rc;
-	}
-
-	dev_private->ttm.bo_global_ref.mem_glob =
-				dev_private->ttm.mem_global_ref.object;
 	bo_ref = &dev_private->ttm.bo_global_ref.ref;
 	bo_ref->global_type = DRM_GLOBAL_TTM_BO;
 	bo_ref->size = sizeof(struct ttm_bo_global);
@@ -72,8 +46,6 @@ static int via_ttm_global_init(
 	rc = drm_global_item_ref(bo_ref);
 	if (unlikely(rc != 0)) {
 		DRM_ERROR("Failed setting up TTM BO subsystem\n");
-		drm_global_item_unref(global_ref);
-		global_ref->release = NULL;
 		return rc;
 	}
 
@@ -86,12 +58,11 @@ static void via_ttm_global_release(struct drm_global_reference *global_ref,
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if (global_ref->release == NULL)
+	if (global_bo->ref.release == NULL)
 		return;
 
 	drm_global_item_unref(&global_bo->ref);
-	drm_global_item_unref(global_ref);
-	global_ref->release = NULL;
+	global_bo->ref.release == NULL;
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
