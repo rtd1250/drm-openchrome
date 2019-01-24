@@ -147,10 +147,6 @@ static void via_driver_unload(struct drm_device *dev)
 
 	openchrome_mmio_fini(dev_private);
 
-#if IS_ENABLED(CONFIG_AGP)
-	if (dev->agp && dev->agp->acquired)
-		drm_agp_release(dev);
-#endif
 	kfree(dev_private);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
@@ -193,17 +189,6 @@ static int via_driver_load(struct drm_device *dev,
 
 	chip_revision_info(dev_private);
 
-#if IS_ENABLED(CONFIG_AGP)
-	if ((dev_private->engine_type <= VIA_ENG_H2) ||
-		(dev->agp &&
-		pci_find_capability(dev->pdev, PCI_CAP_ID_AGP))) {
-		ret = via_detect_agp(dev);
-		if (!ret)
-			via_agp_engine_init(dev_private);
-		else
-			DRM_ERROR("Failed to allocate AGP.\n");
-	}
-#endif
 	if (pci_is_pcie(dev->pdev)) {
 		/* Allocate GART. */
 		ret = via_ttm_allocate_kernel_buffer(
@@ -280,7 +265,7 @@ static const struct file_operations via_driver_fops = {
 };
 
 static struct drm_driver via_driver = {
-	.driver_features = DRIVER_USE_AGP | DRIVER_HAVE_IRQ |
+	.driver_features = DRIVER_HAVE_IRQ |
 				DRIVER_IRQ_SHARED | DRIVER_GEM |
 				DRIVER_MODESET,
 	.load = via_driver_load,

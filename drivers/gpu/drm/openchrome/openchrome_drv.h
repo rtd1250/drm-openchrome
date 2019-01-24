@@ -260,10 +260,6 @@ extern int via_max_ioctl;
 
 extern int via_hdmi_audio;
 
-#if IS_ENABLED(CONFIG_AGP)
-int via_detect_agp(struct drm_device *dev);
-void via_agp_engine_init(struct openchrome_drm_private *dev_private);
-#endif /* IS_ENABLED(CONFIG_AGP) */
 int openchrome_mmio_init(struct openchrome_drm_private *dev_private);
 void openchrome_mmio_fini(struct openchrome_drm_private *dev_private);
 void openchrome_graphics_unlock(

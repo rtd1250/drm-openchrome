@@ -51,14 +51,6 @@ static int via_invalidate_caches(struct ttm_bo_device *bdev,
 static int via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
 				struct ttm_mem_type_manager *man)
 {
-#if IS_ENABLED(CONFIG_AGP)
-	struct openchrome_drm_private *dev_private =
-					container_of(bdev,
-					struct openchrome_drm_private,
-					ttm.bdev);
-	struct drm_device *dev = dev_private->dev;
-#endif
-
 	switch (type) {
 	case TTM_PL_SYSTEM:
 		/* System memory */
@@ -70,23 +62,11 @@ static int via_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
 	case TTM_PL_TT:
 		man->func = &ttm_bo_manager_func;
 
-		/* By default we handle PCI/PCIe DMA. If AGP is avaliable
-		 * then we use that instead */
+		/* By default we handle PCI/PCIe DMA. */
 		man->flags = TTM_MEMTYPE_FLAG_MAPPABLE |
 				TTM_MEMTYPE_FLAG_CMA;
 		man->available_caching = TTM_PL_MASK_CACHING;
 		man->default_caching = TTM_PL_FLAG_CACHED;
-
-#if IS_ENABLED(CONFIG_AGP)
-		if (pci_find_capability(dev->pdev, PCI_CAP_ID_AGP) &&
-			dev->agp != NULL) {
-			man->flags = TTM_MEMTYPE_FLAG_MAPPABLE;
-			man->available_caching = TTM_PL_FLAG_UNCACHED |
-						TTM_PL_FLAG_WC;
-			man->default_caching = TTM_PL_FLAG_WC;
-		} else
-			DRM_ERROR("AGP is possible but not enabled\n");
-#endif
 		break;
 
 	case TTM_PL_VRAM:
@@ -163,12 +143,6 @@ static int via_ttm_io_mem_reserve(struct ttm_bo_device *bdev,
 		return 0;
 
 	case TTM_PL_TT:
-#if IS_ENABLED(CONFIG_AGP)
-		if (pci_find_capability(dev->pdev, PCI_CAP_ID_AGP)) {
-			mem->bus.is_iomem = !dev->agp->cant_use_aperture;
-			mem->bus.base = dev->agp->base;
-		}
-#endif
 		break;
 
 	case TTM_PL_PRIV:
