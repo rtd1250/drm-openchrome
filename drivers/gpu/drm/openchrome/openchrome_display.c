@@ -480,7 +480,6 @@ via_modeset_init(struct drm_device *dev)
 {
 	struct openchrome_drm_private *dev_private = dev->dev_private;
 	int ret = 0;
-	int i;
 
 	drm_mode_config_init(dev);
 
@@ -498,8 +497,15 @@ via_modeset_init(struct drm_device *dev)
 	via_i2c_init(dev);
 	via_hwcursor_init(dev_private);
 
-	for (i = 0; i < 2; i++)
-		via_crtc_init(dev, i);
+	ret = via_crtc_init(dev, 0);
+	if (ret) {
+		goto exit;
+	}
+
+	ret = via_crtc_init(dev, 1);
+	if (ret) {
+		goto exit;
+	}
 
 	openchrome_ext_dvi_probe(dev);
 	via_tmds_probe(dev);

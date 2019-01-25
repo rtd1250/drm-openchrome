@@ -2402,8 +2402,7 @@ static const struct drm_crtc_helper_funcs via_iga2_helper_funcs = {
 	.mode_set_base_atomic = via_iga2_mode_set_base_atomic,
 };
 
-void
-via_crtc_init(struct drm_device *dev, int index)
+int via_crtc_init(struct drm_device *dev, int index)
 {
 	struct openchrome_drm_private *dev_private =
 						dev->dev_private;
@@ -2411,6 +2410,7 @@ via_crtc_init(struct drm_device *dev, int index)
 	struct drm_crtc *crtc = &iga->base;
 	int cursor_size = 64 * 64 * 4, i;
 	u16 *gamma;
+	int ret;
 
 	iga->index = index;
 	if (index) {
@@ -2582,8 +2582,11 @@ via_crtc_init(struct drm_device *dev, int index)
 			|| dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)
 		cursor_size = 32 * 32 * 4;
 
-	if (via_ttm_allocate_kernel_buffer(&dev_private->ttm.bdev,
+	ret = via_ttm_allocate_kernel_buffer(&dev_private->ttm.bdev,
 				cursor_size, 16,
-				TTM_PL_FLAG_VRAM, &iga->cursor_kmap))
+				TTM_PL_FLAG_VRAM, &iga->cursor_kmap);
+	if (ret)
 		DRM_ERROR("failed to create cursor\n");
+
+	return ret;
 }
