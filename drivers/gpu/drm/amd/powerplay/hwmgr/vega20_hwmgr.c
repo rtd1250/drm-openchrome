@@ -47,8 +47,13 @@
 #include "pp_overdriver.h"
 #include "pp_thermal.h"
 #include "soc15_common.h"
+#include "vega20_baco.h"
 #include "smuio/smuio_9_0_offset.h"
 #include "smuio/smuio_9_0_sh_mask.h"
+#include "nbio/nbio_7_4_sh_mask.h"
+
+#define smnPCIE_LC_SPEED_CNTL			0x11140290
+#define smnPCIE_LC_LINK_WIDTH_CNTL		0x11140288
 
 static void vega20_set_default_registry_data(struct pp_hwmgr *hwmgr)
 {
@@ -130,7 +135,7 @@ static void vega20_set_default_registry_data(struct pp_hwmgr *hwmgr)
 	data->registry_data.disable_auto_wattman = 1;
 	data->registry_data.auto_wattman_debug = 0;
 	data->registry_data.auto_wattman_sample_period = 100;
-	data->registry_data.fclk_gfxclk_ratio = 0x3F6CCCCD;
+	data->registry_data.fclk_gfxclk_ratio = 0;
 	data->registry_data.auto_wattman_threshold = 50;
 	data->registry_data.gfxoff_controlled_by_driver = 1;
 	data->gfxoff_allowed = false;
@@ -386,9 +391,9 @@ static int vega20_hwmgr_backend_init(struct pp_hwmgr *hwmgr)
 
 	hwmgr->backend = data;
 
-	hwmgr->workload_mask = 1 << hwmgr->workload_prority[PP_SMC_POWER_PROFILE_VIDEO];
-	hwmgr->power_profile_mode = PP_SMC_POWER_PROFILE_VIDEO;
-	hwmgr->default_power_profile_mode = PP_SMC_POWER_PROFILE_VIDEO;
+	hwmgr->workload_mask = 1 << hwmgr->workload_prority[PP_SMC_POWER_PROFILE_BOOTUP_DEFAULT];
+	hwmgr->power_profile_mode = PP_SMC_POWER_PROFILE_BOOTUP_DEFAULT;
+	hwmgr->default_power_profile_mode = PP_SMC_POWER_PROFILE_BOOTUP_DEFAULT;
 
 	vega20_set_default_registry_data(hwmgr);
 
@@ -766,6 +771,54 @@ static int vega20_init_smc_table(struct pp_hwmgr *hwmgr)
 	return 0;
 }
 
+/*
+ * Override PCIe link speed and link width for DPM Level 1. PPTable entries
+ * reflect the ASIC capabilities and not the system capabilities. For e.g.
+ * Vega20 board in a PCI Gen3 system. In this case, when SMU's tries to switch
+ * to DPM1, it fails as system doesn't support Gen4.
+ */
+static int vega20_override_pcie_parameters(struct pp_hwmgr *hwmgr)
+{
+	struct amdgpu_device *adev = (struct amdgpu_device *)(hwmgr->adev);
+	uint32_t pcie_gen = 0, pcie_width = 0, smu_pcie_arg;
+	int ret;
+
+	if (adev->pm.pcie_gen_mask & CAIL_PCIE_LINK_SPEED_SUPPORT_GEN4)
+		pcie_gen = 3;
+	else if (adev->pm.pcie_gen_mask & CAIL_PCIE_LINK_SPEED_SUPPORT_GEN3)
+		pcie_gen = 2;
+	else if (adev->pm.pcie_gen_mask & CAIL_PCIE_LINK_SPEED_SUPPORT_GEN2)
+		pcie_gen = 1;
+	else if (adev->pm.pcie_gen_mask & CAIL_PCIE_LINK_SPEED_SUPPORT_GEN1)
+		pcie_gen = 0;
+
+	if (adev->pm.pcie_mlw_mask & CAIL_PCIE_LINK_WIDTH_SUPPORT_X16)
+		pcie_width = 6;
+	else if (adev->pm.pcie_mlw_mask & CAIL_PCIE_LINK_WIDTH_SUPPORT_X12)
+		pcie_width = 5;
+	else if (adev->pm.pcie_mlw_mask & CAIL_PCIE_LINK_WIDTH_SUPPORT_X8)
+		pcie_width = 4;
+	else if (adev->pm.pcie_mlw_mask & CAIL_PCIE_LINK_WIDTH_SUPPORT_X4)
+		pcie_width = 3;
+	else if (adev->pm.pcie_mlw_mask & CAIL_PCIE_LINK_WIDTH_SUPPORT_X2)
+		pcie_width = 2;
+	else if (adev->pm.pcie_mlw_mask & CAIL_PCIE_LINK_WIDTH_SUPPORT_X1)
+		pcie_width = 1;
+
+	/* Bit 31:16: LCLK DPM level. 0 is DPM0, and 1 is DPM1
+	 * Bit 15:8:  PCIE GEN, 0 to 3 corresponds to GEN1 to GEN4
+	 * Bit 7:0:   PCIE lane width, 1 to 7 corresponds is x1 to x32
+	 */
+	smu_pcie_arg = (1 << 16) | (pcie_gen << 8) | pcie_width;
+	ret = smum_send_msg_to_smc_with_parameter(hwmgr,
+			PPSMC_MSG_OverridePcieParameters, smu_pcie_arg);
+	PP_ASSERT_WITH_CODE(!ret,
+		"[OverridePcieParameters] Attempt to override pcie params failed!",
+		return ret);
+
+	return 0;
+}
+
 static int vega20_set_allowed_featuresmask(struct pp_hwmgr *hwmgr)
 {
 	struct vega20_hwmgr *data =
@@ -797,6 +850,11 @@ static int vega20_set_allowed_featuresmask(struct pp_hwmgr *hwmgr)
 		return ret);
 
 	return 0;
+}
+
+static int vega20_run_btc(struct pp_hwmgr *hwmgr)
+{
+	return smum_send_msg_to_smc(hwmgr, PPSMC_MSG_RunBtc);
 }
 
 static int vega20_run_btc_afll(struct pp_hwmgr *hwmgr)
@@ -975,6 +1033,9 @@ static int vega20_od8_set_feature_capabilities(
 	if (pptable_information->od_feature_capabilities[ATOM_VEGA20_ODFEATURE_FAN_ZERO_RPM_CONTROL] &&
 	    pp_table->FanZeroRpmEnable)
 		od_settings->overdrive8_capabilities |= OD8_FAN_ZERO_RPM_CONTROL;
+
+	if (!od_settings->overdrive8_capabilities)
+		hwmgr->od_enabled = false;
 
 	return 0;
 }
@@ -1557,6 +1618,11 @@ static int vega20_enable_dpm_tasks(struct pp_hwmgr *hwmgr)
 			"[EnableDPMTasks] Failed to initialize SMC table!",
 			return result);
 
+	result = vega20_run_btc(hwmgr);
+	PP_ASSERT_WITH_CODE(!result,
+			"[EnableDPMTasks] Failed to run btc!",
+			return result);
+
 	result = vega20_run_btc_afll(hwmgr);
 	PP_ASSERT_WITH_CODE(!result,
 			"[EnableDPMTasks] Failed to run btc afll!",
@@ -1565,6 +1631,11 @@ static int vega20_enable_dpm_tasks(struct pp_hwmgr *hwmgr)
 	result = vega20_enable_all_smu_features(hwmgr);
 	PP_ASSERT_WITH_CODE(!result,
 			"[EnableDPMTasks] Failed to enable all smu features!",
+			return result);
+
+	result = vega20_override_pcie_parameters(hwmgr);
+	PP_ASSERT_WITH_CODE(!result,
+			"[EnableDPMTasks] Failed to override pcie parameters!",
 			return result);
 
 	result = vega20_notify_smc_display_change(hwmgr);
@@ -1660,14 +1731,15 @@ static uint32_t vega20_find_highest_dpm_level(
 	return i;
 }
 
-static int vega20_upload_dpm_min_level(struct pp_hwmgr *hwmgr)
+static int vega20_upload_dpm_min_level(struct pp_hwmgr *hwmgr, uint32_t feature_mask)
 {
 	struct vega20_hwmgr *data =
 			(struct vega20_hwmgr *)(hwmgr->backend);
 	uint32_t min_freq;
 	int ret = 0;
 
-	if (data->smu_features[GNLD_DPM_GFXCLK].enabled) {
+	if (data->smu_features[GNLD_DPM_GFXCLK].enabled &&
+	   (feature_mask & FEATURE_DPM_GFXCLK_MASK)) {
 		min_freq = data->dpm_table.gfx_table.dpm_state.soft_min_level;
 		PP_ASSERT_WITH_CODE(!(ret = smum_send_msg_to_smc_with_parameter(
 					hwmgr, PPSMC_MSG_SetSoftMinByFreq,
@@ -1676,23 +1748,18 @@ static int vega20_upload_dpm_min_level(struct pp_hwmgr *hwmgr)
 					return ret);
 	}
 
-	if (data->smu_features[GNLD_DPM_UCLK].enabled) {
+	if (data->smu_features[GNLD_DPM_UCLK].enabled &&
+	   (feature_mask & FEATURE_DPM_UCLK_MASK)) {
 		min_freq = data->dpm_table.mem_table.dpm_state.soft_min_level;
 		PP_ASSERT_WITH_CODE(!(ret = smum_send_msg_to_smc_with_parameter(
 					hwmgr, PPSMC_MSG_SetSoftMinByFreq,
 					(PPCLK_UCLK << 16) | (min_freq & 0xffff))),
 					"Failed to set soft min memclk !",
 					return ret);
-
-		min_freq = data->dpm_table.mem_table.dpm_state.hard_min_level;
-		PP_ASSERT_WITH_CODE(!(ret = smum_send_msg_to_smc_with_parameter(
-					hwmgr, PPSMC_MSG_SetHardMinByFreq,
-					(PPCLK_UCLK << 16) | (min_freq & 0xffff))),
-					"Failed to set hard min memclk !",
-					return ret);
 	}
 
-	if (data->smu_features[GNLD_DPM_UVD].enabled) {
+	if (data->smu_features[GNLD_DPM_UVD].enabled &&
+	   (feature_mask & FEATURE_DPM_UVD_MASK)) {
 		min_freq = data->dpm_table.vclk_table.dpm_state.soft_min_level;
 
 		PP_ASSERT_WITH_CODE(!(ret = smum_send_msg_to_smc_with_parameter(
@@ -1710,7 +1777,8 @@ static int vega20_upload_dpm_min_level(struct pp_hwmgr *hwmgr)
 					return ret);
 	}
 
-	if (data->smu_features[GNLD_DPM_VCE].enabled) {
+	if (data->smu_features[GNLD_DPM_VCE].enabled &&
+	   (feature_mask & FEATURE_DPM_VCE_MASK)) {
 		min_freq = data->dpm_table.eclk_table.dpm_state.soft_min_level;
 
 		PP_ASSERT_WITH_CODE(!(ret = smum_send_msg_to_smc_with_parameter(
@@ -1720,7 +1788,8 @@ static int vega20_upload_dpm_min_level(struct pp_hwmgr *hwmgr)
 					return ret);
 	}
 
-	if (data->smu_features[GNLD_DPM_SOCCLK].enabled) {
+	if (data->smu_features[GNLD_DPM_SOCCLK].enabled &&
+	   (feature_mask & FEATURE_DPM_SOCCLK_MASK)) {
 		min_freq = data->dpm_table.soc_table.dpm_state.soft_min_level;
 
 		PP_ASSERT_WITH_CODE(!(ret = smum_send_msg_to_smc_with_parameter(
@@ -1730,17 +1799,40 @@ static int vega20_upload_dpm_min_level(struct pp_hwmgr *hwmgr)
 					return ret);
 	}
 
+	if (data->smu_features[GNLD_DPM_FCLK].enabled &&
+	   (feature_mask & FEATURE_DPM_FCLK_MASK)) {
+		min_freq = data->dpm_table.fclk_table.dpm_state.soft_min_level;
+
+		PP_ASSERT_WITH_CODE(!(ret = smum_send_msg_to_smc_with_parameter(
+					hwmgr, PPSMC_MSG_SetSoftMinByFreq,
+					(PPCLK_FCLK << 16) | (min_freq & 0xffff))),
+					"Failed to set soft min fclk!",
+					return ret);
+	}
+
+	if (data->smu_features[GNLD_DPM_DCEFCLK].enabled &&
+	   (feature_mask & FEATURE_DPM_DCEFCLK_MASK)) {
+		min_freq = data->dpm_table.dcef_table.dpm_state.hard_min_level;
+
+		PP_ASSERT_WITH_CODE(!(ret = smum_send_msg_to_smc_with_parameter(
+					hwmgr, PPSMC_MSG_SetHardMinByFreq,
+					(PPCLK_DCEFCLK << 16) | (min_freq & 0xffff))),
+					"Failed to set hard min dcefclk!",
+					return ret);
+	}
+
 	return ret;
 }
 
-static int vega20_upload_dpm_max_level(struct pp_hwmgr *hwmgr)
+static int vega20_upload_dpm_max_level(struct pp_hwmgr *hwmgr, uint32_t feature_mask)
 {
 	struct vega20_hwmgr *data =
 			(struct vega20_hwmgr *)(hwmgr->backend);
 	uint32_t max_freq;
 	int ret = 0;
 
-	if (data->smu_features[GNLD_DPM_GFXCLK].enabled) {
+	if (data->smu_features[GNLD_DPM_GFXCLK].enabled &&
+	   (feature_mask & FEATURE_DPM_GFXCLK_MASK)) {
 		max_freq = data->dpm_table.gfx_table.dpm_state.soft_max_level;
 
 		PP_ASSERT_WITH_CODE(!(ret = smum_send_msg_to_smc_with_parameter(
@@ -1750,7 +1842,8 @@ static int vega20_upload_dpm_max_level(struct pp_hwmgr *hwmgr)
 					return ret);
 	}
 
-	if (data->smu_features[GNLD_DPM_UCLK].enabled) {
+	if (data->smu_features[GNLD_DPM_UCLK].enabled &&
+	   (feature_mask & FEATURE_DPM_UCLK_MASK)) {
 		max_freq = data->dpm_table.mem_table.dpm_state.soft_max_level;
 
 		PP_ASSERT_WITH_CODE(!(ret = smum_send_msg_to_smc_with_parameter(
@@ -1760,7 +1853,8 @@ static int vega20_upload_dpm_max_level(struct pp_hwmgr *hwmgr)
 					return ret);
 	}
 
-	if (data->smu_features[GNLD_DPM_UVD].enabled) {
+	if (data->smu_features[GNLD_DPM_UVD].enabled &&
+	   (feature_mask & FEATURE_DPM_UVD_MASK)) {
 		max_freq = data->dpm_table.vclk_table.dpm_state.soft_max_level;
 
 		PP_ASSERT_WITH_CODE(!(ret = smum_send_msg_to_smc_with_parameter(
@@ -1777,7 +1871,8 @@ static int vega20_upload_dpm_max_level(struct pp_hwmgr *hwmgr)
 					return ret);
 	}
 
-	if (data->smu_features[GNLD_DPM_VCE].enabled) {
+	if (data->smu_features[GNLD_DPM_VCE].enabled &&
+	   (feature_mask & FEATURE_DPM_VCE_MASK)) {
 		max_freq = data->dpm_table.eclk_table.dpm_state.soft_max_level;
 
 		PP_ASSERT_WITH_CODE(!(ret = smum_send_msg_to_smc_with_parameter(
@@ -1787,13 +1882,25 @@ static int vega20_upload_dpm_max_level(struct pp_hwmgr *hwmgr)
 					return ret);
 	}
 
-	if (data->smu_features[GNLD_DPM_SOCCLK].enabled) {
+	if (data->smu_features[GNLD_DPM_SOCCLK].enabled &&
+	   (feature_mask & FEATURE_DPM_SOCCLK_MASK)) {
 		max_freq = data->dpm_table.soc_table.dpm_state.soft_max_level;
 
 		PP_ASSERT_WITH_CODE(!(ret = smum_send_msg_to_smc_with_parameter(
 					hwmgr, PPSMC_MSG_SetSoftMaxByFreq,
 					(PPCLK_SOCCLK << 16) | (max_freq & 0xffff))),
 					"Failed to set soft max socclk!",
+					return ret);
+	}
+
+	if (data->smu_features[GNLD_DPM_FCLK].enabled &&
+	   (feature_mask & FEATURE_DPM_FCLK_MASK)) {
+		max_freq = data->dpm_table.fclk_table.dpm_state.soft_max_level;
+
+		PP_ASSERT_WITH_CODE(!(ret = smum_send_msg_to_smc_with_parameter(
+					hwmgr, PPSMC_MSG_SetSoftMaxByFreq,
+					(PPCLK_FCLK << 16) | (max_freq & 0xffff))),
+					"Failed to set soft max fclk!",
 					return ret);
 	}
 
@@ -1904,16 +2011,36 @@ static uint32_t vega20_dpm_get_mclk(struct pp_hwmgr *hwmgr, bool low)
 	return (mem_clk * 100);
 }
 
+static int vega20_get_metrics_table(struct pp_hwmgr *hwmgr, SmuMetrics_t *metrics_table)
+{
+	struct vega20_hwmgr *data =
+			(struct vega20_hwmgr *)(hwmgr->backend);
+	int ret = 0;
+
+	if (!data->metrics_time || time_after(jiffies, data->metrics_time + HZ / 2)) {
+		ret = smum_smc_table_manager(hwmgr, (uint8_t *)metrics_table,
+				TABLE_SMU_METRICS, true);
+		if (ret) {
+			pr_info("Failed to export SMU metrics table!\n");
+			return ret;
+		}
+		memcpy(&data->metrics_table, metrics_table, sizeof(SmuMetrics_t));
+		data->metrics_time = jiffies;
+	} else
+		memcpy(metrics_table, &data->metrics_table, sizeof(SmuMetrics_t));
+
+	return ret;
+}
+
 static int vega20_get_gpu_power(struct pp_hwmgr *hwmgr,
 		uint32_t *query)
 {
 	int ret = 0;
 	SmuMetrics_t metrics_table;
 
-	ret = smum_smc_table_manager(hwmgr, (uint8_t *)&metrics_table, TABLE_SMU_METRICS, true);
-	PP_ASSERT_WITH_CODE(!ret,
-			"Failed to export SMU METRICS table!",
-			return ret);
+	ret = vega20_get_metrics_table(hwmgr, &metrics_table);
+	if (ret)
+		return ret;
 
 	*query = metrics_table.CurrSocketPower << 8;
 
@@ -1944,10 +2071,9 @@ static int vega20_get_current_activity_percent(struct pp_hwmgr *hwmgr,
 	int ret = 0;
 	SmuMetrics_t metrics_table;
 
-	ret = smum_smc_table_manager(hwmgr, (uint8_t *)&metrics_table, TABLE_SMU_METRICS, true);
-	PP_ASSERT_WITH_CODE(!ret,
-			"Failed to export SMU METRICS table!",
-			return ret);
+	ret = vega20_get_metrics_table(hwmgr, &metrics_table);
+	if (ret)
+		return ret;
 
 	*activity_percent = metrics_table.AverageGfxActivity;
 
@@ -1959,16 +2085,18 @@ static int vega20_read_sensor(struct pp_hwmgr *hwmgr, int idx,
 {
 	struct vega20_hwmgr *data = (struct vega20_hwmgr *)(hwmgr->backend);
 	struct amdgpu_device *adev = hwmgr->adev;
+	SmuMetrics_t metrics_table;
 	uint32_t val_vid;
 	int ret = 0;
 
 	switch (idx) {
 	case AMDGPU_PP_SENSOR_GFX_SCLK:
-		ret = vega20_get_current_clk_freq(hwmgr,
-				PPCLK_GFXCLK,
-				(uint32_t *)value);
-		if (!ret)
-			*size = 4;
+		ret = vega20_get_metrics_table(hwmgr, &metrics_table);
+		if (ret)
+			return ret;
+
+		*((uint32_t *)value) = metrics_table.AverageGfxclkFrequency * 100;
+		*size = 4;
 		break;
 	case AMDGPU_PP_SENSOR_GFX_MCLK:
 		ret = vega20_get_current_clk_freq(hwmgr,
@@ -2126,12 +2254,18 @@ static int vega20_force_dpm_highest(struct pp_hwmgr *hwmgr)
 		data->dpm_table.mem_table.dpm_state.soft_max_level =
 		data->dpm_table.mem_table.dpm_levels[soft_level].value;
 
-	ret = vega20_upload_dpm_min_level(hwmgr);
+	soft_level = vega20_find_highest_dpm_level(&(data->dpm_table.soc_table));
+
+	data->dpm_table.soc_table.dpm_state.soft_min_level =
+		data->dpm_table.soc_table.dpm_state.soft_max_level =
+		data->dpm_table.soc_table.dpm_levels[soft_level].value;
+
+	ret = vega20_upload_dpm_min_level(hwmgr, 0xFFFFFFFF);
 	PP_ASSERT_WITH_CODE(!ret,
 			"Failed to upload boot level to highest!",
 			return ret);
 
-	ret = vega20_upload_dpm_max_level(hwmgr);
+	ret = vega20_upload_dpm_max_level(hwmgr, 0xFFFFFFFF);
 	PP_ASSERT_WITH_CODE(!ret,
 			"Failed to upload dpm max level to highest!",
 			return ret);
@@ -2158,12 +2292,18 @@ static int vega20_force_dpm_lowest(struct pp_hwmgr *hwmgr)
 		data->dpm_table.mem_table.dpm_state.soft_max_level =
 		data->dpm_table.mem_table.dpm_levels[soft_level].value;
 
-	ret = vega20_upload_dpm_min_level(hwmgr);
+	soft_level = vega20_find_lowest_dpm_level(&(data->dpm_table.soc_table));
+
+	data->dpm_table.soc_table.dpm_state.soft_min_level =
+		data->dpm_table.soc_table.dpm_state.soft_max_level =
+		data->dpm_table.soc_table.dpm_levels[soft_level].value;
+
+	ret = vega20_upload_dpm_min_level(hwmgr, 0xFFFFFFFF);
 	PP_ASSERT_WITH_CODE(!ret,
 			"Failed to upload boot level to highest!",
 			return ret);
 
-	ret = vega20_upload_dpm_max_level(hwmgr);
+	ret = vega20_upload_dpm_max_level(hwmgr, 0xFFFFFFFF);
 	PP_ASSERT_WITH_CODE(!ret,
 			"Failed to upload dpm max level to highest!",
 			return ret);
@@ -2174,14 +2314,38 @@ static int vega20_force_dpm_lowest(struct pp_hwmgr *hwmgr)
 
 static int vega20_unforce_dpm_levels(struct pp_hwmgr *hwmgr)
 {
+	struct vega20_hwmgr *data =
+			(struct vega20_hwmgr *)(hwmgr->backend);
+	uint32_t soft_min_level, soft_max_level;
 	int ret = 0;
 
-	ret = vega20_upload_dpm_min_level(hwmgr);
+	soft_min_level = vega20_find_lowest_dpm_level(&(data->dpm_table.gfx_table));
+	soft_max_level = vega20_find_highest_dpm_level(&(data->dpm_table.gfx_table));
+	data->dpm_table.gfx_table.dpm_state.soft_min_level =
+		data->dpm_table.gfx_table.dpm_levels[soft_min_level].value;
+	data->dpm_table.gfx_table.dpm_state.soft_max_level =
+		data->dpm_table.gfx_table.dpm_levels[soft_max_level].value;
+
+	soft_min_level = vega20_find_lowest_dpm_level(&(data->dpm_table.mem_table));
+	soft_max_level = vega20_find_highest_dpm_level(&(data->dpm_table.mem_table));
+	data->dpm_table.mem_table.dpm_state.soft_min_level =
+		data->dpm_table.mem_table.dpm_levels[soft_min_level].value;
+	data->dpm_table.mem_table.dpm_state.soft_max_level =
+		data->dpm_table.mem_table.dpm_levels[soft_max_level].value;
+
+	soft_min_level = vega20_find_lowest_dpm_level(&(data->dpm_table.soc_table));
+	soft_max_level = vega20_find_highest_dpm_level(&(data->dpm_table.soc_table));
+	data->dpm_table.soc_table.dpm_state.soft_min_level =
+		data->dpm_table.soc_table.dpm_levels[soft_min_level].value;
+	data->dpm_table.soc_table.dpm_state.soft_max_level =
+		data->dpm_table.soc_table.dpm_levels[soft_max_level].value;
+
+	ret = vega20_upload_dpm_min_level(hwmgr, 0xFFFFFFFF);
 	PP_ASSERT_WITH_CODE(!ret,
 			"Failed to upload DPM Bootup Levels!",
 			return ret);
 
-	ret = vega20_upload_dpm_max_level(hwmgr);
+	ret = vega20_upload_dpm_max_level(hwmgr, 0xFFFFFFFF);
 	PP_ASSERT_WITH_CODE(!ret,
 			"Failed to upload DPM Max Levels!",
 			return ret);
@@ -2226,7 +2390,7 @@ static int vega20_force_clock_level(struct pp_hwmgr *hwmgr,
 		enum pp_clock_type type, uint32_t mask)
 {
 	struct vega20_hwmgr *data = (struct vega20_hwmgr *)(hwmgr->backend);
-	uint32_t soft_min_level, soft_max_level;
+	uint32_t soft_min_level, soft_max_level, hard_min_level;
 	int ret = 0;
 
 	switch (type) {
@@ -2234,17 +2398,24 @@ static int vega20_force_clock_level(struct pp_hwmgr *hwmgr,
 		soft_min_level = mask ? (ffs(mask) - 1) : 0;
 		soft_max_level = mask ? (fls(mask) - 1) : 0;
 
+		if (soft_max_level >= data->dpm_table.gfx_table.count) {
+			pr_err("Clock level specified %d is over max allowed %d\n",
+					soft_max_level,
+					data->dpm_table.gfx_table.count - 1);
+			return -EINVAL;
+		}
+
 		data->dpm_table.gfx_table.dpm_state.soft_min_level =
 			data->dpm_table.gfx_table.dpm_levels[soft_min_level].value;
 		data->dpm_table.gfx_table.dpm_state.soft_max_level =
 			data->dpm_table.gfx_table.dpm_levels[soft_max_level].value;
 
-		ret = vega20_upload_dpm_min_level(hwmgr);
+		ret = vega20_upload_dpm_min_level(hwmgr, FEATURE_DPM_GFXCLK_MASK);
 		PP_ASSERT_WITH_CODE(!ret,
 			"Failed to upload boot level to lowest!",
 			return ret);
 
-		ret = vega20_upload_dpm_max_level(hwmgr);
+		ret = vega20_upload_dpm_max_level(hwmgr, FEATURE_DPM_GFXCLK_MASK);
 		PP_ASSERT_WITH_CODE(!ret,
 			"Failed to upload dpm max level to highest!",
 			return ret);
@@ -2254,24 +2425,121 @@ static int vega20_force_clock_level(struct pp_hwmgr *hwmgr,
 		soft_min_level = mask ? (ffs(mask) - 1) : 0;
 		soft_max_level = mask ? (fls(mask) - 1) : 0;
 
+		if (soft_max_level >= data->dpm_table.mem_table.count) {
+			pr_err("Clock level specified %d is over max allowed %d\n",
+					soft_max_level,
+					data->dpm_table.mem_table.count - 1);
+			return -EINVAL;
+		}
+
 		data->dpm_table.mem_table.dpm_state.soft_min_level =
 			data->dpm_table.mem_table.dpm_levels[soft_min_level].value;
 		data->dpm_table.mem_table.dpm_state.soft_max_level =
 			data->dpm_table.mem_table.dpm_levels[soft_max_level].value;
 
-		ret = vega20_upload_dpm_min_level(hwmgr);
+		ret = vega20_upload_dpm_min_level(hwmgr, FEATURE_DPM_UCLK_MASK);
 		PP_ASSERT_WITH_CODE(!ret,
 			"Failed to upload boot level to lowest!",
 			return ret);
 
-		ret = vega20_upload_dpm_max_level(hwmgr);
+		ret = vega20_upload_dpm_max_level(hwmgr, FEATURE_DPM_UCLK_MASK);
 		PP_ASSERT_WITH_CODE(!ret,
 			"Failed to upload dpm max level to highest!",
 			return ret);
 
 		break;
 
+	case PP_SOCCLK:
+		soft_min_level = mask ? (ffs(mask) - 1) : 0;
+		soft_max_level = mask ? (fls(mask) - 1) : 0;
+
+		if (soft_max_level >= data->dpm_table.soc_table.count) {
+			pr_err("Clock level specified %d is over max allowed %d\n",
+					soft_max_level,
+					data->dpm_table.soc_table.count - 1);
+			return -EINVAL;
+		}
+
+		data->dpm_table.soc_table.dpm_state.soft_min_level =
+			data->dpm_table.soc_table.dpm_levels[soft_min_level].value;
+		data->dpm_table.soc_table.dpm_state.soft_max_level =
+			data->dpm_table.soc_table.dpm_levels[soft_max_level].value;
+
+		ret = vega20_upload_dpm_min_level(hwmgr, FEATURE_DPM_SOCCLK_MASK);
+		PP_ASSERT_WITH_CODE(!ret,
+			"Failed to upload boot level to lowest!",
+			return ret);
+
+		ret = vega20_upload_dpm_max_level(hwmgr, FEATURE_DPM_SOCCLK_MASK);
+		PP_ASSERT_WITH_CODE(!ret,
+			"Failed to upload dpm max level to highest!",
+			return ret);
+
+		break;
+
+	case PP_FCLK:
+		soft_min_level = mask ? (ffs(mask) - 1) : 0;
+		soft_max_level = mask ? (fls(mask) - 1) : 0;
+
+		if (soft_max_level >= data->dpm_table.fclk_table.count) {
+			pr_err("Clock level specified %d is over max allowed %d\n",
+					soft_max_level,
+					data->dpm_table.fclk_table.count - 1);
+			return -EINVAL;
+		}
+
+		data->dpm_table.fclk_table.dpm_state.soft_min_level =
+			data->dpm_table.fclk_table.dpm_levels[soft_min_level].value;
+		data->dpm_table.fclk_table.dpm_state.soft_max_level =
+			data->dpm_table.fclk_table.dpm_levels[soft_max_level].value;
+
+		ret = vega20_upload_dpm_min_level(hwmgr, FEATURE_DPM_FCLK_MASK);
+		PP_ASSERT_WITH_CODE(!ret,
+			"Failed to upload boot level to lowest!",
+			return ret);
+
+		ret = vega20_upload_dpm_max_level(hwmgr, FEATURE_DPM_FCLK_MASK);
+		PP_ASSERT_WITH_CODE(!ret,
+			"Failed to upload dpm max level to highest!",
+			return ret);
+
+		break;
+
+	case PP_DCEFCLK:
+		hard_min_level = mask ? (ffs(mask) - 1) : 0;
+
+		if (hard_min_level >= data->dpm_table.dcef_table.count) {
+			pr_err("Clock level specified %d is over max allowed %d\n",
+					hard_min_level,
+					data->dpm_table.dcef_table.count - 1);
+			return -EINVAL;
+		}
+
+		data->dpm_table.dcef_table.dpm_state.hard_min_level =
+			data->dpm_table.dcef_table.dpm_levels[hard_min_level].value;
+
+		ret = vega20_upload_dpm_min_level(hwmgr, FEATURE_DPM_DCEFCLK_MASK);
+		PP_ASSERT_WITH_CODE(!ret,
+			"Failed to upload boot level to lowest!",
+			return ret);
+
+		//TODO: Setting DCEFCLK max dpm level is not supported
+
+		break;
+
 	case PP_PCIE:
+		soft_min_level = mask ? (ffs(mask) - 1) : 0;
+		soft_max_level = mask ? (fls(mask) - 1) : 0;
+		if (soft_min_level >= NUM_LINK_LEVELS ||
+		    soft_max_level >= NUM_LINK_LEVELS)
+			return -EINVAL;
+
+		ret = smum_send_msg_to_smc_with_parameter(hwmgr,
+			PPSMC_MSG_SetMinLinkDpmByIndex, soft_min_level);
+		PP_ASSERT_WITH_CODE(!ret,
+			"Failed to set min link dpm level!",
+			return ret);
+
 		break;
 
 	default:
@@ -2309,6 +2577,7 @@ static int vega20_dpm_force_dpm_level(struct pp_hwmgr *hwmgr,
 			return ret;
 		vega20_force_clock_level(hwmgr, PP_SCLK, 1 << sclk_mask);
 		vega20_force_clock_level(hwmgr, PP_MCLK, 1 << mclk_mask);
+		vega20_force_clock_level(hwmgr, PP_SOCCLK, 1 << soc_mask);
 		break;
 
 	case AMD_DPM_FORCED_LEVEL_MANUAL:
@@ -2739,6 +3008,108 @@ static int vega20_odn_edit_dpm_table(struct pp_hwmgr *hwmgr,
 	return 0;
 }
 
+static int vega20_get_ppfeature_status(struct pp_hwmgr *hwmgr, char *buf)
+{
+	static const char *ppfeature_name[] = {
+				"DPM_PREFETCHER",
+				"GFXCLK_DPM",
+				"UCLK_DPM",
+				"SOCCLK_DPM",
+				"UVD_DPM",
+				"VCE_DPM",
+				"ULV",
+				"MP0CLK_DPM",
+				"LINK_DPM",
+				"DCEFCLK_DPM",
+				"GFXCLK_DS",
+				"SOCCLK_DS",
+				"LCLK_DS",
+				"PPT",
+				"TDC",
+				"THERMAL",
+				"GFX_PER_CU_CG",
+				"RM",
+				"DCEFCLK_DS",
+				"ACDC",
+				"VR0HOT",
+				"VR1HOT",
+				"FW_CTF",
+				"LED_DISPLAY",
+				"FAN_CONTROL",
+				"GFX_EDC",
+				"GFXOFF",
+				"CG",
+				"FCLK_DPM",
+				"FCLK_DS",
+				"MP1CLK_DS",
+				"MP0CLK_DS",
+				"XGMI"};
+	static const char *output_title[] = {
+				"FEATURES",
+				"BITMASK",
+				"ENABLEMENT"};
+	uint64_t features_enabled;
+	int i;
+	int ret = 0;
+	int size = 0;
+
+	ret = vega20_get_enabled_smc_features(hwmgr, &features_enabled);
+	PP_ASSERT_WITH_CODE(!ret,
+			"[EnableAllSmuFeatures] Failed to get enabled smc features!",
+			return ret);
+
+	size += sprintf(buf + size, "Current ppfeatures: 0x%016llx\n", features_enabled);
+	size += sprintf(buf + size, "%-19s %-22s %s\n",
+				output_title[0],
+				output_title[1],
+				output_title[2]);
+	for (i = 0; i < GNLD_FEATURES_MAX; i++) {
+		size += sprintf(buf + size, "%-19s 0x%016llx %6s\n",
+					ppfeature_name[i],
+					1ULL << i,
+					(features_enabled & (1ULL << i)) ? "Y" : "N");
+	}
+
+	return size;
+}
+
+static int vega20_set_ppfeature_status(struct pp_hwmgr *hwmgr, uint64_t new_ppfeature_masks)
+{
+	uint64_t features_enabled;
+	uint64_t features_to_enable;
+	uint64_t features_to_disable;
+	int ret = 0;
+
+	if (new_ppfeature_masks >= (1ULL << GNLD_FEATURES_MAX))
+		return -EINVAL;
+
+	ret = vega20_get_enabled_smc_features(hwmgr, &features_enabled);
+	if (ret)
+		return ret;
+
+	features_to_disable =
+		(features_enabled ^ new_ppfeature_masks) & features_enabled;
+	features_to_enable =
+		(features_enabled ^ new_ppfeature_masks) ^ features_to_disable;
+
+	pr_debug("features_to_disable 0x%llx\n", features_to_disable);
+	pr_debug("features_to_enable 0x%llx\n", features_to_enable);
+
+	if (features_to_disable) {
+		ret = vega20_enable_smc_features(hwmgr, false, features_to_disable);
+		if (ret)
+			return ret;
+	}
+
+	if (features_to_enable) {
+		ret = vega20_enable_smc_features(hwmgr, true, features_to_enable);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
+
 static int vega20_print_clock_levels(struct pp_hwmgr *hwmgr,
 		enum pp_clock_type type, char *buf)
 {
@@ -2748,9 +3119,16 @@ static int vega20_print_clock_levels(struct pp_hwmgr *hwmgr,
 			data->od8_settings.od8_settings_array;
 	OverDriveTable_t *od_table =
 			&(data->smc_state_table.overdrive_table);
+	struct phm_ppt_v3_information *pptable_information =
+		(struct phm_ppt_v3_information *)hwmgr->pptable;
+	PPTable_t *pptable = (PPTable_t *)pptable_information->smc_pptable;
+	struct amdgpu_device *adev = hwmgr->adev;
 	struct pp_clock_levels_with_latency clocks;
+	struct vega20_single_dpm_table *fclk_dpm_table =
+			&(data->dpm_table.fclk_table);
 	int i, now, size = 0;
 	int ret = 0;
+	uint32_t gen_speed, lane_width;
 
 	switch (type) {
 	case PP_SCLK:
@@ -2787,7 +3165,75 @@ static int vega20_print_clock_levels(struct pp_hwmgr *hwmgr,
 				(clocks.data[i].clocks_in_khz == now * 10) ? "*" : "");
 		break;
 
+	case PP_SOCCLK:
+		ret = vega20_get_current_clk_freq(hwmgr, PPCLK_SOCCLK, &now);
+		PP_ASSERT_WITH_CODE(!ret,
+				"Attempt to get current socclk freq Failed!",
+				return ret);
+
+		ret = vega20_get_socclocks(hwmgr, &clocks);
+		PP_ASSERT_WITH_CODE(!ret,
+				"Attempt to get soc clk levels Failed!",
+				return ret);
+
+		for (i = 0; i < clocks.num_levels; i++)
+			size += sprintf(buf + size, "%d: %uMhz %s\n",
+				i, clocks.data[i].clocks_in_khz / 1000,
+				(clocks.data[i].clocks_in_khz == now * 10) ? "*" : "");
+		break;
+
+	case PP_FCLK:
+		ret = vega20_get_current_clk_freq(hwmgr, PPCLK_FCLK, &now);
+		PP_ASSERT_WITH_CODE(!ret,
+				"Attempt to get current fclk freq Failed!",
+				return ret);
+
+		for (i = 0; i < fclk_dpm_table->count; i++)
+			size += sprintf(buf + size, "%d: %uMhz %s\n",
+				i, fclk_dpm_table->dpm_levels[i].value,
+				fclk_dpm_table->dpm_levels[i].value == (now / 100) ? "*" : "");
+		break;
+
+	case PP_DCEFCLK:
+		ret = vega20_get_current_clk_freq(hwmgr, PPCLK_DCEFCLK, &now);
+		PP_ASSERT_WITH_CODE(!ret,
+				"Attempt to get current dcefclk freq Failed!",
+				return ret);
+
+		ret = vega20_get_dcefclocks(hwmgr, &clocks);
+		PP_ASSERT_WITH_CODE(!ret,
+				"Attempt to get dcefclk levels Failed!",
+				return ret);
+
+		for (i = 0; i < clocks.num_levels; i++)
+			size += sprintf(buf + size, "%d: %uMhz %s\n",
+				i, clocks.data[i].clocks_in_khz / 1000,
+				(clocks.data[i].clocks_in_khz == now * 10) ? "*" : "");
+		break;
+
 	case PP_PCIE:
+		gen_speed = (RREG32_PCIE(smnPCIE_LC_SPEED_CNTL) &
+			     PSWUSP0_PCIE_LC_SPEED_CNTL__LC_CURRENT_DATA_RATE_MASK)
+			    >> PSWUSP0_PCIE_LC_SPEED_CNTL__LC_CURRENT_DATA_RATE__SHIFT;
+		lane_width = (RREG32_PCIE(smnPCIE_LC_LINK_WIDTH_CNTL) &
+			      PCIE_LC_LINK_WIDTH_CNTL__LC_LINK_WIDTH_RD_MASK)
+			    >> PCIE_LC_LINK_WIDTH_CNTL__LC_LINK_WIDTH_RD__SHIFT;
+		for (i = 0; i < NUM_LINK_LEVELS; i++)
+			size += sprintf(buf + size, "%d: %s %s %dMhz %s\n", i,
+					(pptable->PcieGenSpeed[i] == 0) ? "2.5GT/s," :
+					(pptable->PcieGenSpeed[i] == 1) ? "5.0GT/s," :
+					(pptable->PcieGenSpeed[i] == 2) ? "8.0GT/s," :
+					(pptable->PcieGenSpeed[i] == 3) ? "16.0GT/s," : "",
+					(pptable->PcieLaneCount[i] == 1) ? "x1" :
+					(pptable->PcieLaneCount[i] == 2) ? "x2" :
+					(pptable->PcieLaneCount[i] == 3) ? "x4" :
+					(pptable->PcieLaneCount[i] == 4) ? "x8" :
+					(pptable->PcieLaneCount[i] == 5) ? "x12" :
+					(pptable->PcieLaneCount[i] == 6) ? "x16" : "",
+					pptable->LclkFreq[i],
+					(gen_speed == pptable->PcieGenSpeed[i]) &&
+					(lane_width == pptable->PcieLaneCount[i]) ?
+					"*" : "");
 		break;
 
 	case OD_SCLK:
@@ -3010,7 +3456,7 @@ static int vega20_apply_clocks_adjust_rules(struct pp_hwmgr *hwmgr)
 	disable_mclk_switching = ((1 < hwmgr->display_config->num_display) &&
                            !hwmgr->display_config->multi_monitor_in_sync) ||
                             vblank_too_short;
-    latency = hwmgr->display_config->dce_tolerable_mclk_in_active_latency;
+	latency = hwmgr->display_config->dce_tolerable_mclk_in_active_latency;
 
 	/* gfxclk */
 	dpm_table = &(data->dpm_table.gfx_table);
@@ -3208,6 +3654,9 @@ static int conv_power_profile_to_pplib_workload(int power_profile)
 	int pplib_workload = 0;
 
 	switch (power_profile) {
+	case PP_SMC_POWER_PROFILE_BOOTUP_DEFAULT:
+		pplib_workload = WORKLOAD_DEFAULT_BIT;
+		break;
 	case PP_SMC_POWER_PROFILE_FULLSCREEN3D:
 		pplib_workload = WORKLOAD_PPLIB_FULL_SCREEN_3D_BIT;
 		break;
@@ -3237,6 +3686,7 @@ static int vega20_get_power_profile_mode(struct pp_hwmgr *hwmgr, char *buf)
 	uint32_t i, size = 0;
 	uint16_t workload_type = 0;
 	static const char *profile_name[] = {
+					"BOOTUP_DEFAULT",
 					"3D_FULL_SCREEN",
 					"POWER_SAVING",
 					"VIDEO",
@@ -3504,6 +3954,8 @@ static const struct pp_hwmgr_func vega20_hwmgr_funcs = {
 	.force_clock_level = vega20_force_clock_level,
 	.print_clock_levels = vega20_print_clock_levels,
 	.read_sensor = vega20_read_sensor,
+	.get_ppfeature_status = vega20_get_ppfeature_status,
+	.set_ppfeature_status = vega20_set_ppfeature_status,
 	/* powergate related */
 	.powergate_uvd = vega20_power_gate_uvd,
 	.powergate_vce = vega20_power_gate_vce,
@@ -3524,6 +3976,10 @@ static const struct pp_hwmgr_func vega20_hwmgr_funcs = {
 	/* smu memory related */
 	.notify_cac_buffer_info = vega20_notify_cac_buffer_info,
 	.enable_mgpu_fan_boost = vega20_enable_mgpu_fan_boost,
+	/* BACO related */
+	.get_asic_baco_capability = vega20_baco_get_capability,
+	.get_asic_baco_state = vega20_baco_get_state,
+	.set_asic_baco_state = vega20_baco_set_state,
 };
 
 int vega20_hwmgr_init(struct pp_hwmgr *hwmgr)

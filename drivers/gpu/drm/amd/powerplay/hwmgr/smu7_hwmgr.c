@@ -77,8 +77,9 @@
 #define PCIE_BUS_CLK                10000
 #define TCLK                        (PCIE_BUS_CLK / 10)
 
-static const struct profile_mode_setting smu7_profiling[6] =
-					{{1, 0, 100, 30, 1, 0, 100, 10},
+static const struct profile_mode_setting smu7_profiling[7] =
+					{{0, 0, 0, 0, 0, 0, 0, 0},
+					 {1, 0, 100, 30, 1, 0, 100, 10},
 					 {1, 10, 0, 30, 0, 0, 0, 0},
 					 {0, 0, 0, 0, 1, 10, 16, 31},
 					 {1, 0, 11, 50, 1, 0, 100, 10},
@@ -3592,8 +3593,10 @@ static int smu7_find_dpm_states_clocks_in_dpm_table(struct pp_hwmgr *hwmgr, cons
 	}
 
 	if (i >= sclk_table->count) {
-		data->need_update_smu7_dpm_table |= DPMTABLE_OD_UPDATE_SCLK;
-		sclk_table->dpm_levels[i-1].value = sclk;
+		if (sclk > sclk_table->dpm_levels[i-1].value) {
+			data->need_update_smu7_dpm_table |= DPMTABLE_OD_UPDATE_SCLK;
+			sclk_table->dpm_levels[i-1].value = sclk;
+		}
 	} else {
 	/* TODO: Check SCLK in DAL's minimum clocks
 	 * in case DeepSleep divider update is required.
@@ -3610,8 +3613,10 @@ static int smu7_find_dpm_states_clocks_in_dpm_table(struct pp_hwmgr *hwmgr, cons
 	}
 
 	if (i >= mclk_table->count) {
-		data->need_update_smu7_dpm_table |= DPMTABLE_OD_UPDATE_MCLK;
-		mclk_table->dpm_levels[i-1].value = mclk;
+		if (mclk > mclk_table->dpm_levels[i-1].value) {
+			data->need_update_smu7_dpm_table |= DPMTABLE_OD_UPDATE_MCLK;
+			mclk_table->dpm_levels[i-1].value = mclk;
+		}
 	}
 
 	if (data->display_timing.num_existing_displays != hwmgr->display_config->num_display)
@@ -3676,10 +3681,12 @@ static int smu7_request_link_speed_change_before_state_change(
 			data->force_pcie_gen = PP_PCIEGen2;
 			if (current_link_speed == PP_PCIEGen2)
 				break;
+			/* fall through */
 		case PP_PCIEGen2:
 			if (0 == amdgpu_acpi_pcie_performance_request(hwmgr->adev, PCIE_PERF_REQ_GEN2, false))
 				break;
 #endif
+			/* fall through */
 		default:
 			data->force_pcie_gen = smu7_get_current_pcie_speed(hwmgr);
 			break;
@@ -4885,7 +4892,8 @@ static int smu7_get_power_profile_mode(struct pp_hwmgr *hwmgr, char *buf)
 	uint32_t i, size = 0;
 	uint32_t len;
 
-	static const char *profile_name[6] = {"3D_FULL_SCREEN",
+	static const char *profile_name[7] = {"BOOTUP_DEFAULT",
+					"3D_FULL_SCREEN",
 					"POWER_SAVING",
 					"VIDEO",
 					"VR",

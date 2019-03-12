@@ -3570,7 +3570,7 @@ int vmw_execbuf_fence_commands(struct drm_file *file_priv,
 		*p_fence = NULL;
 	}
 
-	return 0;
+	return ret;
 }
 
 /**
@@ -3834,6 +3834,8 @@ int vmw_execbuf_process(struct drm_file *file_priv,
 	int32_t out_fence_fd = -1;
 	struct sync_file *sync_file = NULL;
 	DECLARE_VAL_CONTEXT(val_ctx, &sw_context->res_ht, 1);
+
+	vmw_validation_set_val_mem(&val_ctx, &dev_priv->vvm);
 
 	if (flags & DRM_VMW_EXECBUF_FLAG_EXPORT_FENCE_FD) {
 		out_fence_fd = get_unused_fd_flags(O_CLOEXEC);

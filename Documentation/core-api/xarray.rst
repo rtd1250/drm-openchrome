@@ -108,12 +108,13 @@ some, but not all of the other indices changing.
 
 Sometimes you need to ensure that a subsequent call to :c:func:`xa_store`
 will not need to allocate memory.  The :c:func:`xa_reserve` function
-will store a reserved entry at the indicated index.  Users of the normal
-API will see this entry as containing ``NULL``.  If you do not need to
-use the reserved entry, you can call :c:func:`xa_release` to remove the
-unused entry.  If another user has stored to the entry in the meantime,
-:c:func:`xa_release` will do nothing; if instead you want the entry to
-become ``NULL``, you should use :c:func:`xa_erase`.
+will store a reserved entry at the indicated index.  Users of the
+normal API will see this entry as containing ``NULL``.  If you do
+not need to use the reserved entry, you can call :c:func:`xa_release`
+to remove the unused entry.  If another user has stored to the entry
+in the meantime, :c:func:`xa_release` will do nothing; if instead you
+want the entry to become ``NULL``, you should use :c:func:`xa_erase`.
+Using :c:func:`xa_insert` on a reserved entry will fail.
 
 If all entries in the array are ``NULL``, the :c:func:`xa_empty` function
 will return ``true``.
@@ -183,10 +184,14 @@ Takes xa_lock internally:
  * :c:func:`xa_store_bh`
  * :c:func:`xa_store_irq`
  * :c:func:`xa_insert`
+ * :c:func:`xa_insert_bh`
+ * :c:func:`xa_insert_irq`
  * :c:func:`xa_erase`
  * :c:func:`xa_erase_bh`
  * :c:func:`xa_erase_irq`
  * :c:func:`xa_cmpxchg`
+ * :c:func:`xa_cmpxchg_bh`
+ * :c:func:`xa_cmpxchg_irq`
  * :c:func:`xa_store_range`
  * :c:func:`xa_alloc`
  * :c:func:`xa_alloc_bh`
@@ -263,7 +268,8 @@ using :c:func:`xa_lock_irqsave` in both the interrupt handler and process
 context, or :c:func:`xa_lock_irq` in process context and :c:func:`xa_lock`
 in the interrupt handler.  Some of the more common patterns have helper
 functions such as :c:func:`xa_store_bh`, :c:func:`xa_store_irq`,
-:c:func:`xa_erase_bh` and :c:func:`xa_erase_irq`.
+:c:func:`xa_erase_bh`, :c:func:`xa_erase_irq`, :c:func:`xa_cmpxchg_bh`
+and :c:func:`xa_cmpxchg_irq`.
 
 Sometimes you need to protect access to the XArray with a mutex because
 that lock sits above another mutex in the locking hierarchy.  That does

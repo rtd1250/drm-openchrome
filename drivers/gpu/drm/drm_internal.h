@@ -26,6 +26,8 @@
 #define DRM_IF_MAJOR 1
 #define DRM_IF_MINOR 4
 
+#define DRM_IF_VERSION(maj, min) (maj << 16 | min)
+
 struct drm_prime_file_private;
 struct dma_buf;
 
@@ -98,6 +100,8 @@ void drm_sysfs_destroy(void);
 struct device *drm_sysfs_minor_alloc(struct drm_minor *minor);
 int drm_sysfs_connector_add(struct drm_connector *connector);
 void drm_sysfs_connector_remove(struct drm_connector *connector);
+
+void drm_sysfs_lease_event(struct drm_device *dev);
 
 /* drm_gem.c */
 int drm_gem_init(struct drm_device *dev);

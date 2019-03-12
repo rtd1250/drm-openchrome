@@ -30,7 +30,7 @@
 #include <drm/drm_atomic.h>
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_flip_work.h>
-#include <drm/drm_crtc_helper.h>
+#include <drm/drm_probe_helper.h>
 
 #include "meson_crtc.h"
 #include "meson_plane.h"
@@ -106,6 +106,8 @@ static void meson_crtc_atomic_enable(struct drm_crtc *crtc,
 	writel_bits_relaxed(VPP_POSTBLEND_ENABLE, VPP_POSTBLEND_ENABLE,
 			    priv->io_base + _REG(VPP_MISC));
 
+	drm_crtc_vblank_on(crtc);
+
 	priv->viu.osd1_enabled = true;
 }
 
@@ -116,6 +118,8 @@ static void meson_crtc_atomic_disable(struct drm_crtc *crtc,
 	struct meson_drm *priv = meson_crtc->priv;
 
 	DRM_DEBUG_DRIVER("\n");
+
+	drm_crtc_vblank_off(crtc);
 
 	priv->viu.osd1_enabled = false;
 	priv->viu.osd1_commit = false;

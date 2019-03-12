@@ -347,6 +347,10 @@ static void msm_gpu_crashstate_capture(struct msm_gpu *gpu,
 {
 	struct msm_gpu_state *state;
 
+	/* Check if the target supports capturing crash state */
+	if (!gpu->funcs->gpu_state_get)
+		return;
+
 	/* Only save one crash state at a time */
 	if (gpu->crashstate)
 		return;
@@ -439,10 +443,9 @@ static void recover_worker(struct work_struct *work)
 	if (submit) {
 		struct task_struct *task;
 
-		rcu_read_lock();
-		task = pid_task(submit->pid, PIDTYPE_PID);
+		task = get_pid_task(submit->pid, PIDTYPE_PID);
 		if (task) {
-			comm = kstrdup(task->comm, GFP_ATOMIC);
+			comm = kstrdup(task->comm, GFP_KERNEL);
 
 			/*
 			 * So slightly annoying, in other paths like
@@ -455,10 +458,10 @@ static void recover_worker(struct work_struct *work)
 			 * about the submit going away.
 			 */
 			mutex_unlock(&dev->struct_mutex);
-			cmd = kstrdup_quotable_cmdline(task, GFP_ATOMIC);
+			cmd = kstrdup_quotable_cmdline(task, GFP_KERNEL);
+			put_task_struct(task);
 			mutex_lock(&dev->struct_mutex);
 		}
-		rcu_read_unlock();
 
 		if (comm && cmd) {
 			DRM_DEV_ERROR(dev->dev, "%s: offending task: %s (%s)\n",
@@ -897,7 +900,7 @@ int msm_gpu_init(struct drm_device *drm, struct platform_device *pdev,
 	}
 
 	/* Get Interrupt: */
-	gpu->irq = platform_get_irq_byname(pdev, config->irqname);
+	gpu->irq = platform_get_irq(pdev, 0);
 	if (gpu->irq < 0) {
 		ret = gpu->irq;
 		DRM_DEV_ERROR(drm->dev, "failed to get irq: %d\n", ret);
