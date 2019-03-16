@@ -536,7 +536,7 @@ static void via_crtc_destroy(struct drm_crtc *crtc)
 
 	if (iga->cursor_kmap.bo) {
 		via_bo_unpin(iga->cursor_kmap.bo, &iga->cursor_kmap);
-		ttm_bo_unref(&iga->cursor_kmap.bo);
+		ttm_bo_put(iga->cursor_kmap.bo);
 	}
 	drm_crtc_cleanup(crtc);
 }

@@ -378,7 +378,7 @@ int via_ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev,
 		ret = via_bo_pin(kmap->bo, kmap);
 		if (unlikely(ret)) {
 			DRM_ERROR("failed to mmap the buffer\n");
-			ttm_bo_unref(&kmap->bo);
+			ttm_bo_put(kmap->bo);
 			kmap->bo = NULL;
 		}
 	}

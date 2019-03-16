@@ -42,7 +42,7 @@ void ttm_gem_free_object(struct drm_gem_object *obj)
 
 	if (gem->heap != NULL) {
 		bo = &gem->heap->bo;
-		ttm_bo_unref(&bo);
+		ttm_bo_put(bo);
 		gem->heap = NULL;
 	}
 	drm_gem_object_release(obj);
@@ -110,7 +110,7 @@ ttm_gem_create(struct drm_device *dev,
 
 	ret = drm_gem_object_init(dev, &obj->gem, size);
 	if (unlikely(ret)) {
-		ttm_bo_unref(&bo);
+		ttm_bo_put(bo);
 		return ERR_PTR(ret);
 	}
 

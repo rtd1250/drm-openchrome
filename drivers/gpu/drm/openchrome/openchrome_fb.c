@@ -1177,7 +1177,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 out_err:
 	if (kmap->bo) {
 		via_bo_unpin(kmap->bo, kmap);
-		ttm_bo_unref(&kmap->bo);
+		ttm_bo_put(kmap->bo);
 	}
 
 	if (gem_obj) {

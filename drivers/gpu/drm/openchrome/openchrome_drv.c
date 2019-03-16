@@ -126,7 +126,7 @@ static void via_driver_unload(struct drm_device *dev)
 	bo = dev_private->vq.bo;
 	if (bo) {
 		via_bo_unpin(bo, &dev_private->vq);
-		ttm_bo_unref(&bo);
+		ttm_bo_put(bo);
 	}
 
 	bo = dev_private->gart.bo;
@@ -135,7 +135,7 @@ static void via_driver_unload(struct drm_device *dev)
 		if (pci_is_pcie(dev->pdev))
 			svga_wseq_mask(VGABASE, 0x6C, 0, BIT(7));
 		via_bo_unpin(bo, &dev_private->gart);
-		ttm_bo_unref(&bo);
+		ttm_bo_put(bo);
 	}
 
 	via_mm_fini(dev);
