@@ -266,7 +266,7 @@ static const struct file_operations via_driver_fops = {
 
 static struct drm_driver via_driver = {
 	.driver_features = DRIVER_HAVE_IRQ |
-				DRIVER_IRQ_SHARED | DRIVER_GEM |
+				DRIVER_GEM |
 				DRIVER_MODESET,
 	.load = via_driver_load,
 	.unload = via_driver_unload,
