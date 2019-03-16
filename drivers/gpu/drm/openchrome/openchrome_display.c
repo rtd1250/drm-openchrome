@@ -22,9 +22,9 @@
  *	James Simmons <jsimmons@infradead.org>
  */
 
-#include "drmP.h"
-#include "drm_crtc.h"
-#include "drm_crtc_helper.h"
+#include <drm/drmP.h>
+#include <drm/drm_crtc.h>
+#include <drm/drm_crtc_helper.h>
 
 #include "openchrome_drv.h"
 

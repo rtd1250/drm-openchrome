@@ -25,11 +25,11 @@
 
 #include <video/vga.h>
 
-#include "drm_edid.h"
-#include "drm_crtc.h"
-#include "drm_crtc_helper.h"
-#include "drm_plane_helper.h"
-#include "drm_fb_helper.h"
+#include <drm/drm_edid.h>
+#include <drm/drm_crtc.h>
+#include <drm/drm_crtc_helper.h>
+#include <drm/drm_plane_helper.h>
+#include <drm/drm_fb_helper.h>
 
 #include "openchrome_crtc_hw.h"
 

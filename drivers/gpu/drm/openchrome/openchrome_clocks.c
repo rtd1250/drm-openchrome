@@ -19,7 +19,7 @@
  * for more details.
  */
 
-#include "drmP.h"
+#include <drm/drmP.h>
 
 #include "openchrome_drv.h"
 
