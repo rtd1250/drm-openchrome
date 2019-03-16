@@ -27,6 +27,8 @@
  *
  */
 
+#include <drm/drm_probe_helper.h>
+
 #include "openchrome_drv.h"
 #include "openchrome_crtc_hw.h"
 

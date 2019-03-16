@@ -24,6 +24,8 @@
  *	James Simmons <jsimmons@infradead.org>
  */
 
+#include <drm/drm_probe_helper.h>
+
 #include "openchrome_drv.h"
 
 
