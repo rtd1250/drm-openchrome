@@ -28,7 +28,6 @@
 
 
 #define HDMI_AUDIO_ENABLED	BIT(0)
-#define HDMI_COLOR_RANGE	BIT(1)
 
 /*
  * Routines for controlling stuff on the HDMI port
@@ -644,9 +643,6 @@ via_hdmi_get_modes(struct drm_connector *connector)
 
 			if (via_hdmi_audio)
 				con->flags |= drm_detect_monitor_audio(edid);
-
-			if (drm_rgb_quant_range_selectable(edid))
-				con->flags |= HDMI_COLOR_RANGE;
 		}
 	}
 	return drm_add_edid_modes(connector, edid);
