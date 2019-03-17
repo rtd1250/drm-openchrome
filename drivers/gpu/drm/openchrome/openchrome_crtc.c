@@ -255,7 +255,7 @@ static void via_cursor_address(struct drm_crtc *crtc)
 	struct openchrome_drm_private *dev_private =
 						crtc->dev->dev_private;
 
-	if (!iga->cursor_kmap.bo) {
+	if (!iga->cursor_bo->kmap.bo) {
 		return;
 	}
 
@@ -269,13 +269,13 @@ static void via_cursor_address(struct drm_crtc *crtc)
 	case PCI_DEVICE_ID_VIA_VX900_VGA:
 		/* Program the HI offset. */
 		if (iga->index) {
-			VIA_WRITE(HI_FBOFFSET, iga->cursor_kmap.bo->offset);
+			VIA_WRITE(HI_FBOFFSET, iga->cursor_bo->kmap.bo->offset);
 		} else {
-			VIA_WRITE(PRIM_HI_FBOFFSET, iga->cursor_kmap.bo->offset);
+			VIA_WRITE(PRIM_HI_FBOFFSET, iga->cursor_bo->kmap.bo->offset);
 		}
 		break;
 	default:
-		VIA_WRITE(HI_FBOFFSET, iga->cursor_kmap.bo->offset);
+		VIA_WRITE(HI_FBOFFSET, iga->cursor_bo->kmap.bo->offset);
 		break;
 	}
 }
@@ -288,10 +288,11 @@ static int via_crtc_cursor_set(struct drm_crtc *crtc,
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	int max_height = 64, max_width = 64, ret = 0, i;
 	struct drm_device *dev = crtc->dev;
-	struct drm_gem_object *obj = NULL;
+	struct drm_gem_object *gem;
 	struct ttm_bo_kmap_obj user_kmap;
+	struct openchrome_bo *bo;
 
-	if (!iga->cursor_kmap.bo)
+	if (!iga->cursor_bo->kmap.bo)
 		return -ENXIO;
 
 	if (!handle) {
@@ -312,20 +313,23 @@ static int via_crtc_cursor_set(struct drm_crtc *crtc,
 		return -EINVAL;
 	}
 
-	obj = drm_gem_object_lookup(file_priv, handle);
-	if (!obj) {
+	gem = drm_gem_object_lookup(file_priv, handle);
+	if (!gem) {
 		DRM_ERROR("Cannot find cursor object %x for crtc %d\n",
 				handle, crtc->base.id);
 		return -ENOENT;
 	}
 
-	user_kmap.bo = ttm_gem_mapping(obj);
-	ret = ttm_bo_kmap(user_kmap.bo, 0, user_kmap.bo->num_pages, &user_kmap);
+	bo = container_of(gem, struct openchrome_bo, gem);
+	user_kmap.bo = &bo->ttm_bo;
+	ret = ttm_bo_kmap(user_kmap.bo, 0, user_kmap.bo->num_pages,
+				&user_kmap);
 	if (!ret) {
 		/* Copy data from userland to cursor memory region */
-		u32 *dst = iga->cursor_kmap.virtual, *src = user_kmap.virtual;
+		u32 *dst = iga->cursor_bo->kmap.virtual,
+				*src = user_kmap.virtual;
 
-		memset_io(dst, 0x0, iga->cursor_kmap.bo->mem.size);
+		memset_io(dst, 0x0, iga->cursor_bo->kmap.bo->mem.size);
 		for (i = 0; i < height; i++) {
 			__iowrite32_copy(dst, src, width);
 			dst += max_width;
@@ -333,7 +337,7 @@ static int via_crtc_cursor_set(struct drm_crtc *crtc,
 		}
 		ttm_bo_kunmap(&user_kmap);
 	}
-	drm_gem_object_put_unlocked(obj);
+	drm_gem_object_put_unlocked(gem);
 	via_cursor_address(crtc);
 	via_show_cursor(crtc);
 
@@ -533,11 +537,27 @@ static int via_iga2_gamma_set(struct drm_crtc *crtc,
 static void via_crtc_destroy(struct drm_crtc *crtc)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
+	int ret;
 
-	if (iga->cursor_kmap.bo) {
-		via_bo_unpin(iga->cursor_kmap.bo, &iga->cursor_kmap);
-		ttm_bo_put(iga->cursor_kmap.bo);
+	if (iga->cursor_bo->kmap.bo) {
+		ret = ttm_bo_reserve(iga->cursor_bo->kmap.bo,
+					true, false, NULL);
+		if (ret) {
+			goto exit;
+		}
+
+		ttm_bo_kunmap(&iga->cursor_bo->kmap);
+
+		ret = openchrome_bo_unpin(iga->cursor_bo);
+		ttm_bo_unreserve(iga->cursor_bo->kmap.bo);
+		if (ret) {
+			goto exit;
+		}
+
+		ttm_bo_put(iga->cursor_bo->kmap.bo);
 	}
+
+exit:
 	drm_crtc_cleanup(crtc);
 }
 
@@ -1876,12 +1896,13 @@ static int
 via_iga1_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 				struct drm_framebuffer *old_fb)
 {
-	struct ttm_buffer_object *bo;
 	struct via_framebuffer *via_fb = container_of(crtc->primary->fb,
 					struct via_framebuffer, fb);
 	struct drm_framebuffer *new_fb = &via_fb->fb;
-	struct drm_gem_object *gem_obj = via_fb->gem_obj;
+	struct openchrome_bo *bo;
+	struct drm_gem_object *gem;
 	int ret = 0;
+	int fake_ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -1892,11 +1913,18 @@ via_iga1_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 		goto exit;
 	}
 
-	gem_obj = via_fb->gem_obj;
-	bo = ttm_gem_mapping(gem_obj);
+	gem = via_fb->gem;
+	bo = container_of(gem, struct openchrome_bo, gem);
 
-	ret = via_bo_pin(bo, NULL);
-	if (unlikely(ret)) {
+	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+	if (ret) {
+		DRM_DEBUG_KMS("Failed to reserve FB.\n");
+		goto exit;
+	}
+
+	ret = openchrome_bo_pin(bo, TTM_PL_FLAG_VRAM);
+	ttm_bo_unreserve(&bo->ttm_bo);
+	if (ret) {
 		DRM_DEBUG_KMS("Failed to pin FB.\n");
 		goto exit;
 	}
@@ -1906,19 +1934,34 @@ via_iga1_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 						ENTER_ATOMIC_MODE_SET);
 	if (unlikely(ret)) {
 		DRM_DEBUG_KMS("Failed to set a new FB.\n");
-		via_bo_unpin(bo, NULL);
+		fake_ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+		if (fake_ret) {
+			goto exit;
+		}
+
+		fake_ret = openchrome_bo_unpin(bo);
+		ttm_bo_unreserve(&bo->ttm_bo);
 		goto exit;
 	}
 
-	/* Free the old framebuffer if it exist */
+	/*
+	 * Free the old framebuffer if it exists.
+	 */
 	if (old_fb) {
 		via_fb = container_of(old_fb,
 					struct via_framebuffer, fb);
-		gem_obj = via_fb->gem_obj;
-		bo = ttm_gem_mapping(gem_obj);
+		gem = via_fb->gem;
+		bo = container_of(gem, struct openchrome_bo, gem);
 
-		ret = via_bo_unpin(bo, NULL);
-		if (unlikely(ret)) {
+		ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+		if (ret) {
+			DRM_DEBUG_KMS("FB still locked.\n");
+			goto exit;
+		}
+
+		ret = openchrome_bo_unpin(bo);
+		ttm_bo_unreserve(&bo->ttm_bo);
+		if (ret) {
 			DRM_DEBUG_KMS("FB still locked.\n");
 			goto exit;
 		}
@@ -2032,8 +2075,9 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc,
 						crtc->dev->dev_private;
 	struct via_framebuffer *via_fb = container_of(fb,
 					struct via_framebuffer, fb);
-	struct drm_gem_object *gem_obj = via_fb->gem_obj;
-	struct ttm_buffer_object *bo = ttm_gem_mapping(gem_obj);
+	struct drm_gem_object *gem = via_fb->gem;
+	struct openchrome_bo *bo = container_of(gem,
+					struct openchrome_bo, gem);
 
 	if ((fb->format->depth != 8) && (fb->format->depth != 16) &&
 		(fb->format->depth != 24) && (fb->format->depth != 32)) {
@@ -2050,7 +2094,7 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc,
 	via_iga1_set_color_depth(dev_private, fb->format->depth);
 
 	/* Set the framebuffer offset */
-	addr = round_up(bo->offset + pitch, 16) >> 1;
+	addr = round_up(bo->ttm_bo.offset + pitch, 16) >> 1;
 	vga_wcrt(VGABASE, 0x0D, addr & 0xFF);
 	vga_wcrt(VGABASE, 0x0C, (addr >> 8) & 0xFF);
 	/* Yes order of setting these registers matters on some hardware */
@@ -2155,12 +2199,13 @@ static int
 via_iga2_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 				struct drm_framebuffer *old_fb)
 {
-	struct ttm_buffer_object *bo;
 	struct via_framebuffer *via_fb = container_of(crtc->primary->fb,
 					struct via_framebuffer, fb);
 	struct drm_framebuffer *new_fb = &via_fb->fb;
-	struct drm_gem_object *gem_obj = via_fb->gem_obj;
+	struct openchrome_bo *bo;
+	struct drm_gem_object *gem;
 	int ret = 0;
+	int fake_ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -2171,11 +2216,18 @@ via_iga2_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 		goto exit;
 	}
 
-	gem_obj = via_fb->gem_obj;
-	bo = ttm_gem_mapping(gem_obj);
+	gem = via_fb->gem;
+	bo = container_of(gem, struct openchrome_bo, gem);
 
-	ret = via_bo_pin(bo, NULL);
-	if (unlikely(ret)) {
+	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+	if (ret) {
+		DRM_DEBUG_KMS("Failed to reserve FB.\n");
+		goto exit;
+	}
+
+	ret = openchrome_bo_pin(bo, TTM_PL_FLAG_VRAM);
+	ttm_bo_unreserve(&bo->ttm_bo);
+	if (ret) {
 		DRM_DEBUG_KMS("Failed to pin FB.\n");
 		goto exit;
 	}
@@ -2184,19 +2236,34 @@ via_iga2_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
 			ENTER_ATOMIC_MODE_SET);
 	if (unlikely(ret)) {
 		DRM_DEBUG_KMS("Failed to set a new FB.\n");
-		via_bo_unpin(bo, NULL);
+		fake_ret = ttm_bo_reserve(&bo->ttm_bo, true, false,
+						NULL);
+		if (fake_ret) {
+			goto exit;
+		}
+
+		fake_ret = openchrome_bo_unpin(bo);
+		ttm_bo_unreserve(&bo->ttm_bo);
 		goto exit;
 	}
 
-	/* Free the old framebuffer if it exist */
+	/*
+	 * Free the old framebuffer if it exists.
+	 */
 	if (old_fb) {
 		via_fb = container_of(old_fb,
-				struct via_framebuffer, fb);
-		gem_obj = via_fb->gem_obj;
-		bo = ttm_gem_mapping(gem_obj);
+					struct via_framebuffer, fb);
+		gem = via_fb->gem;
+		bo = container_of(gem, struct openchrome_bo, gem);
+		ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+		if (ret) {
+			DRM_DEBUG_KMS("FB still locked.\n");
+			goto exit;
+		}
 
-		ret = via_bo_unpin(bo, NULL);
-		if (unlikely(ret)) {
+		ret = openchrome_bo_unpin(bo);
+		ttm_bo_unreserve(&bo->ttm_bo);
+		if (ret) {
 			DRM_DEBUG_KMS("FB still locked.\n");
 			goto exit;
 		}
@@ -2342,8 +2409,9 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc,
 						crtc->dev->dev_private;
 	struct via_framebuffer *via_fb = container_of(fb,
 					struct via_framebuffer, fb);
-	struct drm_gem_object *gem_obj = via_fb->gem_obj;
-	struct ttm_buffer_object *bo = ttm_gem_mapping(gem_obj);
+	struct drm_gem_object *gem = via_fb->gem;
+	struct openchrome_bo *bo = container_of(gem,
+					struct openchrome_bo, gem);
 
 	if ((fb->format->depth != 8) && (fb->format->depth != 16) &&
 		(fb->format->depth != 24) && (fb->format->depth != 32)) {
@@ -2360,7 +2428,7 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc,
 	via_iga2_set_color_depth(dev_private, fb->format->depth);
 
 	/* Set the framebuffer offset */
-	addr = round_up(bo->offset + pitch, 16);
+	addr = round_up(bo->ttm_bo.offset + pitch, 16);
 	/* Bits 9 to 3 of the frame buffer go into bits 7 to 1
 	 * of the register. Bit 0 is for setting tile mode or
 	 * linear mode. A value of zero sets it to linear mode */
@@ -2408,6 +2476,7 @@ int via_crtc_init(struct drm_device *dev, int index)
 						dev->dev_private;
 	struct via_crtc *iga = &dev_private->iga[index];
 	struct drm_crtc *crtc = &iga->base;
+	struct openchrome_bo *bo;
 	int cursor_size = 64 * 64 * 4, i;
 	u16 *gamma;
 	int ret;
@@ -2582,11 +2651,36 @@ int via_crtc_init(struct drm_device *dev, int index)
 			|| dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)
 		cursor_size = 32 * 32 * 4;
 
-	ret = via_ttm_allocate_kernel_buffer(&dev_private->ttm.bdev,
-				cursor_size, 16,
-				TTM_PL_FLAG_VRAM, &iga->cursor_kmap);
-	if (ret)
-		DRM_ERROR("failed to create cursor\n");
+	ret = openchrome_bo_create(dev,
+					&dev_private->bdev,
+					cursor_size,
+					ttm_bo_type_kernel,
+					TTM_PL_FLAG_VRAM,
+					&bo);
+	if (ret) {
+		DRM_ERROR("Failed to create cursor.\n");
+		goto exit;
+	}
 
+	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+	if (ret) {
+		goto exit;
+	}
+
+	ret = openchrome_bo_pin(bo, TTM_PL_FLAG_VRAM);
+	if (ret) {
+		ttm_bo_unreserve(&bo->ttm_bo);
+		goto exit;
+	}
+
+	ret = ttm_bo_kmap(&bo->ttm_bo, 0, bo->ttm_bo.num_pages,
+				&bo->kmap);
+	ttm_bo_unreserve(&bo->ttm_bo);
+	if (ret) {
+		goto exit;
+	}
+
+	iga->cursor_bo = bo;
+exit:
 	return ret;
 }

@@ -50,65 +50,83 @@ MODULE_DEVICE_TABLE(pci, via_pci_table);
 #define SGDMA_MEMORY (256*1024)
 #define VQ_MEMORY (256*1024)
 
-static int via_dumb_create(struct drm_file *filp,
+
+void openchrome_drm_driver_gem_free_object_unlocked (
+					struct drm_gem_object *obj)
+{
+	struct openchrome_bo *bo = container_of(obj,
+					struct openchrome_bo, gem);
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	ttm_bo_put(&bo->ttm_bo);
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
+static int openchrome_drm_driver_dumb_create(
+				struct drm_file *file_priv,
 				struct drm_device *dev,
 				struct drm_mode_create_dumb *args)
 {
 	struct openchrome_drm_private *dev_private = dev->dev_private;
-	struct drm_gem_object *obj;
+	struct openchrome_bo *bo;
+	u32 handle;
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	args->pitch = round_up(args->width * (args->bpp >> 3), 16);
+	/*
+	 * Calculate the parameters for the dumb buffer.
+	 */
+	args->pitch = args->width * ((args->bpp + 7) >> 3);
 	args->size = args->pitch * args->height;
-	obj = ttm_gem_create(dev, &dev_private->ttm.bdev, args->size,
-				ttm_bo_type_device, TTM_PL_FLAG_VRAM,
-				16, PAGE_SIZE, false);
-	if (IS_ERR(obj))
-		return PTR_ERR(obj);
 
-	ret = drm_gem_handle_create(filp, obj, &args->handle);
-	/* drop reference from allocate - handle holds it now */
-	drm_gem_object_put_unlocked(obj);
+	ret = openchrome_bo_create(dev,
+					&dev_private->bdev,
+					args->size,
+					ttm_bo_type_device,
+					TTM_PL_FLAG_VRAM,
+					&bo);
+	if (ret) {
+		goto exit;
+	}
 
+	ret = drm_gem_handle_create(file_priv, &bo->gem, &handle);
+	drm_gem_object_put_unlocked(&bo->gem);
+	if (ret) {
+		goto exit;
+	}
+
+	args->handle = handle;
+exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
 
-static int via_dumb_mmap(struct drm_file *filp, struct drm_device *dev,
-				uint32_t handle, uint64_t *offset_p)
+static int openchrome_drm_driver_dumb_map_offset(
+				struct drm_file *file_priv,
+				struct drm_device *dev,
+				uint32_t handle,
+				uint64_t *offset)
 {
-	struct ttm_buffer_object *bo;
-	struct drm_gem_object *obj;
-	int rc = -ENOENT;
+	struct drm_gem_object *gem;
+	struct openchrome_bo *bo;
+	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	obj = drm_gem_object_lookup(filp, handle);
-	if (obj == NULL)
-		return rc;
-
-	bo = ttm_gem_mapping(obj);
-	if (bo != NULL) {
-		*offset_p = drm_vma_node_offset_addr(&bo->vma_node);
-		rc = 0;
+	gem = drm_gem_object_lookup(file_priv, handle);
+	if (!gem) {
+		ret = -ENOENT;
+		goto exit;
 	}
-	drm_gem_object_put_unlocked(obj);
 
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return rc;
-}
+	bo = container_of(gem, struct openchrome_bo, gem);
+	*offset = drm_vma_node_offset_addr(&bo->ttm_bo.vma_node);
 
-static int gem_dumb_destroy(struct drm_file *filp,
-				struct drm_device *dev, uint32_t handle)
-{
-	int ret;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	ret = drm_gem_handle_delete(filp, handle);
-
+	drm_gem_object_put_unlocked(gem);
+exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
@@ -116,29 +134,56 @@ static int gem_dumb_destroy(struct drm_file *filp,
 static void via_driver_unload(struct drm_device *dev)
 {
 	struct openchrome_drm_private *dev_private = dev->dev_private;
-	struct ttm_buffer_object *bo;
+	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	if (drm_core_check_feature(dev, DRIVER_MODESET))
 		via_modeset_fini(dev);
 
-	bo = dev_private->vq.bo;
-	if (bo) {
-		via_bo_unpin(bo, &dev_private->vq);
-		ttm_bo_put(bo);
+	if (dev_private->vq_bo) {
+		ret = ttm_bo_reserve(&dev_private->vq_bo->ttm_bo,
+					true, false, NULL);
+		if (ret) {
+			goto exit_vq;
+		}
+
+		ttm_bo_kunmap(&dev_private->vq_bo->kmap);
+
+		ret = openchrome_bo_unpin(dev_private->vq_bo);
+		ttm_bo_unreserve(&dev_private->vq_bo->ttm_bo);
+		if (ret) {
+			goto exit_vq;
+		}
+
+		ttm_bo_put(&dev_private->vq_bo->ttm_bo);
 	}
 
-	bo = dev_private->gart.bo;
-	if (bo) {
+exit_vq:
+	if (dev_private->gart_bo) {
 		/* enable gtt write */
 		if (pci_is_pcie(dev->pdev))
 			svga_wseq_mask(VGABASE, 0x6C, 0, BIT(7));
-		via_bo_unpin(bo, &dev_private->gart);
-		ttm_bo_put(bo);
+
+		ret = ttm_bo_reserve(&dev_private->gart_bo->ttm_bo,
+					true, false, NULL);
+		if (ret) {
+			goto exit_gart;
+		}
+
+		ttm_bo_kunmap(&dev_private->gart_bo->kmap);
+
+		ret = openchrome_bo_unpin(dev_private->gart_bo);
+		ttm_bo_unreserve(&dev_private->gart_bo->ttm_bo);
+		if (ret) {
+			goto exit_gart;
+		}
+
+		ttm_bo_put(&dev_private->gart_bo->ttm_bo);
 	}
 
-	via_mm_fini(dev);
+exit_gart:
+	openchrome_mm_fini(dev_private);
 
 	/*
 	 * Unmap VRAM.
@@ -157,6 +202,7 @@ static int via_driver_load(struct drm_device *dev,
 				unsigned long chipset)
 {
 	struct openchrome_drm_private *dev_private;
+	struct openchrome_bo *bo;
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -181,7 +227,7 @@ static int via_driver_load(struct drm_device *dev,
 		goto init_error;
 	}
 
-	ret = via_mm_init(dev_private);
+	ret = openchrome_mm_init(dev_private);
 	if (ret) {
 		DRM_ERROR("Failed to initialize TTM.\n");
 		goto init_error;
@@ -191,33 +237,74 @@ static int via_driver_load(struct drm_device *dev,
 
 	if (pci_is_pcie(dev->pdev)) {
 		/* Allocate GART. */
-		ret = via_ttm_allocate_kernel_buffer(
-						&dev_private->ttm.bdev,
-						SGDMA_MEMORY, 16,
+		ret = openchrome_bo_create(dev,
+						&dev_private->bdev,
+						SGDMA_MEMORY,
+						ttm_bo_type_kernel,
 						TTM_PL_FLAG_VRAM,
-						&dev_private->gart);
-		if (likely(!ret)) {
-			DRM_INFO("Allocated %u KB of DMA memory.\n",
-					SGDMA_MEMORY >> 10);
-		} else {
+						&bo);
+		if (ret) {
 			DRM_ERROR("Failed to allocate DMA memory.\n");
 			goto init_error;
 		}
+
+		ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+		if (ret) {
+			goto init_error;
+		}
+
+		ret = openchrome_bo_pin(bo, TTM_PL_FLAG_VRAM);
+		if (ret) {
+			ttm_bo_unreserve(&bo->ttm_bo);
+			goto init_error;
+		}
+
+		ret = ttm_bo_kmap(&bo->ttm_bo, 0, bo->ttm_bo.num_pages,
+					&bo->kmap);
+		ttm_bo_unreserve(&bo->ttm_bo);
+		if (ret) {
+			goto init_error;
+		}
+
+		dev_private->gart_bo = bo;
+		DRM_INFO("Allocated %u KB of DMA memory.\n",
+				SGDMA_MEMORY >> 10);
 	}
 
 	/* Allocate VQ. (Virtual Queue) */
-	ret = via_ttm_allocate_kernel_buffer(&dev_private->ttm.bdev,
-					VQ_MEMORY, 16,
+	ret = openchrome_bo_create(dev,
+					&dev_private->bdev,
+					VQ_MEMORY,
+					ttm_bo_type_kernel,
 					TTM_PL_FLAG_VRAM,
-					&dev_private->vq);
-	if (likely(!ret)) {
-		DRM_INFO("Allocated %u KB of VQ (Virtual Queue) "
-				"memory.\n", VQ_MEMORY >> 10);
-	} else {
+					&bo);
+	if (ret) {
 		DRM_ERROR("Failed to allocate VQ (Virtual Queue) "
 				"memory.\n");
 		goto init_error;
 	}
+
+	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+	if (ret) {
+		goto init_error;
+	}
+
+	ret = openchrome_bo_pin(bo, TTM_PL_FLAG_VRAM);
+	if (ret) {
+		ttm_bo_unreserve(&bo->ttm_bo);
+		goto init_error;
+	}
+
+	ret = ttm_bo_kmap(&bo->ttm_bo, 0, bo->ttm_bo.num_pages,
+				&bo->kmap);
+	ttm_bo_unreserve(&bo->ttm_bo);
+	if (ret) {
+		goto init_error;
+	}
+
+	dev_private->vq_bo = bo;
+	DRM_INFO("Allocated %u KB of VQ (Virtual Queue) memory.\n",
+			VQ_MEMORY >> 10);
 
 	via_engine_init(dev);
 
@@ -249,6 +336,35 @@ static void via_driver_lastclose(struct drm_device *dev)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
+static int openchrome_drm_mmap(struct file *filp, struct vm_area_struct *vma)
+{
+	struct drm_file *file_priv;
+	struct openchrome_drm_private *dev_private;
+	int ret = -EINVAL;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	if (vma->vm_pgoff < DRM_FILE_PAGE_OFFSET) {
+		DRM_DEBUG_KMS("VMA Error.\n");
+		ret = -EINVAL;
+		goto exit;
+	}
+
+	file_priv = filp->private_data;
+	dev_private = file_priv->minor->dev->dev_private;
+	if (!dev_private) {
+		DRM_DEBUG_KMS("No device private data.\n");
+		ret = -EINVAL;
+		goto exit;
+	}
+
+	ret = ttm_bo_mmap(filp, vma, &dev_private->bdev);
+exit:
+	DRM_DEBUG_KMS("ret: %d\n", ret);
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
+}
+
 static const struct dev_pm_ops openchrome_dev_pm_ops = {
 	.suspend	= openchrome_dev_pm_ops_suspend,
 	.resume		= openchrome_dev_pm_ops_resume,
@@ -259,7 +375,7 @@ static const struct file_operations via_driver_fops = {
 	.open		= drm_open,
 	.release	= drm_release,
 	.unlocked_ioctl = drm_ioctl,
-	.mmap		= ttm_mmap,
+	.mmap		= openchrome_drm_mmap,
 	.poll		= drm_poll,
 	.llseek		= noop_llseek,
 };
@@ -271,11 +387,11 @@ static struct drm_driver via_driver = {
 	.load = via_driver_load,
 	.unload = via_driver_unload,
 	.lastclose = via_driver_lastclose,
-	.gem_open_object = ttm_gem_open_object,
-	.gem_free_object = ttm_gem_free_object,
-	.dumb_create = via_dumb_create,
-	.dumb_map_offset = via_dumb_mmap,
-	.dumb_destroy = gem_dumb_destroy,
+	.gem_free_object_unlocked =
+		openchrome_drm_driver_gem_free_object_unlocked,
+	.dumb_create = openchrome_drm_driver_dumb_create,
+	.dumb_map_offset =
+				openchrome_drm_driver_dumb_map_offset,
 	.ioctls = via_ioctls,
 	.fops = &via_driver_fops,
 	.name = DRIVER_NAME,

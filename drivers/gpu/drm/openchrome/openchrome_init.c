@@ -259,6 +259,9 @@ void openchrome_flag_init(struct openchrome_drm_private *dev_private)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
+	/* Set this flag for ttm_bo_device_init. */
+	dev_private->need_dma32 = true;
+
 	/*
 	 * Special handling flags for a few special models.
 	 */
@@ -453,18 +456,18 @@ static void via_init_vq(struct openchrome_drm_private *dev_private)
 {
 	unsigned long vq_start_addr, vq_end_addr, vqlen;
 	unsigned long vqstartl, vqendl, vqstart_endh;
-	struct ttm_buffer_object *bo = dev_private->vq.bo;
+	struct openchrome_bo *bo = dev_private->vq_bo;
 
-	if (!bo)
+	if (!bo->kmap.bo)
 		return;
 
-	vq_start_addr = bo->offset;
-	vq_end_addr = vq_start_addr + bo->mem.size - 1;
+	vq_start_addr = bo->kmap.bo->offset;
+	vq_end_addr = vq_start_addr + bo->kmap.bo->mem.size - 1;
 	vqstartl = 0x70000000 | (vq_start_addr & 0xFFFFFF);
 	vqendl = 0x71000000 | (vq_end_addr & 0xFFFFFF);
 	vqstart_endh = 0x72000000 | ((vq_start_addr & 0xFF000000) >> 24) |
 			((vq_end_addr & 0xFF000000) >> 16);
-	vqlen = 0x73000000 | (bo->mem.size >> 3);
+	vqlen = 0x73000000 | (bo->kmap.bo->mem.size >> 3);
 
 	VIA_WRITE(0x41c, 0x00100000);
 	VIA_WRITE(0x420, vqstart_endh);
@@ -479,24 +482,24 @@ static void via_init_pcie_gart_table(
 			struct openchrome_drm_private *dev_private,
 			struct pci_dev *pdev)
 {
-	struct ttm_buffer_object *bo = dev_private->gart.bo;
+	struct openchrome_bo *bo = dev_private->gart_bo;
 	u8 value;
 
-	if (!pci_is_pcie(pdev) || !bo)
+	if (!pci_is_pcie(pdev) || !bo->kmap.bo)
 		return;
 
 	/* enable gtt write */
 	svga_wseq_mask(VGABASE, 0x6C, 0x00, BIT(7));
 
 	/* set the base address of gart table */
-	value = (bo->offset & 0xff000) >> 12;
+	value = (bo->kmap.bo->offset & 0xff000) >> 12;
 	vga_wseq(VGABASE, 0x6A, value);
 
-	value = (bo->offset & 0xff000) >> 20;
+	value = (bo->kmap.bo->offset & 0xff000) >> 20;
 	vga_wseq(VGABASE, 0x6B, value);
 
 	value = vga_rseq(VGABASE, 0x6C);
-	value |= ((bo->offset >> 28) & 0x01);
+	value |= ((bo->kmap.bo->offset >> 28) & 0x01);
 	vga_wseq(VGABASE, 0x6C, value);
 
 	/* flush the gtt cache */

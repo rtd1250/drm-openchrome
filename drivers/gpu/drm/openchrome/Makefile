@@ -12,11 +12,11 @@ openchrome-y := openchrome_analog.o \
 		openchrome_encoder.o \
 		openchrome_fb.o \
 		openchrome_fp.o \
-		openchrome_gem.o \
 		openchrome_hdmi.o \
 		openchrome_i2c.o \
 		openchrome_init.o \
 		openchrome_ioc32.o \
+		openchrome_object.o \
 		openchrome_pm.o \
 		openchrome_sii164.o \
 		openchrome_tmds.o \

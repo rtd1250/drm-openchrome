@@ -58,6 +58,8 @@
 #define DRIVER_AUTHOR		"OpenChrome Project"
 
 
+#define OPENCHROME_TTM_PL_NUM	2
+
 #define VIA_MM_ALIGN_SIZE	16
 
 #define DRM_FILE_PAGE_OFFSET	(0x100000000ULL >> PAGE_SHIFT)
@@ -96,30 +98,23 @@ struct via_state {
 	struct vga_regset seq_regs[256];
 };
 
-struct via_ttm {
-	struct ttm_bo_device bdev;
-};
-
-struct ttm_heap {
-	struct ttm_buffer_object bo;
-	struct ttm_place busy_placements[TTM_NUM_MEM_TYPES];
-	struct ttm_place placements[TTM_NUM_MEM_TYPES];
-};
-
-struct ttm_gem_object {
-	struct drm_gem_object gem;
-	struct ttm_heap *heap;
+struct openchrome_bo {
+	struct ttm_buffer_object	ttm_bo;
+	struct ttm_bo_kmap_obj		kmap;
+	struct ttm_placement		placement;
+	struct ttm_place		placements[OPENCHROME_TTM_PL_NUM];
+	struct drm_gem_object		gem;
 };
 
 struct via_framebuffer {
-	struct drm_framebuffer fb;
-	struct drm_gem_object *gem_obj;
+	struct drm_framebuffer		fb;
+	struct drm_gem_object		*gem;
 };
 
 struct via_framebuffer_device {
-	struct drm_fb_helper helper;
-	struct ttm_bo_kmap_obj kmap;
-	struct via_framebuffer via_fb;
+	struct drm_fb_helper		helper;
+	struct via_framebuffer		via_fb;
+	struct openchrome_bo		*bo;
 };
 
 enum via_engine {
@@ -133,12 +128,15 @@ enum via_engine {
 struct openchrome_drm_private {
 	struct drm_device *dev;
 
-	struct via_ttm ttm;
+	struct ttm_bo_device		bdev;
+
+	/* Set this flag for ttm_bo_device_init. */
+	bool need_dma32;
 
 	int revision;
 
-	struct ttm_bo_kmap_obj gart;
-	struct ttm_bo_kmap_obj vq;
+	struct openchrome_bo		*gart_bo;
+	struct openchrome_bo		*vq_bo;
 
 	struct via_framebuffer_device *via_fbdev;
 	u8 vram_type;
@@ -260,6 +258,8 @@ extern int via_max_ioctl;
 
 extern int via_hdmi_audio;
 
+extern struct ttm_bo_driver openchrome_bo_driver;
+
 int openchrome_mmio_init(struct openchrome_drm_private *dev_private);
 void openchrome_mmio_fini(struct openchrome_drm_private *dev_private);
 void openchrome_graphics_unlock(
@@ -279,46 +279,19 @@ extern int openchrome_vram_init(
 extern void openchrome_vram_fini(
 			struct openchrome_drm_private *dev_private);
 
-extern int via_mm_init(struct openchrome_drm_private *dev_private);
-void via_mm_fini(struct drm_device *dev);
-extern void ttm_placement_from_domain(struct ttm_buffer_object *bo,
-			struct ttm_placement *placement,
-			u32 domains, struct ttm_bo_device *bdev);
-extern int via_bo_create(struct ttm_bo_device *bdev,
-				struct ttm_buffer_object **p_bo,
-				unsigned long size,
+void openchrome_bo_destroy(struct ttm_buffer_object *tbo);
+void openchrome_ttm_domain_to_placement(struct openchrome_bo *bo,
+					uint32_t ttm_domain);
+int openchrome_bo_create(struct drm_device *dev,
+				struct ttm_bo_device *bdev,
+				uint64_t size,
 				enum ttm_bo_type type,
-				uint32_t domains,
-				uint32_t byte_alignment,
-				uint32_t page_alignment,
-				bool interruptible,
-				struct sg_table *sg,
-				struct reservation_object *resv);
-extern int via_bo_pin(struct ttm_buffer_object *bo,
-				struct ttm_bo_kmap_obj *kmap);
-extern int via_bo_unpin(struct ttm_buffer_object *bo,
-				struct ttm_bo_kmap_obj *kmap);
-extern int via_ttm_allocate_kernel_buffer(struct ttm_bo_device *bdev,
-				unsigned long size,
-				uint32_t alignment, uint32_t domain,
-				struct ttm_bo_kmap_obj *kmap);
-
-
-extern int ttm_mmap(struct file *filp, struct vm_area_struct *vma);
-
-extern int ttm_gem_open_object(struct drm_gem_object *obj,
-				struct drm_file *file_priv);
-extern void ttm_gem_free_object(struct drm_gem_object *obj);
-extern struct drm_gem_object* ttm_gem_create(struct drm_device *dev,
-					struct ttm_bo_device *bdev,
-					unsigned long size,
-					enum ttm_bo_type type,
-					uint32_t domains,
-					uint32_t byte_alignment,
-					uint32_t page_alignment,
-					bool interruptible);
-extern struct ttm_buffer_object* ttm_gem_mapping(
-					struct drm_gem_object *obj);
+				uint32_t ttm_domain,
+				struct openchrome_bo **bo_ptr);
+int openchrome_bo_pin(struct openchrome_bo *bo, uint32_t ttm_domain);
+int openchrome_bo_unpin(struct openchrome_bo *bo);
+int openchrome_mm_init(struct openchrome_drm_private *dev_private);
+void openchrome_mm_fini(struct openchrome_drm_private *dev_private);
 
 void openchrome_transmitter_io_pad_state(
 			struct openchrome_drm_private *dev_private,

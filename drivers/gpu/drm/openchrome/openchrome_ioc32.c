@@ -63,102 +63,132 @@ static int
 via_gem_alloc(struct drm_device *dev, void *data,
 		struct drm_file *filp)
 {
-	struct openchrome_drm_private *dev_private = dev->dev_private;
 	struct drm_via_gem_object *args = data;
-	struct drm_gem_object *obj;
-	int ret = -ENOMEM;
+	struct openchrome_drm_private *dev_private = dev->dev_private;
+	struct openchrome_bo *bo;
+	uint32_t handle;
+	int ret;
 
-	obj = ttm_gem_create(dev, &dev_private->ttm.bdev, args->size,
-				ttm_bo_type_device, args->domains,
-				args->alignment, PAGE_SIZE, false);
-	if (obj != NULL) {
-		ret = drm_gem_handle_create(filp, obj, &args->handle);
-		/* drop reference from allocate - handle holds it now */
-		drm_gem_object_put_unlocked(obj);
-		if (!ret) {
-			struct ttm_buffer_object *bo = ttm_gem_mapping(obj);
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-			args->map_handle = drm_vma_node_offset_addr(&bo->vma_node);
-			args->domains = bo->mem.placement & TTM_PL_MASK_MEM;
-			args->offset = bo->offset;
-			args->size = bo->mem.size;
-			args->version = 1;
-		}
+	ret = openchrome_bo_create(dev,
+					&dev_private->bdev,
+					args->size,
+					ttm_bo_type_device,
+					args->domains,
+					&bo);
+
+	if (ret) {
+		goto exit;
 	}
+
+	ret = drm_gem_handle_create(filp, &bo->gem,
+					&handle);
+
+	/* Drop reference from allocate; handle holds it now. */
+	drm_gem_object_put_unlocked(&bo->gem);
+
+	if (ret) {
+		ttm_bo_put(&bo->ttm_bo);
+		goto exit;
+	}
+
+	args->size		= bo->ttm_bo.mem.size;
+	args->domains		= bo->ttm_bo.mem.placement &
+						TTM_PL_MASK_MEM;
+	args->offset		= bo->ttm_bo.offset;
+	args->map_handle	= drm_vma_node_offset_addr(
+						&bo->ttm_bo.vma_node);
+	args->handle		= handle;
+	args->version		= 1;
+
+exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
 
 static int
 via_gem_state(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
-	struct drm_via_gem_object *args = data;
-	struct ttm_buffer_object *bo = NULL;
-	struct drm_gem_object *obj = NULL;
-	struct ttm_placement placement;
 	struct ttm_operation_ctx ctx = {.interruptible = false,
 					.no_wait_gpu = false};
+	struct drm_gem_object *gem;
+	struct drm_via_gem_object *args = data;
+	struct openchrome_bo *bo;
 	int ret = -EINVAL;
 
-	obj = drm_gem_object_lookup(file_priv, args->handle);
-	if (obj == NULL)
-		return ret;
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	bo = ttm_gem_mapping(obj);
-	if (bo == NULL)
-		return ret;
+	gem = drm_gem_object_lookup(file_priv, args->handle);
+	if (!gem) {
+		goto exit;
+	}
+
+	bo = container_of(gem, struct openchrome_bo, gem);
 
 	/* Don't bother to migrate to same domain */
-	args->domains &= ~(bo->mem.placement & TTM_PL_MASK_MEM);
+	args->domains &= ~(bo->ttm_bo.mem.placement & TTM_PL_MASK_MEM);
 	if (args->domains) {
-		ret = ttm_bo_reserve(bo, true, false, NULL);
-		if (unlikely(ret))
-			return ret;
+		ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+		if (ret) {
+			goto exit;
+		}
 
-		ttm_placement_from_domain(bo, &placement, args->domains, bo->bdev);
-		ret = ttm_bo_validate(bo, &placement, &ctx);
-		ttm_bo_unreserve(bo);
+		openchrome_ttm_domain_to_placement(bo, args->domains);
+		ret = ttm_bo_validate(&bo->ttm_bo, &bo->placement,
+					&ctx);
+		ttm_bo_unreserve(&bo->ttm_bo);
 
 		if (!ret) {
-			args->map_handle = drm_vma_node_offset_addr(&bo->vma_node);
-			args->domains = bo->mem.placement & TTM_PL_MASK_MEM;
-			args->offset = bo->offset;
-			args->size = bo->mem.size;
+			args->size = bo->ttm_bo.mem.size;
+			args->domains = bo->ttm_bo.mem.placement &
+						TTM_PL_MASK_MEM;
+			args->offset = bo->ttm_bo.offset;
+			args->map_handle = drm_vma_node_offset_addr(
+						&bo->ttm_bo.vma_node);
 		}
 	}
+
 	mutex_lock(&dev->struct_mutex);
-	drm_gem_object_put(obj);
+	drm_gem_object_put(gem);
 	mutex_unlock(&dev->struct_mutex);
+exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
 
 static int
 via_gem_wait(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
+	struct drm_gem_object *gem;
 	struct drm_via_gem_wait *args = data;
-	struct ttm_buffer_object *bo;
-	struct drm_gem_object *obj;
+	struct openchrome_bo *bo;
 	int ret = -EINVAL;
 	bool no_wait;
 
-	obj = drm_gem_object_lookup(file_priv, args->handle);
-	if (obj == NULL)
-		return ret;
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	bo = ttm_gem_mapping(obj);
-	if (bo == NULL)
-		return ret;
+	gem = drm_gem_object_lookup(file_priv, args->handle);
+	if (!gem) {
+		goto exit;
+	}
+
+	bo = container_of(gem, struct openchrome_bo, gem);
 
 	no_wait = (args->no_wait != 0);
-	ret = ttm_bo_reserve(bo, true, no_wait, NULL);
-	if (unlikely(ret != 0))
-		return ret;
+	ret = ttm_bo_reserve(&bo->ttm_bo, true, no_wait, NULL);
+	if (ret) {
+		goto exit;
+	}
 
-	ret = ttm_bo_wait(bo, true, no_wait);
-	ttm_bo_unreserve(bo);
+	ret = ttm_bo_wait(&bo->ttm_bo, true, no_wait);
+	ttm_bo_unreserve(&bo->ttm_bo);
 
 	mutex_lock(&dev->struct_mutex);
-	drm_gem_object_put(obj);
+	drm_gem_object_put(gem);
 	mutex_unlock(&dev->struct_mutex);
+exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
 

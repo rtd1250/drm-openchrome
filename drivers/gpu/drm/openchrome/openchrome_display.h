@@ -88,7 +88,7 @@ typedef struct _via_fp_info {
 
 struct via_crtc {
 	struct drm_crtc base;
-	struct ttm_bo_kmap_obj cursor_kmap;
+	struct openchrome_bo *cursor_bo;
 	struct crtc_timings pixel_timings;
 	struct crtc_timings timings;
 	struct vga_registers display_queue;

@@ -951,27 +951,35 @@ via_user_framebuffer_create_handle(struct drm_framebuffer *fb,
 					struct drm_file *file_priv,
 					unsigned int *handle)
 {
-	struct via_framebuffer *via_fb =
-						container_of(fb, struct via_framebuffer, fb);
-	struct drm_gem_object *gem_obj = via_fb->gem_obj;
+	struct via_framebuffer *via_fb = container_of(fb,
+					struct via_framebuffer, fb);
+	int ret;
 
-	return drm_gem_handle_create(file_priv, gem_obj, handle);
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	ret = drm_gem_handle_create(file_priv, via_fb->gem, handle);
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
 }
 
 static void
 via_user_framebuffer_destroy(struct drm_framebuffer *fb)
 {
-	struct via_framebuffer *via_fb =
-						container_of(fb, struct via_framebuffer, fb);
-	struct drm_gem_object *gem_obj = via_fb->gem_obj;
+	struct via_framebuffer *via_fb = container_of(fb,
+					struct via_framebuffer, fb);
 
-	if (gem_obj) {
-		drm_gem_object_put_unlocked(gem_obj);
-		via_fb->gem_obj = NULL;
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	if (via_fb->gem) {
+		drm_gem_object_put_unlocked(via_fb->gem);
+		via_fb->gem = NULL;
 	}
 
 	drm_framebuffer_cleanup(fb);
 	kfree(via_fb);
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static const struct drm_framebuffer_funcs via_fb_funcs = {
@@ -993,11 +1001,11 @@ via_user_framebuffer_create(struct drm_device *dev,
 				const struct drm_mode_fb_cmd2 *mode_cmd)
 {
 	struct via_framebuffer *via_fb;
-	struct drm_gem_object *gem_obj;
+	struct drm_gem_object *gem;
 	int ret;
 
-	gem_obj = drm_gem_object_lookup(file_priv, mode_cmd->handles[0]);
-	if (!gem_obj) {
+	gem = drm_gem_object_lookup(file_priv, mode_cmd->handles[0]);
+	if (!gem) {
 		DRM_ERROR("No GEM object found for handle 0x%08X\n",
 				mode_cmd->handles[0]);
 		return ERR_PTR(-ENOENT);
@@ -1008,12 +1016,13 @@ via_user_framebuffer_create(struct drm_device *dev,
 		return ERR_PTR(-ENOMEM);
 	}
 
-	via_fb->gem_obj = gem_obj;
+	via_fb->gem = gem;
 
 	drm_helper_mode_fill_fb_struct(dev, &via_fb->fb, mode_cmd);
 	ret = drm_framebuffer_init(dev, &via_fb->fb, &via_fb_funcs);
 	if (ret) {
-		drm_gem_object_put(gem_obj);
+		drm_gem_object_put_unlocked(via_fb->gem);
+		via_fb->gem = NULL;
 		kfree(via_fb);
 		return ERR_PTR(ret);
 	}
@@ -1087,15 +1096,15 @@ via_fb_probe(struct drm_fb_helper *helper,
 					helper->dev->dev_private;
 	struct via_framebuffer_device *via_fbdev = container_of(helper,
 				struct via_framebuffer_device, helper);
-	struct ttm_bo_kmap_obj *kmap = &via_fbdev->kmap;
 	struct via_framebuffer *via_fb = &via_fbdev->via_fb;
 	struct drm_framebuffer *fb = &via_fbdev->via_fb.fb;
 	struct fb_info *info = helper->fbdev;
-	struct drm_gem_object *gem_obj;
+	struct openchrome_bo *bo;
 	struct drm_mode_fb_cmd2 mode_cmd;
 	struct apertures_struct *ap;
 	int size, cpp;
 	int ret = 0;
+	int fake_ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -1110,23 +1119,35 @@ via_fb_probe(struct drm_fb_helper *helper,
 	size = mode_cmd.pitches[0] * mode_cmd.height;
 	size = ALIGN(size, PAGE_SIZE);
 
-	gem_obj = ttm_gem_create(dev, &dev_private->ttm.bdev, size,
-				ttm_bo_type_kernel, TTM_PL_FLAG_VRAM,
-				1, PAGE_SIZE, false);
-	if (unlikely(IS_ERR(gem_obj))) {
-		ret = PTR_ERR(gem_obj);
+	ret = openchrome_bo_create(dev,
+					&dev_private->bdev,
+					size,
+					ttm_bo_type_kernel,
+					TTM_PL_FLAG_VRAM,
+					&bo);
+	if (ret) {
+		goto exit;
+	}
+
+	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+	if (ret) {
 		goto out_err;
 	}
 
-	kmap->bo = ttm_gem_mapping(gem_obj);
-	if (!kmap->bo) {
+	ret = openchrome_bo_pin(bo, TTM_PL_FLAG_VRAM);
+	if (ret) {
+		ttm_bo_unreserve(&bo->ttm_bo);
 		goto out_err;
 	}
 
-	ret = via_bo_pin(kmap->bo, kmap);
-	if (unlikely(ret)) {
+	ret = ttm_bo_kmap(&bo->ttm_bo, 0, bo->ttm_bo.num_pages,
+				&bo->kmap);
+	ttm_bo_unreserve(&bo->ttm_bo);
+	if (ret) {
 		goto out_err;
 	}
+
+	via_fbdev->bo = bo;
 
 	info = drm_fb_helper_alloc_fbi(helper);
 	if (IS_ERR(info)) {
@@ -1143,7 +1164,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 		goto out_err;
 	}
 
-	via_fb->gem_obj = gem_obj;
+	via_fb->gem = &bo->gem;
 	via_fbdev->helper.fb = fb;
 	via_fbdev->helper.fbdev = info;
 
@@ -1152,10 +1173,10 @@ via_fb_probe(struct drm_fb_helper *helper,
 
 	info->fbops = &via_fb_ops;
 
-	info->fix.smem_start = kmap->bo->mem.bus.base +
-				kmap->bo->mem.bus.offset;
+	info->fix.smem_start = bo->kmap.bo->mem.bus.base +
+				bo->kmap.bo->mem.bus.offset;
 	info->fix.smem_len = size;
-	info->screen_base = kmap->virtual;
+	info->screen_base = bo->kmap.virtual;
 	info->screen_size = size;
 
 	/* Setup aperture base / size for takeover (i.e., vesafb). */
@@ -1165,9 +1186,9 @@ via_fb_probe(struct drm_fb_helper *helper,
 		goto out_err;
 	}
 
-	ap->ranges[0].size = kmap->bo->bdev->
-				man[kmap->bo->mem.mem_type].size;
-	ap->ranges[0].base = kmap->bo->mem.bus.base;
+	ap->ranges[0].size = bo->kmap.bo->bdev->
+				man[bo->kmap.bo->mem.mem_type].size;
+	ap->ranges[0].base = bo->kmap.bo->mem.bus.base;
 	info->apertures = ap;
 
 	drm_fb_helper_fill_fix(info, fb->pitches[0], fb->format->depth);
@@ -1175,14 +1196,26 @@ via_fb_probe(struct drm_fb_helper *helper,
 				sizes->fb_width, sizes->fb_height);
 	goto exit;
 out_err:
-	if (kmap->bo) {
-		via_bo_unpin(kmap->bo, kmap);
-		ttm_bo_put(kmap->bo);
+	if (bo->kmap.bo) {
+		fake_ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+		if (fake_ret) {
+			goto exit;
+		}
+
+		ttm_bo_kunmap(&bo->kmap);
+
+		fake_ret = openchrome_bo_unpin(bo);
+		if (fake_ret) {
+			ttm_bo_unreserve(&bo->ttm_bo);
+			goto exit;
+		}
+
+		ttm_bo_put(&bo->ttm_bo);
 	}
 
-	if (gem_obj) {
-		drm_gem_object_put_unlocked(gem_obj);
-		via_fb->gem_obj = NULL;
+	if (via_fb->gem) {
+		drm_gem_object_put_unlocked(via_fb->gem);
+		via_fb->gem = NULL;
 	}
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
@@ -1264,9 +1297,9 @@ void via_fbdev_fini(struct drm_device *dev)
 		fb_helper->fbdev = NULL;
 	}
 
-	if (via_fb->gem_obj) {
-		drm_gem_object_put_unlocked(via_fb->gem_obj);
-		via_fb->gem_obj = NULL;
+	if (via_fb->gem) {
+		drm_gem_object_put_unlocked(via_fb->gem);
+		via_fb->gem = NULL;
 	}
 
 	drm_fb_helper_fini(&dev_private->via_fbdev->helper);
