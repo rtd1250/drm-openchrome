@@ -278,7 +278,7 @@ int openchrome_device_init(struct openchrome_drm_private *dev_private)
 
 	openchrome_flag_init(dev_private);
 
-	ret = via_vram_detect(dev_private);
+	ret = openchrome_vram_detect(dev_private);
 	if (ret) {
 		DRM_ERROR("Failed to detect video RAM.\n");
 		goto exit;

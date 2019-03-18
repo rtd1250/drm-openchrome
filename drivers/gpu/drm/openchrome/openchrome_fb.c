@@ -689,7 +689,7 @@ static int vx900_mem_type(struct openchrome_drm_private *dev_private,
 	return ret;
 }
 
-int via_vram_detect(struct openchrome_drm_private *dev_private)
+int openchrome_vram_detect(struct openchrome_drm_private *dev_private)
 {
 	struct drm_device *dev = dev_private->dev;
 	struct pci_dev *bridge = NULL;
