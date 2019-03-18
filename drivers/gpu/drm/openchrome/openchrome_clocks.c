@@ -19,9 +19,14 @@
  * for more details.
  */
 
-#include <drm/drmP.h>
+#include <linux/delay.h>
+#include <linux/pci.h>
+#include <linux/pci_ids.h>
+
+#include <drm/drm_ioctl.h>
 
 #include "openchrome_drv.h"
+
 
 #define CSR_VCO_UP	600000000
 #define CSR_VCO_DOWN	300000000

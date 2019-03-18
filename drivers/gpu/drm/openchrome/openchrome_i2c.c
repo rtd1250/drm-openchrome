@@ -16,6 +16,8 @@
  * driver by VIA Technologies and S3 Graphics
  */
 
+#include <linux/delay.h>
+
 #include "openchrome_drv.h"
 
 enum viafb_i2c_adap;

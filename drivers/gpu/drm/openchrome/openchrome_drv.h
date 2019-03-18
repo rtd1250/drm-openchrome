@@ -36,8 +36,8 @@
 
 #include <video/vga.h>
 
-#include <drm/drmP.h>
 #include <drm/drm_gem.h>
+#include <drm/drm_ioctl.h>
 
 #include "ttm/ttm_bo_api.h"
 #include "ttm/ttm_bo_driver.h"

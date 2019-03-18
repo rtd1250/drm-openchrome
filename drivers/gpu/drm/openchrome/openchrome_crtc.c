@@ -21,13 +21,19 @@
  * Authors:
  *	James Simmons <jsimmons@infradead.org>
  */
-#include <drm/drm_mode.h>
-#include <drm/drmP.h>
+
+#include <linux/pci.h>
+#include <linux/pci_ids.h>
+
 #include <drm/drm_crtc.h>
 #include <drm/drm_crtc_helper.h>
+#include <drm/drm_fourcc.h>
+#include <drm/drm_ioctl.h>
+#include <drm/drm_mode.h>
 
 #include "openchrome_drv.h"
 #include "openchrome_disp_reg.h"
+
 
 static struct vga_regset vpit_table[] = {
 	{VGA_SEQ_I, 0x01, 0xFF, 0x01 },

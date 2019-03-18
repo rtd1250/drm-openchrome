@@ -24,6 +24,9 @@
  *	James Simmons <jsimmons@infradead.org>
  */
 
+#include <linux/delay.h>
+
+#include <drm/drm_drv.h>
 #include <drm/drm_probe_helper.h>
 
 #include "openchrome_drv.h"

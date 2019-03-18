@@ -27,7 +27,7 @@
 
 #include <video/vga.h>
 
-#include <drm/drmP.h>
+#include <drm/drm_print.h>
 
 
 /* To be used with via_analog_set_dpms_control inline function. */

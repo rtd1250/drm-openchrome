@@ -27,7 +27,6 @@
 #include <linux/module.h>
 #include <linux/console.h>
 
-#include <drm/drmP.h>
 #include "openchrome_drv.h"
 
 

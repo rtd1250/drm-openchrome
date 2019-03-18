@@ -23,15 +23,19 @@
 #ifndef _VIA_DISPLAY_H_
 #define _VIA_DISPLAY_H_
 
+#include <linux/pci.h>
+#include <linux/pci_ids.h>
+
 #include <video/vga.h>
 
-#include <drm/drm_edid.h>
 #include <drm/drm_crtc.h>
 #include <drm/drm_crtc_helper.h>
-#include <drm/drm_plane_helper.h>
+#include <drm/drm_edid.h>
 #include <drm/drm_fb_helper.h>
+#include <drm/drm_plane_helper.h>
 
 #include "openchrome_crtc_hw.h"
+
 
 /* IGA Scaling disable */
 #define VIA_NO_SCALING	0
