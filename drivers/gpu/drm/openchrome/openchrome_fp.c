@@ -25,7 +25,7 @@
  */
 
 #include <linux/delay.h>
-#include <linux/dmi.h>
+
 #include <asm/olpc.h>
 
 #include <drm/drm_probe_helper.h>
