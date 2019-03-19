@@ -260,6 +260,7 @@ extern int via_hdmi_audio;
 
 extern struct ttm_bo_driver openchrome_bo_driver;
 
+int openchrome_vram_detect(struct openchrome_drm_private *dev_private);
 int openchrome_mmio_init(struct openchrome_drm_private *dev_private);
 void openchrome_mmio_fini(struct openchrome_drm_private *dev_private);
 void openchrome_graphics_unlock(
@@ -273,7 +274,6 @@ extern void via_engine_init(struct drm_device *dev);
 int openchrome_dev_pm_ops_suspend(struct device *dev);
 int openchrome_dev_pm_ops_resume(struct device *dev);
 
-int openchrome_vram_detect(struct openchrome_drm_private *dev_private);
 extern int openchrome_vram_init(
 			struct openchrome_drm_private *dev_private);
 extern void openchrome_vram_fini(
