@@ -77,7 +77,7 @@
 #define PCIE_BUS_CLK                10000
 #define TCLK                        (PCIE_BUS_CLK / 10)
 
-static const struct profile_mode_setting smu7_profiling[7] =
+static struct profile_mode_setting smu7_profiling[7] =
 					{{0, 0, 0, 0, 0, 0, 0, 0},
 					 {1, 0, 100, 30, 1, 0, 100, 10},
 					 {1, 10, 0, 30, 0, 0, 0, 0},
@@ -3491,14 +3491,14 @@ static int smu7_get_gpu_power(struct pp_hwmgr *hwmgr, u32 *query)
 
 	smum_send_msg_to_smc(hwmgr, PPSMC_MSG_PmStatusLogStart);
 	cgs_write_ind_register(hwmgr->device, CGS_IND_REG__SMC,
-							ixSMU_PM_STATUS_94, 0);
+							ixSMU_PM_STATUS_95, 0);
 
 	for (i = 0; i < 10; i++) {
-		mdelay(1);
+		mdelay(500);
 		smum_send_msg_to_smc(hwmgr, PPSMC_MSG_PmStatusLogSample);
 		tmp = cgs_read_ind_register(hwmgr->device,
 						CGS_IND_REG__SMC,
-						ixSMU_PM_STATUS_94);
+						ixSMU_PM_STATUS_95);
 		if (tmp != 0)
 			break;
 	}
@@ -4984,17 +4984,27 @@ static int smu7_set_power_profile_mode(struct pp_hwmgr *hwmgr, long *input, uint
 	mode = input[size];
 	switch (mode) {
 	case PP_SMC_POWER_PROFILE_CUSTOM:
-		if (size < 8)
+		if (size < 8 && size != 0)
 			return -EINVAL;
-
-		tmp.bupdate_sclk = input[0];
-		tmp.sclk_up_hyst = input[1];
-		tmp.sclk_down_hyst = input[2];
-		tmp.sclk_activity = input[3];
-		tmp.bupdate_mclk = input[4];
-		tmp.mclk_up_hyst = input[5];
-		tmp.mclk_down_hyst = input[6];
-		tmp.mclk_activity = input[7];
+		/* If only CUSTOM is passed in, use the saved values. Check
+		 * that we actually have a CUSTOM profile by ensuring that
+		 * the "use sclk" or the "use mclk" bits are set
+		 */
+		tmp = smu7_profiling[PP_SMC_POWER_PROFILE_CUSTOM];
+		if (size == 0) {
+			if (tmp.bupdate_sclk == 0 && tmp.bupdate_mclk == 0)
+				return -EINVAL;
+		} else {
+			tmp.bupdate_sclk = input[0];
+			tmp.sclk_up_hyst = input[1];
+			tmp.sclk_down_hyst = input[2];
+			tmp.sclk_activity = input[3];
+			tmp.bupdate_mclk = input[4];
+			tmp.mclk_up_hyst = input[5];
+			tmp.mclk_down_hyst = input[6];
+			tmp.mclk_activity = input[7];
+			smu7_profiling[PP_SMC_POWER_PROFILE_CUSTOM] = tmp;
+		}
 		if (!smum_update_dpm_settings(hwmgr, &tmp)) {
 			memcpy(&data->current_profile_setting, &tmp, sizeof(struct profile_mode_setting));
 			hwmgr->power_profile_mode = mode;

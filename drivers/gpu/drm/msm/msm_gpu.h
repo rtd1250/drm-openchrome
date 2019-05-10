@@ -19,6 +19,7 @@
 #define __MSM_GPU_H__
 
 #include <linux/clk.h>
+#include <linux/interconnect.h>
 #include <linux/regulator/consumer.h>
 
 #include "msm_drv.h"
@@ -103,6 +104,9 @@ struct msm_gpu {
 	/* does gpu need hw_init? */
 	bool needs_hw_init;
 
+	/* number of GPU hangs (for all contexts) */
+	int global_faults;
+
 	/* worker for handling active-list retiring: */
 	struct work_struct retire_work;
 
@@ -117,6 +121,8 @@ struct msm_gpu {
 	int nr_clocks;
 	struct clk *ebi1_clk, *core_clk, *rbbmtimer_clk;
 	uint32_t fast_rate;
+
+	struct icc_path *icc_path;
 
 	/* Hang and Inactivity Detection:
 	 */

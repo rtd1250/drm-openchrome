@@ -27,8 +27,6 @@
 
 #include "i915_drv.h"
 
-#define task_asleep(tsk) ((tsk)->state & TASK_NORMAL && !(tsk)->on_rq)
-
 static void irq_enable(struct intel_engine_cs *engine)
 {
 	if (!engine->irq_enable)
@@ -82,7 +80,7 @@ static inline bool __request_completed(const struct i915_request *rq)
 	return i915_seqno_passed(__hwsp_seqno(rq), rq->fence.seqno);
 }
 
-bool intel_engine_breadcrumbs_irq(struct intel_engine_cs *engine)
+void intel_engine_breadcrumbs_irq(struct intel_engine_cs *engine)
 {
 	struct intel_breadcrumbs *b = &engine->breadcrumbs;
 	struct intel_context *ce, *cn;
@@ -106,16 +104,6 @@ bool intel_engine_breadcrumbs_irq(struct intel_engine_cs *engine)
 
 			GEM_BUG_ON(!test_bit(I915_FENCE_FLAG_SIGNAL,
 					     &rq->fence.flags));
-			clear_bit(I915_FENCE_FLAG_SIGNAL, &rq->fence.flags);
-
-			/*
-			 * We may race with direct invocation of
-			 * dma_fence_signal(), e.g. i915_request_retire(),
-			 * in which case we can skip processing it ourselves.
-			 */
-			if (test_bit(DMA_FENCE_FLAG_SIGNALED_BIT,
-				     &rq->fence.flags))
-				continue;
 
 			/*
 			 * Queue for execution after dropping the signaling
@@ -123,6 +111,14 @@ bool intel_engine_breadcrumbs_irq(struct intel_engine_cs *engine)
 			 * more signalers to the same context or engine.
 			 */
 			i915_request_get(rq);
+
+			/*
+			 * We may race with direct invocation of
+			 * dma_fence_signal(), e.g. i915_request_retire(),
+			 * so we need to acquire our reference to the request
+			 * before we cancel the breadcrumb.
+			 */
+			clear_bit(I915_FENCE_FLAG_SIGNAL, &rq->fence.flags);
 			list_add_tail(&rq->signal_link, &signal);
 		}
 
@@ -148,19 +144,13 @@ bool intel_engine_breadcrumbs_irq(struct intel_engine_cs *engine)
 		dma_fence_signal(&rq->fence);
 		i915_request_put(rq);
 	}
-
-	return !list_empty(&signal);
 }
 
-bool intel_engine_signal_breadcrumbs(struct intel_engine_cs *engine)
+void intel_engine_signal_breadcrumbs(struct intel_engine_cs *engine)
 {
-	bool result;
-
 	local_irq_disable();
-	result = intel_engine_breadcrumbs_irq(engine);
+	intel_engine_breadcrumbs_irq(engine);
 	local_irq_enable();
-
-	return result;
 }
 
 static void signal_irq_work(struct irq_work *work)
