@@ -273,7 +273,6 @@ via_fb_probe(struct drm_fb_helper *helper,
 		goto out_err;
 	}
 
-	info->par = via_fbdev;
 	info->skip_vt_switch = true;
 
 	drm_helper_mode_fill_fb_struct(dev, fb, &mode_cmd);
@@ -285,9 +284,6 @@ via_fb_probe(struct drm_fb_helper *helper,
 	via_fb->gem = &bo->gem;
 	via_fbdev->helper.fb = fb;
 	via_fbdev->helper.fbdev = info;
-
-	strcpy(info->fix.id, dev->driver->name);
-	strcat(info->fix.id, "drmfb");
 
 	info->fbops = &via_fb_ops;
 
@@ -309,9 +305,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 	ap->ranges[0].base = bo->kmap.bo->mem.bus.base;
 	info->apertures = ap;
 
-	drm_fb_helper_fill_fix(info, fb->pitches[0], fb->format->depth);
-	drm_fb_helper_fill_var(info, helper,
-				sizes->fb_width, sizes->fb_height);
+	drm_fb_helper_fill_info(info, helper, sizes);
 	goto exit;
 out_err:
 	if (bo->kmap.bo) {
