@@ -340,20 +340,13 @@ static void via_driver_lastclose(struct drm_device *dev)
 
 static int openchrome_drm_mmap(struct file *filp, struct vm_area_struct *vma)
 {
-	struct drm_file *file_priv;
-	struct openchrome_drm_private *dev_private;
+	struct drm_file *file_priv = filp->private_data;
+	struct openchrome_drm_private *dev_private =
+				file_priv->minor->dev->dev_private;
 	int ret = -EINVAL;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if (vma->vm_pgoff < DRM_FILE_PAGE_OFFSET) {
-		DRM_DEBUG_KMS("VMA Error.\n");
-		ret = -EINVAL;
-		goto exit;
-	}
-
-	file_priv = filp->private_data;
-	dev_private = file_priv->minor->dev->dev_private;
 	if (!dev_private) {
 		DRM_DEBUG_KMS("No device private data.\n");
 		ret = -EINVAL;
