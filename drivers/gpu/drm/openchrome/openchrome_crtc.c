@@ -2489,7 +2489,12 @@ int via_crtc_init(struct drm_device *dev, int index)
 
 	iga->index = index;
 	if (index) {
-		drm_crtc_init(dev, crtc, &via_iga2_funcs);
+		ret = drm_crtc_init(dev, crtc, &via_iga2_funcs);
+		if (ret) {
+			DRM_ERROR("Failed to initialize CRTC!\n");
+			goto exit;
+		}
+
 		drm_crtc_helper_add(crtc, &via_iga2_helper_funcs);
 
 		iga->timings.htotal.count = ARRAY_SIZE(iga2_hor_total);
@@ -2566,7 +2571,12 @@ int via_crtc_init(struct drm_device *dev, int index)
 		iga->offset.count = ARRAY_SIZE(iga2_offset) - 1;
 		iga->offset.regs = iga2_offset;
 	} else {
-		drm_crtc_init(dev, crtc, &via_iga1_funcs);
+		ret = drm_crtc_init(dev, crtc, &via_iga1_funcs);
+		if (ret) {
+			DRM_ERROR("Failed to initialize CRTC!\n");
+			goto exit;
+		}
+
 		drm_crtc_helper_add(crtc, &via_iga1_helper_funcs);
 
 		iga->timings.htotal.count = ARRAY_SIZE(iga1_hor_total);
