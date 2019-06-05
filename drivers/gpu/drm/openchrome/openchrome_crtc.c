@@ -627,10 +627,10 @@ static int via_iga1_display_fifo_regs(
 			struct drm_framebuffer *fb)
 {
 	u32 reg_value;
-	unsigned int fifo_max_depth;
-	unsigned int fifo_threshold;
-	unsigned int fifo_high_threshold;
-	unsigned int display_queue_expire_num;
+	unsigned int fifo_max_depth = 0;
+	unsigned int fifo_threshold = 0;
+	unsigned int fifo_high_threshold = 0;
+	unsigned int display_queue_expire_num = 0;
 	bool enable_extended_display_fifo = false;
 	int ret = 0;
 
@@ -1029,10 +1029,10 @@ static int via_iga2_display_fifo_regs(
 			struct drm_framebuffer *fb)
 {
 	u32 reg_value;
-	unsigned int fifo_max_depth;
-	unsigned int fifo_threshold;
-	unsigned int fifo_high_threshold;
-	unsigned int display_queue_expire_num;
+	unsigned int fifo_max_depth = 0;
+	unsigned int fifo_threshold = 0;
+	unsigned int fifo_high_threshold = 0;
+	unsigned int display_queue_expire_num = 0;
 	bool enable_extended_display_fifo = false;
 	int ret = 0;
 
