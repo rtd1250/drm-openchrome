@@ -1084,8 +1084,6 @@ static int via_iga2_display_fifo_regs(
 			}
 		}
 
-		fifo_high_threshold = 16;
-		display_queue_expire_num = 16;
 		break;
 	case PCI_DEVICE_ID_VIA_KM400:
 		if (mode->hdisplay >= 1600) {
