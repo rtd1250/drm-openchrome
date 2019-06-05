@@ -619,7 +619,7 @@ static void via_load_vpit_regs(
 	vga_w(VGABASE, VGA_ATT_W, BIT(5));
 }
 
-static void via_iga1_display_fifo_regs(
+static int via_iga1_display_fifo_regs(
 			struct drm_device *dev,
 			struct openchrome_drm_private *dev_private,
 			struct via_crtc *iga,
@@ -632,6 +632,7 @@ static void via_iga1_display_fifo_regs(
 	unsigned int fifo_high_threshold;
 	unsigned int display_queue_expire_num;
 	bool enable_extended_display_fifo = false;
+	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -953,7 +954,12 @@ static void via_iga1_display_fifo_regs(
 		display_queue_expire_num = VX900_IGA1_DISPLAY_QUEUE_EXPIRE_NUM;
 		break;
 	default:
+		ret = -EINVAL;
 		break;
+	}
+
+	if (ret) {
+		goto exit;
 	}
 
 	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
@@ -1010,10 +1016,12 @@ static void via_iga1_display_fifo_regs(
 	reg_value = display_queue_expire_num / 4;
 	load_value_to_registers(VGABASE, &iga->display_queue, reg_value);
 
+exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
 }
 
-static void via_iga2_display_fifo_regs(
+static int via_iga2_display_fifo_regs(
 			struct drm_device *dev,
 			struct openchrome_drm_private *dev_private,
 			struct via_crtc *iga,
@@ -1026,6 +1034,7 @@ static void via_iga2_display_fifo_regs(
 	unsigned int fifo_high_threshold;
 	unsigned int display_queue_expire_num;
 	bool enable_extended_display_fifo = false;
+	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -1277,7 +1286,12 @@ static void via_iga2_display_fifo_regs(
 		display_queue_expire_num = VX900_IGA2_DISPLAY_QUEUE_EXPIRE_NUM;
 		break;
 	default:
+		ret = -EINVAL;
 		break;
+	}
+
+	if (ret) {
+		goto exit;
 	}
 
 	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
@@ -1318,7 +1332,9 @@ static void via_iga2_display_fifo_regs(
 		load_value_to_registers(VGABASE, &iga->display_queue, reg_value);
 	}
 
+exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
 }
 
 /* Load CRTC Pixel Timing registers */
@@ -2044,8 +2060,12 @@ via_iga1_crtc_mode_set(struct drm_crtc *crtc,
 	via_iga1_set_hsync_shift(VGABASE, 0x05);
 
 	/* Load display FIFO. */
-	via_iga1_display_fifo_regs(dev, dev_private, iga,
-				adjusted_mode, crtc->primary->fb);
+	ret = via_iga1_display_fifo_regs(dev, dev_private, iga,
+						adjusted_mode,
+						crtc->primary->fb);
+	if (ret) {
+		goto exit;
+	}
 
 	/* Set PLL */
 	if (adjusted_mode->clock) {
@@ -2378,8 +2398,12 @@ via_iga2_crtc_mode_set(struct drm_crtc *crtc,
 			adjusted_mode->flags & DRM_MODE_FLAG_INTERLACE);
 
 	/* Load display FIFO. */
-	via_iga2_display_fifo_regs(dev, dev_private, iga,
-			adjusted_mode, crtc->primary->fb);
+	ret = via_iga2_display_fifo_regs(dev, dev_private, iga,
+						adjusted_mode,
+						crtc->primary->fb);
+	if (ret) {
+		goto exit;
+	}
 
 	/* Set PLL */
 	if (adjusted_mode->clock) {
