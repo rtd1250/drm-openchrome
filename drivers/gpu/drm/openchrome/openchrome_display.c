@@ -497,6 +497,16 @@ via_modeset_init(struct drm_device *dev)
 	via_i2c_init(dev);
 	via_hwcursor_init(dev_private);
 
+	ret = openchrome_plane_init(dev, 0);
+	if (ret) {
+		goto exit;
+	}
+
+	ret = openchrome_plane_init(dev, 1);
+	if (ret) {
+		goto exit;
+	}
+
 	ret = via_crtc_init(dev, 0);
 	if (ret) {
 		goto exit;
