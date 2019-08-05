@@ -86,10 +86,6 @@ struct msm_gem_object {
 
 	struct llist_node freed;
 
-	/* normally (resv == &_resv) except for imported bo's */
-	struct reservation_object *resv;
-	struct reservation_object _resv;
-
 	/* For physically contiguous buffers.  Used when we don't have
 	 * an IOMMU.  Also used for stolen/splashscreen buffer.
 	 */
@@ -145,6 +141,7 @@ void msm_gem_free_work(struct work_struct *work);
 struct msm_gem_submit {
 	struct drm_device *dev;
 	struct msm_gpu *gpu;
+	struct msm_gem_address_space *aspace;
 	struct list_head node;   /* node in ring submit list */
 	struct list_head bo_list;
 	struct ww_acquire_ctx ticket;

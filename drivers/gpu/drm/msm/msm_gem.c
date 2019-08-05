@@ -352,8 +352,10 @@ put_iova(struct drm_gem_object *obj)
 	WARN_ON(!mutex_is_locked(&msm_obj->lock));
 
 	list_for_each_entry_safe(vma, tmp, &msm_obj->vmas, list) {
-		msm_gem_purge_vma(vma->aspace, vma);
-		msm_gem_close_vma(vma->aspace, vma);
+		if (vma->aspace) {
+			msm_gem_purge_vma(vma->aspace, vma);
+			msm_gem_close_vma(vma->aspace, vma);
+		}
 		del_vma(vma);
 	}
 }
@@ -803,7 +805,8 @@ void msm_gem_describe(struct drm_gem_object *obj, struct seq_file *m)
 		seq_puts(m, "      vmas:");
 
 		list_for_each_entry(vma, &msm_obj->vmas, list)
-			seq_printf(m, " [%s: %08llx,%s,inuse=%d]", vma->aspace->name,
+			seq_printf(m, " [%s: %08llx,%s,inuse=%d]",
+				vma->aspace != NULL ? vma->aspace->name : NULL,
 				vma->iova, vma->mapped ? "mapped" : "unmapped",
 				vma->inuse);
 

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * V4L2 Capture IC Preprocess Subdev for Freescale i.MX5/6 SOC
  *
@@ -6,11 +7,6 @@
  * for resizing, colorspace conversion, and rotation.
  *
  * Copyright (c) 2012-2017 Mentor Graphics Inc.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
  */
 #include <linux/delay.h>
 #include <linux/interrupt.h>
@@ -197,8 +193,8 @@ static int prp_set_fmt(struct v4l2_subdev *sd,
 			sdformat->format.code = cc->codes[0];
 		}
 
-		imx_media_fill_default_mbus_fields(&sdformat->format, infmt,
-						   true);
+		if (sdformat->format.field == V4L2_FIELD_ANY)
+			sdformat->format.field = V4L2_FIELD_NONE;
 		break;
 	case PRP_SRC_PAD_PRPENC:
 	case PRP_SRC_PAD_PRPVF:
@@ -206,6 +202,8 @@ static int prp_set_fmt(struct v4l2_subdev *sd,
 		sdformat->format = *infmt;
 		break;
 	}
+
+	imx_media_try_colorimetry(&sdformat->format, true);
 
 	fmt = __prp_get_fmt(priv, cfg, sdformat->pad, sdformat->which);
 	*fmt = sdformat->format;

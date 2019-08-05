@@ -1003,8 +1003,6 @@ static int imx7_csi_try_fmt(struct imx7_csi *csi,
 
 		sdformat->format.colorspace = in_fmt->colorspace;
 		sdformat->format.xfer_func = in_fmt->xfer_func;
-		sdformat->format.quantization = in_fmt->quantization;
-		sdformat->format.ycbcr_enc = in_fmt->ycbcr_enc;
 		break;
 	case IMX7_CSI_PAD_SINK:
 		*cc = imx_media_find_mbus_format(sdformat->format.code,
@@ -1015,14 +1013,14 @@ static int imx7_csi_try_fmt(struct imx7_csi *csi,
 							 false);
 			sdformat->format.code = (*cc)->codes[0];
 		}
-
-		imx_media_fill_default_mbus_fields(&sdformat->format, in_fmt,
-						   false);
 		break;
 	default:
 		return -EINVAL;
 		break;
 	}
+
+	imx_media_try_colorimetry(&sdformat->format, false);
+
 	return 0;
 }
 
@@ -1051,7 +1049,9 @@ static int imx7_csi_set_fmt(struct v4l2_subdev *sd,
 		goto out_unlock;
 	}
 
-	imx7_csi_try_fmt(csi, cfg, sdformat, &cc);
+	ret = imx7_csi_try_fmt(csi, cfg, sdformat, &cc);
+	if (ret < 0)
+		goto out_unlock;
 
 	fmt = imx7_csi_get_format(csi, cfg, sdformat->pad, sdformat->which);
 	if (!fmt) {
@@ -1124,7 +1124,7 @@ static int imx7_csi_registered(struct v4l2_subdev *sd)
 	if (ret < 0)
 		return ret;
 
-	ret = imx_media_capture_device_register(csi->vdev);
+	ret = imx_media_capture_device_register(csi->imxmd, csi->vdev);
 	if (ret < 0)
 		return ret;
 
@@ -1271,7 +1271,7 @@ static int imx7_csi_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, &csi->sd);
 
 	ret = imx_media_of_add_csi(imxmd, node);
-	if (ret < 0)
+	if (ret < 0 && ret != -ENODEV && ret != -EEXIST)
 		goto cleanup;
 
 	ret = imx_media_dev_notifier_register(imxmd);

@@ -33,7 +33,7 @@
 #include <linux/types.h>
 #include <linux/of_graph.h>
 #include <linux/of_device.h>
-#include <asm/sizes.h>
+#include <linux/sizes.h>
 #include <linux/kthread.h>
 
 #include <drm/drmP.h>
@@ -68,6 +68,7 @@ struct msm_file_private {
 	rwlock_t queuelock;
 	struct list_head submitqueues;
 	int queueid;
+	struct msm_gem_address_space *aspace;
 };
 
 enum msm_mdp_plane_property {
