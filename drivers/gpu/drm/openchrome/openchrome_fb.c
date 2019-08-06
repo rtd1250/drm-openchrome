@@ -153,44 +153,6 @@ static const struct drm_mode_config_funcs via_mode_funcs = {
 	.output_poll_changed	= via_output_poll_changed
 };
 
-int drmfb_helper_pan_display(struct fb_var_screeninfo *var,
-				struct fb_info *info)
-{
-	struct drm_fb_helper *fb_helper = info->par;
-	struct drm_device *dev = fb_helper->dev;
-	struct drm_mode_set *modeset;
-	struct drm_crtc *crtc;
-	int ret = -ENXIO, i;
-
-	mutex_lock(&dev->mode_config.mutex);
-	for (i = 0; i < fb_helper->crtc_count; i++) {
-		crtc = fb_helper->crtc_info[i].mode_set.crtc;
-
-		if (!crtc->helper_private->mode_set_base)
-			continue;
-
-		modeset = &fb_helper->crtc_info[i].mode_set;
-		modeset->x = var->xoffset;
-		modeset->y = var->yoffset;
-
-		if (modeset->num_connectors) {
-			ret = crtc->helper_private->mode_set_base(
-						crtc,
-						modeset->x, modeset->y,
-						crtc->primary->fb);
-			if (!ret) {
-				info->flags |= FBINFO_HWACCEL_YPAN;
-				info->var.xoffset = var->xoffset;
-				info->var.yoffset = var->yoffset;
-			}
-		}
-	}
-	if (ret)
-		info->flags &= ~FBINFO_HWACCEL_YPAN;
-	mutex_unlock(&dev->mode_config.mutex);
-	return ret;
-}
-
 static struct fb_ops via_fb_ops = {
 	.owner		= THIS_MODULE,
 	.fb_check_var	= drm_fb_helper_check_var,
@@ -198,7 +160,6 @@ static struct fb_ops via_fb_ops = {
 	.fb_fillrect	= cfb_fillrect,
 	.fb_copyarea	= cfb_copyarea,
 	.fb_imageblit	= cfb_imageblit,
-	.fb_pan_display	= drmfb_helper_pan_display,
 	.fb_blank	= drm_fb_helper_blank,
 	.fb_setcmap	= drm_fb_helper_setcmap,
 	.fb_debug_enter	= drm_fb_helper_debug_enter,
