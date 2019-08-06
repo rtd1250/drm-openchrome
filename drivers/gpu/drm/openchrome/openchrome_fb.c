@@ -178,6 +178,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 	struct via_framebuffer *via_fb = &via_fbdev->via_fb;
 	struct drm_framebuffer *fb = &via_fbdev->via_fb.fb;
 	struct fb_info *info = helper->fbdev;
+	const struct drm_format_info *format_info;
 	struct openchrome_bo *bo;
 	struct drm_mode_fb_cmd2 mode_cmd;
 	struct apertures_struct *ap;
@@ -192,7 +193,8 @@ via_fb_probe(struct drm_fb_helper *helper,
 	mode_cmd.pixel_format = drm_mode_legacy_fb_format(
 						sizes->surface_bpp,
 						sizes->surface_depth);
-	cpp = drm_format_plane_cpp(mode_cmd.pixel_format, 0);
+	format_info = drm_get_format_info(dev, &mode_cmd);
+	cpp = drm_format_info_plane_cpp(format_info, 0);
 	mode_cmd.pitches[0] = (mode_cmd.width * cpp);
 	mode_cmd.pitches[0] = round_up(mode_cmd.pitches[0], 16);
 	size = mode_cmd.pitches[0] * mode_cmd.height;
