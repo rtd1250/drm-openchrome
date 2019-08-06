@@ -194,7 +194,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 						sizes->surface_bpp,
 						sizes->surface_depth);
 	format_info = drm_get_format_info(dev, &mode_cmd);
-	cpp = drm_format_info_plane_cpp(format_info, 0);
+	cpp = format_info->cpp[0];
 	mode_cmd.pitches[0] = (mode_cmd.width * cpp);
 	mode_cmd.pitches[0] = round_up(mode_cmd.pitches[0], 16);
 	size = mode_cmd.pitches[0] * mode_cmd.height;
