@@ -117,7 +117,19 @@ int openchrome_bo_create(struct drm_device *dev,
 		goto exit;
 	}
 
+	/*
+	 * It is imperative to page align the requested buffer size
+	 * prior to a memory allocation request, or various memory
+	 * allocation related system instabilities may occur.
+	 */
 	size = ALIGN(size, PAGE_SIZE);
+
+	ret = drm_gem_object_init(dev, &bo->gem, size);
+	if (ret) {
+		DRM_ERROR("Cannot initialize a GEM object.\n");
+		goto error;
+	}
+
 	openchrome_ttm_domain_to_placement(bo, ttm_domain);
 	acc_size = ttm_bo_dma_acc_size(&dev_private->bdev, size,
 					sizeof(struct openchrome_bo));
@@ -131,14 +143,7 @@ int openchrome_bo_create(struct drm_device *dev,
 				openchrome_bo_destroy);
 	if (ret) {
 		DRM_ERROR("Cannot initialize a TTM object.\n");
-		goto error;
-	}
-
-	ret = drm_gem_object_init(dev, &bo->gem, size);
-	if (ret) {
-		ttm_bo_put(&bo->ttm_bo);
-		DRM_ERROR("Cannot initialize a GEM object.\n");
-		goto error;
+		goto exit;
 	}
 
 	*bo_ptr = bo;
