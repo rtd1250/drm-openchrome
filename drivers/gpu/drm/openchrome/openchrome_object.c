@@ -138,7 +138,8 @@ int openchrome_bo_create(struct drm_device *dev,
 				size,
 				type,
 				&bo->placement,
-				PAGE_SIZE, false, acc_size,
+				PAGE_SIZE >> PAGE_SHIFT,
+				false, acc_size,
 				NULL, NULL,
 				openchrome_bo_destroy);
 	if (ret) {
