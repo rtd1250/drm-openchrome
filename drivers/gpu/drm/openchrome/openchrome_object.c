@@ -95,6 +95,44 @@ void openchrome_ttm_domain_to_placement(struct openchrome_bo *bo,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
+int openchrome_bo_pin(struct openchrome_bo *bo,
+			uint32_t ttm_domain)
+{
+	struct ttm_operation_ctx ctx = {false, false};
+	uint32_t i;
+	int ret;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	openchrome_ttm_domain_to_placement(bo, ttm_domain);
+	for (i = 0; i < bo->placement.num_placement; i++) {
+		bo->placements[i].flags |= TTM_PL_FLAG_NO_EVICT;
+	}
+
+	ret = ttm_bo_validate(&bo->ttm_bo, &bo->placement, &ctx);
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
+}
+
+int openchrome_bo_unpin(struct openchrome_bo *bo)
+{
+	struct ttm_operation_ctx ctx = {false, false};
+	uint32_t i;
+	int ret;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	for (i = 0; i < bo->placement.num_placement; i++) {
+		bo->placements[i].flags &= ~TTM_PL_FLAG_NO_EVICT;
+	}
+
+	ret = ttm_bo_validate(&bo->ttm_bo, &bo->placement, &ctx);
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
+}
+
 int openchrome_bo_create(struct drm_device *dev,
 				struct ttm_bo_device *bdev,
 				uint64_t size,
@@ -152,44 +190,6 @@ int openchrome_bo_create(struct drm_device *dev,
 error:
 	kfree(bo);
 exit:
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return ret;
-}
-
-int openchrome_bo_pin(struct openchrome_bo *bo,
-			uint32_t ttm_domain)
-{
-	struct ttm_operation_ctx ctx = {false, false};
-	uint32_t i;
-	int ret;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	openchrome_ttm_domain_to_placement(bo, ttm_domain);
-	for (i = 0; i < bo->placement.num_placement; i++) {
-		bo->placements[i].flags |= TTM_PL_FLAG_NO_EVICT;
-	}
-
-	ret = ttm_bo_validate(&bo->ttm_bo, &bo->placement, &ctx);
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return ret;
-}
-
-int openchrome_bo_unpin(struct openchrome_bo *bo)
-{
-	struct ttm_operation_ctx ctx = {false, false};
-	uint32_t i;
-	int ret;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	for (i = 0; i < bo->placement.num_placement; i++) {
-		bo->placements[i].flags &= ~TTM_PL_FLAG_NO_EVICT;
-	}
-
-	ret = ttm_bo_validate(&bo->ttm_bo, &bo->placement, &ctx);
-
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
