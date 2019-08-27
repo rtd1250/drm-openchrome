@@ -291,7 +291,9 @@ int openchrome_bo_create(struct drm_device *dev,
 				uint64_t size,
 				enum ttm_bo_type type,
 				uint32_t ttm_domain,
+				bool kmap,
 				struct openchrome_bo **bo_ptr);
+void openchrome_bo_destroy(struct openchrome_bo *bo, bool kmap);
 int openchrome_mm_init(struct openchrome_drm_private *dev_private);
 void openchrome_mm_fini(struct openchrome_drm_private *dev_private);
 

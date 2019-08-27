@@ -77,6 +77,7 @@ via_gem_alloc(struct drm_device *dev, void *data,
 					args->size,
 					ttm_bo_type_device,
 					args->domains,
+					false,
 					&bo);
 
 	if (ret) {
@@ -90,7 +91,7 @@ via_gem_alloc(struct drm_device *dev, void *data,
 	drm_gem_object_put_unlocked(&bo->gem);
 
 	if (ret) {
-		ttm_bo_put(&bo->ttm_bo);
+		openchrome_bo_destroy(bo, false);
 		goto exit;
 	}
 

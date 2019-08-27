@@ -89,6 +89,7 @@ static int openchrome_drm_driver_dumb_create(
 					args->size,
 					ttm_bo_type_device,
 					TTM_PL_FLAG_VRAM,
+					false,
 					&bo);
 	if (ret) {
 		goto exit;
@@ -136,7 +137,6 @@ exit:
 static void via_driver_unload(struct drm_device *dev)
 {
 	struct openchrome_drm_private *dev_private = dev->dev_private;
-	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -144,47 +144,19 @@ static void via_driver_unload(struct drm_device *dev)
 		via_modeset_fini(dev);
 
 	if (dev_private->vq_bo) {
-		ret = ttm_bo_reserve(&dev_private->vq_bo->ttm_bo,
-					true, false, NULL);
-		if (ret) {
-			goto exit_vq;
-		}
-
-		ttm_bo_kunmap(&dev_private->vq_bo->kmap);
-
-		ret = openchrome_bo_unpin(dev_private->vq_bo);
-		ttm_bo_unreserve(&dev_private->vq_bo->ttm_bo);
-		if (ret) {
-			goto exit_vq;
-		}
-
-		ttm_bo_put(&dev_private->vq_bo->ttm_bo);
+		openchrome_bo_destroy(dev_private->vq_bo, true);
+		dev_private->vq_bo = NULL;
 	}
 
-exit_vq:
 	if (dev_private->gart_bo) {
 		/* enable gtt write */
 		if (pci_is_pcie(dev->pdev))
 			svga_wseq_mask(VGABASE, 0x6C, 0, BIT(7));
 
-		ret = ttm_bo_reserve(&dev_private->gart_bo->ttm_bo,
-					true, false, NULL);
-		if (ret) {
-			goto exit_gart;
-		}
-
-		ttm_bo_kunmap(&dev_private->gart_bo->kmap);
-
-		ret = openchrome_bo_unpin(dev_private->gart_bo);
-		ttm_bo_unreserve(&dev_private->gart_bo->ttm_bo);
-		if (ret) {
-			goto exit_gart;
-		}
-
-		ttm_bo_put(&dev_private->gart_bo->ttm_bo);
+		openchrome_bo_destroy(dev_private->gart_bo, true);
+		dev_private->gart_bo = NULL;
 	}
 
-exit_gart:
 	openchrome_mm_fini(dev_private);
 
 	/*
@@ -204,7 +176,6 @@ static int via_driver_load(struct drm_device *dev,
 				unsigned long chipset)
 {
 	struct openchrome_drm_private *dev_private;
-	struct openchrome_bo *bo;
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -244,31 +215,13 @@ static int via_driver_load(struct drm_device *dev,
 						SGDMA_MEMORY,
 						ttm_bo_type_kernel,
 						TTM_PL_FLAG_VRAM,
-						&bo);
+						true,
+						&dev_private->gart_bo);
 		if (ret) {
 			DRM_ERROR("Failed to allocate DMA memory.\n");
 			goto init_error;
 		}
 
-		ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
-		if (ret) {
-			goto init_error;
-		}
-
-		ret = openchrome_bo_pin(bo, TTM_PL_FLAG_VRAM);
-		if (ret) {
-			ttm_bo_unreserve(&bo->ttm_bo);
-			goto init_error;
-		}
-
-		ret = ttm_bo_kmap(&bo->ttm_bo, 0, bo->ttm_bo.num_pages,
-					&bo->kmap);
-		ttm_bo_unreserve(&bo->ttm_bo);
-		if (ret) {
-			goto init_error;
-		}
-
-		dev_private->gart_bo = bo;
 		DRM_INFO("Allocated %u KB of DMA memory.\n",
 				SGDMA_MEMORY >> 10);
 	}
@@ -279,32 +232,14 @@ static int via_driver_load(struct drm_device *dev,
 					VQ_MEMORY,
 					ttm_bo_type_kernel,
 					TTM_PL_FLAG_VRAM,
-					&bo);
+					true,
+					&dev_private->vq_bo);
 	if (ret) {
 		DRM_ERROR("Failed to allocate VQ (Virtual Queue) "
 				"memory.\n");
 		goto init_error;
 	}
 
-	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
-	if (ret) {
-		goto init_error;
-	}
-
-	ret = openchrome_bo_pin(bo, TTM_PL_FLAG_VRAM);
-	if (ret) {
-		ttm_bo_unreserve(&bo->ttm_bo);
-		goto init_error;
-	}
-
-	ret = ttm_bo_kmap(&bo->ttm_bo, 0, bo->ttm_bo.num_pages,
-				&bo->kmap);
-	ttm_bo_unreserve(&bo->ttm_bo);
-	if (ret) {
-		goto init_error;
-	}
-
-	dev_private->vq_bo = bo;
 	DRM_INFO("Allocated %u KB of VQ (Virtual Queue) memory.\n",
 			VQ_MEMORY >> 10);
 

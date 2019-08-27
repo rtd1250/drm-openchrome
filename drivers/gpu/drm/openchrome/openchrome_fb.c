@@ -179,12 +179,10 @@ via_fb_probe(struct drm_fb_helper *helper,
 	struct drm_framebuffer *fb = &via_fbdev->via_fb.fb;
 	struct fb_info *info = helper->fbdev;
 	const struct drm_format_info *format_info;
-	struct openchrome_bo *bo;
 	struct drm_mode_fb_cmd2 mode_cmd;
 	struct apertures_struct *ap;
 	int size, cpp;
 	int ret = 0;
-	int fake_ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -205,30 +203,11 @@ via_fb_probe(struct drm_fb_helper *helper,
 					size,
 					ttm_bo_type_kernel,
 					TTM_PL_FLAG_VRAM,
-					&bo);
+					true,
+					&via_fbdev->bo);
 	if (ret) {
 		goto exit;
 	}
-
-	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
-	if (ret) {
-		goto out_err;
-	}
-
-	ret = openchrome_bo_pin(bo, TTM_PL_FLAG_VRAM);
-	if (ret) {
-		ttm_bo_unreserve(&bo->ttm_bo);
-		goto out_err;
-	}
-
-	ret = ttm_bo_kmap(&bo->ttm_bo, 0, bo->ttm_bo.num_pages,
-				&bo->kmap);
-	ttm_bo_unreserve(&bo->ttm_bo);
-	if (ret) {
-		goto out_err;
-	}
-
-	via_fbdev->bo = bo;
 
 	info = drm_fb_helper_alloc_fbi(helper);
 	if (IS_ERR(info)) {
@@ -244,16 +223,16 @@ via_fb_probe(struct drm_fb_helper *helper,
 		goto out_err;
 	}
 
-	via_fb->gem = &bo->gem;
+	via_fb->gem = &via_fbdev->bo->gem;
 	via_fbdev->helper.fb = fb;
 	via_fbdev->helper.fbdev = info;
 
 	info->fbops = &via_fb_ops;
 
-	info->fix.smem_start = bo->kmap.bo->mem.bus.base +
-				bo->kmap.bo->mem.bus.offset;
+	info->fix.smem_start = via_fbdev->bo->kmap.bo->mem.bus.base +
+				via_fbdev->bo->kmap.bo->mem.bus.offset;
 	info->fix.smem_len = size;
-	info->screen_base = bo->kmap.virtual;
+	info->screen_base = via_fbdev->bo->kmap.virtual;
 	info->screen_size = size;
 
 	/* Setup aperture base / size for takeover (i.e., vesafb). */
@@ -263,29 +242,17 @@ via_fb_probe(struct drm_fb_helper *helper,
 		goto out_err;
 	}
 
-	ap->ranges[0].size = bo->kmap.bo->bdev->
-				man[bo->kmap.bo->mem.mem_type].size;
-	ap->ranges[0].base = bo->kmap.bo->mem.bus.base;
+	ap->ranges[0].size = via_fbdev->bo->kmap.bo->bdev->
+			man[via_fbdev->bo->kmap.bo->mem.mem_type].size;
+	ap->ranges[0].base = via_fbdev->bo->kmap.bo->mem.bus.base;
 	info->apertures = ap;
 
 	drm_fb_helper_fill_info(info, helper, sizes);
 	goto exit;
 out_err:
-	if (bo->kmap.bo) {
-		fake_ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
-		if (fake_ret) {
-			goto exit;
-		}
-
-		ttm_bo_kunmap(&bo->kmap);
-
-		fake_ret = openchrome_bo_unpin(bo);
-		if (fake_ret) {
-			ttm_bo_unreserve(&bo->ttm_bo);
-			goto exit;
-		}
-
-		ttm_bo_put(&bo->ttm_bo);
+	if (via_fbdev->bo) {
+		openchrome_bo_destroy(via_fbdev->bo, true);
+		via_fbdev->bo = NULL;
 	}
 
 	if (via_fb->gem) {

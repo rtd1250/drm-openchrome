@@ -543,27 +543,12 @@ static int via_iga2_gamma_set(struct drm_crtc *crtc,
 static void via_crtc_destroy(struct drm_crtc *crtc)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	int ret;
 
 	if (iga->cursor_bo->kmap.bo) {
-		ret = ttm_bo_reserve(iga->cursor_bo->kmap.bo,
-					true, false, NULL);
-		if (ret) {
-			goto exit;
-		}
-
-		ttm_bo_kunmap(&iga->cursor_bo->kmap);
-
-		ret = openchrome_bo_unpin(iga->cursor_bo);
-		ttm_bo_unreserve(iga->cursor_bo->kmap.bo);
-		if (ret) {
-			goto exit;
-		}
-
-		ttm_bo_put(iga->cursor_bo->kmap.bo);
+		openchrome_bo_destroy(iga->cursor_bo, true);
+		iga->cursor_bo = NULL;
 	}
 
-exit:
 	drm_crtc_cleanup(crtc);
 }
 
@@ -2551,7 +2536,6 @@ int via_crtc_init(struct drm_device *dev, int index)
 	struct via_crtc *iga = &dev_private->iga[index];
 	struct drm_plane *primary;
 	struct drm_crtc *crtc = &iga->base;
-	struct openchrome_bo *bo;
 	int cursor_size = 64 * 64 * 4, i;
 	u16 *gamma;
 	int ret;
@@ -2747,31 +2731,13 @@ int via_crtc_init(struct drm_device *dev, int index)
 					cursor_size,
 					ttm_bo_type_kernel,
 					TTM_PL_FLAG_VRAM,
-					&bo);
+					true,
+					&iga->cursor_bo);
 	if (ret) {
 		DRM_ERROR("Failed to create cursor.\n");
 		goto exit;
 	}
 
-	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
-	if (ret) {
-		goto exit;
-	}
-
-	ret = openchrome_bo_pin(bo, TTM_PL_FLAG_VRAM);
-	if (ret) {
-		ttm_bo_unreserve(&bo->ttm_bo);
-		goto exit;
-	}
-
-	ret = ttm_bo_kmap(&bo->ttm_bo, 0, bo->ttm_bo.num_pages,
-				&bo->kmap);
-	ttm_bo_unreserve(&bo->ttm_bo);
-	if (ret) {
-		goto exit;
-	}
-
-	iga->cursor_bo = bo;
 exit:
 	return ret;
 }
