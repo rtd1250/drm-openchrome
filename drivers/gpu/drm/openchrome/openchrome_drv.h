@@ -281,9 +281,9 @@ extern int openchrome_vram_init(
 extern void openchrome_vram_fini(
 			struct openchrome_drm_private *dev_private);
 
-void openchrome_bo_destroy(struct ttm_buffer_object *tbo);
 void openchrome_ttm_domain_to_placement(struct openchrome_bo *bo,
 					uint32_t ttm_domain);
+void openchrome_ttm_bo_destroy(struct ttm_buffer_object *tbo);
 int openchrome_bo_pin(struct openchrome_bo *bo, uint32_t ttm_domain);
 int openchrome_bo_unpin(struct openchrome_bo *bo);
 int openchrome_bo_create(struct drm_device *dev,

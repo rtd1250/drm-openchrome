@@ -41,19 +41,6 @@
 #include "openchrome_drv.h"
 
 
-void openchrome_bo_destroy(struct ttm_buffer_object *tbo)
-{
-	struct openchrome_bo *bo = container_of(tbo,
-					struct openchrome_bo, ttm_bo);
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	drm_gem_object_release(&bo->gem);
-	kfree(bo);
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-}
-
 void openchrome_ttm_domain_to_placement(struct openchrome_bo *bo,
 					uint32_t ttm_domain)
 {
@@ -91,6 +78,19 @@ void openchrome_ttm_domain_to_placement(struct openchrome_bo *bo,
 
 	bo->placement.num_placement = i;
 	bo->placement.num_busy_placement = i;
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
+void openchrome_ttm_bo_destroy(struct ttm_buffer_object *tbo)
+{
+	struct openchrome_bo *bo = container_of(tbo,
+					struct openchrome_bo, ttm_bo);
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	drm_gem_object_release(&bo->gem);
+	kfree(bo);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -179,7 +179,7 @@ int openchrome_bo_create(struct drm_device *dev,
 				PAGE_SIZE >> PAGE_SHIFT,
 				false, acc_size,
 				NULL, NULL,
-				openchrome_bo_destroy);
+				openchrome_ttm_bo_destroy);
 	if (ret) {
 		DRM_ERROR("Cannot initialize a TTM object.\n");
 		goto exit;

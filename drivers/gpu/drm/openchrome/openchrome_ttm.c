@@ -80,7 +80,7 @@ static void openchrome_bo_evict_flags(struct ttm_buffer_object *bo,
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if (bo->destroy == &openchrome_bo_destroy) {
+	if (bo->destroy == &openchrome_ttm_bo_destroy) {
 		goto exit;
 	}
 
