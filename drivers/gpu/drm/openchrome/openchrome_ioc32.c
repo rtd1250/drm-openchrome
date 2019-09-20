@@ -100,7 +100,7 @@ via_gem_alloc(struct drm_device *dev, void *data,
 						TTM_PL_MASK_MEM;
 	args->offset		= bo->ttm_bo.offset;
 	args->map_handle	= drm_vma_node_offset_addr(
-						&bo->ttm_bo.vma_node);
+						&bo->ttm_bo.base.vma_node);
 	args->handle		= handle;
 	args->version		= 1;
 
@@ -147,7 +147,7 @@ via_gem_state(struct drm_device *dev, void *data, struct drm_file *file_priv)
 						TTM_PL_MASK_MEM;
 			args->offset = bo->ttm_bo.offset;
 			args->map_handle = drm_vma_node_offset_addr(
-						&bo->ttm_bo.vma_node);
+						&bo->ttm_bo.base.vma_node);
 		}
 	}
 

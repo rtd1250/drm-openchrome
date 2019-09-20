@@ -126,7 +126,7 @@ static int openchrome_drm_driver_dumb_map_offset(
 	}
 
 	bo = container_of(gem, struct openchrome_bo, gem);
-	*offset = drm_vma_node_offset_addr(&bo->ttm_bo.vma_node);
+	*offset = drm_vma_node_offset_addr(&bo->ttm_bo.base.vma_node);
 
 	drm_gem_object_put_unlocked(gem);
 exit:
