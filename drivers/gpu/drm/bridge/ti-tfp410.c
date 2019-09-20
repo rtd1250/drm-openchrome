@@ -1,11 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2016 Texas Instruments
  * Author: Jyri Sarha <jsarha@ti.com>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 as published by
- * the Free Software Foundation.
- *
  */
 
 #include <linux/delay.h>
@@ -138,8 +134,10 @@ static int tfp410_attach(struct drm_bridge *bridge)
 
 	drm_connector_helper_add(&dvi->connector,
 				 &tfp410_con_helper_funcs);
-	ret = drm_connector_init(bridge->dev, &dvi->connector,
-				 &tfp410_con_funcs, dvi->connector_type);
+	ret = drm_connector_init_with_ddc(bridge->dev, &dvi->connector,
+					  &tfp410_con_funcs,
+					  dvi->connector_type,
+					  dvi->ddc);
 	if (ret) {
 		dev_err(dvi->dev, "drm_connector_init() failed: %d\n", ret);
 		return ret;

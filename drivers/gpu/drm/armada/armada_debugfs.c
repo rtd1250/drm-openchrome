@@ -1,16 +1,17 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2012 Russell King
  *  Rewritten from the dovefb driver, and Armada510 manuals.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
  */
+
 #include <linux/ctype.h>
-#include <linux/debugfs.h>
 #include <linux/module.h>
 #include <linux/seq_file.h>
-#include <drm/drmP.h>
+#include <linux/uaccess.h>
+
+#include <drm/drm_debugfs.h>
+#include <drm/drm_file.h>
+
 #include "armada_crtc.h"
 #include "armada_drm.h"
 

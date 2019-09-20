@@ -1,21 +1,10 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2009 Nokia Corporation
  * Author: Tomi Valkeinen <tomi.valkeinen@ti.com>
  *
  * Some code and ideas taken from drivers/video/omap/ driver
  * by Imre Deak.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #define DSS_SUBSYS_NAME "DSS"
@@ -934,7 +923,6 @@ dss_debugfs_create_file(struct dss_device *dss, const char *name,
 			void *data)
 {
 	struct dss_debugfs_entry *entry;
-	struct dentry *d;
 
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 	if (!entry)
@@ -942,15 +930,9 @@ dss_debugfs_create_file(struct dss_device *dss, const char *name,
 
 	entry->show_fn = show_fn;
 	entry->data = data;
+	entry->dentry = debugfs_create_file(name, 0444, dss->debugfs.root,
+					    entry, &dss_debug_fops);
 
-	d = debugfs_create_file(name, 0444, dss->debugfs.root, entry,
-				&dss_debug_fops);
-	if (IS_ERR(d)) {
-		kfree(entry);
-		return ERR_CAST(d);
-	}
-
-	entry->dentry = d;
 	return entry;
 }
 

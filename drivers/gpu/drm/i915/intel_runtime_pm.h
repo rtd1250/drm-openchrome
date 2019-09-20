@@ -45,7 +45,7 @@ enum i915_drm_suspend_mode {
  * to be disabled. This shouldn't happen and we'll print some error messages in
  * case it happens.
  *
- * For more, read the Documentation/power/runtime_pm.txt.
+ * For more, read the Documentation/power/runtime_pm.rst.
  */
 struct intel_runtime_pm {
 	atomic_t wakeref_count;
@@ -173,7 +173,7 @@ enable_rpm_wakeref_asserts(struct intel_runtime_pm *rpm)
 void intel_runtime_pm_init_early(struct intel_runtime_pm *rpm);
 void intel_runtime_pm_enable(struct intel_runtime_pm *rpm);
 void intel_runtime_pm_disable(struct intel_runtime_pm *rpm);
-void intel_runtime_pm_cleanup(struct intel_runtime_pm *rpm);
+void intel_runtime_pm_driver_release(struct intel_runtime_pm *rpm);
 
 intel_wakeref_t intel_runtime_pm_get(struct intel_runtime_pm *rpm);
 intel_wakeref_t intel_runtime_pm_get_if_in_use(struct intel_runtime_pm *rpm);

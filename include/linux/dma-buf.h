@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Header file for dma buffer sharing framework.
  *
@@ -8,18 +9,6 @@
  * Arnd Bergmann <arnd@arndb.de>, Rob Clark <rob@ti.com> and
  * Daniel Vetter <daniel@ffwll.ch> for their support in creation and
  * refining of this idea.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #ifndef __DMA_BUF_H__
 #define __DMA_BUF_H__
@@ -317,7 +306,7 @@ struct dma_buf {
 	struct module *owner;
 	struct list_head list_node;
 	void *priv;
-	struct reservation_object *resv;
+	struct dma_resv *resv;
 
 	/* poll support */
 	wait_queue_head_t poll;
@@ -376,7 +365,7 @@ struct dma_buf_export_info {
 	const struct dma_buf_ops *ops;
 	size_t size;
 	int flags;
-	struct reservation_object *resv;
+	struct dma_resv *resv;
 	void *priv;
 };
 
