@@ -284,6 +284,8 @@ void openchrome_mode_config_init(
 
 	dev->mode_config.funcs = &via_mode_funcs;
 
+	dev->mode_config.preferred_depth = 24;
+
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
