@@ -481,12 +481,7 @@ via_modeset_init(struct drm_device *dev)
 	struct openchrome_drm_private *dev_private = dev->dev_private;
 	int ret = 0;
 
-	drm_mode_config_init(dev);
-
-	dev->mode_config.min_width = 0;
-	dev->mode_config.min_height = 0;
-	dev->mode_config.max_width = 2044;
-	dev->mode_config.max_height = 4096;
+	openchrome_mode_config_init(dev_private);
 
 	/* Initialize the number of display connectors. */
 	dev_private->number_fp = 0;

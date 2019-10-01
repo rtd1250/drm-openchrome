@@ -268,6 +268,25 @@ static struct drm_fb_helper_funcs via_drm_fb_helper_funcs = {
 	.fb_probe = via_fb_probe,
 };
 
+void openchrome_mode_config_init(
+			struct openchrome_drm_private *dev_private)
+{
+	struct drm_device *dev = dev_private->dev;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	drm_mode_config_init(dev);
+
+	dev->mode_config.min_width = 0;
+	dev->mode_config.min_height = 0;
+	dev->mode_config.max_width = 2044;
+	dev->mode_config.max_height = 4096;
+
+	dev->mode_config.funcs = &via_mode_funcs;
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
 int via_fbdev_init(struct drm_device *dev)
 {
 	struct openchrome_drm_private *dev_private = dev->dev_private;
@@ -276,8 +295,6 @@ int via_fbdev_init(struct drm_device *dev)
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	dev->mode_config.funcs = &via_mode_funcs;
 
 	via_fbdev = kzalloc(sizeof(struct via_framebuffer_device),
 				GFP_KERNEL);

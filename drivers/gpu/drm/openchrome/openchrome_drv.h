@@ -280,6 +280,8 @@ extern int openchrome_vram_init(
 			struct openchrome_drm_private *dev_private);
 extern void openchrome_vram_fini(
 			struct openchrome_drm_private *dev_private);
+void openchrome_mode_config_init(
+			struct openchrome_drm_private *dev_private);
 
 void openchrome_ttm_domain_to_placement(struct openchrome_bo *bo,
 					uint32_t ttm_domain);
