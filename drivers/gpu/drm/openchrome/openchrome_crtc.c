@@ -2497,7 +2497,7 @@ static const struct drm_plane_helper_funcs
 openchrome_drm_plane_helper_funcs = {
 };
 
-int openchrome_plane_init(struct drm_device *dev, int index)
+int openchrome_plane_init(struct drm_device *dev, uint32_t index)
 {
 	struct openchrome_drm_private *dev_private =
 						dev->dev_private;
@@ -2529,7 +2529,7 @@ exit:
 	return ret;
 }
 
-int via_crtc_init(struct drm_device *dev, int index)
+int via_crtc_init(struct drm_device *dev, uint32_t index)
 {
 	struct openchrome_drm_private *dev_private =
 						dev->dev_private;

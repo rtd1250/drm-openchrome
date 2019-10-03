@@ -60,6 +60,8 @@
 
 #define OPENCHROME_TTM_PL_NUM	2
 
+#define OPENCHROME_MAX_CRTC	2
+
 #define VIA_MM_ALIGN_SIZE	16
 
 #define DRM_FILE_PAGE_OFFSET	(0x100000000ULL >> PAGE_SHIFT)
@@ -154,7 +156,8 @@ struct openchrome_drm_private {
 
 	struct drm_plane primary[2];
 
-	struct via_crtc iga[2];
+	struct via_crtc iga[OPENCHROME_MAX_CRTC];
+
 	bool spread_spectrum;
 
 	/*
