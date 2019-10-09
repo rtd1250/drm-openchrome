@@ -2497,20 +2497,32 @@ static const struct drm_plane_helper_funcs
 openchrome_drm_plane_helper_funcs = {
 };
 
-int openchrome_plane_init(struct drm_device *dev, uint32_t index)
+int via_crtc_init(struct drm_device *dev, uint32_t index)
 {
 	struct openchrome_drm_private *dev_private =
 						dev->dev_private;
+	struct via_crtc *iga = &dev_private->iga[index];
 	struct drm_plane *primary;
+	struct drm_crtc *crtc = &iga->base;
+	uint32_t possible_crtcs;
+	int cursor_size = 64 * 64 * 4, i;
+	u16 *gamma;
 	int ret;
 
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+	iga->index = index;
 
-	primary = &dev_private->primary[index];
+	possible_crtcs = 1 << index;
+
+	primary = kzalloc(sizeof(struct drm_plane), GFP_KERNEL);
+	if (!primary) {
+		ret = -ENOMEM;
+		DRM_ERROR("Failed to allocate a primary plane.\n");
+		goto exit;
+	}
 
 	drm_plane_helper_add(primary,
 			&openchrome_drm_plane_helper_funcs);
-	ret = drm_universal_plane_init(dev, primary, 0,
+	ret = drm_universal_plane_init(dev, primary, possible_crtcs,
 			&drm_primary_helper_funcs,
 			openchrome_drm_plane_format,
 			ARRAY_SIZE(openchrome_drm_plane_format),
@@ -2521,28 +2533,6 @@ int openchrome_plane_init(struct drm_device *dev, uint32_t index)
 		goto free_primary;
 	}
 
-	goto exit;
-free_primary:
-	drm_plane_cleanup(primary);
-exit:
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return ret;
-}
-
-int via_crtc_init(struct drm_device *dev, uint32_t index)
-{
-	struct openchrome_drm_private *dev_private =
-						dev->dev_private;
-	struct via_crtc *iga = &dev_private->iga[index];
-	struct drm_plane *primary;
-	struct drm_crtc *crtc = &iga->base;
-	int cursor_size = 64 * 64 * 4, i;
-	u16 *gamma;
-	int ret;
-
-	primary = &dev_private->primary[index];
-
-	iga->index = index;
 	if (index) {
 		drm_crtc_helper_add(crtc,
 			&openchrome_iga2_drm_crtc_helper_funcs);
@@ -2551,7 +2541,7 @@ int via_crtc_init(struct drm_device *dev, uint32_t index)
 				NULL);
 		if (ret) {
 			DRM_ERROR("Failed to initialize CRTC!\n");
-			goto exit;
+			goto cleanup_primary;
 		}
 
 		iga->timings.htotal.count = ARRAY_SIZE(iga2_hor_total);
@@ -2635,7 +2625,7 @@ int via_crtc_init(struct drm_device *dev, uint32_t index)
 				NULL);
 		if (ret) {
 			DRM_ERROR("Failed to initialize CRTC!\n");
-			goto exit;
+			goto cleanup_primary;
 		}
 
 		iga->timings.htotal.count = ARRAY_SIZE(iga1_hor_total);
@@ -2738,6 +2728,11 @@ int via_crtc_init(struct drm_device *dev, uint32_t index)
 		goto exit;
 	}
 
+	goto exit;
+cleanup_primary:
+	drm_plane_cleanup(primary);
+free_primary:
+	kfree(primary);
 exit:
 	return ret;
 }

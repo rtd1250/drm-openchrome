@@ -175,7 +175,6 @@ extern void via_fbdev_fini(struct drm_device *dev);
 /* crtc */
 extern void via_load_crtc_pixel_timing(struct drm_crtc *crtc,
 					struct drm_display_mode *mode);
-int openchrome_plane_init(struct drm_device *dev, uint32_t index);
 extern int via_crtc_init(struct drm_device *dev, uint32_t index);
 
 /* encoders */

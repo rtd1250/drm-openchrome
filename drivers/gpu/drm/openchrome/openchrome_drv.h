@@ -154,8 +154,6 @@ struct openchrome_drm_private {
 
 	enum via_engine engine_type;
 
-	struct drm_plane primary[2];
-
 	struct via_crtc iga[OPENCHROME_MAX_CRTC];
 
 	bool spread_spectrum;
