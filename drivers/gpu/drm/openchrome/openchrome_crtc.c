@@ -2485,7 +2485,7 @@ drm_crtc_helper_funcs openchrome_iga2_drm_crtc_helper_funcs = {
 	.mode_set_base_atomic = via_iga2_mode_set_base_atomic,
 };
 
-static const uint32_t openchrome_drm_plane_format[] = {
+static const uint32_t openchrome_primary_formats[] = {
 	DRM_FORMAT_XRGB8888,
 	DRM_FORMAT_ARGB8888,
 	DRM_FORMAT_RGB888,
@@ -2518,8 +2518,8 @@ int via_crtc_init(struct drm_device *dev, uint32_t index)
 
 	ret = drm_universal_plane_init(dev, primary, possible_crtcs,
 			&drm_primary_helper_funcs,
-			openchrome_drm_plane_format,
-			ARRAY_SIZE(openchrome_drm_plane_format),
+			openchrome_primary_formats,
+			ARRAY_SIZE(openchrome_primary_formats),
 			NULL, DRM_PLANE_TYPE_PRIMARY, NULL);
 	if (ret) {
 		DRM_ERROR("Failed to initialize a primary "
