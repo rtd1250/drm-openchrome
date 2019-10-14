@@ -2493,10 +2493,6 @@ static const uint32_t openchrome_drm_plane_format[] = {
 	DRM_FORMAT_RGB332,
 };
 
-static const struct drm_plane_helper_funcs
-openchrome_drm_plane_helper_funcs = {
-};
-
 int via_crtc_init(struct drm_device *dev, uint32_t index)
 {
 	struct openchrome_drm_private *dev_private =
@@ -2520,8 +2516,6 @@ int via_crtc_init(struct drm_device *dev, uint32_t index)
 		goto exit;
 	}
 
-	drm_plane_helper_add(primary,
-			&openchrome_drm_plane_helper_funcs);
 	ret = drm_universal_plane_init(dev, primary, possible_crtcs,
 			&drm_primary_helper_funcs,
 			openchrome_drm_plane_format,
