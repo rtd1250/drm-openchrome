@@ -1,25 +1,33 @@
 /*
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sub license,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
+ * Copyright © 2019 Kevin Brace
+ * Copyright 2012 James Simmons <jsimmons@infradead.org>. All Rights Reserved.
  *
- * The above copyright notice and this permission notice (including the
- * next paragraph) shall be included in all copies or substantial portions
- * of the Software.
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use, copy,
+ * modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) OR COPYRIGHT HOLDER(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * The above copyright notice and this permission notice (including
+ * the next paragraph) shall be included in all copies or substantial
+ * portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ */
+/*
+ * Author(s):
  *
- * Authors:
- *	James Simmons <jsimmons@infradead.org>
+ * Kevin Brace <kevinbrace@gmx.com>
+ * James Simmons <jsimmons@infradead.org>
  */
 
 #include <linux/pci.h>
@@ -30,6 +38,9 @@
 #include <drm/drm_fourcc.h>
 #include <drm/drm_ioctl.h>
 #include <drm/drm_mode.h>
+#include <drm/drm_modeset_helper_vtables.h>
+#include <drm/drm_plane.h>
+#include <drm/drm_plane_helper.h>
 
 #include "openchrome_drv.h"
 #include "openchrome_disp_reg.h"
@@ -286,117 +297,6 @@ static void via_cursor_address(struct drm_crtc *crtc)
 	}
 }
 
-static int via_crtc_cursor_set(struct drm_crtc *crtc,
-				struct drm_file *file_priv,
-				uint32_t handle,
-				uint32_t width, uint32_t height)
-{
-	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	int max_height = 64, max_width = 64, ret = 0, i;
-	struct drm_device *dev = crtc->dev;
-	struct drm_gem_object *gem;
-	struct ttm_bo_kmap_obj user_kmap;
-	struct openchrome_bo *bo;
-
-	if (!iga->cursor_bo->kmap.bo)
-		return -ENXIO;
-
-	if (!handle) {
-		/* turn off cursor */
-		via_hide_cursor(crtc);
-		return ret;
-	}
-
-	if (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266 ||
-		dev->pdev->device == PCI_DEVICE_ID_VIA_KM400) {
-		max_height >>= 1;
-		max_width >>= 1;
-	}
-
-	if ((height > max_height) || (width > max_width)) {
-		DRM_ERROR("bad cursor width or height %d x %d\n",
-				width, height);
-		return -EINVAL;
-	}
-
-	gem = drm_gem_object_lookup(file_priv, handle);
-	if (!gem) {
-		DRM_ERROR("Cannot find cursor object %x for crtc %d\n",
-				handle, crtc->base.id);
-		return -ENOENT;
-	}
-
-	bo = container_of(gem, struct openchrome_bo, gem);
-	user_kmap.bo = &bo->ttm_bo;
-	ret = ttm_bo_kmap(user_kmap.bo, 0, user_kmap.bo->num_pages,
-				&user_kmap);
-	if (!ret) {
-		/* Copy data from userland to cursor memory region */
-		u32 *dst = iga->cursor_bo->kmap.virtual,
-				*src = user_kmap.virtual;
-
-		memset_io(dst, 0x0, iga->cursor_bo->kmap.bo->mem.size);
-		for (i = 0; i < height; i++) {
-			__iowrite32_copy(dst, src, width);
-			dst += max_width;
-			src += width;
-		}
-		ttm_bo_kunmap(&user_kmap);
-	}
-	drm_gem_object_put_unlocked(gem);
-	via_cursor_address(crtc);
-	via_show_cursor(crtc);
-
-	return ret;
-}
-
-static int via_crtc_cursor_move(struct drm_crtc *crtc, int x, int y)
-{
-	struct drm_device *dev = crtc->dev;
-	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	struct openchrome_drm_private *dev_private =
-						crtc->dev->dev_private;
-	unsigned char xoff = 0, yoff = 0;
-	int xpos = x, ypos = y;
-
-	if (x < 0) {
-		xoff = (-x) & 0xFF;
-		xpos = 0;
-	}
-
-	if (y < 0) {
-		yoff = (-y) & 0xFF;
-		ypos = 0;
-	}
-
-	switch (dev->pdev->device) {
-	case PCI_DEVICE_ID_VIA_PM800:
-	case PCI_DEVICE_ID_VIA_VT3157:
-	case PCI_DEVICE_ID_VIA_VT3343:
-	case PCI_DEVICE_ID_VIA_P4M900:
-	case PCI_DEVICE_ID_VIA_VT1122:
-	case PCI_DEVICE_ID_VIA_VX875:
-	case PCI_DEVICE_ID_VIA_VX900_VGA:
-		if (iga->index) {
-			VIA_WRITE(HI_POSSTART, ((xpos << 16) | (ypos & 0x07ff)));
-			VIA_WRITE(HI_CENTEROFFSET, ((xoff << 16) | (yoff & 0x07ff)));
-		} else {
-			VIA_WRITE(PRIM_HI_POSSTART, ((xpos << 16) | (ypos & 0x07ff)));
-			VIA_WRITE(PRIM_HI_CENTEROFFSET, ((xoff << 16) | (yoff & 0x07ff)));
-		}
-
-		break;
-	default:
-		VIA_WRITE(HI_POSSTART, ((xpos << 16) | (ypos & 0x07ff)));
-		VIA_WRITE(HI_CENTEROFFSET, ((xoff << 16) | (yoff & 0x07ff)));
-		break;
-	}
-
-	via_show_cursor(crtc);
-
-	return 0;
-}
-
 static int via_iga1_gamma_set(struct drm_crtc *crtc,
 				u16 *r, u16 *g, u16 *b,
 				uint32_t size,
@@ -553,16 +453,12 @@ static void via_crtc_destroy(struct drm_crtc *crtc)
 }
 
 static const struct drm_crtc_funcs openchrome_iga1_drm_crtc_funcs = {
-	.cursor_set = via_crtc_cursor_set,
-	.cursor_move = via_crtc_cursor_move,
 	.gamma_set = via_iga1_gamma_set,
 	.set_config = drm_crtc_helper_set_config,
 	.destroy = via_crtc_destroy,
 };
 
 static const struct drm_crtc_funcs openchrome_iga2_drm_crtc_funcs = {
-	.cursor_set = via_crtc_cursor_set,
-	.cursor_move = via_crtc_cursor_move,
 	.gamma_set = via_iga2_gamma_set,
 	.set_config = drm_crtc_helper_set_config,
 	.destroy = via_crtc_destroy,
@@ -2493,12 +2389,211 @@ static const uint32_t openchrome_primary_formats[] = {
 	DRM_FORMAT_RGB332,
 };
 
+static void openchrome_set_hi_location(struct drm_crtc *crtc,
+					int crtc_x,
+					int crtc_y)
+{
+	struct drm_device *dev = crtc->dev;
+	struct via_crtc *iga = container_of(crtc,
+						struct via_crtc, base);
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
+	uint32_t location_x = 0, location_y = 0;
+	uint32_t offset_x = 0, offset_y = 0;
+
+	if (crtc_x < 0) {
+		offset_x = -crtc_x;
+	} else {
+		location_x = crtc_x;
+	}
+
+	if (crtc_y < 0) {
+		offset_y = -crtc_y;
+	} else {
+		location_y = crtc_y;
+	}
+
+	switch (dev->pdev->device) {
+	case PCI_DEVICE_ID_VIA_PM800:
+	case PCI_DEVICE_ID_VIA_VT3157:
+	case PCI_DEVICE_ID_VIA_VT3343:
+	case PCI_DEVICE_ID_VIA_P4M900:
+	case PCI_DEVICE_ID_VIA_VT1122:
+	case PCI_DEVICE_ID_VIA_VX875:
+	case PCI_DEVICE_ID_VIA_VX900_VGA:
+		if (iga->index) {
+			VIA_WRITE(HI_POSSTART,
+				(((location_x & 0x07ff) << 16) |
+				(location_y & 0x07ff)));
+			VIA_WRITE(HI_CENTEROFFSET,
+				(((offset_x & 0x07ff) << 16) |
+				(offset_y & 0x07ff)));
+		} else {
+			VIA_WRITE(PRIM_HI_POSSTART,
+				(((location_x & 0x07ff) << 16) |
+				(location_y & 0x07ff)));
+			VIA_WRITE(PRIM_HI_CENTEROFFSET,
+				(((offset_x & 0x07ff) << 16) |
+				(offset_y & 0x07ff)));
+		}
+
+		break;
+	default:
+		VIA_WRITE(HI_POSSTART,
+				(((location_x & 0x07ff) << 16) |
+				(location_y & 0x07ff)));
+		VIA_WRITE(HI_CENTEROFFSET,
+				(((offset_x & 0x07ff) << 16) |
+				(offset_y & 0x07ff)));
+		break;
+	}
+}
+
+static int openchrome_cursor_update_plane(struct drm_plane *plane,
+				struct drm_crtc *crtc,
+				struct drm_framebuffer *fb,
+				int crtc_x, int crtc_y,
+				unsigned int crtc_w,
+				unsigned int crtc_h,
+				uint32_t src_x, uint32_t src_y,
+				uint32_t src_w, uint32_t src_h,
+				struct drm_modeset_acquire_ctx *ctx)
+{
+	struct drm_device *dev = plane->dev;
+	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
+	struct via_framebuffer *via_fb;
+	struct openchrome_bo *user_bo;
+	struct drm_gem_object *gem;
+	uint32_t *user_bo_src, *cursor_dst;
+	bool is_iomem;
+	uint32_t i;
+	uint32_t width, height;
+	uint32_t max_width = 64, max_height = 64;
+	int ret = 0;
+
+	if (!crtc) {
+		DRM_ERROR("Invalid CRTC!\n");
+		ret = -EINVAL;
+		goto exit;
+	}
+
+	if (!crtc->enabled) {
+		DRM_ERROR("CRTC is currently disabled!\n");
+		ret = -EINVAL;
+		goto exit;
+	}
+
+	if (!fb) {
+		DRM_ERROR("Invalid frame buffer!\n");
+		ret = -EINVAL;
+		goto exit;
+	}
+
+	if ((fb->width != 64) || (fb->height != 64)) {
+		DRM_ERROR("Cursor dimensions are expected to be "
+				"64 x 64.\n");
+		ret = -EINVAL;
+		goto exit;
+	}
+
+	if (fb->width != fb->height) {
+		DRM_ERROR("Hardware cursor is expected to have "
+				"square dimensions.\n");
+		ret = -EINVAL;
+		goto exit;
+	}
+
+	if (fb != crtc->cursor->fb) {
+		if ((dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
+			(dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
+			if ((fb->width == 64) || (fb->height == 64)) {
+				max_width >>= 1;
+				max_height >>= 1;
+			}
+		}
+
+		width = fb->width;
+		height = fb->height;
+
+		via_fb = container_of(fb, struct via_framebuffer, fb);
+		gem = via_fb->gem;
+		user_bo = container_of(gem, struct openchrome_bo, gem);
+		ret = ttm_bo_kmap(&user_bo->ttm_bo, 0,
+					user_bo->ttm_bo.num_pages,
+					&user_bo->kmap);
+		if (ret) {
+			goto exit;
+		}
+
+		user_bo_src = ttm_kmap_obj_virtual(&user_bo->kmap,
+							&is_iomem);
+		cursor_dst =
+			ttm_kmap_obj_virtual(&iga->cursor_bo->kmap,
+						&is_iomem);
+		memset_io(cursor_dst, 0x0,
+				iga->cursor_bo->kmap.bo->mem.size);
+		for (i = 0; i < height; i++) {
+			__iowrite32_copy(cursor_dst, user_bo_src, width);
+			user_bo_src += width;
+			cursor_dst += max_width;
+		}
+
+		ttm_bo_kunmap(&user_bo->kmap);
+
+		via_cursor_address(crtc);
+	} else {
+		crtc->cursor_x = crtc_x;
+		crtc->cursor_y = crtc_y;
+		openchrome_set_hi_location(crtc, crtc_x, crtc_y);
+	}
+
+	via_show_cursor(crtc);
+exit:
+	return ret;
+}
+
+static int openchrome_cursor_disable_plane(struct drm_plane *plane,
+				struct drm_modeset_acquire_ctx *ctx)
+{
+	if (plane->crtc) {
+		via_hide_cursor(plane->crtc);
+	}
+
+	if (plane->fb) {
+		drm_framebuffer_put(plane->fb);
+		plane->fb = NULL;
+	}
+
+	return 0;
+}
+
+static void openchrome_cursor_destroy(struct drm_plane *plane)
+{
+	if (plane->crtc) {
+		via_hide_cursor(plane->crtc);
+	}
+
+	drm_plane_cleanup(plane);
+}
+
+static const struct
+drm_plane_funcs openchrome_cursor_drm_plane_funcs = {
+	.update_plane	= openchrome_cursor_update_plane,
+	.disable_plane	= openchrome_cursor_disable_plane,
+	.destroy	= openchrome_cursor_destroy,
+};
+
+static const uint32_t openchrome_cursor_formats[] = {
+	DRM_FORMAT_ARGB8888
+};
+
 int via_crtc_init(struct drm_device *dev, uint32_t index)
 {
 	struct openchrome_drm_private *dev_private =
 						dev->dev_private;
 	struct via_crtc *iga = &dev_private->iga[index];
 	struct drm_plane *primary;
+	struct drm_plane *cursor;
 	struct drm_crtc *crtc = &iga->base;
 	uint32_t possible_crtcs;
 	int cursor_size = 64 * 64 * 4, i;
@@ -2527,15 +2622,33 @@ int via_crtc_init(struct drm_device *dev, uint32_t index)
 		goto free_primary;
 	}
 
+	cursor = kzalloc(sizeof(struct drm_plane), GFP_KERNEL);
+	if (!cursor) {
+		ret = -ENOMEM;
+		DRM_ERROR("Failed to allocate a cursor plane.\n");
+		goto cleanup_primary;
+	}
+
+	ret = drm_universal_plane_init(dev, cursor, possible_crtcs,
+			&openchrome_cursor_drm_plane_funcs,
+			openchrome_cursor_formats,
+			ARRAY_SIZE(openchrome_cursor_formats),
+			NULL, DRM_PLANE_TYPE_CURSOR, NULL);
+	if (ret) {
+		DRM_ERROR("Failed to initialize a cursor "
+				"plane.\n");
+		goto free_cursor;
+	}
+
 	if (index) {
 		drm_crtc_helper_add(crtc,
 			&openchrome_iga2_drm_crtc_helper_funcs);
 		ret = drm_crtc_init_with_planes(dev, crtc, primary,
-				NULL, &openchrome_iga2_drm_crtc_funcs,
+				cursor, &openchrome_iga2_drm_crtc_funcs,
 				NULL);
 		if (ret) {
 			DRM_ERROR("Failed to initialize CRTC!\n");
-			goto cleanup_primary;
+			goto cleanup_cursor;
 		}
 
 		iga->timings.htotal.count = ARRAY_SIZE(iga2_hor_total);
@@ -2615,11 +2728,11 @@ int via_crtc_init(struct drm_device *dev, uint32_t index)
 		drm_crtc_helper_add(crtc,
 			&openchrome_iga1_drm_crtc_helper_funcs);
 		ret = drm_crtc_init_with_planes(dev, crtc, primary,
-				NULL, &openchrome_iga1_drm_crtc_funcs,
+				cursor, &openchrome_iga1_drm_crtc_funcs,
 				NULL);
 		if (ret) {
 			DRM_ERROR("Failed to initialize CRTC!\n");
-			goto cleanup_primary;
+			goto cleanup_cursor;
 		}
 
 		iga->timings.htotal.count = ARRAY_SIZE(iga1_hor_total);
@@ -2719,10 +2832,14 @@ int via_crtc_init(struct drm_device *dev, uint32_t index)
 					&iga->cursor_bo);
 	if (ret) {
 		DRM_ERROR("Failed to create cursor.\n");
-		goto exit;
+		goto cleanup_cursor;
 	}
 
 	goto exit;
+cleanup_cursor:
+	drm_plane_cleanup(cursor);
+free_cursor:
+	kfree(cursor);
 cleanup_primary:
 	drm_plane_cleanup(primary);
 free_primary:
