@@ -1750,9 +1750,6 @@ via_iga1_crtc_disable(struct drm_crtc *crtc)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	/* Turn off the cursor */
-	via_hide_cursor(crtc);
-
 	via_iga1_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
@@ -1957,12 +1954,6 @@ via_iga1_crtc_mode_set(struct drm_crtc *crtc,
 	}
 
 	ret = via_iga1_crtc_mode_set_base(crtc, x, y, fb);
-
-	/* Specify the cursor pattern. */
-	via_cursor_address(crtc);
-
-	/* Turn off the cursor. */
-	via_hide_cursor(crtc);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
@@ -2056,9 +2047,6 @@ static void
 via_iga2_crtc_disable(struct drm_crtc *crtc)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	/* Turn off the cursor */
-	via_hide_cursor(crtc);
 
 	via_iga2_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
 
@@ -2295,12 +2283,6 @@ via_iga2_crtc_mode_set(struct drm_crtc *crtc,
 	}
 
 	ret = via_iga2_crtc_mode_set_base(crtc, x, y, fb);
-
-	/* Specify the cursor pattern. */
-	via_cursor_address(crtc);
-
-	/* Turn off the cursor. */
-	via_hide_cursor(crtc);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
