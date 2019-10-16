@@ -35,6 +35,10 @@
  *
  */
 
+#include <linux/pci.h>
+
+#include <drm/ttm/ttm_bo_api.h>
+#include <drm/ttm/ttm_bo_driver.h>
 
 #include "openchrome_drv.h"
 
