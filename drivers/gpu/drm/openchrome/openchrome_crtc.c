@@ -265,7 +265,7 @@ static void openchrome_show_cursor(struct drm_crtc *crtc)
 	}
 }
 
-static void via_cursor_address(struct drm_crtc *crtc)
+static void openchrome_cursor_address(struct drm_crtc *crtc)
 {
 	struct drm_device *dev = crtc->dev;
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
@@ -2522,7 +2522,7 @@ static int openchrome_cursor_update_plane(struct drm_plane *plane,
 
 		ttm_bo_kunmap(&user_bo->kmap);
 
-		via_cursor_address(crtc);
+		openchrome_cursor_address(crtc);
 	} else {
 		crtc->cursor_x = crtc_x;
 		crtc->cursor_y = crtc_y;
