@@ -40,9 +40,9 @@
 #include <drm/drm_ioctl.h>
 #include <drm/drm_plane.h>
 
-#include "ttm/ttm_bo_api.h"
-#include "ttm/ttm_bo_driver.h"
-#include "ttm/ttm_placement.h"
+#include <drm/ttm/ttm_bo_api.h>
+#include <drm/ttm/ttm_bo_driver.h>
+#include <drm/ttm/ttm_placement.h>
 
 #include <drm/via_drm.h>
 
