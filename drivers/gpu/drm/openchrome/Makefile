@@ -7,6 +7,7 @@ openchrome-y := openchrome_analog.o \
 		openchrome_clocks.o \
 		openchrome_crtc.o \
 		openchrome_crtc_hw.o \
+		openchrome_cursor.o \
 		openchrome_display.o \
 		openchrome_drv.o \
 		openchrome_encoder.o \

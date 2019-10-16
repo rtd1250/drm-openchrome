@@ -38,6 +38,7 @@
 
 #include <drm/drm_gem.h>
 #include <drm/drm_ioctl.h>
+#include <drm/drm_plane.h>
 
 #include "ttm/ttm_bo_api.h"
 #include "ttm/ttm_bo_driver.h"
@@ -310,5 +311,9 @@ void openchrome_transmitter_data_drive_strength(
 void openchrome_transmitter_display_source(
 			struct openchrome_drm_private *dev_private,
 			u32 di_port, int index);
+
+extern const struct drm_plane_funcs openchrome_cursor_drm_plane_funcs;
+extern const uint32_t openchrome_cursor_formats[];
+extern const unsigned int openchrome_cursor_formats_size;
 
 #endif /* _OPENCHROME_DRV_H */
