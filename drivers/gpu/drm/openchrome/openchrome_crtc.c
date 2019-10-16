@@ -168,7 +168,7 @@ static void via_iga2_set_color_depth(
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void via_hide_cursor(struct drm_crtc *crtc)
+static void openchrome_hide_cursor(struct drm_crtc *crtc)
 {
 	struct drm_device *dev = crtc->dev;
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
@@ -2538,7 +2538,7 @@ static int openchrome_cursor_disable_plane(struct drm_plane *plane,
 				struct drm_modeset_acquire_ctx *ctx)
 {
 	if (plane->crtc) {
-		via_hide_cursor(plane->crtc);
+		openchrome_hide_cursor(plane->crtc);
 	}
 
 	if (plane->fb) {
@@ -2552,7 +2552,7 @@ static int openchrome_cursor_disable_plane(struct drm_plane *plane,
 static void openchrome_cursor_destroy(struct drm_plane *plane)
 {
 	if (plane->crtc) {
-		via_hide_cursor(plane->crtc);
+		openchrome_hide_cursor(plane->crtc);
 	}
 
 	drm_plane_cleanup(plane);
