@@ -200,7 +200,7 @@ static void via_hide_cursor(struct drm_crtc *crtc)
 	}
 }
 
-static void via_show_cursor(struct drm_crtc *crtc)
+static void openchrome_show_cursor(struct drm_crtc *crtc)
 {
 	struct drm_device *dev = crtc->dev;
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
@@ -2529,7 +2529,7 @@ static int openchrome_cursor_update_plane(struct drm_plane *plane,
 		openchrome_set_hi_location(crtc, crtc_x, crtc_y);
 	}
 
-	via_show_cursor(crtc);
+	openchrome_show_cursor(crtc);
 exit:
 	return ret;
 }
