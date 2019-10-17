@@ -316,4 +316,6 @@ extern const struct drm_plane_funcs openchrome_cursor_drm_plane_funcs;
 extern const uint32_t openchrome_cursor_formats[];
 extern const unsigned int openchrome_cursor_formats_size;
 
+extern struct drm_fb_helper_funcs via_drm_fb_helper_funcs;
+
 #endif /* _OPENCHROME_DRV_H */
