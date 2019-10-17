@@ -117,6 +117,27 @@ static const struct drm_mode_config_funcs via_mode_funcs = {
 	.output_poll_changed	= via_output_poll_changed
 };
 
+void openchrome_mode_config_init(
+			struct openchrome_drm_private *dev_private)
+{
+	struct drm_device *dev = dev_private->dev;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	drm_mode_config_init(dev);
+
+	dev->mode_config.min_width = 0;
+	dev->mode_config.min_height = 0;
+	dev->mode_config.max_width = 2044;
+	dev->mode_config.max_height = 4096;
+
+	dev->mode_config.funcs = &via_mode_funcs;
+
+	dev->mode_config.preferred_depth = 24;
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
 static struct fb_ops via_fb_ops = {
 	.owner		= THIS_MODULE,
 	.fb_check_var	= drm_fb_helper_check_var,
@@ -231,24 +252,3 @@ exit:
 struct drm_fb_helper_funcs via_drm_fb_helper_funcs = {
 	.fb_probe = via_fb_probe,
 };
-
-void openchrome_mode_config_init(
-			struct openchrome_drm_private *dev_private)
-{
-	struct drm_device *dev = dev_private->dev;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	drm_mode_config_init(dev);
-
-	dev->mode_config.min_width = 0;
-	dev->mode_config.min_height = 0;
-	dev->mode_config.max_width = 2044;
-	dev->mode_config.max_height = 4096;
-
-	dev->mode_config.funcs = &via_mode_funcs;
-
-	dev->mode_config.preferred_depth = 24;
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-}
