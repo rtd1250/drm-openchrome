@@ -2295,17 +2295,28 @@ int via_crtc_init(struct drm_device *dev, uint32_t index)
 		goto free_cursor;
 	}
 
-	if (index) {
+	if (iga->index) {
 		drm_crtc_helper_add(crtc,
 			&openchrome_iga2_drm_crtc_helper_funcs);
-		ret = drm_crtc_init_with_planes(dev, crtc, primary,
-				cursor, &openchrome_iga2_drm_crtc_funcs,
+		ret = drm_crtc_init_with_planes(dev, crtc,
+				primary, cursor,
+				&openchrome_iga2_drm_crtc_funcs,
 				NULL);
-		if (ret) {
-			DRM_ERROR("Failed to initialize CRTC!\n");
-			goto cleanup_cursor;
-		}
+	} else {
+		drm_crtc_helper_add(crtc,
+			&openchrome_iga1_drm_crtc_helper_funcs);
+		ret = drm_crtc_init_with_planes(dev, crtc,
+				primary, cursor,
+				&openchrome_iga1_drm_crtc_funcs,
+				NULL);
+	}
 
+	if (ret) {
+		DRM_ERROR("Failed to initialize CRTC!\n");
+		goto cleanup_cursor;
+	}
+
+	if (iga->index) {
 		iga->timings.htotal.count = ARRAY_SIZE(iga2_hor_total);
 		iga->timings.htotal.regs = iga2_hor_total;
 
@@ -2380,16 +2391,6 @@ int via_crtc_init(struct drm_device *dev, uint32_t index)
 		iga->offset.count = ARRAY_SIZE(iga2_offset) - 1;
 		iga->offset.regs = iga2_offset;
 	} else {
-		drm_crtc_helper_add(crtc,
-			&openchrome_iga1_drm_crtc_helper_funcs);
-		ret = drm_crtc_init_with_planes(dev, crtc, primary,
-				cursor, &openchrome_iga1_drm_crtc_funcs,
-				NULL);
-		if (ret) {
-			DRM_ERROR("Failed to initialize CRTC!\n");
-			goto cleanup_cursor;
-		}
-
 		iga->timings.htotal.count = ARRAY_SIZE(iga1_hor_total);
 		iga->timings.htotal.regs = iga1_hor_total;
 
