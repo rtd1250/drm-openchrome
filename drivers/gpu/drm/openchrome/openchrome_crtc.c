@@ -2303,6 +2303,22 @@ int via_crtc_init(struct drm_device *dev, uint32_t index)
 		goto cleanup_cursor;
 	}
 
+	if (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266 ||
+		dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)
+		cursor_size = 32 * 32 * 4;
+
+	ret = openchrome_bo_create(dev,
+					&dev_private->bdev,
+					cursor_size,
+					ttm_bo_type_kernel,
+					TTM_PL_FLAG_VRAM,
+					true,
+					&iga->cursor_bo);
+	if (ret) {
+		DRM_ERROR("Failed to create cursor.\n");
+		goto cleanup_cursor;
+	}
+
 	if (iga->index) {
 		iga->timings.htotal.count = ARRAY_SIZE(iga2_hor_total);
 		iga->timings.htotal.regs = iga2_hor_total;
@@ -2460,22 +2476,6 @@ int via_crtc_init(struct drm_device *dev, uint32_t index)
 		gamma[i] = i << 8 | i;
 		gamma[i + 256] = i << 8 | i;
 		gamma[i + 512] = i << 8 | i;
-	}
-
-	if (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266
-			|| dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)
-		cursor_size = 32 * 32 * 4;
-
-	ret = openchrome_bo_create(dev,
-					&dev_private->bdev,
-					cursor_size,
-					ttm_bo_type_kernel,
-					TTM_PL_FLAG_VRAM,
-					true,
-					&iga->cursor_bo);
-	if (ret) {
-		DRM_ERROR("Failed to create cursor.\n");
-		goto cleanup_cursor;
 	}
 
 	goto exit;
