@@ -309,7 +309,7 @@ static void via_iga2_set_color_depth(
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void via_crtc_destroy(struct drm_crtc *crtc)
+static void openchrome_crtc_destroy(struct drm_crtc *crtc)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 
@@ -324,13 +324,13 @@ static void via_crtc_destroy(struct drm_crtc *crtc)
 static const struct drm_crtc_funcs openchrome_iga1_drm_crtc_funcs = {
 	.gamma_set = openchrome_gamma_set,
 	.set_config = drm_crtc_helper_set_config,
-	.destroy = via_crtc_destroy,
+	.destroy = openchrome_crtc_destroy,
 };
 
 static const struct drm_crtc_funcs openchrome_iga2_drm_crtc_funcs = {
 	.gamma_set = openchrome_gamma_set,
 	.set_config = drm_crtc_helper_set_config,
-	.destroy = via_crtc_destroy,
+	.destroy = openchrome_crtc_destroy,
 };
 
 static void via_load_vpit_regs(
