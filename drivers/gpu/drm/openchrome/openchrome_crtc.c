@@ -321,13 +321,7 @@ static void openchrome_crtc_destroy(struct drm_crtc *crtc)
 	drm_crtc_cleanup(crtc);
 }
 
-static const struct drm_crtc_funcs openchrome_iga1_drm_crtc_funcs = {
-	.gamma_set = openchrome_gamma_set,
-	.set_config = drm_crtc_helper_set_config,
-	.destroy = openchrome_crtc_destroy,
-};
-
-static const struct drm_crtc_funcs openchrome_iga2_drm_crtc_funcs = {
+static const struct drm_crtc_funcs openchrome_drm_crtc_funcs = {
 	.gamma_set = openchrome_gamma_set,
 	.set_config = drm_crtc_helper_set_config,
 	.destroy = openchrome_crtc_destroy,
@@ -2296,19 +2290,14 @@ int via_crtc_init(struct drm_device *dev, uint32_t index)
 	if (iga->index) {
 		drm_crtc_helper_add(crtc,
 			&openchrome_iga2_drm_crtc_helper_funcs);
-		ret = drm_crtc_init_with_planes(dev, crtc,
-				primary, cursor,
-				&openchrome_iga2_drm_crtc_funcs,
-				NULL);
 	} else {
 		drm_crtc_helper_add(crtc,
 			&openchrome_iga1_drm_crtc_helper_funcs);
-		ret = drm_crtc_init_with_planes(dev, crtc,
-				primary, cursor,
-				&openchrome_iga1_drm_crtc_funcs,
-				NULL);
 	}
 
+	ret = drm_crtc_init_with_planes(dev, crtc, primary, cursor,
+					&openchrome_drm_crtc_funcs,
+					NULL);
 	if (ret) {
 		DRM_ERROR("Failed to initialize CRTC!\n");
 		goto cleanup_cursor;
