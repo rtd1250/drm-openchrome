@@ -2164,15 +2164,15 @@ exit:
 	return ret;
 }
 
-int via_crtc_init(struct drm_device *dev, uint32_t index)
+void openchrome_crtc_param_init(
+		struct openchrome_drm_private *dev_private,
+		uint32_t index)
 {
-	struct openchrome_drm_private *dev_private =
-						dev->dev_private;
+	struct drm_device *dev = dev_private->dev;
 	struct via_crtc *iga = &dev_private->iga[index];
 	struct drm_crtc *crtc = &iga->base;
 	u16 *gamma;
 	uint32_t i;
-	int ret = 0;
 
 	if (iga->index) {
 		iga->timings.htotal.count = ARRAY_SIZE(iga2_hor_total);
@@ -2332,6 +2332,4 @@ int via_crtc_init(struct drm_device *dev, uint32_t index)
 		gamma[i + 256] = i << 8 | i;
 		gamma[i + 512] = i << 8 | i;
 	}
-
-	return ret;
 }

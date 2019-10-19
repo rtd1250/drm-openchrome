@@ -468,7 +468,9 @@ extern void via_load_crtc_pixel_timing(struct drm_crtc *crtc,
 					struct drm_display_mode *mode);
 int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
 				uint32_t index);
-extern int via_crtc_init(struct drm_device *dev, uint32_t index);
+void openchrome_crtc_param_init(
+			struct openchrome_drm_private *dev_private,
+			uint32_t index);
 
 /* encoders */
 extern void via_set_sync_polarity(struct drm_encoder *encoder,
