@@ -1582,6 +1582,94 @@ drm_mode_crtc_load_lut(struct drm_crtc *crtc)
 	}
 }
 
+static int openchrome_crtc_mode_set_base_atomic(struct drm_crtc *crtc,
+					struct drm_framebuffer *fb,
+					int x, int y,
+					enum mode_set_atomic state)
+{
+	u32 pitch = y * fb->pitches[0] +
+			((x * fb->format->cpp[0] * 8) >> 3), addr;
+	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
+	struct via_framebuffer *via_fb = container_of(fb,
+					struct via_framebuffer, fb);
+	struct drm_gem_object *gem = via_fb->gem;
+	struct openchrome_bo *bo = container_of(gem,
+					struct openchrome_bo, gem);
+	int ret = 0;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	if ((fb->format->depth != 8) && (fb->format->depth != 16) &&
+		(fb->format->depth != 24)) {
+		ret = -EINVAL;
+		DRM_ERROR("Unsupported IGA%s Color Depth: %d bit\n",
+					(!iga->index) ? "1" : "2",
+					fb->format->depth);
+		goto exit;
+	}
+
+	if (!iga->index) {
+		via_iga_common_init(VGABASE);
+
+		/* Set palette LUT to 8-bit mode. */
+		via_iga1_set_palette_lut_resolution(VGABASE, true);
+
+		via_iga1_set_color_depth(dev_private, fb->format->depth);
+
+		/* Set the framebuffer offset */
+		addr = round_up(bo->ttm_bo.offset + pitch, 16) >> 1;
+		vga_wcrt(VGABASE, 0x0D, addr & 0xFF);
+		vga_wcrt(VGABASE, 0x0C, (addr >> 8) & 0xFF);
+		/* Yes order of setting these registers matters on some hardware */
+		svga_wcrt_mask(VGABASE, 0x48, ((addr >> 24) & 0x1F), 0x1F);
+		vga_wcrt(VGABASE, 0x34, (addr >> 16) & 0xFF);
+
+		/* Load fetch count registers */
+		pitch = ALIGN(crtc->mode.hdisplay * (fb->format->cpp[0] * 8) >> 3, 16);
+		load_value_to_registers(VGABASE, &iga->fetch, pitch >> 4);
+
+		/* Set the primary pitch */
+		pitch = ALIGN(fb->pitches[0], 16);
+		/* Spec does not say that first adapter skips 3 bits but old
+		 * code did it and seems to be reasonable in analogy to
+		 * second adapter */
+		load_value_to_registers(VGABASE, &iga->offset, pitch >> 3);
+	} else {
+		via_iga_common_init(VGABASE);
+
+		/* Set palette LUT to 8-bit mode. */
+		via_iga2_set_palette_lut_resolution(VGABASE, true);
+
+		via_iga2_set_color_depth(dev_private, fb->format->depth);
+
+		/* Set the framebuffer offset */
+		addr = round_up(bo->ttm_bo.offset + pitch, 16);
+		/* Bits 9 to 3 of the frame buffer go into bits 7 to 1
+		 * of the register. Bit 0 is for setting tile mode or
+		 * linear mode. A value of zero sets it to linear mode */
+		vga_wcrt(VGABASE, 0x62, ((addr >> 3) & 0x7F) << 1);
+		vga_wcrt(VGABASE, 0x63, (addr >> 10) & 0xFF);
+		vga_wcrt(VGABASE, 0x64, (addr >> 18) & 0xFF);
+		svga_wcrt_mask(VGABASE, 0xA3, ((addr >> 26) & 0x07), 0x07);
+
+		/* Load fetch count registers */
+		pitch = ALIGN(crtc->mode.hdisplay * (fb->format->cpp[0] * 8) >> 3, 16);
+		load_value_to_registers(VGABASE, &iga->fetch, pitch >> 4);
+
+		/* Set secondary pitch */
+		pitch = ALIGN(fb->pitches[0], 16);
+		load_value_to_registers(VGABASE, &iga->offset, pitch >> 3);
+
+		enable_second_display_channel(VGABASE);
+	}
+
+exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
+}
+
 static void
 via_iga1_crtc_dpms(struct drm_crtc *crtc, int mode)
 {
@@ -1826,58 +1914,6 @@ via_iga1_crtc_mode_set(struct drm_crtc *crtc,
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
-}
-
-static int
-via_iga1_mode_set_base_atomic(struct drm_crtc *crtc,
-				struct drm_framebuffer *fb, int x, int y,
-				enum mode_set_atomic state)
-{
-	u32 pitch = y * fb->pitches[0] +
-			((x * fb->format->cpp[0] * 8) >> 3), addr;
-	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	struct openchrome_drm_private *dev_private =
-						crtc->dev->dev_private;
-	struct via_framebuffer *via_fb = container_of(fb,
-					struct via_framebuffer, fb);
-	struct drm_gem_object *gem = via_fb->gem;
-	struct openchrome_bo *bo = container_of(gem,
-					struct openchrome_bo, gem);
-
-	if ((fb->format->depth != 8) && (fb->format->depth != 16) &&
-		(fb->format->depth != 24)) {
-		DRM_ERROR("Unsupported IGA1 Color Depth: %d bit\n",
-						fb->format->depth);
-		return -EINVAL;
-	}
-
-	via_iga_common_init(VGABASE);
-
-	/* Set palette LUT to 8-bit mode. */
-	via_iga1_set_palette_lut_resolution(VGABASE, true);
-
-	via_iga1_set_color_depth(dev_private, fb->format->depth);
-
-	/* Set the framebuffer offset */
-	addr = round_up(bo->ttm_bo.offset + pitch, 16) >> 1;
-	vga_wcrt(VGABASE, 0x0D, addr & 0xFF);
-	vga_wcrt(VGABASE, 0x0C, (addr >> 8) & 0xFF);
-	/* Yes order of setting these registers matters on some hardware */
-	svga_wcrt_mask(VGABASE, 0x48, ((addr >> 24) & 0x1F), 0x1F);
-	vga_wcrt(VGABASE, 0x34, (addr >> 16) & 0xFF);
-
-	/* Load fetch count registers */
-	pitch = ALIGN(crtc->mode.hdisplay * (fb->format->cpp[0] * 8) >> 3, 16);
-	load_value_to_registers(VGABASE, &iga->fetch, pitch >> 4);
-
-	/* Set the primary pitch */
-	pitch = ALIGN(fb->pitches[0], 16);
-	/* Spec does not say that first adapter skips 3 bits but old
-	 * code did it and seems to be reasonable in analogy to
-	 * second adapter */
-	load_value_to_registers(VGABASE, &iga->offset, pitch >> 3);
-
-	return 0;
 }
 
 static void
@@ -2157,59 +2193,6 @@ exit:
 	return ret;
 }
 
-static int
-via_iga2_mode_set_base_atomic(struct drm_crtc *crtc,
-				struct drm_framebuffer *fb,
-				int x, int y, enum mode_set_atomic state)
-{
-	u32 pitch = y * fb->pitches[0] +
-			((x * fb->format->cpp[0] * 8) >> 3), addr;
-	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	struct openchrome_drm_private *dev_private =
-						crtc->dev->dev_private;
-	struct via_framebuffer *via_fb = container_of(fb,
-					struct via_framebuffer, fb);
-	struct drm_gem_object *gem = via_fb->gem;
-	struct openchrome_bo *bo = container_of(gem,
-					struct openchrome_bo, gem);
-
-	if ((fb->format->depth != 8) && (fb->format->depth != 16) &&
-		(fb->format->depth != 24)) {
-		DRM_ERROR("Unsupported IGA2 Color Depth: %d bit\n",
-						fb->format->depth);
-		return -EINVAL;
-	}
-
-	via_iga_common_init(VGABASE);
-
-	/* Set palette LUT to 8-bit mode. */
-	via_iga2_set_palette_lut_resolution(VGABASE, true);
-
-	via_iga2_set_color_depth(dev_private, fb->format->depth);
-
-	/* Set the framebuffer offset */
-	addr = round_up(bo->ttm_bo.offset + pitch, 16);
-	/* Bits 9 to 3 of the frame buffer go into bits 7 to 1
-	 * of the register. Bit 0 is for setting tile mode or
-	 * linear mode. A value of zero sets it to linear mode */
-	vga_wcrt(VGABASE, 0x62, ((addr >> 3) & 0x7F) << 1);
-	vga_wcrt(VGABASE, 0x63, (addr >> 10) & 0xFF);
-	vga_wcrt(VGABASE, 0x64, (addr >> 18) & 0xFF);
-	svga_wcrt_mask(VGABASE, 0xA3, ((addr >> 26) & 0x07), 0x07);
-
-	/* Load fetch count registers */
-	pitch = ALIGN(crtc->mode.hdisplay * (fb->format->cpp[0] * 8) >> 3, 16);
-	load_value_to_registers(VGABASE, &iga->fetch, pitch >> 4);
-
-	/* Set secondary pitch */
-	pitch = ALIGN(fb->pitches[0], 16);
-	load_value_to_registers(VGABASE, &iga->offset, pitch >> 3);
-
-	enable_second_display_channel(VGABASE);
-
-	return 0;
-}
-
 static const struct
 drm_crtc_helper_funcs openchrome_iga1_drm_crtc_helper_funcs = {
 	.dpms = via_iga1_crtc_dpms,
@@ -2218,7 +2201,7 @@ drm_crtc_helper_funcs openchrome_iga1_drm_crtc_helper_funcs = {
 	.commit = via_iga1_crtc_commit,
 	.mode_fixup = via_iga1_crtc_mode_fixup,
 	.mode_set = via_iga1_crtc_mode_set,
-	.mode_set_base_atomic = via_iga1_mode_set_base_atomic,
+	.mode_set_base_atomic = openchrome_crtc_mode_set_base_atomic,
 };
 
 static const struct
@@ -2229,7 +2212,7 @@ drm_crtc_helper_funcs openchrome_iga2_drm_crtc_helper_funcs = {
 	.commit = via_iga2_crtc_commit,
 	.mode_fixup = via_iga2_crtc_mode_fixup,
 	.mode_set = via_iga2_crtc_mode_set,
-	.mode_set_base_atomic = via_iga2_mode_set_base_atomic,
+	.mode_set_base_atomic = openchrome_crtc_mode_set_base_atomic,
 };
 
 static const uint32_t openchrome_primary_formats[] = {
