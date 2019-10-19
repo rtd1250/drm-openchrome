@@ -2055,18 +2055,7 @@ exit:
 }
 
 static const struct
-drm_crtc_helper_funcs openchrome_iga1_drm_crtc_helper_funcs = {
-	.dpms = openchrome_crtc_dpms,
-	.disable = openchrome_crtc_disable,
-	.prepare = openchrome_crtc_prepare,
-	.commit = openchrome_crtc_commit,
-	.mode_fixup = openchrome_crtc_mode_fixup,
-	.mode_set = openchrome_crtc_mode_set,
-	.mode_set_base_atomic = openchrome_crtc_mode_set_base_atomic,
-};
-
-static const struct
-drm_crtc_helper_funcs openchrome_iga2_drm_crtc_helper_funcs = {
+drm_crtc_helper_funcs openchrome_drm_crtc_helper_funcs = {
 	.dpms = openchrome_crtc_dpms,
 	.disable = openchrome_crtc_disable,
 	.prepare = openchrome_crtc_prepare,
@@ -2137,14 +2126,8 @@ int via_crtc_init(struct drm_device *dev, uint32_t index)
 		goto free_cursor;
 	}
 
-	if (iga->index) {
-		drm_crtc_helper_add(crtc,
-			&openchrome_iga2_drm_crtc_helper_funcs);
-	} else {
-		drm_crtc_helper_add(crtc,
-			&openchrome_iga1_drm_crtc_helper_funcs);
-	}
-
+	drm_crtc_helper_add(crtc,
+			&openchrome_drm_crtc_helper_funcs);
 	ret = drm_crtc_init_with_planes(dev, crtc, primary, cursor,
 					&openchrome_drm_crtc_funcs,
 					NULL);
