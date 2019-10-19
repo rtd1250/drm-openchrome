@@ -62,22 +62,135 @@ static struct vga_regset vpit_table[] = {
 	{VGA_GFX_I, 0x08, 0xFF, 0xFF }
 };
 
+static void via_iga_common_init(void __iomem *regs)
+{
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	/* Be careful with 3C5.15[5] - Wrap Around Disable.
+	 * It must be set to 1 for proper operation. */
+	/* 3C5.15[5]   - Wrap Around Disable
+	 *               0: Disable (For Mode 0-13)
+	 *               1: Enable
+	 * 3C5.15[1]   - Extended Display Mode Enable
+	 *               0: Disable
+	 *               1: Enable */
+	svga_wseq_mask(regs, 0x15, BIT(5) | BIT(1), BIT(5) | BIT(1));
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
+static void via_iga1_set_color_depth(
+			struct openchrome_drm_private *dev_private,
+			u8 depth)
+{
+	u8 value;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	value = 0x00;
+
+	/* Set the color depth for IGA1. */
+	switch (depth) {
+	case 8:
+		break;
+	case 16:
+		/* Bit 4 is for 555 (15-bit) / 565 (16-bit) color selection. */
+		value |= BIT(4) | BIT(2);
+		break;
+	case 24:
+	case 32:
+		value |= BIT(3) | BIT(2);
+		break;
+	default:
+		break;
+	}
+
+	if ((depth == 8) || (depth == 16) ||
+		(depth == 24) || (depth == 32)) {
+		/* 3C5.15[4]   - Hi Color Mode Select
+		 *               0: 555
+		 *               1: 565
+		 * 3C5.15[3:2] - Display Color Depth Select
+		 *               00: 8bpp
+		 *               01: 16bpp
+		 *               10: 30bpp
+		 *               11: 32bpp */
+		svga_wseq_mask(VGABASE, 0x15, value,
+				BIT(4) | BIT(3) | BIT(2));
+		DRM_INFO("IGA1 Color Depth: %d bit\n", depth);
+	} else {
+		DRM_ERROR("Unsupported IGA1 Color Depth: %d bit\n",
+				depth);
+	}
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
+static void via_iga2_set_color_depth(
+			struct openchrome_drm_private *dev_private,
+			u8 depth)
+{
+	u8 value;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	value = 0x00;
+
+	/* Set the color depth for IGA2. */
+	switch (depth) {
+	case 8:
+		break;
+	case 16:
+		value = BIT(6);
+		break;
+	case 24:
+	case 32:
+		value = BIT(7) | BIT(6);
+		break;
+	default:
+		break;
+	}
+
+	if ((depth == 8) || (depth == 16) ||
+		(depth == 24) || (depth == 32)) {
+		/* 3X5.67[7:6] - Display Color Depth Select
+		 *               00: 8bpp
+		 *               01: 16bpp
+		 *               10: 30bpp
+		 *               11: 32bpp */
+		svga_wcrt_mask(VGABASE, 0x67, value, 0xC0);
+		DRM_INFO("IGA2 Color Depth: %d bit\n", depth);
+	} else {
+		DRM_ERROR("Unsupported IGA2 Color Depth: %d bit\n",
+				depth);
+	}
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
 static int openchrome_gamma_set(struct drm_crtc *crtc,
 				u16 *r, u16 *g, u16 *b,
 				uint32_t size,
 				struct drm_modeset_acquire_ctx *ctx)
 {
-	struct via_crtc *iga = container_of(crtc,
-						struct via_crtc, base);
 	struct openchrome_drm_private *dev_private =
 						crtc->dev->dev_private;
+	struct via_crtc *iga = container_of(crtc,
+						struct via_crtc, base);
 	int end = (size > 256) ? 256 : size, i;
-	u8 val = 0, sr1a = vga_rseq(VGABASE, 0x1A);
+	u8 val = 0, sr1a;
+	int ret = 0;
 
-	if (!crtc->enabled || !crtc->primary->fb)
-		return -EINVAL;
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if (iga->index) {
+	sr1a = vga_rseq(VGABASE, 0x1A);
+
+	if ((!crtc->enabled) || (!crtc->primary->fb)) {
+		ret = -EINVAL;
+		goto exit;
+	}
+
+	if (!iga->index) {
 		if (crtc->primary->fb->format->cpp[0] * 8 == 8) {
 			/* Prepare for initialize IGA1's LUT: */
 			vga_wseq(VGABASE, 0x1A, sr1a & 0xFE);
@@ -200,113 +313,10 @@ static int openchrome_gamma_set(struct drm_crtc *crtc,
 			vga_wseq(VGABASE, 0x1A, sr1a);
 		}
 	}
-	return 0;
-}
 
-static void via_iga_common_init(void __iomem *regs)
-{
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	/* Be careful with 3C5.15[5] - Wrap Around Disable.
-	 * It must be set to 1 for proper operation. */
-	/* 3C5.15[5]   - Wrap Around Disable
-	 *               0: Disable (For Mode 0-13)
-	 *               1: Enable
-	 * 3C5.15[1]   - Extended Display Mode Enable
-	 *               0: Disable
-	 *               1: Enable */
-	svga_wseq_mask(regs, 0x15, BIT(5) | BIT(1), BIT(5) | BIT(1));
-
+exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-}
-
-static void via_iga1_set_color_depth(
-			struct openchrome_drm_private *dev_private,
-			u8 depth)
-{
-	u8 value;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	value = 0x00;
-
-	/* Set the color depth for IGA1. */
-	switch (depth) {
-	case 8:
-		break;
-	case 16:
-		/* Bit 4 is for 555 (15-bit) / 565 (16-bit) color selection. */
-		value |= BIT(4) | BIT(2);
-		break;
-	case 24:
-	case 32:
-		value |= BIT(3) | BIT(2);
-		break;
-	default:
-		break;
-	}
-
-	if ((depth == 8) || (depth == 16) ||
-		(depth == 24) || (depth == 32)) {
-		/* 3C5.15[4]   - Hi Color Mode Select
-		 *               0: 555
-		 *               1: 565
-		 * 3C5.15[3:2] - Display Color Depth Select
-		 *               00: 8bpp
-		 *               01: 16bpp
-		 *               10: 30bpp
-		 *               11: 32bpp */
-		svga_wseq_mask(VGABASE, 0x15, value,
-				BIT(4) | BIT(3) | BIT(2));
-		DRM_INFO("IGA1 Color Depth: %d bit\n", depth);
-	} else {
-		DRM_ERROR("Unsupported IGA1 Color Depth: %d bit\n",
-				depth);
-	}
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-}
-
-static void via_iga2_set_color_depth(
-			struct openchrome_drm_private *dev_private,
-			u8 depth)
-{
-	u8 value;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	value = 0x00;
-
-	/* Set the color depth for IGA2. */
-	switch (depth) {
-	case 8:
-		break;
-	case 16:
-		value = BIT(6);
-		break;
-	case 24:
-	case 32:
-		value = BIT(7) | BIT(6);
-		break;
-	default:
-		break;
-	}
-
-	if ((depth == 8) || (depth == 16) ||
-		(depth == 24) || (depth == 32)) {
-		/* 3X5.67[7:6] - Display Color Depth Select
-		 *               00: 8bpp
-		 *               01: 16bpp
-		 *               10: 30bpp
-		 *               11: 32bpp */
-		svga_wcrt_mask(VGABASE, 0x67, value, 0xC0);
-		DRM_INFO("IGA2 Color Depth: %d bit\n", depth);
-	} else {
-		DRM_ERROR("Unsupported IGA2 Color Depth: %d bit\n",
-				depth);
-	}
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
 }
 
 static void openchrome_crtc_destroy(struct drm_crtc *crtc)
