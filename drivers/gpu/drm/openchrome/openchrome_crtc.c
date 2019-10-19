@@ -1663,6 +1663,211 @@ exit:
 	return ret;
 }
 
+static int openchrome_crtc_mode_set(struct drm_crtc *crtc,
+				struct drm_display_mode *mode,
+				struct drm_display_mode *adjusted_mode,
+				int x, int y,
+				struct drm_framebuffer *fb)
+{
+	struct via_crtc *iga = container_of(crtc,
+						struct via_crtc, base);
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
+	struct drm_device *dev = crtc->dev;
+	u8 reg_value = 0;
+	int ret;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	if (!iga->index) {
+		/* Load standard registers */
+		via_load_vpit_regs(dev_private);
+
+		/* Unlock */
+		via_unlock_crtc(VGABASE, dev->pdev->device);
+
+		/* IGA1 reset */
+		vga_wcrt(VGABASE, 0x09, 0x00); /* initial CR09=0 */
+		svga_wcrt_mask(VGABASE, 0x11, 0x00, BIT(6));
+
+		/* disable IGA scales first */
+		via_disable_iga_scaling(crtc);
+
+		/*
+		 * when not down scaling, we only need load one
+		 * timing.
+		 */
+		via_load_crtc_timing(iga, adjusted_mode);
+
+		switch (adjusted_mode->crtc_htotal % 8) {
+		case 0:
+		default:
+			break;
+		case 2:
+			reg_value = BIT(7);
+			break;
+		case 4:
+			reg_value = BIT(6);
+			break;
+		case 6:
+			reg_value = BIT(3);
+			break;
+		}
+
+		svga_wcrt_mask(VGABASE, 0x47,
+				reg_value, BIT(7) | BIT(6) | BIT(3));
+
+		/* Relock */
+		via_lock_crtc(VGABASE);
+
+		/* Set non-interlace / interlace mode. */
+		via_iga1_set_interlace_mode(VGABASE,
+					adjusted_mode->flags &
+					DRM_MODE_FLAG_INTERLACE);
+
+		/* No HSYNC shift. */
+		via_iga1_set_hsync_shift(VGABASE, 0x05);
+
+		/* Load display FIFO. */
+		ret = via_iga1_display_fifo_regs(dev, dev_private,
+						iga, adjusted_mode,
+						crtc->primary->fb);
+		if (ret) {
+			goto exit;
+		}
+
+		/* Set PLL */
+		if (adjusted_mode->clock) {
+			u32 clock = adjusted_mode->clock * 1000;
+			u32 pll_regs;
+
+			if (iga->scaling_mode & VIA_SHRINK)
+				clock *= 2;
+			pll_regs = via_get_clk_value(crtc->dev, clock);
+			via_set_vclock(crtc, pll_regs);
+		}
+	} else {
+		/* Load standard registers */
+		via_load_vpit_regs(dev_private);
+
+		/* Unlock */
+		via_unlock_crtc(VGABASE, dev->pdev->device);
+
+		/* disable IGA scales first */
+		via_disable_iga_scaling(crtc);
+
+		/* Load crtc timing and IGA scaling */
+		if (iga->scaling_mode & VIA_SHRINK) {
+			/*
+			 * enable IGA2 down scaling and set
+			 * Interpolation
+			 */
+			via_set_iga_scale_function(crtc, VIA_SHRINK);
+
+			/* load hor and ver downscaling factor */
+			/*
+			 * interlace modes scaling support(example
+			 * 1080I): we should use mode->crtc_vdisplay
+			 * here, because crtc_vdisplay=540,
+			 * vdisplay=1080, we need 540 here, not 1080.
+			 */
+			via_load_iga_scale_factor_regs(dev_private,
+							mode,
+							adjusted_mode,
+							VIA_SHRINK,
+							HOR_VER_SCALE);
+			/* load src timing to timing registers */
+			/*
+			 * interlace modes scaling support(example
+			 * 1080I): we should use mode->crtc_vdisplay
+			 * here, because crtc_vdisplay=540,
+			 * vdisplay=1080, we need 540 here, not 1080.
+			 */
+			via_set_iga2_downscale_source_timing(crtc,
+							mode,
+							adjusted_mode);
+
+			/* Download dst timing */
+			via_set_scale_path(crtc, VIA_SHRINK);
+			via_load_crtc_timing(iga, adjusted_mode);
+			/*
+			 * very necessary to set IGA to none scaling
+			 * status need to fix why so need.
+			 */
+			via_set_scale_path(crtc, VIA_NO_SCALING);
+		} else {
+			/*
+			 * when not down scaling, we only need load
+			 * one timing.
+			 */
+			via_load_crtc_timing(iga, adjusted_mode);
+
+			/* II. up scaling */
+			if (iga->scaling_mode & VIA_EXPAND) {
+				/* Horizontal scaling */
+				if (iga->scaling_mode &
+					VIA_HOR_EXPAND) {
+					via_set_iga_scale_function(
+						crtc,
+						VIA_HOR_EXPAND);
+					via_load_iga_scale_factor_regs(
+							dev_private,
+							mode,
+							adjusted_mode,
+							VIA_EXPAND,
+							HOR_SCALE);
+				}
+
+				/* Vertical scaling */
+				if (iga->scaling_mode &
+					VIA_VER_EXPAND) {
+					via_set_iga_scale_function(
+							crtc,
+							VIA_VER_EXPAND);
+					via_load_iga_scale_factor_regs(
+							dev_private,
+							mode,
+							adjusted_mode,
+							VIA_EXPAND,
+							VER_SCALE);
+				}
+			}
+		}
+
+		/* Relock */
+		via_lock_crtc(VGABASE);
+
+		/* Set non-interlace / interlace mode. */
+		via_iga2_set_interlace_mode(VGABASE,
+					adjusted_mode->flags &
+					DRM_MODE_FLAG_INTERLACE);
+
+		/* Load display FIFO. */
+		ret = via_iga2_display_fifo_regs(dev, dev_private,
+						iga, adjusted_mode,
+						crtc->primary->fb);
+		if (ret) {
+			goto exit;
+		}
+
+		/* Set PLL */
+		if (adjusted_mode->clock) {
+			u32 clock = adjusted_mode->clock * 1000;
+			u32 pll_regs;
+
+			if (iga->scaling_mode & VIA_SHRINK)
+				clock *= 2;
+			pll_regs = via_get_clk_value(crtc->dev, clock);
+			via_set_vclock(crtc, pll_regs);
+		}
+	}
+
+	ret = openchrome_crtc_mode_set_base(crtc, x, y, fb);
+exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
+}
+
 static int openchrome_crtc_mode_set_base_atomic(struct drm_crtc *crtc,
 					struct drm_framebuffer *fb,
 					int x, int y,
@@ -1828,95 +2033,6 @@ via_iga1_crtc_mode_fixup(struct drm_crtc *crtc,
 	return true;
 }
 
-static int
-via_iga1_crtc_mode_set(struct drm_crtc *crtc,
-			struct drm_display_mode *mode,
-			struct drm_display_mode *adjusted_mode,
-			int x, int y, struct drm_framebuffer *fb)
-{
-	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	struct openchrome_drm_private *dev_private =
-						crtc->dev->dev_private;
-	struct drm_device *dev = crtc->dev;
-	u8 reg_value = 0;
-	int ret;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	/* Check for IGA2. */
-	if (iga->index) {
-		DRM_ERROR("Wrong display controller (CRTC) selection.");
-		ret = -EINVAL;
-		goto exit;
-	}
-
-	/* Load standard registers */
-	via_load_vpit_regs(dev_private);
-
-	/* Unlock */
-	via_unlock_crtc(VGABASE, dev->pdev->device);
-
-	/* IGA1 reset */
-	vga_wcrt(VGABASE, 0x09, 0x00); /* initial CR09=0 */
-	svga_wcrt_mask(VGABASE, 0x11, 0x00, BIT(6));
-
-	/* disable IGA scales first */
-	via_disable_iga_scaling(crtc);
-
-	/* when not down scaling, we only need load one timing. */
-	via_load_crtc_timing(iga, adjusted_mode);
-
-	switch (adjusted_mode->crtc_htotal % 8) {
-	case 0:
-	default:
-		break;
-	case 2:
-		reg_value = BIT(7);
-		break;
-	case 4:
-		reg_value = BIT(6);
-		break;
-	case 6:
-		reg_value = BIT(3);
-		break;
-	}
-
-	svga_wcrt_mask(VGABASE, 0x47, reg_value, BIT(7) | BIT(6) | BIT(3));
-
-	/* Relock */
-	via_lock_crtc(VGABASE);
-
-	/* Set non-interlace / interlace mode. */
-	via_iga1_set_interlace_mode(VGABASE,
-			adjusted_mode->flags & DRM_MODE_FLAG_INTERLACE);
-
-	/* No HSYNC shift. */
-	via_iga1_set_hsync_shift(VGABASE, 0x05);
-
-	/* Load display FIFO. */
-	ret = via_iga1_display_fifo_regs(dev, dev_private, iga,
-						adjusted_mode,
-						crtc->primary->fb);
-	if (ret) {
-		goto exit;
-	}
-
-	/* Set PLL */
-	if (adjusted_mode->clock) {
-		u32 clock = adjusted_mode->clock * 1000, pll_regs;
-
-		if (iga->scaling_mode & VIA_SHRINK)
-			clock *= 2;
-		pll_regs = via_get_clk_value(crtc->dev, clock);
-		via_set_vclock(crtc, pll_regs);
-	}
-
-	ret = openchrome_crtc_mode_set_base(crtc, x, y, fb);
-exit:
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return ret;
-}
-
 static void
 via_iga2_crtc_dpms(struct drm_crtc *crtc, int mode)
 {
@@ -1994,127 +2110,6 @@ via_iga2_crtc_mode_fixup(struct drm_crtc *crtc,
 	return true;
 }
 
-static int
-via_iga2_crtc_mode_set(struct drm_crtc *crtc,
-			struct drm_display_mode *mode, struct drm_display_mode *adjusted_mode,
-			int x, int y, struct drm_framebuffer *fb)
-{
-	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	struct openchrome_drm_private *dev_private =
-						crtc->dev->dev_private;
-	struct drm_device *dev = crtc->dev;
-	int ret;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	/* Check for IGA1. */
-	if (!iga->index) {
-		DRM_ERROR("Wrong display controller (CRTC) selection.");
-		ret = -EINVAL;
-		goto exit;
-	}
-
-	/* Load standard registers */
-	via_load_vpit_regs(dev_private);
-
-	/* Unlock */
-	via_unlock_crtc(VGABASE, dev->pdev->device);
-
-	/* disable IGA scales first */
-	via_disable_iga_scaling(crtc);
-
-	/* Load crtc timing and IGA scaling */
-	if (iga->scaling_mode & VIA_SHRINK) {
-		/* enable IGA2 down scaling and set Interpolation */
-		via_set_iga_scale_function(crtc, VIA_SHRINK);
-
-		/* load hor and ver downscaling factor */
-		/**
-		 * interlace modes scaling support(example 1080I):
-		 * we should use mode->crtc_vdisplay here,
-		 * because crtc_vdisplay=540, vdisplay=1080,
-		 * we need 540 here, not 1080.
-		 */
-		via_load_iga_scale_factor_regs(dev_private,
-						mode, adjusted_mode,
-						VIA_SHRINK,
-						HOR_VER_SCALE);
-		/* load src timing to timing registers */
-		/**
-		 * interlace modes scaling support(example 1080I):
-		 * we should use mode->crtc_vdisplay here,
-		 * because crtc_vdisplay=540, vdisplay=1080,
-		 * we need 540 here, not 1080.
-		 */
-		via_set_iga2_downscale_source_timing(crtc, mode, adjusted_mode);
-
-		/* Download dst timing */
-		via_set_scale_path(crtc, VIA_SHRINK);
-		via_load_crtc_timing(iga, adjusted_mode);
-		/* very necessary to set IGA to none scaling status */
-		/* need to fix why so need. */
-		via_set_scale_path(crtc, VIA_NO_SCALING);
-	} else {
-		/* when not down scaling, we only need load one timing. */
-		via_load_crtc_timing(iga, adjusted_mode);
-
-		/* II. up scaling */
-		if (iga->scaling_mode & VIA_EXPAND) {
-			/* Horizontal scaling */
-			if (iga->scaling_mode & VIA_HOR_EXPAND) {
-				via_set_iga_scale_function(crtc,
-							VIA_HOR_EXPAND);
-				via_load_iga_scale_factor_regs(
-						dev_private,
-						mode, adjusted_mode,
-						VIA_EXPAND,
-						HOR_SCALE);
-			}
-
-			/* Vertical scaling */
-			if (iga->scaling_mode & VIA_VER_EXPAND) {
-				via_set_iga_scale_function(crtc,
-							VIA_VER_EXPAND);
-				via_load_iga_scale_factor_regs(
-						dev_private,
-						mode, adjusted_mode,
-						VIA_EXPAND,
-						VER_SCALE);
-			}
-		}
-	}
-
-	/* Relock */
-	via_lock_crtc(VGABASE);
-
-	/* Set non-interlace / interlace mode. */
-	via_iga2_set_interlace_mode(VGABASE,
-			adjusted_mode->flags & DRM_MODE_FLAG_INTERLACE);
-
-	/* Load display FIFO. */
-	ret = via_iga2_display_fifo_regs(dev, dev_private, iga,
-						adjusted_mode,
-						crtc->primary->fb);
-	if (ret) {
-		goto exit;
-	}
-
-	/* Set PLL */
-	if (adjusted_mode->clock) {
-		u32 clock = adjusted_mode->clock * 1000, pll_regs;
-
-		if (iga->scaling_mode & VIA_SHRINK)
-			clock *= 2;
-		pll_regs = via_get_clk_value(crtc->dev, clock);
-		via_set_vclock(crtc, pll_regs);
-	}
-
-	ret = openchrome_crtc_mode_set_base(crtc, x, y, fb);
-exit:
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return ret;
-}
-
 static const struct
 drm_crtc_helper_funcs openchrome_iga1_drm_crtc_helper_funcs = {
 	.dpms = via_iga1_crtc_dpms,
@@ -2122,7 +2117,7 @@ drm_crtc_helper_funcs openchrome_iga1_drm_crtc_helper_funcs = {
 	.prepare = via_iga1_crtc_prepare,
 	.commit = via_iga1_crtc_commit,
 	.mode_fixup = via_iga1_crtc_mode_fixup,
-	.mode_set = via_iga1_crtc_mode_set,
+	.mode_set = openchrome_crtc_mode_set,
 	.mode_set_base_atomic = openchrome_crtc_mode_set_base_atomic,
 };
 
@@ -2133,7 +2128,7 @@ drm_crtc_helper_funcs openchrome_iga2_drm_crtc_helper_funcs = {
 	.prepare = via_iga2_crtc_prepare,
 	.commit = via_iga2_crtc_commit,
 	.mode_fixup = via_iga2_crtc_mode_fixup,
-	.mode_set = via_iga2_crtc_mode_set,
+	.mode_set = openchrome_crtc_mode_set,
 	.mode_set_base_atomic = openchrome_crtc_mode_set_base_atomic,
 };
 
