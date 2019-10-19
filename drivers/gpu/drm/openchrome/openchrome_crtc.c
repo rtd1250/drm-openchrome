@@ -1582,6 +1582,87 @@ drm_mode_crtc_load_lut(struct drm_crtc *crtc)
 	}
 }
 
+static int openchrome_crtc_mode_set_base(struct drm_crtc *crtc,
+					int x, int y,
+					struct drm_framebuffer *old_fb)
+{
+	struct via_framebuffer *via_fb = container_of(
+					crtc->primary->fb,
+					struct via_framebuffer, fb);
+	struct drm_framebuffer *new_fb = &via_fb->fb;
+	struct openchrome_bo *bo;
+	struct drm_gem_object *gem;
+	int ret = 0;
+	int fake_ret = 0;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	/* No FB found. */
+	if (!new_fb) {
+		ret = -ENOMEM;
+		DRM_DEBUG_KMS("No FB found.\n");
+		goto exit;
+	}
+
+	gem = via_fb->gem;
+	bo = container_of(gem, struct openchrome_bo, gem);
+
+	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+	if (ret) {
+		DRM_DEBUG_KMS("Failed to reserve FB.\n");
+		goto exit;
+	}
+
+	ret = openchrome_bo_pin(bo, TTM_PL_FLAG_VRAM);
+	ttm_bo_unreserve(&bo->ttm_bo);
+	if (ret) {
+		DRM_DEBUG_KMS("Failed to pin FB.\n");
+		goto exit;
+	}
+
+	ret = crtc->helper_private->mode_set_base_atomic(crtc,
+						new_fb, x, y,
+						ENTER_ATOMIC_MODE_SET);
+	if (unlikely(ret)) {
+		DRM_DEBUG_KMS("Failed to set a new FB.\n");
+		fake_ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+		if (fake_ret) {
+			goto exit;
+		}
+
+		fake_ret = openchrome_bo_unpin(bo);
+		ttm_bo_unreserve(&bo->ttm_bo);
+		goto exit;
+	}
+
+	/*
+	 * Free the old framebuffer if it exists.
+	 */
+	if (old_fb) {
+		via_fb = container_of(old_fb,
+					struct via_framebuffer, fb);
+		gem = via_fb->gem;
+		bo = container_of(gem, struct openchrome_bo, gem);
+
+		ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+		if (ret) {
+			DRM_DEBUG_KMS("FB still locked.\n");
+			goto exit;
+		}
+
+		ret = openchrome_bo_unpin(bo);
+		ttm_bo_unreserve(&bo->ttm_bo);
+		if (ret) {
+			DRM_DEBUG_KMS("FB still locked.\n");
+			goto exit;
+		}
+	}
+
+exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
+}
+
 static int openchrome_crtc_mode_set_base_atomic(struct drm_crtc *crtc,
 					struct drm_framebuffer *fb,
 					int x, int y,
@@ -1748,86 +1829,6 @@ via_iga1_crtc_mode_fixup(struct drm_crtc *crtc,
 }
 
 static int
-via_iga1_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
-				struct drm_framebuffer *old_fb)
-{
-	struct via_framebuffer *via_fb = container_of(crtc->primary->fb,
-					struct via_framebuffer, fb);
-	struct drm_framebuffer *new_fb = &via_fb->fb;
-	struct openchrome_bo *bo;
-	struct drm_gem_object *gem;
-	int ret = 0;
-	int fake_ret = 0;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	/* No FB found. */
-	if (!new_fb) {
-		ret = -ENOMEM;
-		DRM_DEBUG_KMS("No FB found.\n");
-		goto exit;
-	}
-
-	gem = via_fb->gem;
-	bo = container_of(gem, struct openchrome_bo, gem);
-
-	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
-	if (ret) {
-		DRM_DEBUG_KMS("Failed to reserve FB.\n");
-		goto exit;
-	}
-
-	ret = openchrome_bo_pin(bo, TTM_PL_FLAG_VRAM);
-	ttm_bo_unreserve(&bo->ttm_bo);
-	if (ret) {
-		DRM_DEBUG_KMS("Failed to pin FB.\n");
-		goto exit;
-	}
-
-	ret = crtc->helper_private->mode_set_base_atomic(crtc,
-						new_fb, x, y,
-						ENTER_ATOMIC_MODE_SET);
-	if (unlikely(ret)) {
-		DRM_DEBUG_KMS("Failed to set a new FB.\n");
-		fake_ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
-		if (fake_ret) {
-			goto exit;
-		}
-
-		fake_ret = openchrome_bo_unpin(bo);
-		ttm_bo_unreserve(&bo->ttm_bo);
-		goto exit;
-	}
-
-	/*
-	 * Free the old framebuffer if it exists.
-	 */
-	if (old_fb) {
-		via_fb = container_of(old_fb,
-					struct via_framebuffer, fb);
-		gem = via_fb->gem;
-		bo = container_of(gem, struct openchrome_bo, gem);
-
-		ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
-		if (ret) {
-			DRM_DEBUG_KMS("FB still locked.\n");
-			goto exit;
-		}
-
-		ret = openchrome_bo_unpin(bo);
-		ttm_bo_unreserve(&bo->ttm_bo);
-		if (ret) {
-			DRM_DEBUG_KMS("FB still locked.\n");
-			goto exit;
-		}
-	}
-
-exit:
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return ret;
-}
-
-static int
 via_iga1_crtc_mode_set(struct drm_crtc *crtc,
 			struct drm_display_mode *mode,
 			struct drm_display_mode *adjusted_mode,
@@ -1910,7 +1911,7 @@ via_iga1_crtc_mode_set(struct drm_crtc *crtc,
 		via_set_vclock(crtc, pll_regs);
 	}
 
-	ret = via_iga1_crtc_mode_set_base(crtc, x, y, fb);
+	ret = openchrome_crtc_mode_set_base(crtc, x, y, fb);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
@@ -1991,85 +1992,6 @@ via_iga2_crtc_mode_fixup(struct drm_crtc *crtc,
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return true;
-}
-
-static int
-via_iga2_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
-				struct drm_framebuffer *old_fb)
-{
-	struct via_framebuffer *via_fb = container_of(crtc->primary->fb,
-					struct via_framebuffer, fb);
-	struct drm_framebuffer *new_fb = &via_fb->fb;
-	struct openchrome_bo *bo;
-	struct drm_gem_object *gem;
-	int ret = 0;
-	int fake_ret = 0;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	/* No FB found. */
-	if (!new_fb) {
-		ret = -ENOMEM;
-		DRM_DEBUG_KMS("No FB found.\n");
-		goto exit;
-	}
-
-	gem = via_fb->gem;
-	bo = container_of(gem, struct openchrome_bo, gem);
-
-	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
-	if (ret) {
-		DRM_DEBUG_KMS("Failed to reserve FB.\n");
-		goto exit;
-	}
-
-	ret = openchrome_bo_pin(bo, TTM_PL_FLAG_VRAM);
-	ttm_bo_unreserve(&bo->ttm_bo);
-	if (ret) {
-		DRM_DEBUG_KMS("Failed to pin FB.\n");
-		goto exit;
-	}
-
-	ret = crtc->helper_private->mode_set_base_atomic(crtc, new_fb, x, y,
-			ENTER_ATOMIC_MODE_SET);
-	if (unlikely(ret)) {
-		DRM_DEBUG_KMS("Failed to set a new FB.\n");
-		fake_ret = ttm_bo_reserve(&bo->ttm_bo, true, false,
-						NULL);
-		if (fake_ret) {
-			goto exit;
-		}
-
-		fake_ret = openchrome_bo_unpin(bo);
-		ttm_bo_unreserve(&bo->ttm_bo);
-		goto exit;
-	}
-
-	/*
-	 * Free the old framebuffer if it exists.
-	 */
-	if (old_fb) {
-		via_fb = container_of(old_fb,
-					struct via_framebuffer, fb);
-		gem = via_fb->gem;
-		bo = container_of(gem, struct openchrome_bo, gem);
-		ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
-		if (ret) {
-			DRM_DEBUG_KMS("FB still locked.\n");
-			goto exit;
-		}
-
-		ret = openchrome_bo_unpin(bo);
-		ttm_bo_unreserve(&bo->ttm_bo);
-		if (ret) {
-			DRM_DEBUG_KMS("FB still locked.\n");
-			goto exit;
-		}
-	}
-
-exit:
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return ret;
 }
 
 static int
@@ -2187,7 +2109,7 @@ via_iga2_crtc_mode_set(struct drm_crtc *crtc,
 		via_set_vclock(crtc, pll_regs);
 	}
 
-	ret = via_iga2_crtc_mode_set_base(crtc, x, y, fb);
+	ret = openchrome_crtc_mode_set_base(crtc, x, y, fb);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
