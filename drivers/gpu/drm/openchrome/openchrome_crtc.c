@@ -1582,6 +1582,63 @@ drm_mode_crtc_load_lut(struct drm_crtc *crtc)
 	}
 }
 
+static void openchrome_crtc_dpms(struct drm_crtc *crtc, int mode)
+{
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
+	struct via_crtc *iga = container_of(crtc,
+						struct via_crtc, base);
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	if (!iga->index) {
+		switch (mode) {
+		case DRM_MODE_DPMS_SUSPEND:
+		case DRM_MODE_DPMS_STANDBY:
+		case DRM_MODE_DPMS_OFF:
+			/* turn off CRT screen (IGA1) */
+			svga_wseq_mask(VGABASE, 0x01, BIT(5), BIT(5));
+
+			/* clear for TV clock */
+			svga_wcrt_mask(VGABASE, 0x6C, 0x00, 0xF0);
+			break;
+
+		case DRM_MODE_DPMS_ON:
+			/* turn on CRT screen (IGA1) */
+			svga_wseq_mask(VGABASE, 0x01, 0x00, BIT(5));
+
+			/* disable simultaneous  */
+			svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(3));
+			drm_mode_crtc_load_lut(crtc);
+			break;
+		}
+
+	} else {
+		switch (mode) {
+		case DRM_MODE_DPMS_SUSPEND:
+		case DRM_MODE_DPMS_STANDBY:
+		case DRM_MODE_DPMS_OFF:
+			/* turn off CRT screen (IGA2) */
+			svga_wcrt_mask(VGABASE, 0x6B, BIT(2), BIT(2));
+
+			/* clear for TV clock */
+			svga_wcrt_mask(VGABASE, 0x6C, 0x00, 0x0F);
+			break;
+
+		case DRM_MODE_DPMS_ON:
+			/* turn on CRT screen (IGA2) */
+			svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(2));
+
+			/* disable simultaneous  */
+			svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(3));
+			drm_mode_crtc_load_lut(crtc);
+			break;
+		}
+	}
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
 static void openchrome_crtc_disable(struct drm_crtc *crtc)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -1997,73 +2054,9 @@ exit:
 	return ret;
 }
 
-static void
-via_iga1_crtc_dpms(struct drm_crtc *crtc, int mode)
-{
-	struct openchrome_drm_private *dev_private =
-						crtc->dev->dev_private;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	switch (mode) {
-	case DRM_MODE_DPMS_SUSPEND:
-	case DRM_MODE_DPMS_STANDBY:
-	case DRM_MODE_DPMS_OFF:
-		/* turn off CRT screen (IGA1) */
-		svga_wseq_mask(VGABASE, 0x01, BIT(5), BIT(5));
-
-		/* clear for TV clock */
-		svga_wcrt_mask(VGABASE, 0x6C, 0x00, 0xF0);
-		break;
-
-	case DRM_MODE_DPMS_ON:
-		/* turn on CRT screen (IGA1) */
-		svga_wseq_mask(VGABASE, 0x01, 0x00, BIT(5));
-
-		/* disable simultaneous  */
-		svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(3));
-		drm_mode_crtc_load_lut(crtc);
-		break;
-	}
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-}
-
-static void
-via_iga2_crtc_dpms(struct drm_crtc *crtc, int mode)
-{
-	struct openchrome_drm_private *dev_private =
-						crtc->dev->dev_private;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	switch (mode) {
-	case DRM_MODE_DPMS_SUSPEND:
-	case DRM_MODE_DPMS_STANDBY:
-	case DRM_MODE_DPMS_OFF:
-		/* turn off CRT screen (IGA2) */
-		svga_wcrt_mask(VGABASE, 0x6B, BIT(2), BIT(2));
-
-		/* clear for TV clock */
-		svga_wcrt_mask(VGABASE, 0x6C, 0x00, 0x0F);
-		break;
-
-	case DRM_MODE_DPMS_ON:
-		/* turn on CRT screen (IGA2) */
-		svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(2));
-
-		/* disable simultaneous  */
-		svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(3));
-		drm_mode_crtc_load_lut(crtc);
-		break;
-	}
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-}
-
 static const struct
 drm_crtc_helper_funcs openchrome_iga1_drm_crtc_helper_funcs = {
-	.dpms = via_iga1_crtc_dpms,
+	.dpms = openchrome_crtc_dpms,
 	.disable = openchrome_crtc_disable,
 	.prepare = openchrome_crtc_prepare,
 	.commit = openchrome_crtc_commit,
@@ -2074,7 +2067,7 @@ drm_crtc_helper_funcs openchrome_iga1_drm_crtc_helper_funcs = {
 
 static const struct
 drm_crtc_helper_funcs openchrome_iga2_drm_crtc_helper_funcs = {
-	.dpms = via_iga2_crtc_dpms,
+	.dpms = openchrome_crtc_dpms,
 	.disable = openchrome_crtc_disable,
 	.prepare = openchrome_crtc_prepare,
 	.commit = openchrome_crtc_commit,
