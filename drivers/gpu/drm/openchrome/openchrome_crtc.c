@@ -2073,17 +2073,16 @@ static const uint32_t openchrome_primary_formats[] = {
 	DRM_FORMAT_RGB332,
 };
 
-int via_crtc_init(struct drm_device *dev, uint32_t index)
+int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
+				uint32_t index)
 {
-	struct openchrome_drm_private *dev_private =
-						dev->dev_private;
+	struct drm_device *dev = dev_private->dev;
 	struct via_crtc *iga = &dev_private->iga[index];
 	struct drm_plane *primary;
 	struct drm_plane *cursor;
 	struct drm_crtc *crtc = &iga->base;
 	uint32_t possible_crtcs;
-	int cursor_size = 64 * 64 * 4, i;
-	u16 *gamma;
+	uint64_t cursor_size = 64 * 64 * 4;
 	int ret;
 
 	iga->index = index;
@@ -2151,6 +2150,29 @@ int via_crtc_init(struct drm_device *dev, uint32_t index)
 		DRM_ERROR("Failed to create cursor.\n");
 		goto cleanup_cursor;
 	}
+
+	goto exit;
+cleanup_cursor:
+	drm_plane_cleanup(cursor);
+free_cursor:
+	kfree(cursor);
+cleanup_primary:
+	drm_plane_cleanup(primary);
+free_primary:
+	kfree(primary);
+exit:
+	return ret;
+}
+
+int via_crtc_init(struct drm_device *dev, uint32_t index)
+{
+	struct openchrome_drm_private *dev_private =
+						dev->dev_private;
+	struct via_crtc *iga = &dev_private->iga[index];
+	struct drm_crtc *crtc = &iga->base;
+	u16 *gamma;
+	uint32_t i;
+	int ret = 0;
 
 	if (iga->index) {
 		iga->timings.htotal.count = ARRAY_SIZE(iga2_hor_total);
@@ -2311,15 +2333,5 @@ int via_crtc_init(struct drm_device *dev, uint32_t index)
 		gamma[i + 512] = i << 8 | i;
 	}
 
-	goto exit;
-cleanup_cursor:
-	drm_plane_cleanup(cursor);
-free_cursor:
-	kfree(cursor);
-cleanup_primary:
-	drm_plane_cleanup(primary);
-free_primary:
-	kfree(primary);
-exit:
 	return ret;
 }

@@ -494,6 +494,11 @@ via_modeset_init(struct drm_device *dev)
 	via_hwcursor_init(dev_private);
 
 	for (i = 0; i < OPENCHROME_MAX_CRTC; i++) {
+		ret = openchrome_crtc_init(dev_private, i);
+		if (ret) {
+			goto exit;
+		}
+
 		ret = via_crtc_init(dev, i);
 		if (ret) {
 			goto exit;
