@@ -167,7 +167,7 @@ struct via_crtc {
 	struct vga_registers offset;
 	struct vga_registers fetch;
 	int scaling_mode;
-	uint8_t index;
+	uint32_t index;
 };
 
 struct via_connector {
