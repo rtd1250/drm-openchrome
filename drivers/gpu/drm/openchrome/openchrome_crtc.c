@@ -98,15 +98,13 @@ static void via_iga1_set_color_depth(
 		value |= BIT(4) | BIT(2);
 		break;
 	case 24:
-	case 32:
 		value |= BIT(3) | BIT(2);
 		break;
 	default:
 		break;
 	}
 
-	if ((depth == 8) || (depth == 16) ||
-		(depth == 24) || (depth == 32)) {
+	if ((depth == 8) || (depth == 16) || (depth == 24)) {
 		/* 3C5.15[4]   - Hi Color Mode Select
 		 *               0: 555
 		 *               1: 565
@@ -144,15 +142,13 @@ static void via_iga2_set_color_depth(
 		value = BIT(6);
 		break;
 	case 24:
-	case 32:
 		value = BIT(7) | BIT(6);
 		break;
 	default:
 		break;
 	}
 
-	if ((depth == 8) || (depth == 16) ||
-		(depth == 24) || (depth == 32)) {
+	if ((depth == 8) || (depth == 16) || (depth == 24)) {
 		/* 3X5.67[7:6] - Display Color Depth Select
 		 *               00: 8bpp
 		 *               01: 16bpp
@@ -418,7 +414,7 @@ static int via_iga1_display_fifo_regs(
 			}
 
 			if (dev_private->vram_type <= VIA_MEM_DDR_200) {
-				if (fb->format->depth == 32) {
+				if (fb->format->depth == 24) {
 					if (mode->hdisplay > 1024) {
 						if (mode->vdisplay > 768) {
 							/* SR22[4:0] */
@@ -565,7 +561,7 @@ static int via_iga1_display_fifo_regs(
 		/* SR18[7], SR18[5:0] */
 		fifo_high_threshold = 296;
 
-		if ((fb->format->depth == 32) &&
+		if ((fb->format->depth == 24) &&
 			(mode->hdisplay >= 1400)) {
 			/* SR22[4:0] */
 			display_queue_expire_num = 64;
@@ -585,7 +581,7 @@ static int via_iga1_display_fifo_regs(
 		/* SR18[7], SR18[5:0] */
 		fifo_high_threshold = 64;
 
-		if ((fb->format->depth == 32) &&
+		if ((fb->format->depth == 24) &&
 			(mode->hdisplay >= 1400)) {
 			/* SR22[4:0] */
 			display_queue_expire_num = 64;
@@ -849,10 +845,10 @@ static int via_iga2_display_fifo_regs(
 
 			enable_extended_display_fifo = true;
 		} else if (((mode->hdisplay > 1024) &&
-			(fb->format->depth == 32) &&
+			(fb->format->depth == 24) &&
 			(dev_private->vram_type <= VIA_MEM_DDR_333)) ||
 			((mode->hdisplay == 1024) &&
-			(fb->format->depth == 32) &&
+			(fb->format->depth == 24) &&
 			(dev_private->vram_type <= VIA_MEM_DDR_200))) {
 			/* CR68[7:4] */
 			fifo_max_depth = 104;
@@ -895,7 +891,7 @@ static int via_iga2_display_fifo_regs(
 		/* CR95[2:0], CR92[3:0] */
 		fifo_high_threshold = 296;
 
-		if ((fb->format->depth == 32) &&
+		if ((fb->format->depth == 24) &&
 			(mode->hdisplay >= 1400)) {
 			/* CR94[6:0] */
 			display_queue_expire_num = 64;
@@ -915,7 +911,7 @@ static int via_iga2_display_fifo_regs(
 		/* CR95[2:0], CR92[3:0] */
 		fifo_high_threshold = 32;
 
-		if ((fb->format->depth == 32) &&
+		if ((fb->format->depth == 24) &&
 				(mode->hdisplay >= 1400)) {
 			/* CR94[6:0] */
 			display_queue_expire_num = 64;
@@ -1849,7 +1845,7 @@ via_iga1_mode_set_base_atomic(struct drm_crtc *crtc,
 					struct openchrome_bo, gem);
 
 	if ((fb->format->depth != 8) && (fb->format->depth != 16) &&
-		(fb->format->depth != 24) && (fb->format->depth != 32)) {
+		(fb->format->depth != 24)) {
 		DRM_ERROR("Unsupported IGA1 Color Depth: %d bit\n",
 						fb->format->depth);
 		return -EINVAL;
@@ -2178,7 +2174,7 @@ via_iga2_mode_set_base_atomic(struct drm_crtc *crtc,
 					struct openchrome_bo, gem);
 
 	if ((fb->format->depth != 8) && (fb->format->depth != 16) &&
-		(fb->format->depth != 24) && (fb->format->depth != 32)) {
+		(fb->format->depth != 24)) {
 		DRM_ERROR("Unsupported IGA2 Color Depth: %d bit\n",
 						fb->format->depth);
 		return -EINVAL;
