@@ -1582,6 +1582,17 @@ drm_mode_crtc_load_lut(struct drm_crtc *crtc)
 	}
 }
 
+static void openchrome_crtc_commit(struct drm_crtc *crtc)
+{
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	/* Turn on the monitor */
+	if (crtc->enabled)
+		crtc->helper_private->dpms(crtc, DRM_MODE_DPMS_ON);
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
 static bool openchrome_crtc_mode_fixup(struct drm_crtc *crtc,
 				const struct drm_display_mode *mode,
 				struct drm_display_mode *adjusted_mode)
@@ -2021,18 +2032,6 @@ via_iga1_crtc_prepare(struct drm_crtc *crtc)
 }
 
 static void
-via_iga1_crtc_commit(struct drm_crtc *crtc)
-{
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	/* Turn on the monitor */
-	if (crtc->enabled)
-		via_iga1_crtc_dpms(crtc, DRM_MODE_DPMS_ON);
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-}
-
-static void
 via_iga2_crtc_dpms(struct drm_crtc *crtc, int mode)
 {
 	struct openchrome_drm_private *dev_private =
@@ -2086,24 +2085,12 @@ via_iga2_crtc_prepare(struct drm_crtc *crtc)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void
-via_iga2_crtc_commit(struct drm_crtc *crtc)
-{
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	/* Turn on the monitor */
-	if (crtc->enabled)
-		via_iga2_crtc_dpms(crtc, DRM_MODE_DPMS_ON);
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-}
-
 static const struct
 drm_crtc_helper_funcs openchrome_iga1_drm_crtc_helper_funcs = {
 	.dpms = via_iga1_crtc_dpms,
 	.disable = via_iga1_crtc_disable,
 	.prepare = via_iga1_crtc_prepare,
-	.commit = via_iga1_crtc_commit,
+	.commit = openchrome_crtc_commit,
 	.mode_fixup = openchrome_crtc_mode_fixup,
 	.mode_set = openchrome_crtc_mode_set,
 	.mode_set_base_atomic = openchrome_crtc_mode_set_base_atomic,
@@ -2114,7 +2101,7 @@ drm_crtc_helper_funcs openchrome_iga2_drm_crtc_helper_funcs = {
 	.dpms = via_iga2_crtc_dpms,
 	.disable = via_iga2_crtc_disable,
 	.prepare = via_iga2_crtc_prepare,
-	.commit = via_iga2_crtc_commit,
+	.commit = openchrome_crtc_commit,
 	.mode_fixup = openchrome_crtc_mode_fixup,
 	.mode_set = openchrome_crtc_mode_set,
 	.mode_set_base_atomic = openchrome_crtc_mode_set_base_atomic,
