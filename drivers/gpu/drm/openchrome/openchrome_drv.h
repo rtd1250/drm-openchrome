@@ -243,8 +243,6 @@ struct openchrome_drm_private {
 
 	enum via_engine engine_type;
 
-	struct via_crtc iga[OPENCHROME_MAX_CRTC];
-
 	bool spread_spectrum;
 
 	/*
@@ -470,6 +468,7 @@ int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
 				uint32_t index);
 void openchrome_crtc_param_init(
 			struct openchrome_drm_private *dev_private,
+			struct drm_crtc *crtc,
 			uint32_t index);
 
 /* encoders */

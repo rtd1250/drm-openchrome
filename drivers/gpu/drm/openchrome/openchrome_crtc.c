@@ -324,7 +324,8 @@ static void openchrome_crtc_destroy(struct drm_crtc *crtc)
 		iga->cursor_bo = NULL;
 	}
 
-	drm_crtc_cleanup(crtc);
+	drm_crtc_cleanup(&iga->base);
+	kfree(iga);
 }
 
 static const struct drm_crtc_funcs openchrome_drm_crtc_funcs = {
@@ -2077,15 +2078,12 @@ int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
 				uint32_t index)
 {
 	struct drm_device *dev = dev_private->dev;
-	struct via_crtc *iga = &dev_private->iga[index];
+	struct via_crtc *iga;
 	struct drm_plane *primary;
 	struct drm_plane *cursor;
-	struct drm_crtc *crtc = &iga->base;
 	uint32_t possible_crtcs;
 	uint64_t cursor_size = 64 * 64 * 4;
 	int ret;
-
-	iga->index = index;
 
 	possible_crtcs = 1 << index;
 
@@ -2125,15 +2123,25 @@ int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
 		goto free_cursor;
 	}
 
-	drm_crtc_helper_add(crtc,
+	iga = kzalloc(sizeof(struct via_crtc), GFP_KERNEL);
+	if (!iga) {
+		ret = -ENOMEM;
+		DRM_ERROR("Failed to allocate CRTC storage.\n");
+		goto cleanup_cursor;
+	}
+
+	drm_crtc_helper_add(&iga->base,
 			&openchrome_drm_crtc_helper_funcs);
-	ret = drm_crtc_init_with_planes(dev, crtc, primary, cursor,
+	ret = drm_crtc_init_with_planes(dev, &iga->base,
+					primary, cursor,
 					&openchrome_drm_crtc_funcs,
 					NULL);
 	if (ret) {
 		DRM_ERROR("Failed to initialize CRTC!\n");
-		goto cleanup_cursor;
+		goto free_crtc;
 	}
+
+	iga->index = index;
 
 	if (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266 ||
 		dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)
@@ -2148,10 +2156,15 @@ int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
 					&iga->cursor_bo);
 	if (ret) {
 		DRM_ERROR("Failed to create cursor.\n");
-		goto cleanup_cursor;
+		goto cleanup_crtc;
 	}
 
+	openchrome_crtc_param_init(dev_private, &iga->base, index);
 	goto exit;
+cleanup_crtc:
+	drm_crtc_cleanup(&iga->base);
+free_crtc:
+	kfree(iga);
 cleanup_cursor:
 	drm_plane_cleanup(cursor);
 free_cursor:
@@ -2166,11 +2179,12 @@ exit:
 
 void openchrome_crtc_param_init(
 		struct openchrome_drm_private *dev_private,
+		struct drm_crtc *crtc,
 		uint32_t index)
 {
 	struct drm_device *dev = dev_private->dev;
-	struct via_crtc *iga = &dev_private->iga[index];
-	struct drm_crtc *crtc = &iga->base;
+	struct via_crtc *iga = container_of(crtc,
+						struct via_crtc, base);
 	u16 *gamma;
 	uint32_t i;
 

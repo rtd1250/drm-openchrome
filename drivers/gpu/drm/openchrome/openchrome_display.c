@@ -498,8 +498,6 @@ via_modeset_init(struct drm_device *dev)
 		if (ret) {
 			goto exit;
 		}
-
-		openchrome_crtc_param_init(dev_private, i);
 	}
 
 	openchrome_ext_dvi_probe(dev);
