@@ -319,7 +319,7 @@ static void openchrome_crtc_destroy(struct drm_crtc *crtc)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 
-	if (iga->cursor_bo->kmap.bo) {
+	if (iga->cursor_bo) {
 		openchrome_bo_destroy(iga->cursor_bo, true);
 		iga->cursor_bo = NULL;
 	}
