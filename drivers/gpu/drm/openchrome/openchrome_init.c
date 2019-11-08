@@ -771,7 +771,14 @@ int openchrome_vram_detect(struct openchrome_drm_private *dev_private)
 		DRM_ERROR("No function 3 on host bridge...\n");
 		goto out_err;
 	}
-	dev_private->vram_start = pci_resource_start(dev->pdev, 0);
+
+	if (dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA) {
+		dev_private->vram_start =
+				pci_resource_start(dev->pdev, 2);
+	} else {
+		dev_private->vram_start =
+				pci_resource_start(dev->pdev, 0);
+	}
 
 	switch (bridge->device) {
 
@@ -880,9 +887,6 @@ int openchrome_vram_detect(struct openchrome_drm_private *dev_private)
 
 	/* VX900 */
 	case PCI_DEVICE_ID_VIA_VT3410:
-		dev_private->vram_start =
-				pci_resource_start(dev->pdev, 2);
-
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
 		if (ret)
 			goto out_err;
