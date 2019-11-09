@@ -1285,28 +1285,9 @@ exit:
 	return ret;
 }
 
-static void via_init_2d(
-			struct openchrome_drm_private *dev_private,
-			int pci_device)
-{
-	int i;
-
-	for (i = 0x04; i < 0x5c; i += 4)
-		VIA_WRITE(i, 0x0);
-
-	/* For 410 chip*/
-	if (pci_device == PCI_DEVICE_ID_VIA_VX900_VGA)
-		VIA_WRITE(0x60, 0x0);
-}
-
 /* This function does:
  * 1. Command buffer allocation
- * 2. hw engine intialization:2D
  */
 void via_engine_init(struct drm_device *dev)
 {
-	struct openchrome_drm_private *dev_private = dev->dev_private;
-
-	/* initial engine */
-	via_init_2d(dev_private, dev->pdev->device);
 }
