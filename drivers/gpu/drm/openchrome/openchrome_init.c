@@ -1431,32 +1431,6 @@ static void via_init_3d(
 	VIA_WRITE(VIA_REG_TRANSPACE, 0x130002db);
 }
 
-static void via_init_vq(struct openchrome_drm_private *dev_private)
-{
-	unsigned long vq_start_addr, vq_end_addr, vqlen;
-	unsigned long vqstartl, vqendl, vqstart_endh;
-	struct openchrome_bo *bo = dev_private->vq_bo;
-
-	if (!bo->kmap.bo)
-		return;
-
-	vq_start_addr = bo->kmap.bo->offset;
-	vq_end_addr = vq_start_addr + bo->kmap.bo->mem.size - 1;
-	vqstartl = 0x70000000 | (vq_start_addr & 0xFFFFFF);
-	vqendl = 0x71000000 | (vq_end_addr & 0xFFFFFF);
-	vqstart_endh = 0x72000000 | ((vq_start_addr & 0xFF000000) >> 24) |
-			((vq_end_addr & 0xFF000000) >> 16);
-	vqlen = 0x73000000 | (bo->kmap.bo->mem.size >> 3);
-
-	VIA_WRITE(0x41c, 0x00100000);
-	VIA_WRITE(0x420, vqstart_endh);
-	VIA_WRITE(0x420, vqstartl);
-	VIA_WRITE(0x420, vqendl);
-	VIA_WRITE(0x420, vqlen);
-	VIA_WRITE(0x420, 0x74301001);
-	VIA_WRITE(0x420, 0x00000000);
-}
-
 static void via_init_pcie_gart_table(
 			struct openchrome_drm_private *dev_private,
 			struct pci_dev *pdev)
@@ -1490,7 +1464,7 @@ static void via_init_pcie_gart_table(
 
 /* This function does:
  * 1. Command buffer allocation
- * 2. hw engine intialization:2D;3D;VQ
+ * 2. hw engine intialization:2D;3D
  * 3. Ring Buffer mechanism setup
  */
 void via_engine_init(struct drm_device *dev)
@@ -1500,7 +1474,6 @@ void via_engine_init(struct drm_device *dev)
 	/* initial engines */
 	via_init_2d(dev_private, dev->pdev->device);
 	via_init_3d(dev_private);
-	via_init_vq(dev_private);
 
 	/* pcie gart table setup */
 	via_init_pcie_gart_table(dev_private, dev->pdev);

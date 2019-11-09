@@ -50,7 +50,6 @@ static struct pci_device_id via_pci_table[] = {
 MODULE_DEVICE_TABLE(pci, via_pci_table);
 
 #define SGDMA_MEMORY (256*1024)
-#define VQ_MEMORY (256*1024)
 
 
 void openchrome_drm_driver_gem_free_object_unlocked (
@@ -143,11 +142,6 @@ static void via_driver_unload(struct drm_device *dev)
 	if (drm_core_check_feature(dev, DRIVER_MODESET))
 		via_modeset_fini(dev);
 
-	if (dev_private->vq_bo) {
-		openchrome_bo_destroy(dev_private->vq_bo, true);
-		dev_private->vq_bo = NULL;
-	}
-
 	if (dev_private->gart_bo) {
 		/* enable gtt write */
 		if (pci_is_pcie(dev->pdev))
@@ -225,23 +219,6 @@ static int via_driver_load(struct drm_device *dev,
 		DRM_INFO("Allocated %u KB of DMA memory.\n",
 				SGDMA_MEMORY >> 10);
 	}
-
-	/* Allocate VQ. (Virtual Queue) */
-	ret = openchrome_bo_create(dev,
-					&dev_private->bdev,
-					VQ_MEMORY,
-					ttm_bo_type_kernel,
-					TTM_PL_FLAG_VRAM,
-					true,
-					&dev_private->vq_bo);
-	if (ret) {
-		DRM_ERROR("Failed to allocate VQ (Virtual Queue) "
-				"memory.\n");
-		goto init_error;
-	}
-
-	DRM_INFO("Allocated %u KB of VQ (Virtual Queue) memory.\n",
-			VQ_MEMORY >> 10);
 
 	via_engine_init(dev);
 
