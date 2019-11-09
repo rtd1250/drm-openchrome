@@ -191,8 +191,6 @@ static int via_driver_load(struct drm_device *dev,
 
 	chip_revision_info(dev_private);
 
-	via_engine_init(dev);
-
 	if (drm_core_check_feature(dev, DRIVER_MODESET)) {
 		ret = via_modeset_init(dev);
 		if (ret) {

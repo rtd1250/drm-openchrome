@@ -1284,10 +1284,3 @@ exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
-
-/* This function does:
- * 1. Command buffer allocation
- */
-void via_engine_init(struct drm_device *dev)
-{
-}
