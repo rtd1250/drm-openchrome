@@ -226,8 +226,6 @@ struct openchrome_drm_private {
 
 	int revision;
 
-	struct openchrome_bo		*gart_bo;
-
 	struct via_framebuffer_device *via_fbdev;
 	u8 vram_type;
 	unsigned long long vram_start;

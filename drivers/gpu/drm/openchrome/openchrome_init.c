@@ -1431,41 +1431,9 @@ static void via_init_3d(
 	VIA_WRITE(VIA_REG_TRANSPACE, 0x130002db);
 }
 
-static void via_init_pcie_gart_table(
-			struct openchrome_drm_private *dev_private,
-			struct pci_dev *pdev)
-{
-	struct openchrome_bo *bo = dev_private->gart_bo;
-	u8 value;
-
-	if (!pci_is_pcie(pdev) || !bo->kmap.bo)
-		return;
-
-	/* enable gtt write */
-	svga_wseq_mask(VGABASE, 0x6C, 0x00, BIT(7));
-
-	/* set the base address of gart table */
-	value = (bo->kmap.bo->offset & 0xff000) >> 12;
-	vga_wseq(VGABASE, 0x6A, value);
-
-	value = (bo->kmap.bo->offset & 0xff000) >> 20;
-	vga_wseq(VGABASE, 0x6B, value);
-
-	value = vga_rseq(VGABASE, 0x6C);
-	value |= ((bo->kmap.bo->offset >> 28) & 0x01);
-	vga_wseq(VGABASE, 0x6C, value);
-
-	/* flush the gtt cache */
-	svga_wseq_mask(VGABASE, 0x6F, BIT(7), BIT(7));
-
-	/* disable the gtt write */
-	svga_wseq_mask(VGABASE, 0x6C, BIT(7), BIT(7));
-}
-
 /* This function does:
  * 1. Command buffer allocation
  * 2. hw engine intialization:2D;3D
- * 3. Ring Buffer mechanism setup
  */
 void via_engine_init(struct drm_device *dev)
 {
@@ -1474,7 +1442,4 @@ void via_engine_init(struct drm_device *dev)
 	/* initial engines */
 	via_init_2d(dev_private, dev->pdev->device);
 	via_init_3d(dev_private);
-
-	/* pcie gart table setup */
-	via_init_pcie_gart_table(dev_private, dev->pdev);
 }

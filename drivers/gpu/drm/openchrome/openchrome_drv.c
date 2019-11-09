@@ -49,8 +49,6 @@ static struct pci_device_id via_pci_table[] = {
 };
 MODULE_DEVICE_TABLE(pci, via_pci_table);
 
-#define SGDMA_MEMORY (256*1024)
-
 
 void openchrome_drm_driver_gem_free_object_unlocked (
 					struct drm_gem_object *obj)
@@ -142,15 +140,6 @@ static void via_driver_unload(struct drm_device *dev)
 	if (drm_core_check_feature(dev, DRIVER_MODESET))
 		via_modeset_fini(dev);
 
-	if (dev_private->gart_bo) {
-		/* enable gtt write */
-		if (pci_is_pcie(dev->pdev))
-			svga_wseq_mask(VGABASE, 0x6C, 0, BIT(7));
-
-		openchrome_bo_destroy(dev_private->gart_bo, true);
-		dev_private->gart_bo = NULL;
-	}
-
 	openchrome_mm_fini(dev_private);
 
 	/*
@@ -201,24 +190,6 @@ static int via_driver_load(struct drm_device *dev,
 	}
 
 	chip_revision_info(dev_private);
-
-	if (pci_is_pcie(dev->pdev)) {
-		/* Allocate GART. */
-		ret = openchrome_bo_create(dev,
-						&dev_private->bdev,
-						SGDMA_MEMORY,
-						ttm_bo_type_kernel,
-						TTM_PL_FLAG_VRAM,
-						true,
-						&dev_private->gart_bo);
-		if (ret) {
-			DRM_ERROR("Failed to allocate DMA memory.\n");
-			goto init_error;
-		}
-
-		DRM_INFO("Allocated %u KB of DMA memory.\n",
-				SGDMA_MEMORY >> 10);
-	}
 
 	via_engine_init(dev);
 
