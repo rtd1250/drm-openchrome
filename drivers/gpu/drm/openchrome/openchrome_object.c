@@ -194,14 +194,15 @@ int openchrome_bo_create(struct drm_device *dev,
 		}
 
 		ret = openchrome_bo_pin(bo, ttm_domain);
-		if (!ret) {
-			ret = ttm_bo_kmap(&bo->ttm_bo, 0,
-						bo->ttm_bo.num_pages,
-						&bo->kmap);
-
+		ttm_bo_unreserve(&bo->ttm_bo);
+		if (ret) {
+			ttm_bo_put(&bo->ttm_bo);
+			goto exit;
 		}
 
-		ttm_bo_unreserve(&bo->ttm_bo);
+		ret = ttm_bo_kmap(&bo->ttm_bo, 0,
+					bo->ttm_bo.num_pages,
+					&bo->kmap);
 		if (ret) {
 			ttm_bo_put(&bo->ttm_bo);
 			goto exit;
@@ -224,12 +225,12 @@ void openchrome_bo_destroy(struct openchrome_bo *bo, bool kmap)
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	if (kmap) {
+		ttm_bo_kunmap(&bo->kmap);
+
 		ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
 		if (ret) {
 			goto exit;
 		}
-
-		ttm_bo_kunmap(&bo->kmap);
 
 		ret = openchrome_bo_unpin(bo);
 		ttm_bo_unreserve(&bo->ttm_bo);
