@@ -771,16 +771,20 @@ nv50_msto_atomic_check(struct drm_encoder *encoder,
 	struct nv50_head_atom *asyh = nv50_head_atom(crtc_state);
 	int slots;
 
-	/* When restoring duplicated states, we need to make sure that the
-	 * bw remains the same and avoid recalculating it, as the connector's
-	 * bpc may have changed after the state was duplicated
-	 */
-	if (!state->duplicated)
-		asyh->dp.pbn =
-			drm_dp_calc_pbn_mode(crtc_state->adjusted_mode.clock,
-					     connector->display_info.bpc * 3);
+	if (crtc_state->mode_changed || crtc_state->connectors_changed) {
+		/*
+		 * When restoring duplicated states, we need to make sure that
+		 * the bw remains the same and avoid recalculating it, as the
+		 * connector's bpc may have changed after the state was
+		 * duplicated
+		 */
+		if (!state->duplicated) {
+			const int bpp = connector->display_info.bpc * 3;
+			const int clock = crtc_state->adjusted_mode.clock;
 
-	if (crtc_state->mode_changed) {
+			asyh->dp.pbn = drm_dp_calc_pbn_mode(clock, bpp);
+		}
+
 		slots = drm_dp_atomic_find_vcpi_slots(state, &mstm->mgr,
 						      mstc->port,
 						      asyh->dp.pbn);
@@ -982,20 +986,11 @@ nv50_mstc_atomic_check(struct drm_connector *connector,
 	return drm_dp_atomic_release_vcpi_slots(state, mgr, mstc->port);
 }
 
-static const struct drm_connector_helper_funcs
-nv50_mstc_help = {
-	.get_modes = nv50_mstc_get_modes,
-	.mode_valid = nv50_mstc_mode_valid,
-	.best_encoder = nv50_mstc_best_encoder,
-	.atomic_best_encoder = nv50_mstc_atomic_best_encoder,
-	.atomic_check = nv50_mstc_atomic_check,
-};
-
-static enum drm_connector_status
-nv50_mstc_detect(struct drm_connector *connector, bool force)
+static int
+nv50_mstc_detect(struct drm_connector *connector,
+		 struct drm_modeset_acquire_ctx *ctx, bool force)
 {
 	struct nv50_mstc *mstc = nv50_mstc(connector);
-	enum drm_connector_status conn_status;
 	int ret;
 
 	if (drm_connector_is_unregistered(connector))
@@ -1005,13 +1000,23 @@ nv50_mstc_detect(struct drm_connector *connector, bool force)
 	if (ret < 0 && ret != -EACCES)
 		return connector_status_disconnected;
 
-	conn_status = drm_dp_mst_detect_port(connector, mstc->port->mgr,
-					     mstc->port);
+	ret = drm_dp_mst_detect_port(connector, ctx, mstc->port->mgr,
+				     mstc->port);
 
 	pm_runtime_mark_last_busy(connector->dev->dev);
 	pm_runtime_put_autosuspend(connector->dev->dev);
-	return conn_status;
+	return ret;
 }
+
+static const struct drm_connector_helper_funcs
+nv50_mstc_help = {
+	.get_modes = nv50_mstc_get_modes,
+	.mode_valid = nv50_mstc_mode_valid,
+	.best_encoder = nv50_mstc_best_encoder,
+	.atomic_best_encoder = nv50_mstc_atomic_best_encoder,
+	.atomic_check = nv50_mstc_atomic_check,
+	.detect_ctx = nv50_mstc_detect,
+};
 
 static void
 nv50_mstc_destroy(struct drm_connector *connector)
@@ -1027,7 +1032,6 @@ nv50_mstc_destroy(struct drm_connector *connector)
 static const struct drm_connector_funcs
 nv50_mstc = {
 	.reset = nouveau_conn_reset,
-	.detect = nv50_mstc_detect,
 	.fill_modes = drm_helper_probe_single_connector_modes,
 	.destroy = nv50_mstc_destroy,
 	.atomic_duplicate_state = nouveau_conn_atomic_duplicate_state,
@@ -1305,14 +1309,14 @@ nv50_mstm_fini(struct nv50_mstm *mstm)
 }
 
 static void
-nv50_mstm_init(struct nv50_mstm *mstm)
+nv50_mstm_init(struct nv50_mstm *mstm, bool runtime)
 {
 	int ret;
 
 	if (!mstm || !mstm->mgr.mst_state)
 		return;
 
-	ret = drm_dp_mst_topology_mgr_resume(&mstm->mgr);
+	ret = drm_dp_mst_topology_mgr_resume(&mstm->mgr, !runtime);
 	if (ret == -1) {
 		drm_dp_mst_topology_mgr_set_mst(&mstm->mgr, false);
 		drm_kms_helper_hotplug_event(mstm->mgr.dev);
@@ -2259,7 +2263,7 @@ nv50_display_init(struct drm_device *dev, bool resume, bool runtime)
 		if (encoder->encoder_type != DRM_MODE_ENCODER_DPMST) {
 			struct nouveau_encoder *nv_encoder =
 				nouveau_encoder(encoder);
-			nv50_mstm_init(nv_encoder->dp.mstm);
+			nv50_mstm_init(nv_encoder->dp.mstm, runtime);
 		}
 	}
 
@@ -2388,7 +2392,7 @@ nv50_display_create(struct drm_device *dev)
 
 	/* cull any connectors we created that don't have an encoder */
 	list_for_each_entry_safe(connector, tmp, &dev->mode_config.connector_list, head) {
-		if (connector->encoder_ids[0])
+		if (connector->possible_encoders)
 			continue;
 
 		NV_WARN(drm, "%s has no encoders, removing\n",

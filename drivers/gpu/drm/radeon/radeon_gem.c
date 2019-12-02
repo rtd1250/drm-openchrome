@@ -296,6 +296,8 @@ int radeon_gem_userptr_ioctl(struct drm_device *dev, void *data,
 	uint32_t handle;
 	int r;
 
+	args->addr = untagged_addr(args->addr);
+
 	if (offset_in_page(args->addr | args->size))
 		return -EINVAL;
 
@@ -564,7 +566,7 @@ static void radeon_gem_va_update_vm(struct radeon_device *rdev,
 	if (!vm_bos)
 		return;
 
-	r = ttm_eu_reserve_buffers(&ticket, &list, true, NULL, true);
+	r = ttm_eu_reserve_buffers(&ticket, &list, true, NULL);
 	if (r)
 		goto error_free;
 

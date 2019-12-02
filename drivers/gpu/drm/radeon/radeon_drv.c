@@ -35,6 +35,7 @@
 #include <linux/module.h>
 #include <linux/pm_runtime.h>
 #include <linux/vga_switcheroo.h>
+#include <linux/mmu_notifier.h>
 
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_drv.h>
@@ -360,7 +361,7 @@ static int radeon_pci_probe(struct pci_dev *pdev,
 		return -EPROBE_DEFER;
 
 	/* Get rid of things like offb */
-	ret = drm_fb_helper_remove_conflicting_pci_framebuffers(pdev, 0, "radeondrmfb");
+	ret = drm_fb_helper_remove_conflicting_pci_framebuffers(pdev, "radeondrmfb");
 	if (ret)
 		return ret;
 
@@ -378,19 +379,22 @@ radeon_pci_remove(struct pci_dev *pdev)
 static void
 radeon_pci_shutdown(struct pci_dev *pdev)
 {
-	struct drm_device *ddev = pci_get_drvdata(pdev);
-
 	/* if we are running in a VM, make sure the device
 	 * torn down properly on reboot/shutdown
 	 */
 	if (radeon_device_is_virtual())
 		radeon_pci_remove(pdev);
 
-	/* Some adapters need to be suspended before a
-	* shutdown occurs in order to prevent an error
-	* during kexec.
-	*/
-	radeon_suspend_kms(ddev, true, true, false);
+#ifdef CONFIG_PPC64
+	/*
+	 * Some adapters need to be suspended before a
+	 * shutdown occurs in order to prevent an error
+	 * during kexec.
+	 * Make this power specific becauase it breaks
+	 * some non-power boards.
+	 */
+	radeon_suspend_kms(pci_get_drvdata(pdev), true, true, false);
+#endif
 }
 
 static int radeon_pmops_suspend(struct device *dev)
@@ -654,6 +658,7 @@ static void __exit radeon_exit(void)
 {
 	pci_unregister_driver(pdriver);
 	radeon_unregister_atpx_handler();
+	mmu_notifier_synchronize();
 }
 
 module_init(radeon_init);
