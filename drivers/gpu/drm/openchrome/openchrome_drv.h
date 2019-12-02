@@ -61,10 +61,10 @@
 
 #define DRIVER_MAJOR		3
 #define DRIVER_MINOR		1
-#define DRIVER_PATCHLEVEL	21
+#define DRIVER_PATCHLEVEL	22
 #define DRIVER_NAME		"openchrome"
 #define DRIVER_DESC		"OpenChrome DRM for VIA Technologies Chrome IGP"
-#define DRIVER_DATE		"20191108"
+#define DRIVER_DATE		"20191202"
 #define DRIVER_AUTHOR		"OpenChrome Project"
 
 
