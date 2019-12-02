@@ -251,12 +251,17 @@ int openchrome_mm_init(struct openchrome_drm_private *dev_private)
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
+	drm_vma_offset_manager_init(&dev_private->vma_manager,
+					DRM_FILE_PAGE_OFFSET_START,
+					DRM_FILE_PAGE_OFFSET_SIZE);
+
 	/*
 	 * Initialize bdev ttm_bo_device struct.
 	 */
 	ret = ttm_bo_device_init(&dev_private->bdev,
 				&openchrome_bo_driver,
 				dev->anon_inode->i_mapping,
+				&dev_private->vma_manager,
 				dev_private->need_dma32);
 	if (ret) {
 		DRM_ERROR("Failed initializing buffer object driver.\n");
@@ -283,6 +288,7 @@ void openchrome_mm_fini(struct openchrome_drm_private *dev_private)
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	ttm_bo_device_release(&dev_private->bdev);
+	drm_vma_offset_manager_destroy(&dev_private->vma_manager);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }

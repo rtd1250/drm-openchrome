@@ -220,6 +220,7 @@ struct openchrome_drm_private {
 	struct drm_device *dev;
 
 	struct ttm_bo_device		bdev;
+	struct drm_vma_offset_manager	vma_manager;
 
 	/* Set this flag for ttm_bo_device_init. */
 	bool need_dma32;
