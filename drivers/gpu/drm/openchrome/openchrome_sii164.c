@@ -483,7 +483,6 @@ exit:
 static const struct drm_connector_helper_funcs openchrome_sii164_drm_connector_helper_funcs = {
 	.mode_valid = openchrome_sii164_mode_valid,
 	.get_modes = openchrome_sii164_get_modes,
-	.best_encoder = via_best_encoder,
 };
 
 bool openchrome_sii164_probe(struct i2c_adapter *i2c_bus)

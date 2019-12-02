@@ -395,7 +395,6 @@ static int via_tmds_get_modes(struct drm_connector *connector)
 static const struct drm_connector_helper_funcs via_dvi_connector_helper_funcs = {
 	.mode_valid = via_connector_mode_valid,
 	.get_modes = via_tmds_get_modes,
-	.best_encoder = via_best_encoder,
 };
 
 /*

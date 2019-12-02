@@ -470,7 +470,6 @@ void openchrome_crtc_param_init(
 extern void via_set_sync_polarity(struct drm_encoder *encoder,
 				struct drm_display_mode *mode,
 				struct drm_display_mode *adjusted_mode);
-extern struct drm_encoder *via_best_encoder(struct drm_connector *connector);
 extern void via_encoder_cleanup(struct drm_encoder *encoder);
 extern void via_encoder_prepare(struct drm_encoder *encoder);
 extern void via_encoder_disable(struct drm_encoder *encoder);

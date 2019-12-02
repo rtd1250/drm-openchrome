@@ -503,7 +503,6 @@ exit:
 static const struct drm_connector_helper_funcs openchrome_vt1632_drm_connector_helper_funcs = {
 	.mode_valid = openchrome_vt1632_mode_valid,
 	.get_modes = openchrome_vt1632_get_modes,
-	.best_encoder = via_best_encoder,
 };
 
 bool openchrome_vt1632_probe(struct i2c_adapter *i2c_bus)

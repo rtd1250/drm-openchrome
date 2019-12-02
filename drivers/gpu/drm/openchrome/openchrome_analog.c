@@ -340,7 +340,6 @@ exit:
 static const struct drm_connector_helper_funcs via_analog_connector_helper_funcs = {
 	.mode_valid = via_connector_mode_valid,
 	.get_modes = via_analog_get_modes,
-	.best_encoder = via_best_encoder,
 };
 
 void via_analog_probe(struct drm_device *dev)

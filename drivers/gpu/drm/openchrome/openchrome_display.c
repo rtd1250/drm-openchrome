@@ -249,25 +249,6 @@ via_encoder_prepare(struct drm_encoder *encoder)
 	encoder->helper_private->dpms(encoder, DRM_MODE_DPMS_OFF);
 }
 
-struct drm_encoder *
-via_best_encoder(struct drm_connector *connector)
-{
-	int enc_id = connector->encoder_ids[0];
-	struct drm_encoder *encoder = NULL;
-	struct drm_mode_object *obj;
-
-	/* pick the encoder ids */
-	if (enc_id) {
-		obj = drm_mode_object_find(connector->dev,
-						NULL,
-						enc_id,
-						DRM_MODE_OBJECT_ENCODER);
-		if (obj)
-			encoder = obj_to_encoder(obj);
-	}
-	return encoder;
-}
-
 void via_encoder_cleanup(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
