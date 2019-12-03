@@ -135,6 +135,17 @@ void openchrome_mode_config_init(
 
 	dev->mode_config.preferred_depth = 24;
 
+	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
+		(dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
+		dev->mode_config.cursor_width =
+		dev->mode_config.cursor_height =
+				OPENCHROME_UNICHROME_CURSOR_SIZE;
+	} else {
+		dev->mode_config.cursor_width =
+		dev->mode_config.cursor_height =
+				OPENCHROME_UNICHROME_PRO_CURSOR_SIZE;
+	}
+
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 

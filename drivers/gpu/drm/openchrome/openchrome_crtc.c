@@ -2082,7 +2082,7 @@ int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
 	struct drm_plane *primary;
 	struct drm_plane *cursor;
 	uint32_t possible_crtcs;
-	uint64_t cursor_size = 64 * 64 * 4;
+	uint64_t cursor_size;
 	int ret;
 
 	possible_crtcs = 1 << index;
@@ -2143,9 +2143,16 @@ int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
 
 	iga->index = index;
 
-	if (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266 ||
-		dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)
-		cursor_size = 32 * 32 * 4;
+	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
+		(dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
+		cursor_size =
+			OPENCHROME_UNICHROME_CURSOR_SIZE *
+			OPENCHROME_UNICHROME_CURSOR_SIZE * 4;
+	} else {
+		cursor_size =
+			OPENCHROME_UNICHROME_PRO_CURSOR_SIZE *
+			OPENCHROME_UNICHROME_PRO_CURSOR_SIZE * 4;
+	}
 
 	ret = openchrome_bo_create(dev,
 					&dev_private->bdev,
