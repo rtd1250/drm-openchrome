@@ -236,7 +236,6 @@ static int openchrome_drm_mmap(struct file *filp, struct vm_area_struct *vma)
 
 	ret = ttm_bo_mmap(filp, vma, &dev_private->bdev);
 exit:
-	DRM_DEBUG_KMS("ret: %d\n", ret);
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
