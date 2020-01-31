@@ -495,7 +495,7 @@ unsigned int via_ddc_read_bytes_by_hdmi(
 struct edid *
 via_hdmi_get_edid(struct drm_connector *connector)
 {
-	bool print_bad_edid = !connector->bad_edid_counter || (drm_debug & DRM_UT_KMS);
+	bool print_bad_edid = !connector->bad_edid_counter || (drm_debug_enabled(DRM_UT_KMS));
 	struct openchrome_drm_private *dev_private =
 					connector->dev->dev_private;
 	struct edid *edid = NULL;
