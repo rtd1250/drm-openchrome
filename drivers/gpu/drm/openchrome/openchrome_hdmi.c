@@ -27,6 +27,7 @@
 #include <linux/delay.h>
 
 #include <drm/drm_drv.h>
+#include <drm/drm_print.h>
 #include <drm/drm_probe_helper.h>
 
 #include "openchrome_drv.h"
