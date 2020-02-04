@@ -146,16 +146,21 @@ static void openchrome_show_cursor(struct drm_crtc *crtc)
 	}
 }
 
-static void openchrome_cursor_address(struct drm_crtc *crtc)
+static void openchrome_cursor_address(struct drm_crtc *crtc,
+					struct openchrome_bo *ttm_bo)
 {
 	struct drm_device *dev = crtc->dev;
 	struct via_crtc *iga = container_of(crtc,
 					struct via_crtc, base);
 	struct openchrome_drm_private *dev_private =
 					crtc->dev->dev_private;
+	int ret;
 
-	if (!iga->cursor_bo->kmap.bo) {
-		return;
+	ret = ttm_bo_kmap(&ttm_bo->ttm_bo, 0,
+				ttm_bo->ttm_bo.num_pages,
+				&ttm_bo->kmap);
+	if (ret) {
+		goto exit;
 	}
 
 	switch (dev->pdev->device) {
@@ -169,17 +174,21 @@ static void openchrome_cursor_address(struct drm_crtc *crtc)
 		/* Program the HI offset. */
 		if (iga->index) {
 			VIA_WRITE(HI_FBOFFSET,
-				iga->cursor_bo->kmap.bo->offset);
+					ttm_bo->kmap.bo->offset);
 		} else {
 			VIA_WRITE(PRIM_HI_FBOFFSET,
-				iga->cursor_bo->kmap.bo->offset);
+					ttm_bo->kmap.bo->offset);
 		}
 		break;
 	default:
 		VIA_WRITE(HI_FBOFFSET,
-				iga->cursor_bo->kmap.bo->offset);
+				ttm_bo->kmap.bo->offset);
 		break;
 	}
+
+	ttm_bo_kunmap(&ttm_bo->kmap);
+exit:
+	return;
 }
 
 static void openchrome_set_hi_location(struct drm_crtc *crtc,
@@ -253,15 +262,9 @@ static int openchrome_cursor_update_plane(struct drm_plane *plane,
 				struct drm_modeset_acquire_ctx *ctx)
 {
 	struct drm_device *dev = plane->dev;
-	struct via_crtc *iga = container_of(crtc,
-					struct via_crtc, base);
 	struct via_framebuffer *via_fb;
-	struct openchrome_bo *user_bo;
+	struct openchrome_bo *ttm_bo;
 	struct drm_gem_object *gem;
-	uint32_t *user_bo_src, *cursor_dst;
-	bool is_iomem;
-	uint32_t i;
-	uint32_t width, height, cursor_width;
 	int ret = 0;
 
 	if (!crtc) {
@@ -291,7 +294,6 @@ static int openchrome_cursor_update_plane(struct drm_plane *plane,
 			goto exit;
 		}
 
-		cursor_width = OPENCHROME_UNICHROME_CURSOR_SIZE;
 	} else {
 		if ((fb->width != OPENCHROME_UNICHROME_PRO_CURSOR_SIZE) ||
 		(fb->height != OPENCHROME_UNICHROME_PRO_CURSOR_SIZE)) {
@@ -299,8 +301,6 @@ static int openchrome_cursor_update_plane(struct drm_plane *plane,
 			ret = -EINVAL;
 			goto exit;
 		}
-
-		cursor_width = OPENCHROME_UNICHROME_PRO_CURSOR_SIZE;
 	}
 
 	if (fb->width != fb->height) {
@@ -311,36 +311,10 @@ static int openchrome_cursor_update_plane(struct drm_plane *plane,
 	}
 
 	if (fb != crtc->cursor->fb) {
-		width = fb->width;
-		height = fb->height;
-
 		via_fb = container_of(fb, struct via_framebuffer, fb);
 		gem = via_fb->gem;
-		user_bo = container_of(gem, struct openchrome_bo, gem);
-		ret = ttm_bo_kmap(&user_bo->ttm_bo, 0,
-					user_bo->ttm_bo.num_pages,
-					&user_bo->kmap);
-		if (ret) {
-			goto exit;
-		}
-
-		user_bo_src = ttm_kmap_obj_virtual(&user_bo->kmap,
-							&is_iomem);
-		cursor_dst =
-			ttm_kmap_obj_virtual(&iga->cursor_bo->kmap,
-						&is_iomem);
-		memset_io(cursor_dst, 0x0,
-				iga->cursor_bo->kmap.bo->mem.size);
-		for (i = 0; i < height; i++) {
-			__iowrite32_copy(cursor_dst, user_bo_src,
-						width);
-			user_bo_src += width;
-			cursor_dst += cursor_width;
-		}
-
-		ttm_bo_kunmap(&user_bo->kmap);
-
-		openchrome_cursor_address(crtc);
+		ttm_bo = container_of(gem, struct openchrome_bo, gem);
+		openchrome_cursor_address(crtc, ttm_bo);
 	} else {
 		crtc->cursor_x = crtc_x;
 		crtc->cursor_y = crtc_y;

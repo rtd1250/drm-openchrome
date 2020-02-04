@@ -319,11 +319,6 @@ static void openchrome_crtc_destroy(struct drm_crtc *crtc)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 
-	if (iga->cursor_bo) {
-		openchrome_bo_destroy(iga->cursor_bo, true);
-		iga->cursor_bo = NULL;
-	}
-
 	drm_crtc_cleanup(&iga->base);
 	kfree(iga);
 }
@@ -2082,7 +2077,6 @@ int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
 	struct drm_plane *primary;
 	struct drm_plane *cursor;
 	uint32_t possible_crtcs;
-	uint64_t cursor_size;
 	int ret;
 
 	possible_crtcs = 1 << index;
@@ -2143,33 +2137,8 @@ int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
 
 	iga->index = index;
 
-	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
-		(dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
-		cursor_size =
-			OPENCHROME_UNICHROME_CURSOR_SIZE *
-			OPENCHROME_UNICHROME_CURSOR_SIZE * 4;
-	} else {
-		cursor_size =
-			OPENCHROME_UNICHROME_PRO_CURSOR_SIZE *
-			OPENCHROME_UNICHROME_PRO_CURSOR_SIZE * 4;
-	}
-
-	ret = openchrome_bo_create(dev,
-					&dev_private->bdev,
-					cursor_size,
-					ttm_bo_type_kernel,
-					TTM_PL_FLAG_VRAM,
-					true,
-					&iga->cursor_bo);
-	if (ret) {
-		DRM_ERROR("Failed to create cursor.\n");
-		goto cleanup_crtc;
-	}
-
 	openchrome_crtc_param_init(dev_private, &iga->base, index);
 	goto exit;
-cleanup_crtc:
-	drm_crtc_cleanup(&iga->base);
 free_crtc:
 	kfree(iga);
 cleanup_cursor:
