@@ -56,7 +56,6 @@ static void openchrome_hide_cursor(struct drm_crtc *crtc)
 	uint32_t temp;
 
 	switch (dev->pdev->device) {
-	case PCI_DEVICE_ID_VIA_PM800:
 	case PCI_DEVICE_ID_VIA_VT3157:
 	case PCI_DEVICE_ID_VIA_VT3343:
 	case PCI_DEVICE_ID_VIA_P4M900:
@@ -88,7 +87,6 @@ static void openchrome_show_cursor(struct drm_crtc *crtc)
 					crtc->dev->dev_private;
 
 	switch (dev->pdev->device) {
-	case PCI_DEVICE_ID_VIA_PM800:
 	case PCI_DEVICE_ID_VIA_VT3157:
 	case PCI_DEVICE_ID_VIA_VT3343:
 	case PCI_DEVICE_ID_VIA_P4M900:
@@ -120,7 +118,6 @@ static void openchrome_show_cursor(struct drm_crtc *crtc)
 	}
 
 	switch (dev->pdev->device) {
-	case PCI_DEVICE_ID_VIA_PM800:
 	case PCI_DEVICE_ID_VIA_VT3157:
 	case PCI_DEVICE_ID_VIA_VT3343:
 	case PCI_DEVICE_ID_VIA_P4M900:
@@ -164,7 +161,6 @@ static void openchrome_cursor_address(struct drm_crtc *crtc,
 	}
 
 	switch (dev->pdev->device) {
-	case PCI_DEVICE_ID_VIA_PM800:
 	case PCI_DEVICE_ID_VIA_VT3157:
 	case PCI_DEVICE_ID_VIA_VT3343:
 	case PCI_DEVICE_ID_VIA_P4M900:
@@ -216,7 +212,6 @@ static void openchrome_set_hi_location(struct drm_crtc *crtc,
 	}
 
 	switch (dev->pdev->device) {
-	case PCI_DEVICE_ID_VIA_PM800:
 	case PCI_DEVICE_ID_VIA_VT3157:
 	case PCI_DEVICE_ID_VIA_VT3343:
 	case PCI_DEVICE_ID_VIA_P4M900:
