@@ -280,12 +280,36 @@ static struct drm_driver via_driver = {
 static int via_pci_probe(struct pci_dev *pdev,
 				const struct pci_device_id *ent)
 {
+	struct drm_device *dev;
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	ret = drm_get_pci_dev(pdev, ent, &via_driver);
+	ret = pci_enable_device(pdev);
+	if (ret) {
+		goto exit;
+	}
 
+	dev = drm_dev_alloc(&via_driver, &pdev->dev);
+	if (IS_ERR(dev)) {
+		ret = PTR_ERR(dev);
+		goto err_pci_disable_device;
+	}
+
+	dev->pdev = pdev;
+	pci_set_drvdata(pdev, dev);
+
+	ret = drm_dev_register(dev, ent->driver_data);
+	if (ret) {
+		goto err_drm_dev_put;
+	}
+
+	goto exit;
+err_drm_dev_put:
+	drm_dev_put(dev);
+err_pci_disable_device:
+	pci_disable_device(pdev);
+exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
@@ -296,7 +320,8 @@ static void via_pci_remove(struct pci_dev *pdev)
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	drm_put_dev(dev);
+	drm_dev_unregister(dev);
+	drm_dev_put(dev);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
