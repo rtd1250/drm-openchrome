@@ -52,8 +52,7 @@ int via_fbdev_init(struct drm_device *dev)
 	drm_fb_helper_prepare(dev, &via_fbdev->helper,
 				&via_drm_fb_helper_funcs);
 
-	ret = drm_fb_helper_init(dev, &via_fbdev->helper,
-				dev->mode_config.num_connector);
+	ret = drm_fb_helper_init(dev, &via_fbdev->helper);
 	if (ret) {
 		goto free_fbdev;
 	}
