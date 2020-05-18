@@ -131,7 +131,7 @@ exit:
 	return ret;
 }
 
-static void via_driver_unload(struct drm_device *dev)
+static void openchrome_driver_unload(struct drm_device *dev)
 {
 	struct openchrome_drm_private *dev_private = dev->dev_private;
 
@@ -155,7 +155,7 @@ static void via_driver_unload(struct drm_device *dev)
 	return;
 }
 
-static int via_driver_load(struct drm_device *dev,
+static int openchrome_driver_load(struct drm_device *dev,
 				unsigned long chipset)
 {
 	struct openchrome_drm_private *dev_private;
@@ -202,13 +202,13 @@ static int via_driver_load(struct drm_device *dev,
 	goto exit;
 init_error:
 	if (ret)
-		via_driver_unload(dev);
+		openchrome_driver_unload(dev);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
 
-static void via_driver_lastclose(struct drm_device *dev)
+static void openchrome_driver_lastclose(struct drm_device *dev)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -259,9 +259,9 @@ static struct drm_driver via_driver = {
 	.driver_features = DRIVER_HAVE_IRQ |
 				DRIVER_GEM |
 				DRIVER_MODESET,
-	.load = via_driver_load,
-	.unload = via_driver_unload,
-	.lastclose = via_driver_lastclose,
+	.load = openchrome_driver_load,
+	.unload = openchrome_driver_unload,
+	.lastclose = openchrome_driver_lastclose,
 	.gem_free_object_unlocked =
 		openchrome_drm_driver_gem_free_object_unlocked,
 	.dumb_create = openchrome_drm_driver_dumb_create,
@@ -277,7 +277,7 @@ static struct drm_driver via_driver = {
 	.patchlevel = DRIVER_PATCHLEVEL,
 };
 
-static int via_pci_probe(struct pci_dev *pdev,
+static int openchrome_pci_probe(struct pci_dev *pdev,
 				const struct pci_device_id *ent)
 {
 	struct drm_device *dev;
@@ -314,7 +314,7 @@ exit:
 	return ret;
 }
 
-static void via_pci_remove(struct pci_dev *pdev)
+static void openchrome_pci_remove(struct pci_dev *pdev)
 {
 	struct drm_device *dev = pci_get_drvdata(pdev);
 
@@ -329,12 +329,12 @@ static void via_pci_remove(struct pci_dev *pdev)
 static struct pci_driver via_pci_driver = {
 	.name		= DRIVER_NAME,
 	.id_table	= via_pci_table,
-	.probe		= via_pci_probe,
-	.remove		= via_pci_remove,
+	.probe		= openchrome_pci_probe,
+	.remove		= openchrome_pci_remove,
 	.driver.pm	= &openchrome_dev_pm_ops,
 };
 
-static int __init via_init(void)
+static int __init openchrome_init(void)
 {
 	int ret;
 
@@ -348,7 +348,7 @@ static int __init via_init(void)
 	return ret;
 }
 
-static void __exit via_exit(void)
+static void __exit openchrome_exit(void)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -357,8 +357,8 @@ static void __exit via_exit(void)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-module_init(via_init);
-module_exit(via_exit);
+module_init(openchrome_init);
+module_exit(openchrome_exit);
 
 MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_DESCRIPTION(DRIVER_DESC);
