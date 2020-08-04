@@ -69,7 +69,8 @@ static int openchrome_drm_driver_dumb_create(
 {
 	struct openchrome_drm_private *dev_private = dev->dev_private;
 	struct openchrome_bo *bo;
-	u32 handle;
+	uint32_t handle, pitch;
+	uint64_t size;
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -77,12 +78,12 @@ static int openchrome_drm_driver_dumb_create(
 	/*
 	 * Calculate the parameters for the dumb buffer.
 	 */
-	args->pitch = args->width * ((args->bpp + 7) >> 3);
-	args->size = args->pitch * args->height;
+	pitch = args->width * ((args->bpp + 7) >> 3);
+	size = pitch * args->height;
 
 	ret = openchrome_bo_create(dev,
 					&dev_private->bdev,
-					args->size,
+					size,
 					ttm_bo_type_device,
 					TTM_PL_FLAG_VRAM,
 					false,
@@ -98,6 +99,8 @@ static int openchrome_drm_driver_dumb_create(
 	}
 
 	args->handle = handle;
+	args->pitch = pitch;
+	args->size = size;
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
