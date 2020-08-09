@@ -125,7 +125,7 @@ static int qxlhw_handle_to_bo(struct drm_file *file_priv, uint64_t handle,
 	qobj = gem_to_qxl_bo(gobj);
 
 	ret = qxl_release_list_add(release, qobj);
-	drm_gem_object_put_unlocked(gobj);
+	drm_gem_object_put(gobj);
 	if (ret)
 		return ret;
 
@@ -261,11 +261,8 @@ static int qxl_process_single_command(struct qxl_device *qdev,
 			apply_surf_reloc(qdev, &reloc_info[i]);
 	}
 
+	qxl_release_fence_buffer_objects(release);
 	ret = qxl_push_command_ring_release(qdev, release, cmd->type, true);
-	if (ret)
-		qxl_release_backoff_reserve_list(release);
-	else
-		qxl_release_fence_buffer_objects(release);
 
 out_free_bos:
 out_free_release:
@@ -347,7 +344,7 @@ out2:
 	qxl_bo_unreserve(qobj);
 
 out:
-	drm_gem_object_put_unlocked(gobj);
+	drm_gem_object_put(gobj);
 	return ret;
 }
 

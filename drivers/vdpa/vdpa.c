@@ -63,7 +63,7 @@ static void vdpa_release_dev(struct device *d)
  * @config: the bus operations that is supported by this device
  * @size: size of the parent structure that contains private data
  *
- * Drvier should use vdap_alloc_device() wrapper macro instead of
+ * Driver should use vdpa_alloc_device() wrapper macro instead of
  * using this directly.
  *
  * Returns an error when parent/config/dma_dev is not set or fail to get
@@ -116,7 +116,7 @@ EXPORT_SYMBOL_GPL(__vdpa_alloc_device);
 
 /**
  * vdpa_register_device - register a vDPA device
- * Callers must have a succeed call of vdpa_init_device() before.
+ * Callers must have a succeed call of vdpa_alloc_device() before.
  * @vdev: the vdpa device to be registered to vDPA bus
  *
  * Returns an error when fail to add to vDPA bus

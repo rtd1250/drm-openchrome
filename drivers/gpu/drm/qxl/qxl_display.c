@@ -510,8 +510,8 @@ static int qxl_primary_apply_cursor(struct drm_plane *plane)
 	cmd->u.set.visible = 1;
 	qxl_release_unmap(qdev, release, &cmd->release_info);
 
-	qxl_push_cursor_ring_release(qdev, release, QXL_CMD_CURSOR, false);
 	qxl_release_fence_buffer_objects(release);
+	qxl_push_cursor_ring_release(qdev, release, QXL_CMD_CURSOR, false);
 
 	return ret;
 
@@ -652,8 +652,8 @@ static void qxl_cursor_atomic_update(struct drm_plane *plane,
 	cmd->u.position.y = plane->state->crtc_y + fb->hot_y;
 
 	qxl_release_unmap(qdev, release, &cmd->release_info);
-	qxl_push_cursor_ring_release(qdev, release, QXL_CMD_CURSOR, false);
 	qxl_release_fence_buffer_objects(release);
+	qxl_push_cursor_ring_release(qdev, release, QXL_CMD_CURSOR, false);
 
 	if (old_cursor_bo != NULL)
 		qxl_bo_unpin(old_cursor_bo);
@@ -700,8 +700,8 @@ static void qxl_cursor_atomic_disable(struct drm_plane *plane,
 	cmd->type = QXL_CURSOR_HIDE;
 	qxl_release_unmap(qdev, release, &cmd->release_info);
 
-	qxl_push_cursor_ring_release(qdev, release, QXL_CMD_CURSOR, false);
 	qxl_release_fence_buffer_objects(release);
+	qxl_push_cursor_ring_release(qdev, release, QXL_CMD_CURSOR, false);
 }
 
 static void qxl_update_dumb_head(struct qxl_device *qdev,
@@ -783,7 +783,7 @@ static int qxl_plane_prepare_fb(struct drm_plane *plane,
 		    qdev->dumb_shadow_bo->surf.width  != surf.width ||
 		    qdev->dumb_shadow_bo->surf.height != surf.height) {
 			if (qdev->dumb_shadow_bo) {
-				drm_gem_object_put_unlocked
+				drm_gem_object_put
 					(&qdev->dumb_shadow_bo->tbo.base);
 				qdev->dumb_shadow_bo = NULL;
 			}
@@ -793,7 +793,7 @@ static int qxl_plane_prepare_fb(struct drm_plane *plane,
 		}
 		if (user_bo->shadow != qdev->dumb_shadow_bo) {
 			if (user_bo->shadow) {
-				drm_gem_object_put_unlocked
+				drm_gem_object_put
 					(&user_bo->shadow->tbo.base);
 				user_bo->shadow = NULL;
 			}
@@ -828,7 +828,7 @@ static void qxl_plane_cleanup_fb(struct drm_plane *plane,
 	qxl_bo_unpin(user_bo);
 
 	if (old_state->fb != plane->state->fb && user_bo->shadow) {
-		drm_gem_object_put_unlocked(&user_bo->shadow->tbo.base);
+		drm_gem_object_put(&user_bo->shadow->tbo.base);
 		user_bo->shadow = NULL;
 	}
 }

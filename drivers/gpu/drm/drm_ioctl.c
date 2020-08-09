@@ -741,7 +741,7 @@ static const struct drm_ioctl_desc drm_ioctls[] = {
  *     };
  *
  * Please make sure that you follow all the best practices from
- * ``Documentation/ioctl/botching-up-ioctls.rst``. Note that drm_ioctl()
+ * ``Documentation/process/botching-up-ioctls.rst``. Note that drm_ioctl()
  * automatically zero-extends structures, hence make sure you can add more stuff
  * at the end, i.e. don't put a variable sized array there.
  *
@@ -852,8 +852,8 @@ long drm_ioctl(struct file *filp,
 		out_size = 0;
 	ksize = max(max(in_size, out_size), drv_size);
 
-	DRM_DEBUG("pid=%d, dev=0x%lx, auth=%d, %s\n",
-		  task_pid_nr(current),
+	DRM_DEBUG("comm=\"%s\" pid=%d, dev=0x%lx, auth=%d, %s\n",
+		  current->comm, task_pid_nr(current),
 		  (long)old_encode_dev(file_priv->minor->kdev->devt),
 		  file_priv->authenticated, ioctl->name);
 
@@ -890,15 +890,16 @@ long drm_ioctl(struct file *filp,
 
       err_i1:
 	if (!ioctl)
-		DRM_DEBUG("invalid ioctl: pid=%d, dev=0x%lx, auth=%d, cmd=0x%02x, nr=0x%02x\n",
-			  task_pid_nr(current),
+		DRM_DEBUG("invalid ioctl: comm=\"%s\", pid=%d, dev=0x%lx, auth=%d, cmd=0x%02x, nr=0x%02x\n",
+			  current->comm, task_pid_nr(current),
 			  (long)old_encode_dev(file_priv->minor->kdev->devt),
 			  file_priv->authenticated, cmd, nr);
 
 	if (kdata != stack_kdata)
 		kfree(kdata);
 	if (retcode)
-		DRM_DEBUG("pid=%d, ret = %d\n", task_pid_nr(current), retcode);
+		DRM_DEBUG("comm=\"%s\", pid=%d, ret=%d\n", current->comm,
+			  task_pid_nr(current), retcode);
 	return retcode;
 }
 EXPORT_SYMBOL(drm_ioctl);
