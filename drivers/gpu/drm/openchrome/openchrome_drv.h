@@ -53,7 +53,7 @@
 #include <drm/ttm/ttm_bo_driver.h>
 #include <drm/ttm/ttm_placement.h>
 
-#include <drm/via_drm.h>
+#include <drm/openchrome_drm.h>
 
 #include "openchrome_crtc_hw.h"
 #include "openchrome_regs.h"
@@ -375,8 +375,8 @@ disable_second_display_channel(void __iomem *regs)
 }
 
 
-extern const struct drm_ioctl_desc via_ioctls[];
-extern int via_max_ioctl;
+extern const struct drm_ioctl_desc openchrome_ioctls[];
+extern int openchrome_max_ioctl;
 
 extern int via_hdmi_audio;
 

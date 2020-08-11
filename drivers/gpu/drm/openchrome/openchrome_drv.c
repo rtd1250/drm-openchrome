@@ -267,7 +267,7 @@ static struct drm_driver via_driver = {
 	.dumb_create = openchrome_drm_driver_dumb_create,
 	.dumb_map_offset =
 				openchrome_drm_driver_dumb_map_offset,
-	.ioctls = via_ioctls,
+	.ioctls = openchrome_ioctls,
 	.fops = &via_driver_fops,
 	.name = DRIVER_NAME,
 	.desc = DRIVER_DESC,
@@ -340,7 +340,7 @@ static int __init openchrome_init(void)
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	via_driver.num_ioctls = via_max_ioctl;
+	via_driver.num_ioctls = openchrome_max_ioctl;
 
 	ret = pci_register_driver(&via_pci_driver);
 

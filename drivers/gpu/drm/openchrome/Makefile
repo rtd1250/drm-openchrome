@@ -17,7 +17,7 @@ openchrome-y := openchrome_analog.o \
 		openchrome_hdmi.o \
 		openchrome_i2c.o \
 		openchrome_init.o \
-		openchrome_ioc32.o \
+		openchrome_ioctl.o \
 		openchrome_object.o \
 		openchrome_pm.o \
 		openchrome_sii164.o \
