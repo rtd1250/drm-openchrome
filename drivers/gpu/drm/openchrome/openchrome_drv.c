@@ -93,7 +93,7 @@ static int openchrome_drm_driver_dumb_create(
 	}
 
 	ret = drm_gem_handle_create(file_priv, &bo->gem, &handle);
-	drm_gem_object_put_unlocked(&bo->gem);
+	drm_gem_object_put(&bo->gem);
 	if (ret) {
 		goto exit;
 	}
@@ -127,7 +127,7 @@ static int openchrome_drm_driver_dumb_map_offset(
 	bo = container_of(gem, struct openchrome_bo, gem);
 	*offset = drm_vma_node_offset_addr(&bo->ttm_bo.base.vma_node);
 
-	drm_gem_object_put_unlocked(gem);
+	drm_gem_object_put(gem);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;

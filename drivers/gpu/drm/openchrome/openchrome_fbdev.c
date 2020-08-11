@@ -97,7 +97,7 @@ void via_fbdev_fini(struct drm_device *dev)
 	}
 
 	if (via_fb->gem) {
-		drm_gem_object_put_unlocked(via_fb->gem);
+		drm_gem_object_put(via_fb->gem);
 		via_fb->gem = NULL;
 	}
 

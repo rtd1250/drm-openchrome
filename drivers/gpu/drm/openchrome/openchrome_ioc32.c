@@ -88,7 +88,7 @@ via_gem_alloc(struct drm_device *dev, void *data,
 					&handle);
 
 	/* Drop reference from allocate; handle holds it now. */
-	drm_gem_object_put_unlocked(&bo->gem);
+	drm_gem_object_put(&bo->gem);
 
 	if (ret) {
 		openchrome_bo_destroy(bo, false);

@@ -54,7 +54,7 @@ via_user_framebuffer_destroy(struct drm_framebuffer *fb)
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	if (via_fb->gem) {
-		drm_gem_object_put_unlocked(via_fb->gem);
+		drm_gem_object_put(via_fb->gem);
 		via_fb->gem = NULL;
 	}
 
@@ -103,7 +103,7 @@ via_user_framebuffer_create(struct drm_device *dev,
 	drm_helper_mode_fill_fb_struct(dev, &via_fb->fb, mode_cmd);
 	ret = drm_framebuffer_init(dev, &via_fb->fb, &via_fb_funcs);
 	if (ret) {
-		drm_gem_object_put_unlocked(via_fb->gem);
+		drm_gem_object_put(via_fb->gem);
 		via_fb->gem = NULL;
 		kfree(via_fb);
 		return ERR_PTR(ret);
@@ -252,7 +252,7 @@ out_err:
 	}
 
 	if (via_fb->gem) {
-		drm_gem_object_put_unlocked(via_fb->gem);
+		drm_gem_object_put(via_fb->gem);
 		via_fb->gem = NULL;
 	}
 exit:
