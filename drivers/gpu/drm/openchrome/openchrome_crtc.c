@@ -1999,7 +1999,8 @@ static int openchrome_crtc_mode_set_base_atomic(struct drm_crtc *crtc,
 		via_iga1_set_color_depth(dev_private, fb->format->depth);
 
 		/* Set the framebuffer offset */
-		addr = round_up(bo->ttm_bo.offset + pitch, 16) >> 1;
+		addr = round_up((bo->ttm_bo.mem.start << PAGE_SHIFT) +
+				pitch, 16) >> 1;
 		vga_wcrt(VGABASE, 0x0D, addr & 0xFF);
 		vga_wcrt(VGABASE, 0x0C, (addr >> 8) & 0xFF);
 		/* Yes order of setting these registers matters on some hardware */
@@ -2025,7 +2026,8 @@ static int openchrome_crtc_mode_set_base_atomic(struct drm_crtc *crtc,
 		via_iga2_set_color_depth(dev_private, fb->format->depth);
 
 		/* Set the framebuffer offset */
-		addr = round_up(bo->ttm_bo.offset + pitch, 16);
+		addr = round_up((bo->ttm_bo.mem.start << PAGE_SHIFT) +
+				pitch, 16);
 		/* Bits 9 to 3 of the frame buffer go into bits 7 to 1
 		 * of the register. Bit 0 is for setting tile mode or
 		 * linear mode. A value of zero sets it to linear mode */

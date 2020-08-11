@@ -170,15 +170,15 @@ static void openchrome_cursor_address(struct drm_crtc *crtc,
 		/* Program the HI offset. */
 		if (iga->index) {
 			VIA_WRITE(HI_FBOFFSET,
-					ttm_bo->kmap.bo->offset);
+			ttm_bo->kmap.bo->mem.start << PAGE_SHIFT);
 		} else {
 			VIA_WRITE(PRIM_HI_FBOFFSET,
-					ttm_bo->kmap.bo->offset);
+			ttm_bo->kmap.bo->mem.start << PAGE_SHIFT);
 		}
 		break;
 	default:
 		VIA_WRITE(HI_FBOFFSET,
-				ttm_bo->kmap.bo->offset);
+			ttm_bo->kmap.bo->mem.start << PAGE_SHIFT);
 		break;
 	}
 

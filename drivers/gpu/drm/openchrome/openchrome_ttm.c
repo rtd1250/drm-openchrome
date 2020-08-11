@@ -60,7 +60,6 @@ static int openchrome_bo_init_mem_type(struct ttm_bo_device *bdev,
 	case TTM_PL_VRAM:
 		man->flags = TTM_MEMTYPE_FLAG_FIXED |
 				TTM_MEMTYPE_FLAG_MAPPABLE;
-		man->gpu_offset = 0;
 		man->available_caching = TTM_PL_FLAG_UNCACHED |
 						TTM_PL_FLAG_WC;
 		man->default_caching = TTM_PL_FLAG_WC;
