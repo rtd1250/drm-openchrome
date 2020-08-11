@@ -33,8 +33,6 @@
 #include <drm/drm_file.h>
 #include <drm/drm_pciids.h>
 
-#include <drm/via_drm.h>
-
 #include "openchrome_drv.h"
 
 
