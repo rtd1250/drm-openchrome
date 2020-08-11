@@ -953,7 +953,6 @@ via_fp_get_modes(struct drm_connector *connector)
 		native_mode->vsync_end = 911;
 		native_mode->vtotal = 912;
 		native_mode->vscan = 0;
-		native_mode->vrefresh = 50;
 
 		native_mode->type = DRM_MODE_TYPE_PREFERRED |
 					DRM_MODE_TYPE_DRIVER;
