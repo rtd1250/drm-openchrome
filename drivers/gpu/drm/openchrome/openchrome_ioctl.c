@@ -101,10 +101,26 @@ exit:
 	return ret;
 }
 
+static int openchrome_gem_unmap(struct drm_device *dev,
+				void *data,
+				struct drm_file *file_priv)
+{
+	struct drm_openchrome_gem_unmap *args = data;
+	int ret;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	ret = drm_gem_handle_delete(file_priv, args->handle);
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
+}
+
 
 const struct drm_ioctl_desc openchrome_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_CREATE, openchrome_gem_create, DRM_AUTH | DRM_UNLOCKED),
 	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_MAP, openchrome_gem_map, DRM_AUTH | DRM_UNLOCKED),
+	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_UNMAP, openchrome_gem_unmap, DRM_AUTH | DRM_UNLOCKED),
 };
 
 
