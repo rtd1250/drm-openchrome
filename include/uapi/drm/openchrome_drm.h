@@ -42,12 +42,10 @@ extern "C" {
 
 #define DRM_OPENCHROME_GEM_CREATE	0x00
 #define DRM_OPENCHROME_GEM_MAP		0x01
-#define DRM_OPENCHROME_GEM_UNMAP	0x02
 
 
 #define DRM_IOCTL_OPENCHROME_GEM_CREATE DRM_IOWR(DRM_COMMAND_BASE + DRM_OPENCHROME_GEM_CREATE, struct drm_openchrome_gem_create)
 #define DRM_IOCTL_OPENCHROME_GEM_MAP    DRM_IOWR(DRM_COMMAND_BASE + DRM_OPENCHROME_GEM_MAP, struct drm_openchrome_gem_map)
-#define DRM_IOCTL_OPENCHROME_GEM_UNMAP  DRM_IOR(DRM_COMMAND_BASE + DRM_OPENCHROME_GEM_MAP, struct drm_openchrome_gem_unmap)
 
 
 struct drm_openchrome_gem_create {
@@ -61,10 +59,6 @@ struct drm_openchrome_gem_create {
 struct drm_openchrome_gem_map {
 	uint32_t handle;
 	uint64_t map_offset;
-};
-
-struct drm_openchrome_gem_unmap {
-	uint32_t handle;
 };
 
 
