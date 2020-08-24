@@ -974,6 +974,60 @@ out_err:
 	return ret;
 }
 
+static void openchrome_quirks_init(
+			struct openchrome_drm_private *dev_private)
+{
+	struct drm_device *dev = dev_private->dev;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	/*
+	 * Checking for VIA Technologies NanoBook reference design.
+	 * Examples include Everex CloudBook and Sylvania g netbook.
+	 * It is also called FIC CE260 or CE261 by its ODM (Original
+	 * Design Manufacturer) name.
+	 * This device has its strapping resistors set to a wrong
+	 * setting to handle DVI. As a result, the code needs to know
+	 * this in order to support DVI properly.
+	 */
+	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_VT3157) &&
+		(dev->pdev->subsystem_vendor == 0x1509) &&
+		(dev->pdev->subsystem_device == 0x2d30)) {
+		dev_private->is_via_nanobook = true;
+	} else {
+		dev_private->is_via_nanobook = false;
+	}
+
+	/*
+	 * Check for Quanta IL1 netbook. This is necessary
+	 * due to its flat panel connected to DVP1 (Digital
+	 * Video Port 1) rather than its LVDS channel.
+	 */
+	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) &&
+		(dev->pdev->subsystem_vendor == 0x152d) &&
+		(dev->pdev->subsystem_device == 0x0771)) {
+		dev_private->is_quanta_il1 = true;
+	} else {
+		dev_private->is_quanta_il1 = false;
+	}
+
+	/*
+	 * Samsung NC20 netbook has its FP connected to LVDS2
+	 * rather than the more logical LVDS1, hence, a special
+	 * flag register is needed for properly controlling its
+	 * FP.
+	 */
+	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) &&
+		(dev->pdev->subsystem_vendor == 0x144d) &&
+		(dev->pdev->subsystem_device == 0xc04e)) {
+		dev_private->is_samsung_nc20 = true;
+	} else {
+		dev_private->is_samsung_nc20 = false;
+	}
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
 int openchrome_vram_init(struct openchrome_drm_private *dev_private)
 {
 	int ret = 0;
@@ -1085,74 +1139,9 @@ void openchrome_graphics_unlock(
 void chip_revision_info(struct openchrome_drm_private *dev_private)
 {
 	struct drm_device *dev = dev_private->dev;
-	struct pci_bus *bus = NULL;
-	u16 device_id, subsystem_vendor_id, subsystem_device_id;
 	u8 tmp;
-	int pci_bus;
-	u8 pci_device, pci_function;
-	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	/*
-	 * VX800, VX855, and VX900 chipsets have Chrome IGP
-	 * connected as Bus 0, Device 1 PCI device.
-	 */
-	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
-		(dev->pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
-		(dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA)) {
-
-		pci_bus = 0;
-		pci_device = 1;
-		pci_function = 0;
-
-	/*
-	 * For all other devices, Chrome IGP is connected as
-	 * Bus 1, Device 0 PCI Device.
-	 */
-	} else {
-		pci_bus = 1;
-		pci_device = 0;
-		pci_function = 0;
-	}
-
-	bus = pci_find_bus(0, pci_bus);
-	if (!bus) {
-		goto pci_error;
-	}
-
-	ret = pci_bus_read_config_word(bus, PCI_DEVFN(pci_device,
-							pci_function),
-					PCI_DEVICE_ID,
-					&device_id);
-	if (ret) {
-		goto pci_error;
-	}
-
-	ret = pci_bus_read_config_word(bus, PCI_DEVFN(pci_device,
-							pci_function),
-					PCI_SUBSYSTEM_VENDOR_ID,
-					&subsystem_vendor_id);
-	if (ret) {
-		goto pci_error;
-	}
-
-	ret = pci_bus_read_config_word(bus, PCI_DEVFN(pci_device,
-							pci_function),
-					PCI_SUBSYSTEM_ID,
-					&subsystem_device_id);
-	if (ret) {
-		goto pci_error;
-	}
-
-	DRM_DEBUG_KMS("DRM Device ID: "
-			"0x%04x\n", dev->pdev->device);
-	DRM_DEBUG_KMS("Chrome IGP Device ID: "
-			"0x%04x\n", device_id);
-	DRM_DEBUG_KMS("Chrome IGP Subsystem Vendor ID: "
-			"0x%04x\n", subsystem_vendor_id);
-	DRM_DEBUG_KMS("Chrome IGP Subsystem Device ID: "
-			"0x%04x\n", subsystem_device_id);
 
 	switch (dev->pdev->device) {
 	/* CLE266 Chipset */
@@ -1180,42 +1169,9 @@ void chip_revision_info(struct openchrome_drm_private *dev_private)
 			dev_private->revision = CX700_REVISION_700;
 		}
 
-		/* Check for VIA Technologies NanoBook reference
-		 * design. This is necessary due to its strapping
-		 * resistors not being set to indicate the
-		 * availability of DVI. */
-		if ((subsystem_vendor_id == 0x1509) &&
-			(subsystem_device_id == 0x2d30)) {
-			dev_private->is_via_nanobook = true;
-		} else {
-			dev_private->is_via_nanobook = false;
-		}
-
 		break;
 	/* VX800 / VX820 Chipset */
 	case PCI_DEVICE_ID_VIA_VT1122:
-
-		/* Check for Quanta IL1 netbook. This is necessary
-		 * due to its flat panel connected to DVP1 (Digital
-		 * Video Port 1) rather than its LVDS channel. */
-		if ((subsystem_vendor_id == 0x152d) &&
-			(subsystem_device_id == 0x0771)) {
-			dev_private->is_quanta_il1 = true;
-		} else {
-			dev_private->is_quanta_il1 = false;
-		}
-
-		/* Samsung NC20 netbook has its FP connected to LVDS2
-		 * rather than the more logical LVDS1, hence, a special
-		 * flag register is needed for properly controlling its
-		 * FP. */
-		if ((subsystem_vendor_id == 0x144d) &&
-			(subsystem_device_id == 0xc04e)) {
-			dev_private->is_samsung_nc20 = true;
-		} else {
-			dev_private->is_samsung_nc20 = false;
-		}
-
 		break;
 	/* VX855 / VX875 Chipset */
 	case PCI_DEVICE_ID_VIA_VX875:
@@ -1227,10 +1183,6 @@ void chip_revision_info(struct openchrome_drm_private *dev_private)
 		break;
 	}
 
-	goto exit;
-pci_error:
-	DRM_ERROR("PCI bus related error.");
-exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
@@ -1240,12 +1192,6 @@ void openchrome_flag_init(struct openchrome_drm_private *dev_private)
 
 	/* Set this flag for ttm_bo_device_init. */
 	dev_private->need_dma32 = true;
-
-	/*
-	 * Special handling flags for a few special models.
-	 */
-	dev_private->is_via_nanobook = false;
-	dev_private->is_quanta_il1 = false;
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -1257,6 +1203,7 @@ int openchrome_device_init(struct openchrome_drm_private *dev_private)
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	openchrome_flag_init(dev_private);
+	openchrome_quirks_init(dev_private);
 
 	ret = openchrome_vram_detect(dev_private);
 	if (ret) {
