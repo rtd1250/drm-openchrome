@@ -33,7 +33,7 @@
 #include "openchrome_drv.h"
 
 
-static int openchrome_gem_create(struct drm_device *dev,
+static int openchrome_gem_create_ioctl(struct drm_device *dev,
 					void *data,
 					struct drm_file *file_priv)
 {
@@ -75,7 +75,7 @@ exit:
 	return ret;
 }
 
-static int openchrome_gem_map(struct drm_device *dev,
+static int openchrome_gem_map_ioctl(struct drm_device *dev,
 					void *data,
 					struct drm_file *file_priv)
 {
@@ -101,7 +101,7 @@ exit:
 	return ret;
 }
 
-static int openchrome_gem_unmap(struct drm_device *dev,
+static int openchrome_gem_unmap_ioctl(struct drm_device *dev,
 				void *data,
 				struct drm_file *file_priv)
 {
@@ -118,9 +118,9 @@ static int openchrome_gem_unmap(struct drm_device *dev,
 
 
 const struct drm_ioctl_desc openchrome_ioctls[] = {
-	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_CREATE, openchrome_gem_create, DRM_AUTH | DRM_UNLOCKED),
-	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_MAP, openchrome_gem_map, DRM_AUTH | DRM_UNLOCKED),
-	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_UNMAP, openchrome_gem_unmap, DRM_AUTH | DRM_UNLOCKED),
+	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_CREATE, openchrome_gem_create_ioctl, DRM_AUTH | DRM_UNLOCKED),
+	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_MAP, openchrome_gem_map_ioctl, DRM_AUTH | DRM_UNLOCKED),
+	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_UNMAP, openchrome_gem_unmap_ioctl, DRM_AUTH | DRM_UNLOCKED),
 };
 
 
