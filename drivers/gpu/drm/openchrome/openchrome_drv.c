@@ -191,12 +191,10 @@ static int openchrome_driver_load(struct drm_device *dev,
 
 	chip_revision_info(dev_private);
 
-	if (drm_core_check_feature(dev, DRIVER_MODESET)) {
-		ret = via_modeset_init(dev);
-		if (ret) {
+	ret = via_modeset_init(dev);
+	if (ret) {
 		DRM_ERROR("Failed to initialize mode setting.\n");
 		goto init_error;
-		}
 	}
 
 	goto exit;
