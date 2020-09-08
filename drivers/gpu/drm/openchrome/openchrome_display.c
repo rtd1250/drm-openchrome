@@ -527,6 +527,8 @@ void via_modeset_fini(struct drm_device *dev)
 	if (!dev->mode_config.dpms_property)
 		return;
 
+	drm_helper_force_disable_all(dev);
+
 	/* We need to cleanup the connectors before the encoders */
 	list_for_each_entry_safe(connector, ot,
 				&dev->mode_config.connector_list, head)
