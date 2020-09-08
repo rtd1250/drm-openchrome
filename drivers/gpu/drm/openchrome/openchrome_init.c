@@ -974,6 +974,16 @@ out_err:
 	return ret;
 }
 
+static void openchrome_flag_init(struct openchrome_drm_private *dev_private)
+{
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	/* Set this flag for ttm_bo_device_init. */
+	dev_private->need_dma32 = true;
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
 static void openchrome_quirks_init(
 			struct openchrome_drm_private *dev_private)
 {
@@ -1182,16 +1192,6 @@ void chip_revision_info(struct openchrome_drm_private *dev_private)
 	default:
 		break;
 	}
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-}
-
-void openchrome_flag_init(struct openchrome_drm_private *dev_private)
-{
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	/* Set this flag for ttm_bo_device_init. */
-	dev_private->need_dma32 = true;
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
