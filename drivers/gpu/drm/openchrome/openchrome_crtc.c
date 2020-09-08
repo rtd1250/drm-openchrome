@@ -2063,99 +2063,9 @@ drm_crtc_helper_funcs openchrome_drm_crtc_helper_funcs = {
 	.mode_set_base_atomic = openchrome_crtc_mode_set_base_atomic,
 };
 
-static const uint32_t openchrome_primary_formats[] = {
-	DRM_FORMAT_XRGB8888,
-	DRM_FORMAT_ARGB8888,
-	DRM_FORMAT_RGB888,
-	DRM_FORMAT_RGB565,
-	DRM_FORMAT_RGB332,
-};
 
-int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
-				uint32_t index)
-{
-	struct drm_device *dev = dev_private->dev;
-	struct via_crtc *iga;
-	struct drm_plane *primary;
-	struct drm_plane *cursor;
-	uint32_t possible_crtcs;
-	int ret;
 
-	possible_crtcs = 1 << index;
-
-	primary = kzalloc(sizeof(struct drm_plane), GFP_KERNEL);
-	if (!primary) {
-		ret = -ENOMEM;
-		DRM_ERROR("Failed to allocate a primary plane.\n");
-		goto exit;
-	}
-
-	ret = drm_universal_plane_init(dev, primary, possible_crtcs,
-			&drm_primary_helper_funcs,
-			openchrome_primary_formats,
-			ARRAY_SIZE(openchrome_primary_formats),
-			NULL, DRM_PLANE_TYPE_PRIMARY, NULL);
-	if (ret) {
-		DRM_ERROR("Failed to initialize a primary "
-				"plane.\n");
-		goto free_primary;
-	}
-
-	cursor = kzalloc(sizeof(struct drm_plane), GFP_KERNEL);
-	if (!cursor) {
-		ret = -ENOMEM;
-		DRM_ERROR("Failed to allocate a cursor plane.\n");
-		goto cleanup_primary;
-	}
-
-	ret = drm_universal_plane_init(dev, cursor, possible_crtcs,
-			&openchrome_cursor_drm_plane_funcs,
-			openchrome_cursor_formats,
-			openchrome_cursor_formats_size,
-			NULL, DRM_PLANE_TYPE_CURSOR, NULL);
-	if (ret) {
-		DRM_ERROR("Failed to initialize a cursor "
-				"plane.\n");
-		goto free_cursor;
-	}
-
-	iga = kzalloc(sizeof(struct via_crtc), GFP_KERNEL);
-	if (!iga) {
-		ret = -ENOMEM;
-		DRM_ERROR("Failed to allocate CRTC storage.\n");
-		goto cleanup_cursor;
-	}
-
-	drm_crtc_helper_add(&iga->base,
-			&openchrome_drm_crtc_helper_funcs);
-	ret = drm_crtc_init_with_planes(dev, &iga->base,
-					primary, cursor,
-					&openchrome_drm_crtc_funcs,
-					NULL);
-	if (ret) {
-		DRM_ERROR("Failed to initialize CRTC!\n");
-		goto free_crtc;
-	}
-
-	iga->index = index;
-
-	openchrome_crtc_param_init(dev_private, &iga->base, index);
-	goto exit;
-free_crtc:
-	kfree(iga);
-cleanup_cursor:
-	drm_plane_cleanup(cursor);
-free_cursor:
-	kfree(cursor);
-cleanup_primary:
-	drm_plane_cleanup(primary);
-free_primary:
-	kfree(primary);
-exit:
-	return ret;
-}
-
-void openchrome_crtc_param_init(
+static void openchrome_crtc_param_init(
 		struct openchrome_drm_private *dev_private,
 		struct drm_crtc *crtc,
 		uint32_t index)
@@ -2324,4 +2234,98 @@ void openchrome_crtc_param_init(
 		gamma[i + 256] = i << 8 | i;
 		gamma[i + 512] = i << 8 | i;
 	}
+}
+
+
+
+static const uint32_t openchrome_primary_formats[] = {
+	DRM_FORMAT_XRGB8888,
+	DRM_FORMAT_ARGB8888,
+	DRM_FORMAT_RGB888,
+	DRM_FORMAT_RGB565,
+	DRM_FORMAT_RGB332,
+};
+
+int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
+				uint32_t index)
+{
+	struct drm_device *dev = dev_private->dev;
+	struct via_crtc *iga;
+	struct drm_plane *primary;
+	struct drm_plane *cursor;
+	uint32_t possible_crtcs;
+	int ret;
+
+	possible_crtcs = 1 << index;
+
+	primary = kzalloc(sizeof(struct drm_plane), GFP_KERNEL);
+	if (!primary) {
+		ret = -ENOMEM;
+		DRM_ERROR("Failed to allocate a primary plane.\n");
+		goto exit;
+	}
+
+	ret = drm_universal_plane_init(dev, primary, possible_crtcs,
+			&drm_primary_helper_funcs,
+			openchrome_primary_formats,
+			ARRAY_SIZE(openchrome_primary_formats),
+			NULL, DRM_PLANE_TYPE_PRIMARY, NULL);
+	if (ret) {
+		DRM_ERROR("Failed to initialize a primary "
+				"plane.\n");
+		goto free_primary;
+	}
+
+	cursor = kzalloc(sizeof(struct drm_plane), GFP_KERNEL);
+	if (!cursor) {
+		ret = -ENOMEM;
+		DRM_ERROR("Failed to allocate a cursor plane.\n");
+		goto cleanup_primary;
+	}
+
+	ret = drm_universal_plane_init(dev, cursor, possible_crtcs,
+			&openchrome_cursor_drm_plane_funcs,
+			openchrome_cursor_formats,
+			openchrome_cursor_formats_size,
+			NULL, DRM_PLANE_TYPE_CURSOR, NULL);
+	if (ret) {
+		DRM_ERROR("Failed to initialize a cursor "
+				"plane.\n");
+		goto free_cursor;
+	}
+
+	iga = kzalloc(sizeof(struct via_crtc), GFP_KERNEL);
+	if (!iga) {
+		ret = -ENOMEM;
+		DRM_ERROR("Failed to allocate CRTC storage.\n");
+		goto cleanup_cursor;
+	}
+
+	drm_crtc_helper_add(&iga->base,
+			&openchrome_drm_crtc_helper_funcs);
+	ret = drm_crtc_init_with_planes(dev, &iga->base,
+					primary, cursor,
+					&openchrome_drm_crtc_funcs,
+					NULL);
+	if (ret) {
+		DRM_ERROR("Failed to initialize CRTC!\n");
+		goto free_crtc;
+	}
+
+	iga->index = index;
+
+	openchrome_crtc_param_init(dev_private, &iga->base, index);
+	goto exit;
+free_crtc:
+	kfree(iga);
+cleanup_cursor:
+	drm_plane_cleanup(cursor);
+free_cursor:
+	kfree(cursor);
+cleanup_primary:
+	drm_plane_cleanup(primary);
+free_primary:
+	kfree(primary);
+exit:
+	return ret;
 }
