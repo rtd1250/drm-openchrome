@@ -517,22 +517,10 @@ exit:
 
 void via_modeset_fini(struct drm_device *dev)
 {
-	struct drm_connector *connector, *ot;
-	struct drm_encoder *encoder, *enct;
-
 	drm_kms_helper_poll_fini(dev);
 	via_fbdev_fini(dev);
 
 	drm_helper_force_disable_all(dev);
-
-	/* We need to cleanup the connectors before the encoders */
-	list_for_each_entry_safe(connector, ot,
-				&dev->mode_config.connector_list, head)
-		connector->funcs->destroy(connector);
-
-	list_for_each_entry_safe(encoder, enct,
-				&dev->mode_config.encoder_list, head)
-		encoder->funcs->destroy(encoder);
 
 	drm_mode_config_cleanup(dev);
 
