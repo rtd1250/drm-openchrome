@@ -1231,3 +1231,13 @@ exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
+
+void openchrome_device_fini(struct openchrome_drm_private *dev_private)
+{
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	openchrome_mmio_fini(dev_private);
+	openchrome_vram_fini(dev_private);
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}

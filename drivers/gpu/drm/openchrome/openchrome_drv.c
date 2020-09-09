@@ -141,13 +141,7 @@ static void openchrome_driver_unload(struct drm_device *dev)
 		via_modeset_fini(dev);
 
 	openchrome_mm_fini(dev_private);
-
-	/*
-	 * Unmap VRAM.
-	 */
-	openchrome_vram_fini(dev_private);
-
-	openchrome_mmio_fini(dev_private);
+	openchrome_device_fini(dev_private);
 
 	kfree(dev_private);
 

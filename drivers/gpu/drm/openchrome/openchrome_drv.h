@@ -391,6 +391,7 @@ void openchrome_graphics_unlock(
 			struct openchrome_drm_private *dev_private);
 void chip_revision_info(struct openchrome_drm_private *dev_private);
 int openchrome_device_init(struct openchrome_drm_private *dev_private);
+void openchrome_device_fini(struct openchrome_drm_private *dev_private);
 
 int openchrome_dev_pm_ops_suspend(struct device *dev);
 int openchrome_dev_pm_ops_resume(struct device *dev);
