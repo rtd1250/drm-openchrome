@@ -137,8 +137,7 @@ static void openchrome_driver_unload(struct drm_device *dev)
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if (drm_core_check_feature(dev, DRIVER_MODESET))
-		via_modeset_fini(dev);
+	via_modeset_fini(dev);
 
 	openchrome_mm_fini(dev_private);
 	openchrome_device_fini(dev_private);
@@ -203,9 +202,7 @@ static void openchrome_driver_lastclose(struct drm_device *dev)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if (drm_core_check_feature(dev, DRIVER_MODESET) &&
-		dev->mode_config.funcs->output_poll_changed)
-		dev->mode_config.funcs->output_poll_changed(dev);
+	dev->mode_config.funcs->output_poll_changed(dev);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
