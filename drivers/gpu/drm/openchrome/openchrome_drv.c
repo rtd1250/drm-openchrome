@@ -173,7 +173,6 @@ static int openchrome_driver_load(struct drm_device *dev,
 	}
 
 	dev->dev_private = (void *) dev_private;
-	dev_private->engine_type = chipset;
 	dev_private->vram_mtrr = -ENXIO;
 	dev_private->dev = dev;
 

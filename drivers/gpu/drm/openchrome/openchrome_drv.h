@@ -241,8 +241,6 @@ struct openchrome_drm_private {
 
 	struct via_state pm_cache;
 
-	enum via_engine engine_type;
-
 	bool spread_spectrum;
 
 	/*
