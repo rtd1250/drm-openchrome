@@ -338,10 +338,6 @@ static int openchrome_cursor_disable_plane(struct drm_plane *plane,
 
 static void openchrome_cursor_destroy(struct drm_plane *plane)
 {
-	if (plane->crtc) {
-		openchrome_hide_cursor(plane->crtc);
-	}
-
 	drm_plane_cleanup(plane);
 	kfree(plane);
 }
