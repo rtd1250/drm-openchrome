@@ -343,6 +343,7 @@ static void openchrome_cursor_destroy(struct drm_plane *plane)
 	}
 
 	drm_plane_cleanup(plane);
+	kfree(plane);
 }
 
 const struct drm_plane_funcs openchrome_cursor_drm_plane_funcs = {
