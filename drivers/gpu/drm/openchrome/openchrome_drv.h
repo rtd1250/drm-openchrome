@@ -396,9 +396,6 @@ void openchrome_device_fini(struct openchrome_drm_private *dev_private);
 int openchrome_dev_pm_ops_suspend(struct device *dev);
 int openchrome_dev_pm_ops_resume(struct device *dev);
 
-void openchrome_mode_config_init(
-			struct openchrome_drm_private *dev_private);
-
 void openchrome_ttm_domain_to_placement(struct openchrome_bo *bo,
 					uint32_t ttm_domain);
 void openchrome_ttm_bo_destroy(struct ttm_buffer_object *tbo);
@@ -432,8 +429,6 @@ extern const struct drm_plane_funcs openchrome_cursor_drm_plane_funcs;
 extern const uint32_t openchrome_cursor_formats[];
 extern const unsigned int openchrome_cursor_formats_size;
 
-extern struct drm_fb_helper_funcs via_drm_fb_helper_funcs;
-
 /* display */
 extern int via_modeset_init(struct drm_device *dev);
 extern void via_modeset_fini(struct drm_device *dev);
@@ -454,6 +449,8 @@ extern u32 via_get_clk_value(struct drm_device *dev, u32 clk);
 extern void via_set_vclock(struct drm_crtc *crtc, u32 clk);
 
 /* framebuffers */
+void openchrome_mode_config_init(
+			struct openchrome_drm_private *dev_private);
 extern int via_fbdev_init(struct drm_device *dev);
 extern void via_fbdev_fini(struct drm_device *dev);
 
