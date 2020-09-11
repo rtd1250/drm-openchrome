@@ -69,14 +69,6 @@ static const struct drm_framebuffer_funcs via_fb_funcs = {
 	.destroy	= via_user_framebuffer_destroy,
 };
 
-static void
-via_output_poll_changed(struct drm_device *dev)
-{
-	struct openchrome_drm_private *dev_private = dev->dev_private;
-
-	drm_fb_helper_hotplug_event(&dev_private->via_fbdev->helper);
-}
-
 static struct drm_framebuffer *
 via_user_framebuffer_create(struct drm_device *dev,
 				struct drm_file *file_priv,
@@ -114,7 +106,7 @@ via_user_framebuffer_create(struct drm_device *dev,
 
 static const struct drm_mode_config_funcs via_mode_funcs = {
 	.fb_create		= via_user_framebuffer_create,
-	.output_poll_changed	= via_output_poll_changed
+	.output_poll_changed	= drm_fb_helper_output_poll_changed
 };
 
 void openchrome_mode_config_init(
