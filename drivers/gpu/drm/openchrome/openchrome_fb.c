@@ -28,40 +28,15 @@
 #include <drm/drm_fb_helper.h>
 #include <drm/drm_fourcc.h>
 #include <drm/drm_gem.h>
+#include <drm_gem_framebuffer_helper.h>
 
 #include "openchrome_drv.h"
 
 
-static int
-via_user_framebuffer_create_handle(struct drm_framebuffer *fb,
-					struct drm_file *file_priv,
-					unsigned int *handle)
-{
-	int ret;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	ret = drm_gem_handle_create(file_priv, fb->obj[0], handle);
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return ret;
-}
-
-static void
-via_user_framebuffer_destroy(struct drm_framebuffer *fb)
-{
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	drm_gem_object_put(fb->obj[0]);
-	drm_framebuffer_cleanup(fb);
-	kfree(fb);
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-}
-
-static const struct drm_framebuffer_funcs via_fb_funcs = {
-	.create_handle	= via_user_framebuffer_create_handle,
-	.destroy	= via_user_framebuffer_destroy,
+static const struct drm_framebuffer_funcs
+openchrome_drm_framebuffer_funcs = {
+	.create_handle	= drm_gem_fb_create_handle,
+	.destroy	= drm_gem_fb_destroy,
 };
 
 static struct drm_framebuffer *
@@ -87,7 +62,8 @@ via_user_framebuffer_create(struct drm_device *dev,
 
 	drm_helper_mode_fill_fb_struct(dev, fb, mode_cmd);
 	fb->obj[0] = gem;
-	ret = drm_framebuffer_init(dev, fb, &via_fb_funcs);
+	ret = drm_framebuffer_init(dev, fb,
+				&openchrome_drm_framebuffer_funcs);
 	if (ret) {
 		drm_gem_object_put(gem);
 		kfree(fb);
@@ -204,7 +180,8 @@ via_fb_probe(struct drm_fb_helper *helper,
 
 	drm_helper_mode_fill_fb_struct(dev, fb, &mode_cmd);
 	fb->obj[0] = &via_fbdev->bo->gem;
-	ret = drm_framebuffer_init(dev, fb, &via_fb_funcs);
+	ret = drm_framebuffer_init(dev, fb,
+				&openchrome_drm_framebuffer_funcs);
 	if (unlikely(ret)) {
 		goto out_err;
 	}
