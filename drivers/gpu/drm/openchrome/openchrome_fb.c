@@ -39,14 +39,47 @@ openchrome_drm_framebuffer_funcs = {
 	.destroy	= drm_gem_fb_destroy,
 };
 
+static int openchrome_framebuffer_init(
+			struct drm_device *dev,
+			struct drm_gem_object *gem,
+			const struct drm_mode_fb_cmd2 *mode_cmd,
+			struct drm_framebuffer **pfb)
+{
+	struct drm_framebuffer *fb;
+	int ret = 0;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	fb = kzalloc(sizeof(struct drm_framebuffer), GFP_KERNEL);
+	if (!fb) {
+		ret = -ENOMEM;
+		goto exit;
+	}
+
+	drm_helper_mode_fill_fb_struct(dev, fb, mode_cmd);
+	fb->obj[0] = gem;
+	ret = drm_framebuffer_init(dev, fb,
+				&openchrome_drm_framebuffer_funcs);
+	if (ret) {
+		kfree(fb);
+	}
+exit:
+	*pfb = fb;
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
+}
+
 static struct drm_framebuffer *
-via_user_framebuffer_create(struct drm_device *dev,
-				struct drm_file *file_priv,
-				const struct drm_mode_fb_cmd2 *mode_cmd)
+openchrome_fb_create(struct drm_device *dev,
+			struct drm_file *file_priv,
+			const struct drm_mode_fb_cmd2 *mode_cmd)
 {
 	struct drm_framebuffer *fb;
 	struct drm_gem_object *gem;
 	int ret;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	gem = drm_gem_object_lookup(file_priv, mode_cmd->handles[0]);
 	if (!gem) {
@@ -55,26 +88,19 @@ via_user_framebuffer_create(struct drm_device *dev,
 		return ERR_PTR(-ENOENT);
 	}
 
-	fb = kzalloc(sizeof(struct drm_framebuffer), GFP_KERNEL);
-	if (!fb) {
-		return ERR_PTR(-ENOMEM);
-	}
-
-	drm_helper_mode_fill_fb_struct(dev, fb, mode_cmd);
-	fb->obj[0] = gem;
-	ret = drm_framebuffer_init(dev, fb,
-				&openchrome_drm_framebuffer_funcs);
+	ret = openchrome_framebuffer_init(dev, gem, mode_cmd, &fb);
 	if (ret) {
 		drm_gem_object_put(gem);
-		kfree(fb);
+		DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 		return ERR_PTR(ret);
 	}
 
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return fb;
 }
 
-static const struct drm_mode_config_funcs via_mode_funcs = {
-	.fb_create		= via_user_framebuffer_create,
+static const struct drm_mode_config_funcs openchrome_drm_mode_config_funcs = {
+	.fb_create		= openchrome_fb_create,
 	.output_poll_changed	= drm_fb_helper_output_poll_changed
 };
 
@@ -92,7 +118,7 @@ void openchrome_mode_config_init(
 	dev->mode_config.max_width = 2044;
 	dev->mode_config.max_height = 4096;
 
-	dev->mode_config.funcs = &via_mode_funcs;
+	dev->mode_config.funcs = &openchrome_drm_mode_config_funcs;
 
 	dev->mode_config.preferred_depth = 24;
 
@@ -133,6 +159,7 @@ openchrome_fb_probe(struct drm_fb_helper *helper,
 	struct via_framebuffer_device *via_fbdev = container_of(helper,
 				struct via_framebuffer_device, helper);
 	struct drm_framebuffer *fb;
+	struct drm_gem_object *gem;
 	struct fb_info *info = helper->fbdev;
 	const struct drm_format_info *format_info;
 	struct drm_mode_fb_cmd2 mode_cmd;
@@ -164,18 +191,10 @@ openchrome_fb_probe(struct drm_fb_helper *helper,
 		goto exit;
 	}
 
-	fb = kzalloc(sizeof(struct drm_framebuffer), GFP_KERNEL);
-	if (!fb) {
-		ret = -ENOMEM;
-		goto free_bo;
-	}
-
-	drm_helper_mode_fill_fb_struct(dev, fb, &mode_cmd);
-	fb->obj[0] = &via_fbdev->bo->gem;
-	ret = drm_framebuffer_init(dev, fb,
-				&openchrome_drm_framebuffer_funcs);
+	gem = &via_fbdev->bo->gem;
+	ret = openchrome_framebuffer_init(dev, gem, &mode_cmd, &fb);
 	if (ret) {
-		goto free_fb;
+		goto free_bo;
 	}
 
 	info = drm_fb_helper_alloc_fbi(helper);
@@ -203,7 +222,12 @@ openchrome_fb_probe(struct drm_fb_helper *helper,
 	goto exit;
 cleanup_fb:
 	drm_framebuffer_cleanup(fb);
-free_fb:
+
+	/*
+	 * openchrome_framebuffer_init() allocates a drm_framebuffer
+	 * struct (in this case, fb pointer), so it needs to be
+	 * released if there was an error.
+	 */
 	kfree(fb);
 free_bo:
 	openchrome_bo_destroy(via_fbdev->bo, true);
