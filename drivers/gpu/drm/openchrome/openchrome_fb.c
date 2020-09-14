@@ -204,7 +204,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 
 	drm_helper_mode_fill_fb_struct(dev, fb, &mode_cmd);
 	fb->obj[0] = &via_fbdev->bo->gem;
-	ret = drm_framebuffer_init(helper->dev, fb, &via_fb_funcs);
+	ret = drm_framebuffer_init(dev, fb, &via_fb_funcs);
 	if (unlikely(ret)) {
 		goto out_err;
 	}
