@@ -257,7 +257,6 @@ static int openchrome_cursor_update_plane(struct drm_plane *plane,
 				struct drm_modeset_acquire_ctx *ctx)
 {
 	struct drm_device *dev = plane->dev;
-	struct via_framebuffer *via_fb;
 	struct openchrome_bo *ttm_bo;
 	struct drm_gem_object *gem;
 	int ret = 0;
@@ -306,8 +305,7 @@ static int openchrome_cursor_update_plane(struct drm_plane *plane,
 	}
 
 	if (fb != crtc->cursor->fb) {
-		via_fb = container_of(fb, struct via_framebuffer, fb);
-		gem = via_fb->gem;
+		gem = fb->obj[0];
 		ttm_bo = container_of(gem, struct openchrome_bo, gem);
 		openchrome_cursor_address(crtc, ttm_bo);
 	} else {

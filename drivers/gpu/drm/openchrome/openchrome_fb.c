@@ -37,13 +37,11 @@ via_user_framebuffer_create_handle(struct drm_framebuffer *fb,
 					struct drm_file *file_priv,
 					unsigned int *handle)
 {
-	struct via_framebuffer *via_fb = container_of(fb,
-					struct via_framebuffer, fb);
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	ret = drm_gem_handle_create(file_priv, via_fb->gem, handle);
+	ret = drm_gem_handle_create(file_priv, fb->obj[0], handle);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
@@ -52,18 +50,11 @@ via_user_framebuffer_create_handle(struct drm_framebuffer *fb,
 static void
 via_user_framebuffer_destroy(struct drm_framebuffer *fb)
 {
-	struct via_framebuffer *via_fb = container_of(fb,
-					struct via_framebuffer, fb);
-
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if (via_fb->gem) {
-		drm_gem_object_put(via_fb->gem);
-		via_fb->gem = NULL;
-	}
-
+	drm_gem_object_put(fb->obj[0]);
 	drm_framebuffer_cleanup(fb);
-	kfree(via_fb);
+	kfree(fb);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -78,7 +69,7 @@ via_user_framebuffer_create(struct drm_device *dev,
 				struct drm_file *file_priv,
 				const struct drm_mode_fb_cmd2 *mode_cmd)
 {
-	struct via_framebuffer *via_fb;
+	struct drm_framebuffer *fb;
 	struct drm_gem_object *gem;
 	int ret;
 
@@ -89,23 +80,21 @@ via_user_framebuffer_create(struct drm_device *dev,
 		return ERR_PTR(-ENOENT);
 	}
 
-	via_fb = kzalloc(sizeof(struct via_framebuffer), GFP_KERNEL);
-	if (!via_fb) {
+	fb = kzalloc(sizeof(struct drm_framebuffer), GFP_KERNEL);
+	if (!fb) {
 		return ERR_PTR(-ENOMEM);
 	}
 
-	via_fb->gem = gem;
-
-	drm_helper_mode_fill_fb_struct(dev, &via_fb->fb, mode_cmd);
-	ret = drm_framebuffer_init(dev, &via_fb->fb, &via_fb_funcs);
+	drm_helper_mode_fill_fb_struct(dev, fb, mode_cmd);
+	fb->obj[0] = gem;
+	ret = drm_framebuffer_init(dev, fb, &via_fb_funcs);
 	if (ret) {
-		drm_gem_object_put(via_fb->gem);
-		via_fb->gem = NULL;
-		kfree(via_fb);
+		drm_gem_object_put(gem);
+		kfree(fb);
 		return ERR_PTR(ret);
 	}
 
-	return &via_fb->fb;
+	return fb;
 }
 
 static const struct drm_mode_config_funcs via_mode_funcs = {
@@ -167,8 +156,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 					helper->dev->dev_private;
 	struct via_framebuffer_device *via_fbdev = container_of(helper,
 				struct via_framebuffer_device, helper);
-	struct via_framebuffer *via_fb = &via_fbdev->via_fb;
-	struct drm_framebuffer *fb = &via_fbdev->via_fb.fb;
+	struct drm_framebuffer *fb;
 	struct fb_info *info = helper->fbdev;
 	const struct drm_format_info *format_info;
 	struct drm_mode_fb_cmd2 mode_cmd;
@@ -201,6 +189,11 @@ via_fb_probe(struct drm_fb_helper *helper,
 		goto exit;
 	}
 
+	fb = kzalloc(sizeof(struct drm_framebuffer), GFP_KERNEL);
+	if (!fb) {
+		return ret;
+	}
+
 	info = drm_fb_helper_alloc_fbi(helper);
 	if (IS_ERR(info)) {
 		ret = PTR_ERR(info);
@@ -210,12 +203,12 @@ via_fb_probe(struct drm_fb_helper *helper,
 	info->skip_vt_switch = true;
 
 	drm_helper_mode_fill_fb_struct(dev, fb, &mode_cmd);
+	fb->obj[0] = &via_fbdev->bo->gem;
 	ret = drm_framebuffer_init(helper->dev, fb, &via_fb_funcs);
 	if (unlikely(ret)) {
 		goto out_err;
 	}
 
-	via_fb->gem = &via_fbdev->bo->gem;
 	via_fbdev->helper.fb = fb;
 	via_fbdev->helper.fbdev = info;
 
@@ -247,10 +240,7 @@ out_err:
 		via_fbdev->bo = NULL;
 	}
 
-	if (via_fb->gem) {
-		drm_gem_object_put(via_fb->gem);
-		via_fb->gem = NULL;
-	}
+	kfree(fb);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
@@ -307,8 +297,6 @@ void via_fbdev_fini(struct drm_device *dev)
 	struct openchrome_drm_private *dev_private = dev->dev_private;
 	struct drm_fb_helper *fb_helper = &dev_private->
 						via_fbdev->helper;
-	struct via_framebuffer *via_fb = &dev_private->
-						via_fbdev->via_fb;
 	struct fb_info *info;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -325,13 +313,7 @@ void via_fbdev_fini(struct drm_device *dev)
 		fb_helper->fbdev = NULL;
 	}
 
-	if (via_fb->gem) {
-		drm_gem_object_put(via_fb->gem);
-		via_fb->gem = NULL;
-	}
-
 	drm_fb_helper_fini(&dev_private->via_fbdev->helper);
-	drm_framebuffer_cleanup(&dev_private->via_fbdev->via_fb.fb);
 	if (dev_private->via_fbdev) {
 		kfree(dev_private->via_fbdev);
 		dev_private->via_fbdev = NULL;

@@ -199,14 +199,8 @@ struct openchrome_bo {
 	struct drm_gem_object		gem;
 };
 
-struct via_framebuffer {
-	struct drm_framebuffer		fb;
-	struct drm_gem_object		*gem;
-};
-
 struct via_framebuffer_device {
 	struct drm_fb_helper		helper;
-	struct via_framebuffer		via_fb;
 	struct openchrome_bo		*bo;
 };
 
