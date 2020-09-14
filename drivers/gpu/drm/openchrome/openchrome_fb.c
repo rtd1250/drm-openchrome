@@ -136,7 +136,6 @@ openchrome_fb_probe(struct drm_fb_helper *helper,
 	struct fb_info *info = helper->fbdev;
 	const struct drm_format_info *format_info;
 	struct drm_mode_fb_cmd2 mode_cmd;
-	struct apertures_struct *ap;
 	int size, cpp;
 	int ret = 0;
 
@@ -171,20 +170,18 @@ openchrome_fb_probe(struct drm_fb_helper *helper,
 		goto free_bo;
 	}
 
-	info = drm_fb_helper_alloc_fbi(helper);
-	if (IS_ERR(info)) {
-		ret = PTR_ERR(info);
-		goto free_fb;
-	}
-
-	info->skip_vt_switch = true;
-
 	drm_helper_mode_fill_fb_struct(dev, fb, &mode_cmd);
 	fb->obj[0] = &via_fbdev->bo->gem;
 	ret = drm_framebuffer_init(dev, fb,
 				&openchrome_drm_framebuffer_funcs);
 	if (ret) {
 		goto free_fb;
+	}
+
+	info = drm_fb_helper_alloc_fbi(helper);
+	if (IS_ERR(info)) {
+		ret = PTR_ERR(info);
+		goto cleanup_fb;
 	}
 
 	via_fbdev->helper.fb = fb;
@@ -198,16 +195,9 @@ openchrome_fb_probe(struct drm_fb_helper *helper,
 	info->screen_base = via_fbdev->bo->kmap.virtual;
 	info->screen_size = size;
 
-	/* Setup aperture base / size for takeover (i.e., vesafb). */
-	ap = alloc_apertures(1);
-	if (!ap) {
-		goto cleanup_fb;
-	}
-
-	ap->ranges[0].size = via_fbdev->bo->kmap.bo->bdev->
+	info->apertures->ranges[0].size = via_fbdev->bo->kmap.bo->bdev->
 			man[via_fbdev->bo->kmap.bo->mem.mem_type].size;
-	ap->ranges[0].base = via_fbdev->bo->kmap.bo->mem.bus.base;
-	info->apertures = ap;
+	info->apertures->ranges[0].base = via_fbdev->bo->kmap.bo->mem.bus.base;
 
 	drm_fb_helper_fill_info(info, helper, sizes);
 	goto exit;
