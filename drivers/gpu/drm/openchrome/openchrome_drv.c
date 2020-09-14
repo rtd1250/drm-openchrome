@@ -47,19 +47,6 @@ static struct pci_device_id via_pci_table[] = {
 MODULE_DEVICE_TABLE(pci, via_pci_table);
 
 
-void openchrome_drm_driver_gem_free_object_unlocked (
-					struct drm_gem_object *obj)
-{
-	struct openchrome_bo *bo = container_of(obj,
-					struct openchrome_bo, gem);
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	ttm_bo_put(&bo->ttm_bo);
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-}
-
 static int openchrome_drm_driver_dumb_create(
 				struct drm_file *file_priv,
 				struct drm_device *dev,
@@ -250,8 +237,6 @@ static struct drm_driver via_driver = {
 	.load = openchrome_driver_load,
 	.unload = openchrome_driver_unload,
 	.lastclose = openchrome_driver_lastclose,
-	.gem_free_object_unlocked =
-		openchrome_drm_driver_gem_free_object_unlocked,
 	.dumb_create = openchrome_drm_driver_dumb_create,
 	.dumb_map_offset =
 				openchrome_drm_driver_dumb_map_offset,
