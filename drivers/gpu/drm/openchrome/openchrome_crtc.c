@@ -1680,10 +1680,9 @@ static int openchrome_crtc_mode_set_base(struct drm_crtc *crtc,
 					int x, int y,
 					struct drm_framebuffer *old_fb)
 {
-	struct via_framebuffer *via_fb = container_of(
-					crtc->primary->fb,
+	struct drm_framebuffer *fb = crtc->primary->fb;
+	struct via_framebuffer *via_fb = container_of(fb,
 					struct via_framebuffer, fb);
-	struct drm_framebuffer *new_fb = &via_fb->fb;
 	struct openchrome_bo *bo;
 	struct drm_gem_object *gem;
 	int ret = 0;
@@ -1692,7 +1691,7 @@ static int openchrome_crtc_mode_set_base(struct drm_crtc *crtc,
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	/* No FB found. */
-	if (!new_fb) {
+	if (!fb) {
 		ret = -ENOMEM;
 		DRM_DEBUG_KMS("No FB found.\n");
 		goto exit;
@@ -1715,7 +1714,7 @@ static int openchrome_crtc_mode_set_base(struct drm_crtc *crtc,
 	}
 
 	ret = crtc->helper_private->mode_set_base_atomic(crtc,
-						new_fb, x, y,
+						fb, x, y,
 						ENTER_ATOMIC_MODE_SET);
 	if (unlikely(ret)) {
 		DRM_DEBUG_KMS("Failed to set a new FB.\n");
