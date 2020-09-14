@@ -124,7 +124,7 @@ static struct fb_ops via_fb_ops = {
 };
 
 static int
-via_fb_probe(struct drm_fb_helper *helper,
+openchrome_fb_probe(struct drm_fb_helper *helper,
 		struct drm_fb_helper_surface_size *sizes)
 {
 	struct drm_device *dev = helper->dev;
@@ -167,13 +167,14 @@ via_fb_probe(struct drm_fb_helper *helper,
 
 	fb = kzalloc(sizeof(struct drm_framebuffer), GFP_KERNEL);
 	if (!fb) {
-		return ret;
+		ret = -ENOMEM;
+		goto free_bo;
 	}
 
 	info = drm_fb_helper_alloc_fbi(helper);
 	if (IS_ERR(info)) {
 		ret = PTR_ERR(info);
-		goto out_err;
+		goto free_fb;
 	}
 
 	info->skip_vt_switch = true;
@@ -182,8 +183,8 @@ via_fb_probe(struct drm_fb_helper *helper,
 	fb->obj[0] = &via_fbdev->bo->gem;
 	ret = drm_framebuffer_init(dev, fb,
 				&openchrome_drm_framebuffer_funcs);
-	if (unlikely(ret)) {
-		goto out_err;
+	if (ret) {
+		goto free_fb;
 	}
 
 	via_fbdev->helper.fb = fb;
@@ -200,8 +201,7 @@ via_fb_probe(struct drm_fb_helper *helper,
 	/* Setup aperture base / size for takeover (i.e., vesafb). */
 	ap = alloc_apertures(1);
 	if (!ap) {
-		drm_framebuffer_cleanup(fb);
-		goto out_err;
+		goto cleanup_fb;
 	}
 
 	ap->ranges[0].size = via_fbdev->bo->kmap.bo->bdev->
@@ -211,20 +211,20 @@ via_fb_probe(struct drm_fb_helper *helper,
 
 	drm_fb_helper_fill_info(info, helper, sizes);
 	goto exit;
-out_err:
-	if (via_fbdev->bo) {
-		openchrome_bo_destroy(via_fbdev->bo, true);
-		via_fbdev->bo = NULL;
-	}
-
+cleanup_fb:
+	drm_framebuffer_cleanup(fb);
+free_fb:
 	kfree(fb);
+free_bo:
+	openchrome_bo_destroy(via_fbdev->bo, true);
+	via_fbdev->bo = NULL;
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
 
-static struct drm_fb_helper_funcs via_drm_fb_helper_funcs = {
-	.fb_probe = via_fb_probe,
+static struct drm_fb_helper_funcs openchrome_drm_fb_helper_funcs = {
+	.fb_probe = openchrome_fb_probe,
 };
 
 int via_fbdev_init(struct drm_device *dev)
@@ -246,7 +246,7 @@ int via_fbdev_init(struct drm_device *dev)
 	dev_private->via_fbdev = via_fbdev;
 
 	drm_fb_helper_prepare(dev, &via_fbdev->helper,
-				&via_drm_fb_helper_funcs);
+				&openchrome_drm_fb_helper_funcs);
 
 	ret = drm_fb_helper_init(dev, &via_fbdev->helper);
 	if (ret) {
