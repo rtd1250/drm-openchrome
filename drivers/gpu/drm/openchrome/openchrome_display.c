@@ -460,8 +460,12 @@ int
 via_modeset_init(struct drm_device *dev)
 {
 	struct openchrome_drm_private *dev_private = dev->dev_private;
+	struct drm_plane *primary;
+	struct drm_plane *cursor;
 	uint32_t i;
 	int ret = 0;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	openchrome_mode_config_init(dev_private);
 
@@ -474,10 +478,20 @@ via_modeset_init(struct drm_device *dev)
 	via_i2c_init(dev);
 	via_hwcursor_init(dev_private);
 
+	ret = openchrome_plane_init(dev_private, &primary, &cursor);
+	if (ret) {
+		DRM_ERROR("Failed to initialize planes!\n");
+		goto free_i2c;
+	}
+
 	for (i = 0; i < OPENCHROME_MAX_CRTC; i++) {
-		ret = openchrome_crtc_init(dev_private, i);
+		ret = openchrome_crtc_init(dev_private,
+						primary,
+						cursor,
+						i);
 		if (ret) {
-			goto exit;
+			DRM_ERROR("Failed to initialize CRTC!\n");
+			goto free_crtc;
 		}
 	}
 
@@ -507,11 +521,17 @@ via_modeset_init(struct drm_device *dev)
 	/* Initialize the frame buffer device. */
 	ret = via_fbdev_init(dev);
 	if (ret) {
-		goto exit;
+		goto free_crtc;
 	}
 
 	drm_kms_helper_poll_init(dev);
+	goto exit;
+free_crtc:
+	drm_mode_config_cleanup(dev);
+free_i2c:
+	via_i2c_exit();
 exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
 

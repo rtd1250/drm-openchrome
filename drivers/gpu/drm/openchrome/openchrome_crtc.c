@@ -2239,17 +2239,23 @@ static const uint32_t openchrome_primary_formats[] = {
 	DRM_FORMAT_RGB332,
 };
 
-int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
-				uint32_t index)
+int openchrome_plane_init(struct openchrome_drm_private *dev_private,
+				struct drm_plane **p_primary,
+				struct drm_plane **p_cursor)
 {
 	struct drm_device *dev = dev_private->dev;
-	struct via_crtc *iga;
-	struct drm_plane *primary;
-	struct drm_plane *cursor;
+	struct drm_plane *primary = NULL;
+	struct drm_plane *cursor = NULL;
 	uint32_t possible_crtcs;
+	uint32_t i;
 	int ret;
 
-	possible_crtcs = 1 << index;
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	possible_crtcs = 0;
+	for (i = 0; i < OPENCHROME_MAX_CRTC; i++) {
+		possible_crtcs |= 1 << i;
+	}
 
 	primary = kzalloc(sizeof(struct drm_plane), GFP_KERNEL);
 	if (!primary) {
@@ -2287,15 +2293,43 @@ int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
 		goto free_cursor;
 	}
 
+	goto exit;
+free_cursor:
+	kfree(cursor);
+	cursor = NULL;
+cleanup_primary:
+	drm_plane_cleanup(primary);
+free_primary:
+	kfree(primary);
+	primary = NULL;
+exit:
+	*p_primary = primary;
+	*p_cursor = cursor;
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
+}
+
+int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
+				struct drm_plane *primary,
+				struct drm_plane *cursor,
+				uint32_t i)
+{
+	struct drm_device *dev = dev_private->dev;
+	struct via_crtc *iga;
+	int ret;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
 	iga = kzalloc(sizeof(struct via_crtc), GFP_KERNEL);
 	if (!iga) {
 		ret = -ENOMEM;
 		DRM_ERROR("Failed to allocate CRTC storage.\n");
-		goto cleanup_cursor;
+		goto exit;
 	}
 
 	drm_crtc_helper_add(&iga->base,
-			&openchrome_drm_crtc_helper_funcs);
+				&openchrome_drm_crtc_helper_funcs);
 	ret = drm_crtc_init_with_planes(dev, &iga->base,
 					primary, cursor,
 					&openchrome_drm_crtc_funcs,
@@ -2305,20 +2339,12 @@ int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
 		goto free_crtc;
 	}
 
-	iga->index = index;
-
-	openchrome_crtc_param_init(dev_private, &iga->base, index);
+	iga->index = i;
+	openchrome_crtc_param_init(dev_private, &iga->base, i);
 	goto exit;
 free_crtc:
 	kfree(iga);
-cleanup_cursor:
-	drm_plane_cleanup(cursor);
-free_cursor:
-	kfree(cursor);
-cleanup_primary:
-	drm_plane_cleanup(primary);
-free_primary:
-	kfree(primary);
 exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }

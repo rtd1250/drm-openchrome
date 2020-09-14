@@ -451,8 +451,13 @@ extern void via_fbdev_fini(struct drm_device *dev);
 /* crtc */
 extern void via_load_crtc_pixel_timing(struct drm_crtc *crtc,
 					struct drm_display_mode *mode);
+int openchrome_plane_init(struct openchrome_drm_private *dev_private,
+				struct drm_plane **p_primary,
+				struct drm_plane **p_cursor);
 int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
-				uint32_t index);
+				struct drm_plane *primary,
+				struct drm_plane *cursor,
+				uint32_t i);
 
 /* encoders */
 extern void via_set_sync_polarity(struct drm_encoder *encoder,
