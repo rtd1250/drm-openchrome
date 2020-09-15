@@ -1241,3 +1241,71 @@ void openchrome_device_fini(struct openchrome_drm_private *dev_private)
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
+
+int openchrome_drm_init(struct drm_device *dev)
+{
+	struct openchrome_drm_private *dev_private;
+	int ret = 0;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	dev_private = kzalloc(sizeof(struct openchrome_drm_private),
+				GFP_KERNEL);
+	if (!dev_private) {
+		ret = -ENOMEM;
+		DRM_ERROR("Failed to allocate private "
+				"storage memory.\n");
+		goto exit;
+	}
+
+	dev->dev_private = (void *) dev_private;
+	dev_private->dev = dev;
+	dev_private->vram_mtrr = -ENXIO;
+
+	ret = openchrome_device_init(dev_private);
+	if (ret) {
+		DRM_ERROR("Failed to initialize Chrome IGP.\n");
+		goto error_free_private;
+	}
+
+	ret = openchrome_mm_init(dev_private);
+	if (ret) {
+		DRM_ERROR("Failed to initialize TTM.\n");
+		goto error_free_private;
+	}
+
+	chip_revision_info(dev_private);
+
+	ret = via_modeset_init(dev);
+	if (ret) {
+		DRM_ERROR("Failed to initialize mode setting.\n");
+		goto error_modeset;
+	}
+
+	goto exit;
+error_modeset:
+	via_modeset_fini(dev);
+	openchrome_mm_fini(dev_private);
+	openchrome_mmio_fini(dev_private);
+	openchrome_vram_fini(dev_private);
+error_free_private:
+	kfree(dev_private);
+exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
+}
+
+void openchrome_drm_fini(struct drm_device *dev)
+{
+	struct openchrome_drm_private *dev_private = dev->dev_private;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	via_modeset_fini(dev);
+	openchrome_mm_fini(dev_private);
+	openchrome_mmio_fini(dev_private);
+	openchrome_vram_fini(dev_private);
+	kfree(dev_private);
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
