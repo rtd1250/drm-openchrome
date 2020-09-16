@@ -1053,7 +1053,7 @@ int openchrome_vram_init(struct openchrome_drm_private *dev_private)
 			"Physical Address: 0x%08llx\n",
 			dev_private->vram_start);
 	DRM_INFO("VIA Technologies Chrome IGP VRAM "
-			"Size: %llu\n",
+			"Size: %llu MB\n",
 			(unsigned long long) dev_private->vram_size >> 20);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
