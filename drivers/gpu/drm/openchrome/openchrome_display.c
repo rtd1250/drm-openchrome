@@ -474,8 +474,14 @@ via_modeset_init(struct drm_device *dev)
 	dev_private->number_dvi = 0;
 
 	via_display_init(dev);
+
 	via_i2c_reg_init(dev_private);
-	via_i2c_init(dev);
+	ret = via_i2c_init(dev);
+	if (ret) {
+		DRM_ERROR("Failed to initialize I2C bus!\n");
+		goto exit;
+	}
+
 	via_hwcursor_init(dev_private);
 
 	ret = openchrome_plane_init(dev_private, &primary, &cursor);
