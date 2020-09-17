@@ -43,7 +43,7 @@ int openchrome_dev_pm_ops_suspend(struct device *dev)
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	console_lock();
-	drm_fb_helper_set_suspend(&dev_private->via_fbdev->helper,
+	drm_fb_helper_set_suspend(&dev_private->openchrome_fb->helper,
 					true);
 
 	/*
@@ -161,7 +161,7 @@ int openchrome_dev_pm_ops_resume(struct device *dev)
 	vga_wcrt(VGABASE, 0x3f, dev_private->saved_cr3f);
 
 	drm_helper_resume_force_mode(drm_dev);
-	drm_fb_helper_set_suspend(&dev_private->via_fbdev->helper, false);
+	drm_fb_helper_set_suspend(&dev_private->openchrome_fb->helper, false);
 	console_unlock();
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);

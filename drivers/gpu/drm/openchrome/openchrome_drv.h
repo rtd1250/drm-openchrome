@@ -199,7 +199,7 @@ struct openchrome_bo {
 	struct drm_gem_object		gem;
 };
 
-struct via_framebuffer_device {
+struct openchrome_framebuffer {
 	struct drm_fb_helper		helper;
 	struct openchrome_bo		*bo;
 };
@@ -223,7 +223,7 @@ struct openchrome_drm_private {
 
 	int revision;
 
-	struct via_framebuffer_device *via_fbdev;
+	struct openchrome_framebuffer *openchrome_fb;
 	u8 vram_type;
 	unsigned long long vram_start;
 	unsigned int vram_size;
@@ -447,8 +447,8 @@ extern void via_set_vclock(struct drm_crtc *crtc, u32 clk);
 /* framebuffers */
 void openchrome_mode_config_init(
 			struct openchrome_drm_private *dev_private);
-extern int via_fbdev_init(struct drm_device *dev);
-extern void via_fbdev_fini(struct drm_device *dev);
+extern int openchrome_fb_init(struct drm_device *dev);
+extern void openchrome_fb_fini(struct drm_device *dev);
 
 /* crtc */
 extern void via_load_crtc_pixel_timing(struct drm_crtc *crtc,

@@ -156,8 +156,8 @@ openchrome_fb_probe(struct drm_fb_helper *helper,
 	struct drm_device *dev = helper->dev;
 	struct openchrome_drm_private *dev_private =
 					helper->dev->dev_private;
-	struct via_framebuffer_device *via_fbdev = container_of(helper,
-				struct via_framebuffer_device, helper);
+	struct openchrome_framebuffer *openchrome_fb = container_of(helper,
+				struct openchrome_framebuffer, helper);
 	struct drm_framebuffer *fb;
 	struct drm_gem_object *gem;
 	struct fb_info *info = helper->fbdev;
@@ -186,12 +186,12 @@ openchrome_fb_probe(struct drm_fb_helper *helper,
 					ttm_bo_type_kernel,
 					TTM_PL_FLAG_VRAM,
 					true,
-					&via_fbdev->bo);
+					&openchrome_fb->bo);
 	if (ret) {
 		goto exit;
 	}
 
-	gem = &via_fbdev->bo->gem;
+	gem = &openchrome_fb->bo->gem;
 	ret = openchrome_framebuffer_init(dev, gem, &mode_cmd, &fb);
 	if (ret) {
 		goto free_bo;
@@ -203,20 +203,20 @@ openchrome_fb_probe(struct drm_fb_helper *helper,
 		goto cleanup_fb;
 	}
 
-	via_fbdev->helper.fb = fb;
-	via_fbdev->helper.fbdev = info;
+	openchrome_fb->helper.fb = fb;
+	openchrome_fb->helper.fbdev = info;
 
 	info->fbops = &via_fb_ops;
 
-	info->fix.smem_start = via_fbdev->bo->kmap.bo->mem.bus.base +
-				via_fbdev->bo->kmap.bo->mem.bus.offset;
+	info->fix.smem_start = openchrome_fb->bo->kmap.bo->mem.bus.base +
+				openchrome_fb->bo->kmap.bo->mem.bus.offset;
 	info->fix.smem_len = size;
-	info->screen_base = via_fbdev->bo->kmap.virtual;
+	info->screen_base = openchrome_fb->bo->kmap.virtual;
 	info->screen_size = size;
 
-	info->apertures->ranges[0].size = via_fbdev->bo->kmap.bo->bdev->
-			man[via_fbdev->bo->kmap.bo->mem.mem_type].size;
-	info->apertures->ranges[0].base = via_fbdev->bo->kmap.bo->mem.bus.base;
+	info->apertures->ranges[0].size = openchrome_fb->bo->kmap.bo->bdev->
+			man[openchrome_fb->bo->kmap.bo->mem.mem_type].size;
+	info->apertures->ranges[0].base = openchrome_fb->bo->kmap.bo->mem.bus.base;
 
 	drm_fb_helper_fill_info(info, helper, sizes);
 	goto exit;
@@ -230,8 +230,8 @@ cleanup_fb:
 	 */
 	kfree(fb);
 free_bo:
-	openchrome_bo_destroy(via_fbdev->bo, true);
-	via_fbdev->bo = NULL;
+	openchrome_bo_destroy(openchrome_fb->bo, true);
+	openchrome_fb->bo = NULL;
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
@@ -241,53 +241,53 @@ static struct drm_fb_helper_funcs openchrome_drm_fb_helper_funcs = {
 	.fb_probe = openchrome_fb_probe,
 };
 
-int via_fbdev_init(struct drm_device *dev)
+int openchrome_fb_init(struct drm_device *dev)
 {
 	struct openchrome_drm_private *dev_private = dev->dev_private;
-	struct via_framebuffer_device *via_fbdev;
+	struct openchrome_framebuffer *openchrome_fb;
 	int bpp_sel = 32;
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	via_fbdev = kzalloc(sizeof(struct via_framebuffer_device),
+	openchrome_fb = kzalloc(sizeof(struct openchrome_framebuffer),
 				GFP_KERNEL);
-	if (!via_fbdev) {
+	if (!openchrome_fb) {
 		ret = -ENOMEM;
 		goto exit;
 	}
 
-	dev_private->via_fbdev = via_fbdev;
+	dev_private->openchrome_fb = openchrome_fb;
 
-	drm_fb_helper_prepare(dev, &via_fbdev->helper,
+	drm_fb_helper_prepare(dev, &openchrome_fb->helper,
 				&openchrome_drm_fb_helper_funcs);
 
-	ret = drm_fb_helper_init(dev, &via_fbdev->helper);
+	ret = drm_fb_helper_init(dev, &openchrome_fb->helper);
 	if (ret) {
 		goto free_fbdev;
 	}
 
 	drm_helper_disable_unused_functions(dev);
-	ret = drm_fb_helper_initial_config(&via_fbdev->helper, bpp_sel);
+	ret = drm_fb_helper_initial_config(&openchrome_fb->helper, bpp_sel);
 	if (ret) {
 		goto free_fb_helper;
 	}
 
 	goto exit;
 free_fb_helper:
-	drm_fb_helper_fini(&via_fbdev->helper);
+	drm_fb_helper_fini(&openchrome_fb->helper);
 free_fbdev:
-	kfree(via_fbdev);
+	kfree(openchrome_fb);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
 
-void via_fbdev_fini(struct drm_device *dev)
+void openchrome_fb_fini(struct drm_device *dev)
 {
 	struct openchrome_drm_private *dev_private = dev->dev_private;
 	struct drm_fb_helper *fb_helper = &dev_private->
-						via_fbdev->helper;
+						openchrome_fb->helper;
 	struct fb_info *info;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -304,10 +304,10 @@ void via_fbdev_fini(struct drm_device *dev)
 		fb_helper->fbdev = NULL;
 	}
 
-	drm_fb_helper_fini(&dev_private->via_fbdev->helper);
-	if (dev_private->via_fbdev) {
-		kfree(dev_private->via_fbdev);
-		dev_private->via_fbdev = NULL;
+	drm_fb_helper_fini(&dev_private->openchrome_fb->helper);
+	if (dev_private->openchrome_fb) {
+		kfree(dev_private->openchrome_fb);
+		dev_private->openchrome_fb = NULL;
 	}
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);

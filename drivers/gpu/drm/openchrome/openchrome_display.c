@@ -525,7 +525,7 @@ via_modeset_init(struct drm_device *dev)
 	}
 
 	/* Initialize the frame buffer device. */
-	ret = via_fbdev_init(dev);
+	ret = openchrome_fb_init(dev);
 	if (ret) {
 		goto free_crtc;
 	}
@@ -544,7 +544,7 @@ exit:
 void via_modeset_fini(struct drm_device *dev)
 {
 	drm_kms_helper_poll_fini(dev);
-	via_fbdev_fini(dev);
+	openchrome_fb_fini(dev);
 
 	drm_helper_force_disable_all(dev);
 
