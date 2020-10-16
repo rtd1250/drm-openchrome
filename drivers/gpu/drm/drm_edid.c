@@ -3093,7 +3093,7 @@ static int drm_cvt_modes(struct drm_connector *connector,
 	const u8 empty[3] = { 0, 0, 0 };
 
 	for (i = 0; i < 4; i++) {
-		int uninitialized_var(width), height;
+		int width, height;
 
 		cvt = &(timing->data.other_data.data.cvt[i]);
 
@@ -3737,6 +3737,34 @@ drm_add_cmdb_modes(struct drm_connector *connector, u8 svd)
 
 	bitmap_set(hdmi->y420_cmdb_modes, vic, 1);
 }
+
+/**
+ * drm_display_mode_from_cea_vic() - return a mode for CEA VIC
+ * @dev: DRM device
+ * @vic: CEA VIC of the mode
+ *
+ * Creates a new mode matching the specified CEA VIC.
+ *
+ * Returns: A new drm_display_mode on success or NULL on failure
+ */
+struct drm_display_mode *
+drm_display_mode_from_cea_vic(struct drm_device *dev,
+			      u8 video_code)
+{
+	const struct drm_display_mode *cea_mode;
+	struct drm_display_mode *newmode;
+
+	cea_mode = cea_mode_for_vic(video_code);
+	if (!cea_mode)
+		return NULL;
+
+	newmode = drm_mode_duplicate(dev, cea_mode);
+	if (!newmode)
+		return NULL;
+
+	return newmode;
+}
+EXPORT_SYMBOL(drm_display_mode_from_cea_vic);
 
 static int
 do_cea_modes(struct drm_connector *connector, const u8 *db, u8 len)
