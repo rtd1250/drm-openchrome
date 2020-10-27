@@ -83,12 +83,10 @@ static int openchrome_bo_init_mem_type(struct ttm_bo_device *bdev,
 
 	switch (type) {
 	case TTM_PL_SYSTEM:
-		man->flags = 0;
 		man->available_caching = TTM_PL_FLAG_CACHED;
 		man->default_caching = TTM_PL_FLAG_CACHED;
 		break;
 	case TTM_PL_VRAM:
-		man->flags = TTM_MEMTYPE_FLAG_FIXED;
 		man->available_caching = TTM_PL_FLAG_UNCACHED |
 						TTM_PL_FLAG_WC;
 		man->default_caching = TTM_PL_FLAG_WC;
