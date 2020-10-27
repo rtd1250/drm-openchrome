@@ -73,35 +73,6 @@ static void openchrome_ttm_tt_destroy(struct ttm_bo_device *bdev,
 	kfree(tt);
 }
 
-static int openchrome_bo_init_mem_type(struct ttm_bo_device *bdev,
-				uint32_t type,
-				struct ttm_mem_type_manager *man)
-{
-	int ret = 0;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	switch (type) {
-	case TTM_PL_SYSTEM:
-		man->available_caching = TTM_PL_FLAG_CACHED;
-		man->default_caching = TTM_PL_FLAG_CACHED;
-		break;
-	case TTM_PL_VRAM:
-		man->available_caching = TTM_PL_FLAG_UNCACHED |
-						TTM_PL_FLAG_WC;
-		man->default_caching = TTM_PL_FLAG_WC;
-		man->func = &ttm_bo_manager_func;
-		break;
-	default:
-		DRM_ERROR("Unsupported TTM memory type.\n");
-		ret = -EINVAL;
-		break;
-	}
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return ret;
-}
-
 static void openchrome_bo_evict_flags(struct ttm_buffer_object *bo,
 					struct ttm_placement *placement)
 {
@@ -183,7 +154,6 @@ static void openchrome_bo_io_mem_free(struct ttm_bo_device *bdev,
 struct ttm_bo_driver openchrome_bo_driver = {
 	.ttm_tt_create = openchrome_ttm_tt_create,
 	.ttm_tt_destroy = openchrome_ttm_tt_destroy,
-	.init_mem_type = openchrome_bo_init_mem_type,
 	.eviction_valuable = ttm_bo_eviction_valuable,
 	.evict_flags = openchrome_bo_evict_flags,
 	.verify_access = openchrome_bo_verify_access,
