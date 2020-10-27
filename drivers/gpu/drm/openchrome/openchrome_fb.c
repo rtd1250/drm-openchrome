@@ -211,10 +211,12 @@ openchrome_fb_probe(struct drm_fb_helper *helper,
 
 	info->fix.smem_start = openchrome_fb->bo->ttm_bo.mem.bus.base +
 				openchrome_fb->bo->ttm_bo.mem.bus.offset;
-	info->fix.smem_len = size;
+	info->fix.smem_len = openchrome_fb->bo->ttm_bo.mem.num_pages <<
+							PAGE_SHIFT;
 	info->screen_base = ttm_kmap_obj_virtual(
 				&openchrome_fb->bo->kmap, &is_iomem);
-	info->screen_size = size;
+	info->screen_size = openchrome_fb->bo->ttm_bo.mem.num_pages <<
+							PAGE_SHIFT;
 
 	info->apertures->ranges[0].base = dev_private->vram_start;
 	info->apertures->ranges[0].size = dev_private->vram_size;
