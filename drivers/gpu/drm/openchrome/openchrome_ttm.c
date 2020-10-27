@@ -43,6 +43,36 @@
 #include "openchrome_drv.h"
 
 
+static struct ttm_tt *openchrome_ttm_tt_create(
+					struct ttm_buffer_object *bo,
+					uint32_t page_flags)
+{
+	struct ttm_tt *tt;
+	int ret;
+
+	tt = kzalloc(sizeof(*tt), GFP_KERNEL);
+	if (!tt)
+		return NULL;
+
+	ret = ttm_tt_init(tt, bo, page_flags);
+	if (ret < 0)
+		goto err_ttm_tt_init;
+
+	return tt;
+
+err_ttm_tt_init:
+	kfree(tt);
+	return NULL;
+}
+
+static void openchrome_ttm_tt_destroy(struct ttm_bo_device *bdev,
+					struct ttm_tt *tt)
+{
+	ttm_tt_destroy_common(bdev, tt);
+	ttm_tt_fini(tt);
+	kfree(tt);
+}
+
 static int openchrome_bo_init_mem_type(struct ttm_bo_device *bdev,
 				uint32_t type,
 				struct ttm_mem_type_manager *man)
@@ -161,6 +191,8 @@ static void openchrome_bo_io_mem_free(struct ttm_bo_device *bdev,
 }
 
 struct ttm_bo_driver openchrome_bo_driver = {
+	.ttm_tt_create = openchrome_ttm_tt_create,
+	.ttm_tt_destroy = openchrome_ttm_tt_destroy,
 	.init_mem_type = openchrome_bo_init_mem_type,
 	.eviction_valuable = ttm_bo_eviction_valuable,
 	.evict_flags = openchrome_bo_evict_flags,
