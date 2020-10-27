@@ -225,8 +225,8 @@ struct openchrome_drm_private {
 
 	struct openchrome_framebuffer *openchrome_fb;
 	u8 vram_type;
-	unsigned long long vram_start;
-	unsigned int vram_size;
+	resource_size_t vram_start;
+	resource_size_t vram_size;
 	int vram_mtrr;
 
 	unsigned long long	mmio_base;

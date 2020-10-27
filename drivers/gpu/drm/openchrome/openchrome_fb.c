@@ -214,9 +214,8 @@ openchrome_fb_probe(struct drm_fb_helper *helper,
 	info->screen_base = openchrome_fb->bo->kmap.virtual;
 	info->screen_size = size;
 
-	info->apertures->ranges[0].size = openchrome_fb->bo->kmap.bo->bdev->
-			man[openchrome_fb->bo->kmap.bo->mem.mem_type].size;
-	info->apertures->ranges[0].base = openchrome_fb->bo->kmap.bo->mem.bus.base;
+	info->apertures->ranges[0].base = dev_private->vram_start;
+	info->apertures->ranges[0].size = dev_private->vram_size;
 
 	drm_fb_helper_fill_info(info, helper, sizes);
 	goto exit;
