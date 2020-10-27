@@ -248,9 +248,6 @@ exit:
 int openchrome_mm_init(struct openchrome_drm_private *dev_private)
 {
 	struct drm_device *dev = dev_private->dev;
-	struct ttm_mem_type_manager *man =
-			ttm_manager_type(&dev_private->bdev.man,
-						TTM_PL_VRAM);
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -275,7 +272,10 @@ int openchrome_mm_init(struct openchrome_drm_private *dev_private)
 	/*
 	 * Initialize TTM range manager for VRAM management.
 	 */
-	ret = ttm_range_man_init(&dev_private->bdev, man,
+	ret = ttm_range_man_init(&dev_private->bdev, TTM_PL_VRAM,
+				TTM_PL_FLAG_UNCACHED | TTM_PL_FLAG_WC,
+				TTM_PL_FLAG_WC,
+				false,
 				dev_private->vram_size >> PAGE_SHIFT);
 	if (ret) {
 		DRM_ERROR("Failed initializing TTM VRAM memory manager.\n");
@@ -291,9 +291,7 @@ void openchrome_mm_fini(struct openchrome_drm_private *dev_private)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	ttm_range_man_fini(&dev_private->bdev,
-			ttm_manager_type(&dev_private->bdev.man,
-						TTM_PL_VRAM));
+	ttm_range_man_fini(&dev_private->bdev, TTM_PL_VRAM);
 
 	ttm_bo_device_release(&dev_private->bdev);
 	drm_vma_offset_manager_destroy(&dev_private->vma_manager);
