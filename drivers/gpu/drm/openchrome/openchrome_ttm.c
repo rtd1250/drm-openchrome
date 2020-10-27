@@ -123,8 +123,8 @@ static int openchrome_bo_io_mem_reserve(struct ttm_bo_device *bdev,
 	case TTM_PL_SYSTEM:
 		break;
 	case TTM_PL_VRAM:
-		mem->bus.base = dev_private->vram_start;
-		mem->bus.offset = mem->start << PAGE_SHIFT;
+		mem->bus.offset = dev_private->vram_start +
+					(mem->start << PAGE_SHIFT);
 		mem->bus.is_iomem = true;
 		break;
 	default:
