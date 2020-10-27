@@ -111,7 +111,7 @@ static int openchrome_bo_verify_access(struct ttm_buffer_object *bo,
 }
 
 static int openchrome_bo_io_mem_reserve(struct ttm_bo_device *bdev,
-					struct ttm_mem_reg *mem)
+					struct ttm_resource *mem)
 {
 	struct openchrome_drm_private *dev_private = container_of(bdev,
 					struct openchrome_drm_private, bdev);
@@ -144,7 +144,7 @@ static int openchrome_bo_io_mem_reserve(struct ttm_bo_device *bdev,
 }
 
 static void openchrome_bo_io_mem_free(struct ttm_bo_device *bdev,
-					struct ttm_mem_reg *mem)
+					struct ttm_resource *mem)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
