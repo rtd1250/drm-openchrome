@@ -117,7 +117,6 @@ static int openchrome_bo_io_mem_reserve(struct ttm_bo_device *bdev,
 {
 	struct openchrome_drm_private *dev_private = container_of(bdev,
 					struct openchrome_drm_private, bdev);
-	struct drm_device *dev = dev_private->dev;
 	struct ttm_mem_type_manager *man = &bdev->man[mem->mem_type];
 	int ret = 0;
 
@@ -138,12 +137,7 @@ static int openchrome_bo_io_mem_reserve(struct ttm_bo_device *bdev,
 		break;
 	case TTM_PL_VRAM:
 		mem->bus.addr = NULL;
-		if (dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA) {
-			mem->bus.base = pci_resource_start(dev->pdev, 2);
-		} else {
-			mem->bus.base = pci_resource_start(dev->pdev, 0);
-		}
-
+		mem->bus.base = dev_private->vram_start;
 		mem->bus.size = mem->num_pages << PAGE_SHIFT;
 		mem->bus.offset = mem->start << PAGE_SHIFT;
 		mem->bus.is_iomem = true;
