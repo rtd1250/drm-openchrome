@@ -288,6 +288,8 @@ void openchrome_mm_fini(struct openchrome_drm_private *dev_private)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
+	ttm_bo_clean_mm(&dev_private->bdev, TTM_PL_VRAM);
+
 	ttm_bo_device_release(&dev_private->bdev);
 	drm_vma_offset_manager_destroy(&dev_private->vma_manager);
 
