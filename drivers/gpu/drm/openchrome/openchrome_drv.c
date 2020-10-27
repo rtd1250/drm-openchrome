@@ -97,7 +97,7 @@ static int openchrome_drm_driver_dumb_create(
 					&dev_private->bdev,
 					size,
 					ttm_bo_type_device,
-					TTM_PL_FLAG_VRAM,
+					TTM_PL_VRAM,
 					false,
 					&bo);
 	if (ret) {

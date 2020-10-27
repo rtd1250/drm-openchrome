@@ -1704,7 +1704,7 @@ static int openchrome_crtc_mode_set_base(struct drm_crtc *crtc,
 		goto exit;
 	}
 
-	ret = openchrome_bo_pin(bo, TTM_PL_FLAG_VRAM);
+	ret = openchrome_bo_pin(bo, TTM_PL_VRAM);
 	ttm_bo_unreserve(&bo->ttm_bo);
 	if (ret) {
 		DRM_DEBUG_KMS("Failed to pin FB.\n");

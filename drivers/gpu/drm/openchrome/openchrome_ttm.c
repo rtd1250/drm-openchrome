@@ -88,11 +88,11 @@ static void openchrome_bo_evict_flags(struct ttm_buffer_object *bo,
 	switch (bo->mem.mem_type) {
 	case TTM_PL_VRAM:
 		openchrome_ttm_domain_to_placement(driver_bo,
-						TTM_PL_FLAG_VRAM);
+						TTM_PL_VRAM);
 		break;
 	default:
 		openchrome_ttm_domain_to_placement(driver_bo,
-						TTM_PL_FLAG_SYSTEM);
+						TTM_PL_SYSTEM);
 		break;
 	}
 

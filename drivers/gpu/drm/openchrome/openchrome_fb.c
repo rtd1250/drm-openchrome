@@ -185,7 +185,7 @@ openchrome_fb_probe(struct drm_fb_helper *helper,
 					&dev_private->bdev,
 					size,
 					ttm_bo_type_kernel,
-					TTM_PL_FLAG_VRAM,
+					TTM_PL_VRAM,
 					true,
 					&openchrome_fb->bo);
 	if (ret) {
