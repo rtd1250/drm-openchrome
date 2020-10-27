@@ -163,6 +163,7 @@ openchrome_fb_probe(struct drm_fb_helper *helper,
 	struct fb_info *info = helper->fbdev;
 	const struct drm_format_info *format_info;
 	struct drm_mode_fb_cmd2 mode_cmd;
+	bool is_iomem;
 	int size, cpp;
 	int ret = 0;
 
@@ -211,7 +212,8 @@ openchrome_fb_probe(struct drm_fb_helper *helper,
 	info->fix.smem_start = openchrome_fb->bo->kmap.bo->mem.bus.base +
 				openchrome_fb->bo->kmap.bo->mem.bus.offset;
 	info->fix.smem_len = size;
-	info->screen_base = openchrome_fb->bo->kmap.virtual;
+	info->screen_base = ttm_kmap_obj_virtual(
+				&openchrome_fb->bo->kmap, &is_iomem);
 	info->screen_size = size;
 
 	info->apertures->ranges[0].base = dev_private->vram_start;
