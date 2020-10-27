@@ -273,7 +273,6 @@ int openchrome_mm_init(struct openchrome_drm_private *dev_private)
 	 * Initialize TTM range manager for VRAM management.
 	 */
 	ret = ttm_range_man_init(&dev_private->bdev, TTM_PL_VRAM,
-				TTM_PL_FLAG_UNCACHED | TTM_PL_FLAG_WC,
 				false,
 				dev_private->vram_size >> PAGE_SHIFT);
 	if (ret) {
