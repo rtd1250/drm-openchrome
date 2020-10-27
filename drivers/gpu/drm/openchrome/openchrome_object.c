@@ -249,7 +249,8 @@ int openchrome_mm_init(struct openchrome_drm_private *dev_private)
 {
 	struct drm_device *dev = dev_private->dev;
 	struct ttm_mem_type_manager *man =
-				&dev_private->bdev.man[TTM_PL_VRAM];
+			ttm_manager_type(&dev_private->bdev.man,
+						TTM_PL_VRAM);
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -291,7 +292,8 @@ void openchrome_mm_fini(struct openchrome_drm_private *dev_private)
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	ttm_range_man_fini(&dev_private->bdev,
-				&dev_private->bdev.man[TTM_PL_VRAM]);
+			ttm_manager_type(&dev_private->bdev.man,
+						TTM_PL_VRAM));
 
 	ttm_bo_device_release(&dev_private->bdev);
 	drm_vma_offset_manager_destroy(&dev_private->vma_manager);
