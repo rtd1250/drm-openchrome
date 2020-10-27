@@ -83,13 +83,12 @@ static int openchrome_bo_init_mem_type(struct ttm_bo_device *bdev,
 
 	switch (type) {
 	case TTM_PL_SYSTEM:
-		man->flags = TTM_MEMTYPE_FLAG_MAPPABLE;
+		man->flags = 0;
 		man->available_caching = TTM_PL_FLAG_CACHED;
 		man->default_caching = TTM_PL_FLAG_CACHED;
 		break;
 	case TTM_PL_VRAM:
-		man->flags = TTM_MEMTYPE_FLAG_FIXED |
-				TTM_MEMTYPE_FLAG_MAPPABLE;
+		man->flags = TTM_MEMTYPE_FLAG_FIXED;
 		man->available_caching = TTM_PL_FLAG_UNCACHED |
 						TTM_PL_FLAG_WC;
 		man->default_caching = TTM_PL_FLAG_WC;
@@ -147,15 +146,9 @@ static int openchrome_bo_io_mem_reserve(struct ttm_bo_device *bdev,
 {
 	struct openchrome_drm_private *dev_private = container_of(bdev,
 					struct openchrome_drm_private, bdev);
-	struct ttm_mem_type_manager *man = &bdev->man[mem->mem_type];
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	if (!(man->flags & TTM_MEMTYPE_FLAG_MAPPABLE)) {
-		ret= -EINVAL;
-		goto exit;
-	}
 
 	switch (mem->mem_type) {
 	case TTM_PL_SYSTEM:
@@ -177,7 +170,6 @@ static int openchrome_bo_io_mem_reserve(struct ttm_bo_device *bdev,
 		break;
 	}
 
-exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
