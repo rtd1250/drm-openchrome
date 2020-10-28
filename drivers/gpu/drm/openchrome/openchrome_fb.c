@@ -120,6 +120,8 @@ void openchrome_mode_config_init(
 
 	dev->mode_config.funcs = &openchrome_drm_mode_config_funcs;
 
+	dev->mode_config.fb_base = dev_private->vram_start;
+
 	dev->mode_config.preferred_depth = 24;
 
 	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
