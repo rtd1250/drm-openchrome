@@ -46,13 +46,12 @@
 #include "openchrome_drv.h"
 
 
-static void openchrome_hide_cursor(struct drm_crtc *crtc)
+static void openchrome_hide_cursor(struct drm_device *dev,
+					struct drm_crtc *crtc)
 {
-	struct drm_device *dev = crtc->dev;
 	struct via_crtc *iga = container_of(crtc,
 					struct via_crtc, base);
-	struct openchrome_drm_private *dev_private =
-					crtc->dev->dev_private;
+	struct openchrome_drm_private *dev_private = dev->dev_private;
 	uint32_t temp;
 
 	switch (dev->pdev->device) {
@@ -311,7 +310,7 @@ static int openchrome_cursor_disable_plane(struct drm_plane *plane,
 				struct drm_modeset_acquire_ctx *ctx)
 {
 	if (plane->crtc) {
-		openchrome_hide_cursor(plane->crtc);
+		openchrome_hide_cursor(plane->dev, plane->crtc);
 	}
 
 	if (plane->fb) {
