@@ -229,8 +229,8 @@ struct openchrome_drm_private {
 	resource_size_t vram_size;
 	int vram_mtrr;
 
-	unsigned long long	mmio_base;
-	unsigned int		mmio_size;
+	resource_size_t mmio_base;
+	resource_size_t mmio_size;
 	void __iomem		*mmio;
 
 	struct via_state pm_cache;

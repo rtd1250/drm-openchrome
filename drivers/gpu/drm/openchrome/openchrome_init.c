@@ -1090,9 +1090,6 @@ int openchrome_mmio_init(
 		goto exit;
 	}
 
-	DRM_INFO("VIA Technologies Chrome IGP MMIO Physical Address: "
-			"0x%08llx\n",
-			dev_private->mmio_base);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
