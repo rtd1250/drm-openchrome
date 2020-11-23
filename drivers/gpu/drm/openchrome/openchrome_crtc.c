@@ -1563,21 +1563,6 @@ via_set_iga2_downscale_source_timing(struct drm_crtc *crtc,
 	drm_mode_destroy(crtc->dev, src_timing);
 }
 
-static void
-drm_mode_crtc_load_lut(struct drm_crtc *crtc)
-{
-	int size = crtc->gamma_size * sizeof(uint16_t);
-	void *r_base, *g_base, *b_base;
-
-	if (size) {
-		r_base = crtc->gamma_store;
-		g_base = r_base + size;
-		b_base = g_base + size;
-		crtc->funcs->gamma_set(crtc, r_base, g_base, b_base,
-				crtc->gamma_size, NULL);
-	}
-}
-
 static void openchrome_crtc_dpms(struct drm_crtc *crtc, int mode)
 {
 	struct openchrome_drm_private *dev_private =
@@ -1605,7 +1590,6 @@ static void openchrome_crtc_dpms(struct drm_crtc *crtc, int mode)
 
 			/* disable simultaneous  */
 			svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(3));
-			drm_mode_crtc_load_lut(crtc);
 			break;
 		}
 
@@ -1627,7 +1611,6 @@ static void openchrome_crtc_dpms(struct drm_crtc *crtc, int mode)
 
 			/* disable simultaneous  */
 			svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(3));
-			drm_mode_crtc_load_lut(crtc);
 			break;
 		}
 	}
