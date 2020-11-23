@@ -39,12 +39,11 @@ int openchrome_dev_pm_ops_suspend(struct device *dev)
 	struct pci_dev *pdev = to_pci_dev(dev);
 	struct drm_device *drm_dev = pci_get_drvdata(pdev);
 	struct openchrome_drm_private *dev_private = drm_dev->dev_private;
+	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	console_lock();
-	drm_fb_helper_set_suspend(&dev_private->openchrome_fb->helper,
-					true);
 
 	/*
 	 * Frame Buffer Size Control register (SR14) and GTI registers
@@ -84,8 +83,18 @@ int openchrome_dev_pm_ops_suspend(struct device *dev)
 
 	console_unlock();
 
+	ret = drm_mode_config_helper_suspend(drm_dev);
+	if (ret) {
+		DRM_ERROR("Failed to prepare for suspend.\n");
+		goto exit;
+	}
+
+	pci_save_state(pdev);
+	pci_disable_device(pdev);
+	pci_set_power_state(pdev, PCI_D3hot);
+exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return 0;
+	return ret;
 }
 
 int openchrome_dev_pm_ops_resume(struct device *dev)
@@ -96,8 +105,16 @@ int openchrome_dev_pm_ops_resume(struct device *dev)
 						drm_dev->dev_private;
 	void __iomem *regs = ioport_map(0x3c0, 100);
 	u8 val;
+	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	if (pci_enable_device(pdev)) {
+		DRM_ERROR("Failed to initialize a PCI "
+				"after resume.\n");
+		ret = -EIO;
+		goto exit;
+	}
 
 	console_lock();
 
@@ -160,10 +177,16 @@ int openchrome_dev_pm_ops_resume(struct device *dev)
 	vga_wcrt(VGABASE, 0x3e, dev_private->saved_cr3e);
 	vga_wcrt(VGABASE, 0x3f, dev_private->saved_cr3f);
 
-	drm_helper_resume_force_mode(drm_dev);
-	drm_fb_helper_set_suspend(&dev_private->openchrome_fb->helper, false);
 	console_unlock();
 
+	ret = drm_mode_config_helper_resume(drm_dev);
+	if (ret) {
+		DRM_ERROR("Failed to perform a modeset "
+				"after resume.\n");
+		goto exit;
+	}
+
+exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return 0;
+	return ret;
 }

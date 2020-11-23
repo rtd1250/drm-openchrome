@@ -510,6 +510,8 @@ via_modeset_init(struct drm_device *dev)
 		break;
 	}
 
+	drm_mode_config_reset(dev);
+
 	/* Initialize the frame buffer device. */
 	ret = openchrome_fb_init(dev);
 	if (ret) {

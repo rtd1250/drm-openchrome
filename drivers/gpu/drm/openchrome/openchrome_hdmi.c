@@ -26,6 +26,7 @@
 
 #include <linux/delay.h>
 
+#include <drm/drm_atomic_state_helper.h>
 #include <drm/drm_drv.h>
 #include <drm/drm_print.h>
 #include <drm/drm_probe_helper.h>
@@ -627,6 +628,11 @@ static const struct drm_connector_funcs via_hdmi_connector_funcs = {
 	.fill_modes = drm_helper_probe_single_connector_modes,
 	.set_property = via_hdmi_set_property,
 	.destroy = via_connector_destroy,
+	.reset = drm_atomic_helper_connector_reset,
+	.atomic_duplicate_state =
+			drm_atomic_helper_connector_duplicate_state,
+	.atomic_destroy_state =
+			drm_atomic_helper_connector_destroy_state,
 };
 
 static int

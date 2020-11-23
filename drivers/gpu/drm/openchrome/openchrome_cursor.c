@@ -1,5 +1,5 @@
 /*
- * Copyright © 2019 Kevin Brace
+ * Copyright © 2019-2020 Kevin Brace
  * Copyright 2012 James Simmons <jsimmons@infradead.org>. All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person
@@ -32,6 +32,9 @@
 
 #include <linux/pci_ids.h>
 
+#include <drm/drm_atomic.h>
+#include <drm/drm_atomic_helper.h>
+#include <drm/drm_atomic_state_helper.h>
 #include <drm/drm_crtc.h>
 #include <drm/drm_fourcc.h>
 #include <drm/drm_framebuffer.h>
@@ -51,7 +54,8 @@ static void openchrome_hide_cursor(struct drm_device *dev,
 {
 	struct via_crtc *iga = container_of(crtc,
 					struct via_crtc, base);
-	struct openchrome_drm_private *dev_private = dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+					dev->dev_private;
 	uint32_t temp;
 
 	switch (dev->pdev->device) {
@@ -92,8 +96,10 @@ static void openchrome_show_cursor(struct drm_crtc *crtc)
 	case PCI_DEVICE_ID_VIA_VT1122:
 	case PCI_DEVICE_ID_VIA_VX875:
 	case PCI_DEVICE_ID_VIA_VX900_VGA:
-		/* Program Hardware Icon (HI) FIFO, foreground, and
-		 * background colors. */
+		/*
+		 * Program Hardware Icon (HI) FIFO, foreground color,
+		 * and background color.
+		 */
 		if (iga->index) {
 			VIA_WRITE(HI_TRANSPARENT_COLOR, 0x00000000);
 			VIA_WRITE(HI_INVTCOLOR, 0x00FFFFFF);
@@ -109,6 +115,10 @@ static void openchrome_show_cursor(struct drm_crtc *crtc)
 
 		break;
 	default:
+		/*
+		 * Program Hardware Icon (HI) FIFO, foreground color,
+		 * and background color.
+		 */
 		VIA_WRITE(HI_TRANSPARENT_COLOR, 0x00000000);
 		VIA_WRITE(HI_INVTCOLOR, 0x00FFFFFF);
 		VIA_WRITE(ALPHA_V3_PREFIFO_CONTROL, 0x000E0000);
@@ -123,7 +133,9 @@ static void openchrome_show_cursor(struct drm_crtc *crtc)
 	case PCI_DEVICE_ID_VIA_VT1122:
 	case PCI_DEVICE_ID_VIA_VX875:
 	case PCI_DEVICE_ID_VIA_VX900_VGA:
-		/* Turn on Hardware icon Cursor */
+		/*
+		 * Turn on Hardware Icon (HI).
+		 */
 		if (iga->index) {
 			VIA_WRITE(HI_CONTROL, 0xB6000005);
 		} else {
@@ -132,6 +144,9 @@ static void openchrome_show_cursor(struct drm_crtc *crtc)
 
 		break;
 	default:
+		/*
+		 * Turn on Hardware Icon (HI).
+		 */
 		if (iga->index) {
 			VIA_WRITE(HI_CONTROL, 0xB6000005);
 		} else {
@@ -150,14 +165,6 @@ static void openchrome_cursor_address(struct drm_crtc *crtc,
 					struct via_crtc, base);
 	struct openchrome_drm_private *dev_private =
 					crtc->dev->dev_private;
-	int ret;
-
-	ret = ttm_bo_kmap(&ttm_bo->ttm_bo, 0,
-				ttm_bo->ttm_bo.num_pages,
-				&ttm_bo->kmap);
-	if (ret) {
-		goto exit;
-	}
 
 	switch (dev->pdev->device) {
 	case PCI_DEVICE_ID_VIA_VT3157:
@@ -166,7 +173,9 @@ static void openchrome_cursor_address(struct drm_crtc *crtc,
 	case PCI_DEVICE_ID_VIA_VT1122:
 	case PCI_DEVICE_ID_VIA_VX875:
 	case PCI_DEVICE_ID_VIA_VX900_VGA:
-		/* Program the HI offset. */
+		/*
+		 * Program Hardware Icon (HI) offset.
+		 */
 		if (iga->index) {
 			VIA_WRITE(HI_FBOFFSET,
 			ttm_bo->kmap.bo->mem.start << PAGE_SHIFT);
@@ -176,13 +185,14 @@ static void openchrome_cursor_address(struct drm_crtc *crtc,
 		}
 		break;
 	default:
+		/*
+		 * Program Hardware Icon (HI) offset.
+		 */
 		VIA_WRITE(HI_FBOFFSET,
 			ttm_bo->kmap.bo->mem.start << PAGE_SHIFT);
 		break;
 	}
 
-	ttm_bo_kunmap(&ttm_bo->kmap);
-exit:
 	return;
 }
 
@@ -245,42 +255,80 @@ static void openchrome_set_hi_location(struct drm_crtc *crtc,
 	}
 }
 
-static int openchrome_cursor_update_plane(struct drm_plane *plane,
-				struct drm_crtc *crtc,
-				struct drm_framebuffer *fb,
-				int crtc_x, int crtc_y,
-				unsigned int crtc_w,
-				unsigned int crtc_h,
-				uint32_t src_x, uint32_t src_y,
-				uint32_t src_w, uint32_t src_h,
-				struct drm_modeset_acquire_ctx *ctx)
+static int openchrome_cursor_prepare_fb(struct drm_plane *plane,
+				struct drm_plane_state *new_state)
 {
-	struct openchrome_bo *ttm_bo;
 	struct drm_gem_object *gem;
+	struct openchrome_bo *bo;
 	int ret = 0;
 
-	if (!crtc) {
-		DRM_ERROR("Invalid CRTC!\n");
-		ret = -EINVAL;
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	if (!new_state->fb) {
 		goto exit;
 	}
 
-	if (!crtc->enabled) {
-		DRM_ERROR("CRTC is currently disabled!\n");
-		ret = -EINVAL;
+	gem = new_state->fb->obj[0];
+	bo = container_of(gem, struct openchrome_bo, gem);
+
+	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+	if (ret) {
 		goto exit;
 	}
 
-	if (!fb) {
-		DRM_ERROR("Invalid frame buffer!\n");
-		ret = -EINVAL;
+	ret = openchrome_bo_pin(bo, TTM_PL_VRAM);
+	ttm_bo_unreserve(&bo->ttm_bo);
+	ret = ttm_bo_kmap(&bo->ttm_bo, 0,
+				bo->ttm_bo.num_pages,
+				&bo->kmap);
+	if (ret) {
 		goto exit;
 	}
 
-	if ((fb->width != OPENCHROME_CURSOR_SIZE) ||
-		(fb->height != OPENCHROME_CURSOR_SIZE)) {
-		DRM_ERROR("Invalid cursor dimensions.\n");
-		ret = -EINVAL;
+exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
+}
+
+static void openchrome_cursor_cleanup_fb(struct drm_plane *plane,
+				struct drm_plane_state *old_state)
+{
+	struct drm_gem_object *gem;
+	struct openchrome_bo *bo;
+	int ret;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	if (!old_state->fb) {
+		goto exit;
+	}
+
+	gem = old_state->fb->obj[0];
+	bo = container_of(gem, struct openchrome_bo, gem);
+
+	ttm_bo_kunmap(&bo->kmap);
+	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+	if (ret) {
+		goto exit;
+	}
+
+	ret = openchrome_bo_unpin(bo);
+	ttm_bo_unreserve(&bo->ttm_bo);
+
+exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
+static int openchrome_cursor_atomic_check(struct drm_plane *plane,
+					struct drm_plane_state *state)
+{
+	struct drm_framebuffer *fb = state->fb;
+	struct drm_crtc_state *crtc_state;
+	int ret = 0;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	if ((!state->crtc) || (!state->visible)) {
 		goto exit;
 	}
 
@@ -291,46 +339,70 @@ static int openchrome_cursor_update_plane(struct drm_plane *plane,
 		goto exit;
 	}
 
-	if (fb != crtc->cursor->fb) {
-		gem = fb->obj[0];
-		ttm_bo = container_of(gem, struct openchrome_bo, gem);
-		openchrome_cursor_address(crtc, ttm_bo);
-	} else {
-		crtc->cursor_x = crtc_x;
-		crtc->cursor_y = crtc_y;
-		openchrome_set_hi_location(crtc, crtc_x, crtc_y);
-	}
-
-	openchrome_show_cursor(crtc);
+	crtc_state = drm_atomic_get_new_crtc_state(state->state,
+							state->crtc);
+	ret = drm_atomic_helper_check_plane_state(state, crtc_state,
+					DRM_PLANE_HELPER_NO_SCALING,
+					DRM_PLANE_HELPER_NO_SCALING,
+					true, true);
 exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
 
-static int openchrome_cursor_disable_plane(struct drm_plane *plane,
-				struct drm_modeset_acquire_ctx *ctx)
+static void openchrome_cursor_atomic_update(struct drm_plane *plane,
+				struct drm_plane_state *old_state)
 {
-	if (plane->crtc) {
-		openchrome_hide_cursor(plane->dev, plane->crtc);
+	struct drm_plane_state *state = plane->state;
+	struct drm_crtc *crtc = plane->state->crtc;
+	struct openchrome_bo *bo;
+	struct drm_gem_object *gem;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	if (state->fb != old_state->fb) {
+		gem = state->fb->obj[0];
+		bo = container_of(gem, struct openchrome_bo, gem);
+		openchrome_cursor_address(crtc, bo);
 	}
 
-	if (plane->fb) {
-		drm_framebuffer_put(plane->fb);
-		plane->fb = NULL;
-	}
+	openchrome_set_hi_location(crtc,
+				state->crtc_x,
+				state->crtc_y);
+	openchrome_show_cursor(crtc);
 
-	return 0;
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void openchrome_cursor_destroy(struct drm_plane *plane)
+void openchrome_cursor_atomic_disable(struct drm_plane *plane,
+			struct drm_plane_state *old_state)
 {
-	drm_plane_cleanup(plane);
-	kfree(plane);
+	struct drm_device *dev = plane->dev;
+	struct drm_crtc *crtc = plane->state->crtc;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	openchrome_hide_cursor(dev, crtc);
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
+
+const struct drm_plane_helper_funcs
+openchrome_cursor_drm_plane_helper_funcs = {
+	.prepare_fb	= openchrome_cursor_prepare_fb,
+	.cleanup_fb	= openchrome_cursor_cleanup_fb,
+	.atomic_check	= openchrome_cursor_atomic_check,
+	.atomic_update	= openchrome_cursor_atomic_update,
+	.atomic_disable	= openchrome_cursor_atomic_disable,
+};
 
 const struct drm_plane_funcs openchrome_cursor_drm_plane_funcs = {
-	.update_plane	= openchrome_cursor_update_plane,
-	.disable_plane	= openchrome_cursor_disable_plane,
-	.destroy	= openchrome_cursor_destroy,
+	.update_plane = drm_atomic_helper_update_plane,
+	.disable_plane = drm_atomic_helper_disable_plane,
+	.destroy = drm_plane_cleanup,
+	.reset = drm_atomic_helper_plane_reset,
+	.atomic_duplicate_state = drm_atomic_helper_plane_duplicate_state,
+	.atomic_destroy_state = drm_atomic_helper_plane_destroy_state,
 };
 
 const uint32_t openchrome_cursor_formats[] = {

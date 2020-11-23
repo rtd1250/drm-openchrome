@@ -184,7 +184,8 @@ static const struct file_operations via_driver_fops = {
 static struct drm_driver openchrome_driver = {
 	.driver_features = DRIVER_HAVE_IRQ |
 				DRIVER_GEM |
-				DRIVER_MODESET,
+				DRIVER_MODESET |
+				DRIVER_ATOMIC,
 	.open = openchrome_drm_driver_open,
 	.postclose = openchrome_drm_driver_postclose,
 	.lastclose = openchrome_drm_driver_lastclose,

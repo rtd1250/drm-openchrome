@@ -23,6 +23,7 @@
 
 #include <linux/fb.h>
 
+#include <drm/drm_atomic_helper.h>
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_drv.h>
 #include <drm/drm_fb_helper.h>
@@ -101,7 +102,8 @@ openchrome_fb_create(struct drm_device *dev,
 
 static const struct drm_mode_config_funcs openchrome_drm_mode_config_funcs = {
 	.fb_create		= openchrome_fb_create,
-	.output_poll_changed	= drm_fb_helper_output_poll_changed
+	.atomic_check		= drm_atomic_helper_check,
+	.atomic_commit		= drm_atomic_helper_commit,
 };
 
 void openchrome_mode_config_init(
@@ -264,7 +266,6 @@ int openchrome_fb_init(struct drm_device *dev)
 		goto free_fbdev;
 	}
 
-	drm_helper_disable_unused_functions(dev);
 	ret = drm_fb_helper_initial_config(&openchrome_fb->helper, bpp_sel);
 	if (ret) {
 		goto free_fb_helper;

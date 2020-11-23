@@ -1,5 +1,5 @@
 /*
- * Copyright © 2019 Kevin Brace
+ * Copyright © 2019-2020 Kevin Brace
  * Copyright 2012 James Simmons <jsimmons@infradead.org>. All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person
@@ -33,6 +33,9 @@
 #include <linux/pci.h>
 #include <linux/pci_ids.h>
 
+#include <drm/drm_atomic.h>
+#include <drm/drm_atomic_helper.h>
+#include <drm/drm_atomic_state_helper.h>
 #include <drm/drm_crtc.h>
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_fourcc.h>
@@ -324,9 +327,13 @@ static void openchrome_crtc_destroy(struct drm_crtc *crtc)
 }
 
 static const struct drm_crtc_funcs openchrome_drm_crtc_funcs = {
+	.reset = drm_atomic_helper_crtc_reset,
 	.gamma_set = openchrome_gamma_set,
-	.set_config = drm_crtc_helper_set_config,
+	.set_config = drm_atomic_helper_set_config,
 	.destroy = openchrome_crtc_destroy,
+	.page_flip = drm_atomic_helper_page_flip,
+	.atomic_duplicate_state = drm_atomic_helper_crtc_duplicate_state,
+	.atomic_destroy_state = drm_atomic_helper_crtc_destroy_state,
 };
 
 static void via_load_vpit_regs(
@@ -1563,186 +1570,13 @@ via_set_iga2_downscale_source_timing(struct drm_crtc *crtc,
 	drm_mode_destroy(crtc->dev, src_timing);
 }
 
-static void openchrome_crtc_dpms(struct drm_crtc *crtc, int mode)
-{
-	struct openchrome_drm_private *dev_private =
-						crtc->dev->dev_private;
-	struct via_crtc *iga = container_of(crtc,
-						struct via_crtc, base);
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	if (!iga->index) {
-		switch (mode) {
-		case DRM_MODE_DPMS_SUSPEND:
-		case DRM_MODE_DPMS_STANDBY:
-		case DRM_MODE_DPMS_OFF:
-			/* turn off CRT screen (IGA1) */
-			svga_wseq_mask(VGABASE, 0x01, BIT(5), BIT(5));
-
-			/* clear for TV clock */
-			svga_wcrt_mask(VGABASE, 0x6C, 0x00, 0xF0);
-			break;
-
-		case DRM_MODE_DPMS_ON:
-			/* turn on CRT screen (IGA1) */
-			svga_wseq_mask(VGABASE, 0x01, 0x00, BIT(5));
-
-			/* disable simultaneous  */
-			svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(3));
-			break;
-		}
-
-	} else {
-		switch (mode) {
-		case DRM_MODE_DPMS_SUSPEND:
-		case DRM_MODE_DPMS_STANDBY:
-		case DRM_MODE_DPMS_OFF:
-			/* turn off CRT screen (IGA2) */
-			svga_wcrt_mask(VGABASE, 0x6B, BIT(2), BIT(2));
-
-			/* clear for TV clock */
-			svga_wcrt_mask(VGABASE, 0x6C, 0x00, 0x0F);
-			break;
-
-		case DRM_MODE_DPMS_ON:
-			/* turn on CRT screen (IGA2) */
-			svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(2));
-
-			/* disable simultaneous  */
-			svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(3));
-			break;
-		}
-	}
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-}
-
-static void openchrome_crtc_disable(struct drm_crtc *crtc)
-{
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	crtc->helper_private->dpms(crtc, DRM_MODE_DPMS_OFF);
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-}
-
-static void openchrome_crtc_prepare(struct drm_crtc *crtc)
-{
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	/* Blank the screen */
-	if (crtc->enabled)
-		crtc->helper_private->dpms(crtc, DRM_MODE_DPMS_OFF);
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-}
-
-static void openchrome_crtc_commit(struct drm_crtc *crtc)
-{
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	/* Turn on the monitor */
-	if (crtc->enabled)
-		crtc->helper_private->dpms(crtc, DRM_MODE_DPMS_ON);
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-}
-
-static bool openchrome_crtc_mode_fixup(struct drm_crtc *crtc,
-				const struct drm_display_mode *mode,
-				struct drm_display_mode *adjusted_mode)
-{
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return true;
-}
-
-static int openchrome_crtc_mode_set_base(struct drm_crtc *crtc,
-					int x, int y,
-					struct drm_framebuffer *old_fb)
-{
-	struct drm_framebuffer *fb = crtc->primary->fb;
-	struct openchrome_bo *bo;
-	struct drm_gem_object *gem;
-	int ret = 0;
-	int fake_ret = 0;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	/* No FB found. */
-	if (!fb) {
-		ret = -ENOMEM;
-		DRM_DEBUG_KMS("No FB found.\n");
-		goto exit;
-	}
-
-	gem = fb->obj[0];
-	bo = container_of(gem, struct openchrome_bo, gem);
-
-	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
-	if (ret) {
-		DRM_DEBUG_KMS("Failed to reserve FB.\n");
-		goto exit;
-	}
-
-	ret = openchrome_bo_pin(bo, TTM_PL_VRAM);
-	ttm_bo_unreserve(&bo->ttm_bo);
-	if (ret) {
-		DRM_DEBUG_KMS("Failed to pin FB.\n");
-		goto exit;
-	}
-
-	ret = crtc->helper_private->mode_set_base_atomic(crtc,
-						fb, x, y,
-						ENTER_ATOMIC_MODE_SET);
-	if (unlikely(ret)) {
-		DRM_DEBUG_KMS("Failed to set a new FB.\n");
-		fake_ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
-		if (fake_ret) {
-			goto exit;
-		}
-
-		fake_ret = openchrome_bo_unpin(bo);
-		ttm_bo_unreserve(&bo->ttm_bo);
-		goto exit;
-	}
-
-	/*
-	 * Free the old framebuffer if it exists.
-	 */
-	if (old_fb) {
-		gem = old_fb->obj[0];
-		bo = container_of(gem, struct openchrome_bo, gem);
-
-		ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
-		if (ret) {
-			DRM_DEBUG_KMS("FB still locked.\n");
-			goto exit;
-		}
-
-		ret = openchrome_bo_unpin(bo);
-		ttm_bo_unreserve(&bo->ttm_bo);
-		if (ret) {
-			DRM_DEBUG_KMS("FB still locked.\n");
-			goto exit;
-		}
-	}
-
-exit:
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return ret;
-}
-
-static int openchrome_crtc_mode_set(struct drm_crtc *crtc,
-				struct drm_display_mode *mode,
-				struct drm_display_mode *adjusted_mode,
-				int x, int y,
-				struct drm_framebuffer *fb)
+void openchrome_mode_set_nofb(struct drm_crtc *crtc)
 {
 	struct via_crtc *iga = container_of(crtc,
 						struct via_crtc, base);
+	struct drm_display_mode *mode = &crtc->mode;
+	struct drm_display_mode *adjusted_mode =
+					&crtc->state->adjusted_mode;
 	struct openchrome_drm_private *dev_private =
 						crtc->dev->dev_private;
 	struct drm_device *dev = crtc->dev;
@@ -1818,6 +1652,11 @@ static int openchrome_crtc_mode_set(struct drm_crtc *crtc,
 			pll_regs = via_get_clk_value(crtc->dev, clock);
 			via_set_vclock(crtc, pll_regs);
 		}
+
+		via_iga_common_init(VGABASE);
+
+		/* Set palette LUT to 8-bit mode. */
+		via_iga1_set_palette_lut_resolution(VGABASE, true);
 	} else {
 		/* Load standard registers */
 		via_load_vpit_regs(dev_private);
@@ -1932,34 +1771,134 @@ static int openchrome_crtc_mode_set(struct drm_crtc *crtc,
 			pll_regs = via_get_clk_value(crtc->dev, clock);
 			via_set_vclock(crtc, pll_regs);
 		}
+
+		via_iga_common_init(VGABASE);
+
+		/* Set palette LUT to 8-bit mode. */
+		via_iga2_set_palette_lut_resolution(VGABASE, true);
+
+		enable_second_display_channel(VGABASE);
 	}
 
-	ret = openchrome_crtc_mode_set_base(crtc, x, y, fb);
+exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
+static void openchrome_crtc_helper_atomic_enable(struct drm_crtc *crtc,
+					struct drm_crtc_state *old_crtc_state)
+{
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
+	struct via_crtc *iga = container_of(crtc,
+						struct via_crtc, base);
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	if (!iga->index) {
+		svga_wseq_mask(VGABASE, 0x01, 0x00, BIT(5));
+	} else {
+		svga_wcrt_mask(VGABASE, 0x6B, 0x00, BIT(2));
+	}
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
+static void openchrome_crtc_helper_atomic_disable(struct drm_crtc *crtc,
+					struct drm_crtc_state *old_crtc_state)
+{
+	struct openchrome_drm_private *dev_private =
+						crtc->dev->dev_private;
+	struct via_crtc *iga = container_of(crtc,
+						struct via_crtc, base);
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	if (!iga->index) {
+		svga_wseq_mask(VGABASE, 0x01, BIT(5), BIT(5));
+	} else {
+		svga_wcrt_mask(VGABASE, 0x6B, BIT(2), BIT(2));
+	}
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
+static const struct
+drm_crtc_helper_funcs openchrome_drm_crtc_helper_funcs = {
+	.mode_set_nofb = openchrome_mode_set_nofb,
+	.atomic_enable = openchrome_crtc_helper_atomic_enable,
+	.atomic_disable = openchrome_crtc_helper_atomic_disable,
+};
+
+static int openchrome_primary_atomic_check(struct drm_plane *plane,
+					struct drm_plane_state *state)
+{
+	struct drm_device *dev = plane->dev;
+	struct drm_framebuffer *fb = state->fb;
+	struct drm_crtc_state *crtc_state;
+	struct openchrome_drm_private *dev_private =
+					plane->dev->dev_private;
+	uint32_t frame_buffer_size;
+	int ret = 0;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	if ((!state->crtc) || (!state->visible)) {
+		goto exit;
+	}
+
+	frame_buffer_size = (fb->width * fb->format->cpp[0]) *
+				fb->height;
+	if (frame_buffer_size > dev_private->vram_size) {
+		ret = -ENOMEM;
+		goto exit;
+	}
+
+	if ((fb->width > dev->mode_config.max_width) ||
+		(fb->width < dev->mode_config.min_width)) {
+		ret = -EINVAL;
+		goto exit;
+	}
+
+	crtc_state = drm_atomic_get_new_crtc_state(state->state,
+							state->crtc);
+	ret = drm_atomic_helper_check_plane_state(state, crtc_state,
+						DRM_PLANE_HELPER_NO_SCALING,
+						DRM_PLANE_HELPER_NO_SCALING,
+						false, true);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
 
-static int openchrome_crtc_mode_set_base_atomic(struct drm_crtc *crtc,
-					struct drm_framebuffer *fb,
-					int x, int y,
-					enum mode_set_atomic state)
+static void openchrome_primary_atomic_disable(struct drm_plane *plane,
+				struct drm_plane_state *old_state)
 {
-	u32 pitch = y * fb->pitches[0] +
-			((x * fb->format->cpp[0] * 8) >> 3), addr;
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return;
+}
+
+void openchrome_primary_atomic_update(struct drm_plane *plane,
+				struct drm_plane_state *old_state)
+{
+	struct drm_plane_state *state = plane->state;
+	struct drm_crtc *crtc = state->crtc;
+	struct drm_framebuffer *fb = state->fb;
+	uint32_t pitch = (state->crtc_y * fb->pitches[0]) +
+			(state->crtc_x * ((fb->format->cpp[0] * 8) >> 3));
+	uint32_t addr;
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct openchrome_drm_private *dev_private =
 						crtc->dev->dev_private;
 	struct drm_gem_object *gem = fb->obj[0];
 	struct openchrome_bo *bo = container_of(gem,
 					struct openchrome_bo, gem);
-	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	if ((fb->format->depth != 8) && (fb->format->depth != 16) &&
 		(fb->format->depth != 24)) {
-		ret = -EINVAL;
 		DRM_ERROR("Unsupported IGA%s Color Depth: %d bit\n",
 					(!iga->index) ? "1" : "2",
 					fb->format->depth);
@@ -1967,11 +1906,6 @@ static int openchrome_crtc_mode_set_base_atomic(struct drm_crtc *crtc,
 	}
 
 	if (!iga->index) {
-		via_iga_common_init(VGABASE);
-
-		/* Set palette LUT to 8-bit mode. */
-		via_iga1_set_palette_lut_resolution(VGABASE, true);
-
 		via_iga1_set_color_depth(dev_private, fb->format->depth);
 
 		/* Set the framebuffer offset */
@@ -1994,11 +1928,6 @@ static int openchrome_crtc_mode_set_base_atomic(struct drm_crtc *crtc,
 		 * second adapter */
 		load_value_to_registers(VGABASE, &iga->offset, pitch >> 3);
 	} else {
-		via_iga_common_init(VGABASE);
-
-		/* Set palette LUT to 8-bit mode. */
-		via_iga2_set_palette_lut_resolution(VGABASE, true);
-
 		via_iga2_set_color_depth(dev_private, fb->format->depth);
 
 		/* Set the framebuffer offset */
@@ -2019,27 +1948,86 @@ static int openchrome_crtc_mode_set_base_atomic(struct drm_crtc *crtc,
 		/* Set secondary pitch */
 		pitch = ALIGN(fb->pitches[0], 16);
 		load_value_to_registers(VGABASE, &iga->offset, pitch >> 3);
-
-		enable_second_display_channel(VGABASE);
 	}
 
+exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
+static int openchrome_primary_prepare_fb(struct drm_plane *plane,
+				struct drm_plane_state *new_state)
+{
+	struct openchrome_bo *bo;
+	struct drm_gem_object *gem;
+	int ret = 0;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	if (!new_state->fb) {
+		goto exit;
+	}
+
+	gem = new_state->fb->obj[0];
+	bo = container_of(gem, struct openchrome_bo, gem);
+
+	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+	if (ret) {
+		goto exit;
+	}
+
+	ret = openchrome_bo_pin(bo, TTM_PL_VRAM);
+	ttm_bo_unreserve(&bo->ttm_bo);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
 
-static const struct
-drm_crtc_helper_funcs openchrome_drm_crtc_helper_funcs = {
-	.dpms = openchrome_crtc_dpms,
-	.disable = openchrome_crtc_disable,
-	.prepare = openchrome_crtc_prepare,
-	.commit = openchrome_crtc_commit,
-	.mode_fixup = openchrome_crtc_mode_fixup,
-	.mode_set = openchrome_crtc_mode_set,
-	.mode_set_base_atomic = openchrome_crtc_mode_set_base_atomic,
+static void openchrome_primary_cleanup_fb(struct drm_plane *plane,
+				struct drm_plane_state *old_state)
+{
+	struct openchrome_bo *bo;
+	struct drm_gem_object *gem;
+	int ret;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	if (!old_state->fb) {
+		goto exit;
+	}
+
+	gem = old_state->fb->obj[0];
+	bo = container_of(gem, struct openchrome_bo, gem);
+
+	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+	if (ret) {
+		goto exit;
+	}
+
+	ret = openchrome_bo_unpin(bo);
+	ttm_bo_unreserve(&bo->ttm_bo);
+exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
+static const struct drm_plane_helper_funcs
+openchrome_primary_drm_plane_helper_funcs = {
+	.prepare_fb = openchrome_primary_prepare_fb,
+	.cleanup_fb = openchrome_primary_cleanup_fb,
+	.atomic_check = openchrome_primary_atomic_check,
+	.atomic_update = openchrome_primary_atomic_update,
+	.atomic_disable = openchrome_primary_atomic_disable,
 };
 
-
+static const struct drm_plane_funcs openchrome_primary_drm_plane_funcs = {
+	.update_plane	= drm_atomic_helper_update_plane,
+	.disable_plane = drm_atomic_helper_disable_plane,
+	.destroy = drm_plane_cleanup,
+	.reset = drm_atomic_helper_plane_reset,
+	.atomic_duplicate_state =
+			drm_atomic_helper_plane_duplicate_state,
+	.atomic_destroy_state =
+			drm_atomic_helper_plane_destroy_state,
+};
 
 static void openchrome_crtc_param_init(
 		struct openchrome_drm_private *dev_private,
@@ -2212,8 +2200,6 @@ static void openchrome_crtc_param_init(
 	}
 }
 
-
-
 static const uint32_t openchrome_primary_formats[] = {
 	DRM_FORMAT_XRGB8888,
 	DRM_FORMAT_ARGB8888,
@@ -2241,8 +2227,10 @@ int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
 		goto exit;
 	}
 
+	drm_plane_helper_add(primary,
+			&openchrome_primary_drm_plane_helper_funcs);
 	ret = drm_universal_plane_init(dev, primary, possible_crtcs,
-			&drm_primary_helper_funcs,
+			&openchrome_primary_drm_plane_funcs,
 			openchrome_primary_formats,
 			ARRAY_SIZE(openchrome_primary_formats),
 			NULL, DRM_PLANE_TYPE_PRIMARY, NULL);
@@ -2259,6 +2247,8 @@ int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
 		goto cleanup_primary;
 	}
 
+	drm_plane_helper_add(cursor,
+			&openchrome_cursor_drm_plane_helper_funcs);
 	ret = drm_universal_plane_init(dev, cursor, possible_crtcs,
 			&openchrome_cursor_drm_plane_funcs,
 			openchrome_cursor_formats,
