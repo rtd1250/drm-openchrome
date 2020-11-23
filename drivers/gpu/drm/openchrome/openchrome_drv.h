@@ -196,6 +196,7 @@ struct openchrome_bo {
 	struct ttm_placement		placement;
 	struct ttm_place		placements[OPENCHROME_TTM_PL_NUM];
 	struct drm_gem_object		gem;
+	int	pin_count;
 };
 
 struct openchrome_framebuffer {
