@@ -256,7 +256,6 @@ static int openchrome_cursor_update_plane(struct drm_plane *plane,
 				uint32_t src_w, uint32_t src_h,
 				struct drm_modeset_acquire_ctx *ctx)
 {
-	struct drm_device *dev = plane->dev;
 	struct openchrome_bo *ttm_bo;
 	struct drm_gem_object *gem;
 	int ret = 0;
@@ -279,22 +278,11 @@ static int openchrome_cursor_update_plane(struct drm_plane *plane,
 		goto exit;
 	}
 
-	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
-		(dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
-		if ((fb->width != OPENCHROME_UNICHROME_CURSOR_SIZE) ||
-		(fb->height != OPENCHROME_UNICHROME_CURSOR_SIZE)) {
-			DRM_ERROR("Invalid cursor dimensions.\n");
-			ret = -EINVAL;
-			goto exit;
-		}
-
-	} else {
-		if ((fb->width != OPENCHROME_UNICHROME_PRO_CURSOR_SIZE) ||
-		(fb->height != OPENCHROME_UNICHROME_PRO_CURSOR_SIZE)) {
-			DRM_ERROR("Invalid cursor dimensions.\n");
-			ret = -EINVAL;
-			goto exit;
-		}
+	if ((fb->width != OPENCHROME_CURSOR_SIZE) ||
+		(fb->height != OPENCHROME_CURSOR_SIZE)) {
+		DRM_ERROR("Invalid cursor dimensions.\n");
+		ret = -EINVAL;
+		goto exit;
 	}
 
 	if (fb->width != fb->height) {
