@@ -91,7 +91,6 @@ int openchrome_dev_pm_ops_suspend(struct device *dev)
 
 	pci_save_state(pdev);
 	pci_disable_device(pdev);
-	pci_set_power_state(pdev, PCI_D3hot);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
