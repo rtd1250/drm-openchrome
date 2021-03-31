@@ -41,6 +41,22 @@
 #include "openchrome_drv.h"
 
 
+static void openchrome_gem_free(struct drm_gem_object *obj)
+{
+	struct openchrome_bo *bo = container_of(obj,
+					struct openchrome_bo, gem);
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	ttm_bo_put(&bo->ttm_bo);
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
+static const struct drm_gem_object_funcs openchrome_gem_object_funcs = {
+	.free = openchrome_gem_free,
+};
+
 void openchrome_ttm_domain_to_placement(struct openchrome_bo *bo,
 					uint32_t ttm_domain)
 {
@@ -165,6 +181,8 @@ int openchrome_bo_create(struct drm_device *dev,
 		DRM_ERROR("Cannot initialize a GEM object.\n");
 		goto error;
 	}
+
+	bo->gem.funcs = &openchrome_gem_object_funcs;
 
 	openchrome_ttm_domain_to_placement(bo, ttm_domain);
 	acc_size = ttm_bo_dma_acc_size(&dev_private->bdev, size,
