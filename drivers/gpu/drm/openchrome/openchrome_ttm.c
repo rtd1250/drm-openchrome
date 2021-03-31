@@ -42,6 +42,10 @@
 
 #include "openchrome_drv.h"
 
+static void openchrome_bo_move_notify(struct ttm_buffer_object *bo,
+					bool evict,
+					struct ttm_resource *new_mem);
+
 
 static struct ttm_tt *openchrome_ttm_tt_create(
 					struct ttm_buffer_object *bo,
@@ -111,7 +115,13 @@ static int openchrome_bo_move(struct ttm_buffer_object *bo,
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
+	openchrome_bo_move_notify(bo, evict, new_mem);
 	ret = ttm_bo_move_memcpy(bo, ctx, new_mem);
+	if (ret) {
+		swap(*new_mem, bo->mem);
+		openchrome_bo_move_notify(bo, false, new_mem);
+		swap(*new_mem, bo->mem);
+	}
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
@@ -124,6 +134,16 @@ static int openchrome_bo_verify_access(struct ttm_buffer_object *bo,
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return 0;
+}
+
+static void openchrome_bo_move_notify(struct ttm_buffer_object *bo,
+					bool evict,
+					struct ttm_resource *new_mem)
+{
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return;
 }
 
 static int openchrome_bo_io_mem_reserve(struct ttm_bo_device *bdev,
@@ -159,5 +179,6 @@ struct ttm_bo_driver openchrome_bo_driver = {
 	.evict_flags = openchrome_bo_evict_flags,
 	.move = openchrome_bo_move,
 	.verify_access = openchrome_bo_verify_access,
+	.move_notify = openchrome_bo_move_notify,
 	.io_mem_reserve = openchrome_bo_io_mem_reserve,
 };
