@@ -54,7 +54,7 @@ static struct ttm_tt *openchrome_ttm_tt_create(
 	if (!tt)
 		return NULL;
 
-	ret = ttm_tt_init(tt, bo, page_flags);
+	ret = ttm_tt_init(tt, bo, page_flags, ttm_cached);
 	if (ret < 0)
 		goto err_ttm_tt_init;
 
