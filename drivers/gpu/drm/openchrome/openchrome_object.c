@@ -90,7 +90,6 @@ void openchrome_ttm_bo_destroy(struct ttm_buffer_object *tbo)
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	drm_gem_object_release(&bo->gem);
-	ttm_bo_put(&bo->ttm_bo);
 	kfree(bo);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
