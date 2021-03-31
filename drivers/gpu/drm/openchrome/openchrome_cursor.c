@@ -312,7 +312,7 @@ static void openchrome_cursor_cleanup_fb(struct drm_plane *plane,
 		goto exit;
 	}
 
-	ret = openchrome_bo_unpin(bo);
+	openchrome_bo_unpin(bo);
 	ttm_bo_unreserve(&bo->ttm_bo);
 
 exit:

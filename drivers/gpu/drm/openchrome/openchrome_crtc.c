@@ -2003,7 +2003,7 @@ static void openchrome_primary_cleanup_fb(struct drm_plane *plane,
 		goto exit;
 	}
 
-	ret = openchrome_bo_unpin(bo);
+	openchrome_bo_unpin(bo);
 	ttm_bo_unreserve(&bo->ttm_bo);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);

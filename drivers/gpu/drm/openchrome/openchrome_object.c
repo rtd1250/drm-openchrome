@@ -99,59 +99,35 @@ int openchrome_bo_pin(struct openchrome_bo *bo,
 			uint32_t ttm_domain)
 {
 	struct ttm_operation_ctx ctx = {false, false};
-	uint32_t i;
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if (bo->pin_count) {
-		bo->pin_count++;
-		goto exit;
+	if (bo->ttm_bo.pin_count) {
+		goto pin;
 	}
 
 	openchrome_ttm_domain_to_placement(bo, ttm_domain);
-	for (i = 0; i < bo->placement.num_placement; i++) {
-		bo->placements[i].flags |= TTM_PL_FLAG_NO_EVICT;
-	}
-
 	ret = ttm_bo_validate(&bo->ttm_bo, &bo->placement, &ctx);
 	if (ret) {
 		goto exit;
 	}
 
-	bo->pin_count++;
+pin:
+	ttm_bo_pin(&bo->ttm_bo);
 exit:
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
 
-int openchrome_bo_unpin(struct openchrome_bo *bo)
+void openchrome_bo_unpin(struct openchrome_bo *bo)
 {
-	struct ttm_operation_ctx ctx = {false, false};
-	uint32_t i;
-	int ret = 0;
-
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if (!bo->pin_count) {
-		DRM_ERROR("Bad unpin.\n");
-		goto exit;
-	}
+	ttm_bo_unpin(&bo->ttm_bo);
 
-	bo->pin_count--;
-	if (bo->pin_count) {
-		goto exit;
-	}
-
-	for (i = 0; i < bo->placement.num_placement; i++) {
-		bo->placements[i].flags &= ~TTM_PL_FLAG_NO_EVICT;
-	}
-
-	ret = ttm_bo_validate(&bo->ttm_bo, &bo->placement, &ctx);
-exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return ret;
 }
 
 int openchrome_bo_create(struct drm_device *dev,
@@ -253,7 +229,7 @@ void openchrome_bo_destroy(struct openchrome_bo *bo, bool kmap)
 			goto exit;
 		}
 
-		ret = openchrome_bo_unpin(bo);
+		openchrome_bo_unpin(bo);
 		ttm_bo_unreserve(&bo->ttm_bo);
 		if (ret) {
 			goto exit;

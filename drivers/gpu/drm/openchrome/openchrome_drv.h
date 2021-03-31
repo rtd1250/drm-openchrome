@@ -196,7 +196,6 @@ struct openchrome_bo {
 	struct ttm_placement		placement;
 	struct ttm_place		placements[OPENCHROME_TTM_PL_NUM];
 	struct drm_gem_object		gem;
-	int	pin_count;
 };
 
 struct openchrome_framebuffer {
@@ -395,7 +394,7 @@ void openchrome_ttm_domain_to_placement(struct openchrome_bo *bo,
 					uint32_t ttm_domain);
 void openchrome_ttm_bo_destroy(struct ttm_buffer_object *tbo);
 int openchrome_bo_pin(struct openchrome_bo *bo, uint32_t ttm_domain);
-int openchrome_bo_unpin(struct openchrome_bo *bo);
+void openchrome_bo_unpin(struct openchrome_bo *bo);
 int openchrome_bo_create(struct drm_device *dev,
 				struct ttm_bo_device *bdev,
 				uint64_t size,
