@@ -1785,7 +1785,7 @@ exit:
 }
 
 static void openchrome_crtc_helper_atomic_enable(struct drm_crtc *crtc,
-					struct drm_crtc_state *old_crtc_state)
+					struct drm_atomic_state *state)
 {
 	struct openchrome_drm_private *dev_private =
 						crtc->dev->dev_private;
@@ -1804,7 +1804,7 @@ static void openchrome_crtc_helper_atomic_enable(struct drm_crtc *crtc,
 }
 
 static void openchrome_crtc_helper_atomic_disable(struct drm_crtc *crtc,
-					struct drm_crtc_state *old_crtc_state)
+					struct drm_atomic_state *state)
 {
 	struct openchrome_drm_private *dev_private =
 						crtc->dev->dev_private;
