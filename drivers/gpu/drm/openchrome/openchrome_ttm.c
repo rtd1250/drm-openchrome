@@ -136,14 +136,6 @@ static int openchrome_bo_io_mem_reserve(struct ttm_bo_device *bdev,
 	return ret;
 }
 
-static void openchrome_bo_io_mem_free(struct ttm_bo_device *bdev,
-					struct ttm_resource *mem)
-{
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-}
-
 struct ttm_bo_driver openchrome_bo_driver = {
 	.ttm_tt_create = openchrome_ttm_tt_create,
 	.ttm_tt_destroy = openchrome_ttm_tt_destroy,
@@ -151,5 +143,4 @@ struct ttm_bo_driver openchrome_bo_driver = {
 	.evict_flags = openchrome_bo_evict_flags,
 	.verify_access = openchrome_bo_verify_access,
 	.io_mem_reserve = openchrome_bo_io_mem_reserve,
-	.io_mem_free = openchrome_bo_io_mem_free,
 };
