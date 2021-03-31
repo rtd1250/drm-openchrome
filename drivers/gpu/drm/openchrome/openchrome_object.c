@@ -279,6 +279,7 @@ int openchrome_mm_init(struct openchrome_drm_private *dev_private)
 	ret = ttm_bo_device_init(&dev_private->bdev,
 				&openchrome_bo_driver,
 				dev->anon_inode->i_mapping,
+				NULL,
 				dev_private->need_dma32);
 	if (ret) {
 		DRM_ERROR("Failed initializing buffer object driver.\n");
