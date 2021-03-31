@@ -101,6 +101,22 @@ exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
+static int openchrome_bo_move(struct ttm_buffer_object *bo,
+				bool evict,
+				struct ttm_operation_ctx *ctx,
+				struct ttm_resource *new_mem,
+				struct ttm_place *hop)
+{
+	int ret;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	ret = ttm_bo_move_memcpy(bo, ctx, new_mem);
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
+}
+
 static int openchrome_bo_verify_access(struct ttm_buffer_object *bo,
 					struct file *filp)
 {
@@ -141,6 +157,7 @@ struct ttm_bo_driver openchrome_bo_driver = {
 	.ttm_tt_destroy = openchrome_ttm_tt_destroy,
 	.eviction_valuable = ttm_bo_eviction_valuable,
 	.evict_flags = openchrome_bo_evict_flags,
+	.move = openchrome_bo_move,
 	.verify_access = openchrome_bo_verify_access,
 	.io_mem_reserve = openchrome_bo_io_mem_reserve,
 };
