@@ -71,7 +71,7 @@ void openchrome_ttm_domain_to_placement(struct openchrome_bo *bo,
 		bo->placements[i].fpfn = 0;
 		bo->placements[i].lpfn = 0;
 		bo->placements[i].mem_type = TTM_PL_SYSTEM;
-		bo->placements[i].flags = TTM_PL_FLAG_CACHED;
+		bo->placements[i].flags = 0;
 		i++;
 	}
 
@@ -79,7 +79,7 @@ void openchrome_ttm_domain_to_placement(struct openchrome_bo *bo,
 		bo->placements[i].fpfn = 0;
 		bo->placements[i].lpfn = 0;
 		bo->placements[i].mem_type = TTM_PL_TT;
-		bo->placements[i].flags = TTM_PL_FLAG_CACHED;
+		bo->placements[i].flags = 0;
 		i++;
 	}
 
@@ -87,8 +87,7 @@ void openchrome_ttm_domain_to_placement(struct openchrome_bo *bo,
 		bo->placements[i].fpfn = 0;
 		bo->placements[i].lpfn = 0;
 		bo->placements[i].mem_type = TTM_PL_VRAM;
-		bo->placements[i].flags = TTM_PL_FLAG_WC |
-						TTM_PL_FLAG_UNCACHED;
+		bo->placements[i].flags = 0;
 		i++;
 	}
 
