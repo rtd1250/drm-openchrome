@@ -653,7 +653,7 @@ via_hdmi_get_modes(struct drm_connector *connector)
 		if (edid->input & DRM_EDID_INPUT_DIGITAL) {
 			con = container_of(connector, struct via_connector, base);
 
-			if (via_hdmi_audio)
+			if (openchrome_hdmi_audio)
 				con->flags |= drm_detect_monitor_audio(edid);
 		}
 	}

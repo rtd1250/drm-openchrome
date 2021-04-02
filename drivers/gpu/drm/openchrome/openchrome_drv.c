@@ -36,10 +36,10 @@
 #include "openchrome_drv.h"
 
 
-int via_hdmi_audio = 0;
+int openchrome_hdmi_audio = 0;
 
 MODULE_PARM_DESC(audio, "HDMI Audio enable (1 = enable)");
-module_param_named(audio, via_hdmi_audio, int, 0444);
+module_param_named(audio, openchrome_hdmi_audio, int, 0444);
 
 static struct pci_device_id via_pci_table[] = {
 	viadrv_PCI_IDS,

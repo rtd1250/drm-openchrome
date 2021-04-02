@@ -368,7 +368,7 @@ disable_second_display_channel(void __iomem *regs)
 extern const struct drm_ioctl_desc openchrome_ioctls[];
 extern int openchrome_max_ioctl;
 
-extern int via_hdmi_audio;
+extern int openchrome_hdmi_audio;
 
 extern struct ttm_bo_driver openchrome_bo_driver;
 
