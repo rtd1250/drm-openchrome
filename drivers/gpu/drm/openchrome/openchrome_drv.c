@@ -41,10 +41,10 @@ int openchrome_hdmi_audio = 0;
 MODULE_PARM_DESC(audio, "HDMI Audio enable (1 = enable)");
 module_param_named(audio, openchrome_hdmi_audio, int, 0444);
 
-static struct pci_device_id via_pci_table[] = {
+static struct pci_device_id openchrome_pci_table[] = {
 	viadrv_PCI_IDS,
 };
-MODULE_DEVICE_TABLE(pci, via_pci_table);
+MODULE_DEVICE_TABLE(pci, openchrome_pci_table);
 
 static int openchrome_drm_driver_open(struct drm_device *dev,
 					struct drm_file *file_priv)
@@ -171,7 +171,7 @@ static const struct dev_pm_ops openchrome_dev_pm_ops = {
 	.resume		= openchrome_dev_pm_ops_resume,
 };
 
-static const struct file_operations via_driver_fops = {
+static const struct file_operations openchrome_driver_fops = {
 	.owner		= THIS_MODULE,
 	.open		= drm_open,
 	.release	= drm_release,
@@ -193,7 +193,7 @@ static struct drm_driver openchrome_driver = {
 	.dumb_map_offset =
 				openchrome_drm_driver_dumb_map_offset,
 	.ioctls = openchrome_ioctls,
-	.fops = &via_driver_fops,
+	.fops = &openchrome_driver_fops,
 	.name = DRIVER_NAME,
 	.desc = DRIVER_DESC,
 	.date = DRIVER_DATE,
@@ -260,9 +260,9 @@ static void openchrome_pci_remove(struct pci_dev *pdev)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static struct pci_driver via_pci_driver = {
+static struct pci_driver openchrome_pci_driver = {
 	.name		= DRIVER_NAME,
-	.id_table	= via_pci_table,
+	.id_table	= openchrome_pci_table,
 	.probe		= openchrome_pci_probe,
 	.remove		= openchrome_pci_remove,
 	.driver.pm	= &openchrome_dev_pm_ops,
@@ -276,7 +276,7 @@ static int __init openchrome_init(void)
 
 	openchrome_driver.num_ioctls = openchrome_max_ioctl;
 
-	ret = pci_register_driver(&via_pci_driver);
+	ret = pci_register_driver(&openchrome_pci_driver);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
@@ -286,7 +286,7 @@ static void __exit openchrome_exit(void)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	pci_unregister_driver(&via_pci_driver);
+	pci_unregister_driver(&openchrome_pci_driver);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
