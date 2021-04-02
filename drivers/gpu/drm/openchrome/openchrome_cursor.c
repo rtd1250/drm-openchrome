@@ -279,7 +279,7 @@ static int openchrome_cursor_prepare_fb(struct drm_plane *plane,
 	ret = openchrome_bo_pin(bo, TTM_PL_VRAM);
 	ttm_bo_unreserve(&bo->ttm_bo);
 	ret = ttm_bo_kmap(&bo->ttm_bo, 0,
-				bo->ttm_bo.num_pages,
+				bo->ttm_bo.mem.num_pages,
 				&bo->kmap);
 	if (ret) {
 		goto exit;

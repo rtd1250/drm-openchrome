@@ -215,7 +215,7 @@ int openchrome_bo_create(struct drm_device *dev,
 		}
 
 		ret = ttm_bo_kmap(&bo->ttm_bo, 0,
-					bo->ttm_bo.num_pages,
+					bo->ttm_bo.mem.num_pages,
 					&bo->kmap);
 		if (ret) {
 			ttm_bo_put(&bo->ttm_bo);

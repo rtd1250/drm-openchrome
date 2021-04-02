@@ -65,7 +65,7 @@ static int openchrome_gem_create_ioctl(struct drm_device *dev,
 		goto exit;
 	}
 
-	args->size		= bo->ttm_bo.mem.size;
+	args->size		= bo->ttm_bo.base.size;
 	args->domain		= bo->ttm_bo.mem.placement;
 	args->handle		= handle;
 	args->offset		= bo->ttm_bo.mem.start << PAGE_SHIFT;
