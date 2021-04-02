@@ -42,7 +42,7 @@ MODULE_PARM_DESC(audio, "HDMI Audio enable (1 = enable)");
 module_param_named(audio, openchrome_hdmi_audio, int, 0444);
 
 
-static int openchrome_drm_driver_open(struct drm_device *dev,
+static int openchrome_driver_open(struct drm_device *dev,
 					struct drm_file *file_priv)
 {
 	int ret = 0;
@@ -53,7 +53,7 @@ static int openchrome_drm_driver_open(struct drm_device *dev,
 	return ret;
 }
 
-static void openchrome_drm_driver_postclose(struct drm_device *dev,
+static void openchrome_driver_postclose(struct drm_device *dev,
 					struct drm_file *file_priv)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -61,7 +61,7 @@ static void openchrome_drm_driver_postclose(struct drm_device *dev,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void openchrome_drm_driver_lastclose(struct drm_device *dev)
+static void openchrome_driver_lastclose(struct drm_device *dev)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -70,7 +70,7 @@ static void openchrome_drm_driver_lastclose(struct drm_device *dev)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static int openchrome_drm_driver_dumb_create(
+static int openchrome_driver_dumb_create(
 				struct drm_file *file_priv,
 				struct drm_device *dev,
 				struct drm_mode_create_dumb *args)
@@ -114,7 +114,7 @@ exit:
 	return ret;
 }
 
-static int openchrome_drm_driver_dumb_map_offset(
+static int openchrome_driver_dumb_map_offset(
 				struct drm_file *file_priv,
 				struct drm_device *dev,
 				uint32_t handle,
@@ -156,13 +156,12 @@ static struct drm_driver openchrome_driver = {
 				DRIVER_GEM |
 				DRIVER_MODESET |
 				DRIVER_ATOMIC,
-	.open = openchrome_drm_driver_open,
-	.postclose = openchrome_drm_driver_postclose,
-	.lastclose = openchrome_drm_driver_lastclose,
-	.dumb_create = openchrome_drm_driver_dumb_create,
-	.dumb_map_offset =
-				openchrome_drm_driver_dumb_map_offset,
-	.ioctls = openchrome_ioctls,
+	.open = openchrome_driver_open,
+	.postclose = openchrome_driver_postclose,
+	.lastclose = openchrome_driver_lastclose,
+	.dumb_create = openchrome_driver_dumb_create,
+	.dumb_map_offset = openchrome_driver_dumb_map_offset,
+	.ioctls = openchrome_driver_ioctls,
 	.fops = &openchrome_driver_fops,
 	.name = DRIVER_NAME,
 	.desc = DRIVER_DESC,
@@ -255,7 +254,7 @@ static int __init openchrome_init(void)
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	openchrome_driver.num_ioctls = openchrome_max_ioctl;
+	openchrome_driver.num_ioctls = openchrome_driver_num_ioctls;
 
 	ret = pci_register_driver(&openchrome_pci_driver);
 
