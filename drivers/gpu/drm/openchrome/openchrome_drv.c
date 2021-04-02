@@ -41,10 +41,6 @@ int openchrome_hdmi_audio = 0;
 MODULE_PARM_DESC(audio, "HDMI Audio enable (1 = enable)");
 module_param_named(audio, openchrome_hdmi_audio, int, 0444);
 
-static struct pci_device_id openchrome_pci_table[] = {
-	viadrv_PCI_IDS,
-};
-MODULE_DEVICE_TABLE(pci, openchrome_pci_table);
 
 static int openchrome_drm_driver_open(struct drm_device *dev,
 					struct drm_file *file_priv)
@@ -166,11 +162,6 @@ exit:
 	return ret;
 }
 
-static const struct dev_pm_ops openchrome_dev_pm_ops = {
-	.suspend	= openchrome_dev_pm_ops_suspend,
-	.resume		= openchrome_dev_pm_ops_resume,
-};
-
 static const struct file_operations openchrome_driver_fops = {
 	.owner		= THIS_MODULE,
 	.open		= drm_open,
@@ -201,6 +192,12 @@ static struct drm_driver openchrome_driver = {
 	.minor = DRIVER_MINOR,
 	.patchlevel = DRIVER_PATCHLEVEL,
 };
+
+static struct pci_device_id openchrome_pci_table[] = {
+	viadrv_PCI_IDS,
+};
+
+MODULE_DEVICE_TABLE(pci, openchrome_pci_table);
 
 static int openchrome_pci_probe(struct pci_dev *pdev,
 				const struct pci_device_id *ent)
@@ -259,6 +256,11 @@ static void openchrome_pci_remove(struct pci_dev *pdev)
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
+
+static const struct dev_pm_ops openchrome_dev_pm_ops = {
+	.suspend	= openchrome_dev_pm_ops_suspend,
+	.resume		= openchrome_dev_pm_ops_resume,
+};
 
 static struct pci_driver openchrome_pci_driver = {
 	.name		= DRIVER_NAME,
