@@ -141,33 +141,12 @@ exit:
 	return ret;
 }
 
-static int openchrome_drm_mmap(struct file *filp, struct vm_area_struct *vma)
-{
-	struct drm_file *file_priv = filp->private_data;
-	struct openchrome_drm_private *dev_private =
-				file_priv->minor->dev->dev_private;
-	int ret = -EINVAL;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	if (!dev_private) {
-		DRM_DEBUG_KMS("No device private data.\n");
-		ret = -EINVAL;
-		goto exit;
-	}
-
-	ret = ttm_bo_mmap(filp, vma, &dev_private->bdev);
-exit:
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return ret;
-}
-
 static const struct file_operations openchrome_driver_fops = {
 	.owner		= THIS_MODULE,
 	.open		= drm_open,
 	.release	= drm_release,
 	.unlocked_ioctl = drm_ioctl,
-	.mmap		= openchrome_drm_mmap,
+	.mmap		= openchrome_ttm_mmap,
 	.poll		= drm_poll,
 	.llseek		= noop_llseek,
 };

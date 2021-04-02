@@ -390,6 +390,7 @@ void openchrome_drm_fini(struct drm_device *dev);
 int openchrome_dev_pm_ops_suspend(struct device *dev);
 int openchrome_dev_pm_ops_resume(struct device *dev);
 
+int openchrome_ttm_mmap(struct file *filp, struct vm_area_struct *vma);
 void openchrome_ttm_domain_to_placement(struct openchrome_bo *bo,
 					uint32_t ttm_domain);
 void openchrome_ttm_bo_destroy(struct ttm_buffer_object *tbo);
