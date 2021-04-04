@@ -27,6 +27,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#include <linux/console.h>
 #include <linux/module.h>
 
 #include <drm/drm_drv.h>
@@ -35,6 +36,18 @@
 
 #include "openchrome_drv.h"
 
+
+/*
+ * For now, this device driver will be disabled, unless the
+ * user decides to enable it.
+ */
+int openchrome_modeset = 0;
+
+MODULE_PARM_DESC(modeset, "Enable DRM device driver "
+				"(Default: Disabled, "
+				"0 = Disabled,"
+				"1 = Enabled)");
+module_param_named(modeset, openchrome_modeset, int, 0400);
 
 int openchrome_hdmi_audio = 0;
 
@@ -250,14 +263,24 @@ static struct pci_driver openchrome_pci_driver = {
 
 static int __init openchrome_init(void)
 {
-	int ret;
+	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	if ((openchrome_modeset == -1) &&
+		(vgacon_text_force())) {
+		openchrome_modeset = 0;
+	}
+
+	if (!openchrome_modeset) {
+		goto exit;
+	}
 
 	openchrome_driver.num_ioctls = openchrome_driver_num_ioctls;
 
 	ret = pci_register_driver(&openchrome_pci_driver);
 
+exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
@@ -266,8 +289,12 @@ static void __exit openchrome_exit(void)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	pci_unregister_driver(&openchrome_pci_driver);
+	if (!openchrome_modeset) {
+		goto exit;
+	}
 
+	pci_unregister_driver(&openchrome_pci_driver);
+exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
