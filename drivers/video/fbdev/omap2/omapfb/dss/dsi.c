@@ -399,7 +399,7 @@ module_param(dsi_perf, bool, 0644);
 
 static inline struct dsi_data *dsi_get_dsidrv_data(struct platform_device *dsidev)
 {
-	return dev_get_drvdata(&dsidev->dev);
+	return platform_get_drvdata(dsidev);
 }
 
 static inline struct platform_device *dsi_get_dsidev_from_dssdev(struct omap_dss_device *dssdev)
@@ -2375,8 +2375,6 @@ static int dsi_sync_vc(struct platform_device *dsidev, int channel)
 	struct dsi_data *dsi = dsi_get_dsidrv_data(dsidev);
 
 	WARN_ON(!dsi_bus_is_locked(dsidev));
-
-	WARN_ON(in_interrupt());
 
 	if (!dsi_vc_is_enabled(dsidev, channel))
 		return 0;
@@ -5266,7 +5264,7 @@ static int dsi_bind(struct device *dev, struct device *master, void *data)
 		return -ENOMEM;
 
 	dsi->pdev = dsidev;
-	dev_set_drvdata(&dsidev->dev, dsi);
+	platform_set_drvdata(dsidev, dsi);
 
 	spin_lock_init(&dsi->irq_lock);
 	spin_lock_init(&dsi->errors_lock);
