@@ -357,22 +357,22 @@ exit:
 static void openchrome_cursor_atomic_update(struct drm_plane *plane,
 				struct drm_plane_state *old_state)
 {
-	struct drm_plane_state *state = plane->state;
-	struct drm_crtc *crtc = plane->state->crtc;
+	struct drm_plane_state *new_state = plane->state;
+	struct drm_crtc *crtc = new_state->crtc;
 	struct openchrome_bo *bo;
 	struct drm_gem_object *gem;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if (state->fb != old_state->fb) {
-		gem = state->fb->obj[0];
+	if (new_state->fb != old_state->fb) {
+		gem = new_state->fb->obj[0];
 		bo = container_of(gem, struct openchrome_bo, gem);
 		openchrome_cursor_address(crtc, bo);
 	}
 
 	openchrome_set_hi_location(crtc,
-				state->crtc_x,
-				state->crtc_y);
+					new_state->crtc_x,
+					new_state->crtc_y);
 	openchrome_show_cursor(crtc);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
@@ -381,8 +381,9 @@ static void openchrome_cursor_atomic_update(struct drm_plane *plane,
 void openchrome_cursor_atomic_disable(struct drm_plane *plane,
 			struct drm_plane_state *old_state)
 {
+	struct drm_plane_state *new_state = plane->state;
 	struct drm_device *dev = plane->dev;
-	struct drm_crtc *crtc = plane->state->crtc;
+	struct drm_crtc *crtc = new_state->crtc;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
