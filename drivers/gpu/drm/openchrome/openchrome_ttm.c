@@ -75,7 +75,7 @@ err_ttm_tt_init:
 	return NULL;
 }
 
-static void openchrome_ttm_tt_destroy(struct ttm_bo_device *bdev,
+static void openchrome_ttm_tt_destroy(struct ttm_device *bdev,
 					struct ttm_tt *tt)
 {
 	ttm_tt_destroy_common(bdev, tt);
@@ -152,7 +152,7 @@ static void openchrome_bo_delete_mem_notify(struct ttm_buffer_object *bo)
 	return;
 }
 
-static int openchrome_bo_io_mem_reserve(struct ttm_bo_device *bdev,
+static int openchrome_bo_io_mem_reserve(struct ttm_device *bdev,
 					struct ttm_resource *mem)
 {
 	struct openchrome_drm_private *dev_private = container_of(bdev,
@@ -178,7 +178,7 @@ static int openchrome_bo_io_mem_reserve(struct ttm_bo_device *bdev,
 	return ret;
 }
 
-struct ttm_bo_driver openchrome_bo_driver = {
+struct ttm_device_funcs openchrome_bo_driver = {
 	.ttm_tt_create = openchrome_ttm_tt_create,
 	.ttm_tt_destroy = openchrome_ttm_tt_destroy,
 	.eviction_valuable = ttm_bo_eviction_valuable,

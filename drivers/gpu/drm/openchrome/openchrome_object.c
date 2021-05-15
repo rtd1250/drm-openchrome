@@ -169,7 +169,7 @@ void openchrome_bo_unpin(struct openchrome_bo *bo)
 }
 
 int openchrome_bo_create(struct drm_device *dev,
-				struct ttm_bo_device *bdev,
+				struct ttm_device *bdev,
 				uint64_t size,
 				enum ttm_bo_type type,
 				uint32_t ttm_domain,
@@ -291,7 +291,7 @@ int openchrome_mm_init(struct openchrome_drm_private *dev_private)
 	/*
 	 * Initialize bdev ttm_bo_device struct.
 	 */
-	ret = ttm_bo_device_init(&dev_private->bdev,
+	ret = ttm_device_init(&dev_private->bdev,
 				&openchrome_bo_driver,
 				dev->dev,
 				dev->anon_inode->i_mapping,
@@ -325,7 +325,7 @@ void openchrome_mm_fini(struct openchrome_drm_private *dev_private)
 
 	ttm_range_man_fini(&dev_private->bdev, TTM_PL_VRAM);
 
-	ttm_bo_device_release(&dev_private->bdev);
+	ttm_device_fini(&dev_private->bdev);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }

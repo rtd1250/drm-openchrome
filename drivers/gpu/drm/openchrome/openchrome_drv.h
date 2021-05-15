@@ -214,7 +214,7 @@ enum via_engine {
 struct openchrome_drm_private {
 	struct drm_device *dev;
 
-	struct ttm_bo_device		bdev;
+	struct ttm_device		bdev;
 
 	/* Set this flag for ttm_bo_device_init. */
 	bool need_dma32;
@@ -370,7 +370,7 @@ extern int openchrome_driver_num_ioctls;
 
 extern int openchrome_hdmi_audio;
 
-extern struct ttm_bo_driver openchrome_bo_driver;
+extern struct ttm_device_funcs openchrome_bo_driver;
 
 int openchrome_vram_detect(struct openchrome_drm_private *dev_private);
 extern int openchrome_vram_init(
@@ -397,7 +397,7 @@ void openchrome_ttm_bo_destroy(struct ttm_buffer_object *tbo);
 int openchrome_bo_pin(struct openchrome_bo *bo, uint32_t ttm_domain);
 void openchrome_bo_unpin(struct openchrome_bo *bo);
 int openchrome_bo_create(struct drm_device *dev,
-				struct ttm_bo_device *bdev,
+				struct ttm_device *bdev,
 				uint64_t size,
 				enum ttm_bo_type type,
 				uint32_t ttm_domain,
