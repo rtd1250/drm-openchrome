@@ -1886,7 +1886,8 @@ static void openchrome_primary_atomic_disable(struct drm_plane *plane,
 void openchrome_primary_atomic_update(struct drm_plane *plane,
 					struct drm_atomic_state *state)
 {
-	struct drm_plane_state *new_state = plane->state;
+	struct drm_plane_state *new_state =
+			drm_atomic_get_new_plane_state(state, plane);
 	struct drm_crtc *crtc = new_state->crtc;
 	struct drm_framebuffer *fb = new_state->fb;
 	uint32_t pitch = (new_state->crtc_y * fb->pitches[0]) +

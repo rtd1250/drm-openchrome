@@ -357,7 +357,8 @@ exit:
 static void openchrome_cursor_atomic_update(struct drm_plane *plane,
 					struct drm_atomic_state *state)
 {
-	struct drm_plane_state *new_state = plane->state;
+	struct drm_plane_state *new_state =
+			drm_atomic_get_new_plane_state(state, plane);
 	struct drm_plane_state *old_state =
 			drm_atomic_get_old_plane_state(state, plane);
 	struct drm_crtc *crtc = new_state->crtc;
@@ -383,7 +384,8 @@ static void openchrome_cursor_atomic_update(struct drm_plane *plane,
 void openchrome_cursor_atomic_disable(struct drm_plane *plane,
 					struct drm_atomic_state *state)
 {
-	struct drm_plane_state *new_state = plane->state;
+	struct drm_plane_state *new_state =
+			drm_atomic_get_new_plane_state(state, plane);
 	struct drm_device *dev = plane->dev;
 	struct drm_crtc *crtc = new_state->crtc;
 
