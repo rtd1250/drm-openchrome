@@ -1830,11 +1830,13 @@ drm_crtc_helper_funcs openchrome_drm_crtc_helper_funcs = {
 };
 
 static int openchrome_primary_atomic_check(struct drm_plane *plane,
-			 struct drm_plane_state *new_plane_state)
+				 struct drm_atomic_state *state)
 {
+	struct drm_plane_state *new_plane_state =
+			drm_atomic_get_new_plane_state(state, plane);
+	struct drm_crtc_state *new_crtc_state;
 	struct drm_device *dev = plane->dev;
 	struct drm_framebuffer *fb = new_plane_state->fb;
-	struct drm_crtc_state *new_crtc_state;
 	struct openchrome_drm_private *dev_private =
 					plane->dev->dev_private;
 	uint32_t frame_buffer_size;
