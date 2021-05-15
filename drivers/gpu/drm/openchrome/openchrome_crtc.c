@@ -1830,11 +1830,11 @@ drm_crtc_helper_funcs openchrome_drm_crtc_helper_funcs = {
 };
 
 static int openchrome_primary_atomic_check(struct drm_plane *plane,
-					struct drm_plane_state *state)
+			 struct drm_plane_state *new_plane_state)
 {
 	struct drm_device *dev = plane->dev;
-	struct drm_framebuffer *fb = state->fb;
-	struct drm_crtc_state *crtc_state;
+	struct drm_framebuffer *fb = new_plane_state->fb;
+	struct drm_crtc_state *new_crtc_state;
 	struct openchrome_drm_private *dev_private =
 					plane->dev->dev_private;
 	uint32_t frame_buffer_size;
@@ -1842,7 +1842,7 @@ static int openchrome_primary_atomic_check(struct drm_plane *plane,
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if ((!state->crtc) || (!state->visible)) {
+	if ((!new_plane_state->crtc) || (!new_plane_state->visible)) {
 		goto exit;
 	}
 
@@ -1859,12 +1859,15 @@ static int openchrome_primary_atomic_check(struct drm_plane *plane,
 		goto exit;
 	}
 
-	crtc_state = drm_atomic_get_new_crtc_state(state->state,
-							state->crtc);
-	ret = drm_atomic_helper_check_plane_state(state, crtc_state,
-						DRM_PLANE_HELPER_NO_SCALING,
-						DRM_PLANE_HELPER_NO_SCALING,
-						false, true);
+	new_crtc_state = drm_atomic_get_new_crtc_state(
+						new_plane_state->state,
+						new_plane_state->crtc);
+	ret = drm_atomic_helper_check_plane_state(
+					new_plane_state,
+					new_crtc_state,
+					DRM_PLANE_HELPER_NO_SCALING,
+					DRM_PLANE_HELPER_NO_SCALING,
+					false, true);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;

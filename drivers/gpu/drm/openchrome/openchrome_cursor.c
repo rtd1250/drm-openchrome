@@ -320,15 +320,15 @@ exit:
 }
 
 static int openchrome_cursor_atomic_check(struct drm_plane *plane,
-					struct drm_plane_state *state)
+			 struct drm_plane_state *new_plane_state)
 {
-	struct drm_framebuffer *fb = state->fb;
-	struct drm_crtc_state *crtc_state;
+	struct drm_framebuffer *fb = new_plane_state->fb;
+	struct drm_crtc_state *new_crtc_state;
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if ((!state->crtc) || (!state->visible)) {
+	if ((!new_plane_state->crtc) || (!new_plane_state->visible)) {
 		goto exit;
 	}
 
@@ -339,9 +339,12 @@ static int openchrome_cursor_atomic_check(struct drm_plane *plane,
 		goto exit;
 	}
 
-	crtc_state = drm_atomic_get_new_crtc_state(state->state,
-							state->crtc);
-	ret = drm_atomic_helper_check_plane_state(state, crtc_state,
+	new_crtc_state = drm_atomic_get_new_crtc_state(
+						new_plane_state->state,
+						new_plane_state->crtc);
+	ret = drm_atomic_helper_check_plane_state(
+					new_plane_state,
+					new_crtc_state,
 					DRM_PLANE_HELPER_NO_SCALING,
 					DRM_PLANE_HELPER_NO_SCALING,
 					true, true);
