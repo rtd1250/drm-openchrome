@@ -1875,7 +1875,7 @@ exit:
 }
 
 static void openchrome_primary_atomic_disable(struct drm_plane *plane,
-				struct drm_plane_state *old_state)
+					struct drm_atomic_state *state)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -1884,7 +1884,7 @@ static void openchrome_primary_atomic_disable(struct drm_plane *plane,
 }
 
 void openchrome_primary_atomic_update(struct drm_plane *plane,
-				struct drm_plane_state *old_state)
+					struct drm_atomic_state *state)
 {
 	struct drm_plane_state *new_state = plane->state;
 	struct drm_crtc *crtc = new_state->crtc;
