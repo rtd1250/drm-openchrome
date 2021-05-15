@@ -178,7 +178,6 @@ int openchrome_bo_create(struct drm_device *dev,
 {
 	struct openchrome_drm_private *dev_private = dev->dev_private;
 	struct openchrome_bo *bo;
-	size_t acc_size;
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -207,15 +206,13 @@ int openchrome_bo_create(struct drm_device *dev,
 	bo->gem.funcs = &openchrome_gem_object_funcs;
 
 	openchrome_ttm_domain_to_placement(bo, ttm_domain);
-	acc_size = ttm_bo_dma_acc_size(&dev_private->bdev, size,
-					sizeof(struct openchrome_bo));
 	ret = ttm_bo_init(&dev_private->bdev,
 				&bo->ttm_bo,
 				size,
 				type,
 				&bo->placement,
 				PAGE_SIZE >> PAGE_SHIFT,
-				false, acc_size,
+				false,
 				NULL, NULL,
 				openchrome_ttm_bo_destroy);
 	if (ret) {
