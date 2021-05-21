@@ -49,12 +49,6 @@ MODULE_PARM_DESC(modeset, "Enable DRM device driver "
 				"1 = Enabled)");
 module_param_named(modeset, openchrome_modeset, int, 0400);
 
-int openchrome_hdmi_audio = 0;
-
-MODULE_PARM_DESC(audio, "HDMI Audio enable (1 = enable)");
-module_param_named(audio, openchrome_hdmi_audio, int, 0444);
-
-
 static int openchrome_driver_open(struct drm_device *dev,
 					struct drm_file *file_priv)
 {

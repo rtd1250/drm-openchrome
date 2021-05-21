@@ -36,6 +36,11 @@
 
 #define HDMI_AUDIO_ENABLED	BIT(0)
 
+int openchrome_hdmi_audio = 0;
+
+MODULE_PARM_DESC(audio, "HDMI Audio enable (1 = enable)");
+module_param_named(audio, openchrome_hdmi_audio, int, 0444);
+
 /*
  * Routines for controlling stuff on the HDMI port
  */

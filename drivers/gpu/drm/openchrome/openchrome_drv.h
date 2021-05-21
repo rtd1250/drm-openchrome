@@ -368,8 +368,6 @@ disable_second_display_channel(void __iomem *regs)
 extern const struct drm_ioctl_desc openchrome_driver_ioctls[];
 extern int openchrome_driver_num_ioctls;
 
-extern int openchrome_hdmi_audio;
-
 extern struct ttm_device_funcs openchrome_bo_driver;
 
 int openchrome_vram_detect(struct openchrome_drm_private *dev_private);
