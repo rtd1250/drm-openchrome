@@ -132,9 +132,9 @@ via_encoder_commit(struct drm_encoder *encoder)
 		svga_wseq_mask(VGABASE, 0x1E, 0x30, BIT(5) | BIT(4));
 		break;
 
+	case VIA_DI_PORT_NONE:
 	default:
 		DRM_ERROR("Unsupported DIPort.\n");
-	case VIA_DI_PORT_NONE:
 		break;
 	}
 
@@ -192,9 +192,9 @@ via_encoder_disable(struct drm_encoder *encoder)
 				BIT(3) | BIT(2) | BIT(1) | BIT(0));
 		break;
 
+	case VIA_DI_PORT_NONE:
 	default:
 		DRM_ERROR("Unsupported DIPort.\n");
-	case VIA_DI_PORT_NONE:
 		break;
 	}
 }
@@ -236,9 +236,9 @@ via_set_sync_polarity(struct drm_encoder *encoder, struct drm_display_mode *mode
 		svga_wcrt_mask(VGABASE, 0x9B, syncreg, BIT(6) | BIT(5));
 		break;
 
+	case VIA_DI_PORT_NONE:
 	default:
 		DRM_ERROR("No DIPort.\n");
-	case VIA_DI_PORT_NONE:
 		break;
 	}
 }

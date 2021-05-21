@@ -108,6 +108,7 @@ static int cle266_mem_type(struct openchrome_drm_private *dev_private,
 			break;
 		case 133:
 			dev_private->vram_type = VIA_MEM_SDR133;
+			break;
 		default:
 			break;
 		}
@@ -120,9 +121,11 @@ static int cle266_mem_type(struct openchrome_drm_private *dev_private,
 			break;
 		case 133:
 			dev_private->vram_type = VIA_MEM_DDR_266;
+			break;
 		default:
 			break;
 		}
+		break;
 	default:
 		break;
 	}
@@ -169,6 +172,7 @@ static int km400_mem_type(struct openchrome_drm_private *dev_private,
 			case 0x03:
 				dev_private->vram_type =
 						VIA_MEM_DDR_333;
+				break;
 			default:
 				break;
 			}
@@ -187,6 +191,7 @@ static int km400_mem_type(struct openchrome_drm_private *dev_private,
 			case 0x02:
 				dev_private->vram_type =
 						VIA_MEM_DDR_400;
+				break;
 			default:
 				break;
 			}
@@ -205,9 +210,11 @@ static int km400_mem_type(struct openchrome_drm_private *dev_private,
 			case 0x03:
 				dev_private->vram_type =
 						VIA_MEM_DDR_266;
+				break;
 			default:
 				break;
 			}
+			break;
 		default:
 			break;
 		}
@@ -257,6 +264,7 @@ static int km400_mem_type(struct openchrome_drm_private *dev_private,
 			case 0x03:
 				dev_private->vram_type =
 						VIA_MEM_DDR_400;
+				break;
 			default:
 				break;
 			}
@@ -275,6 +283,7 @@ static int km400_mem_type(struct openchrome_drm_private *dev_private,
 			case 0x06:
 				dev_private->vram_type =
 						VIA_MEM_DDR_266;
+				break;
 			default:
 				break;
 			}
@@ -293,9 +302,11 @@ static int km400_mem_type(struct openchrome_drm_private *dev_private,
 			case 0x04:
 				dev_private->vram_type =
 						VIA_MEM_DDR_266;
+				break;
 			default:
 				break;
 			}
+			break;
 		default:
 			break;
 		}
@@ -333,6 +344,7 @@ static int p4m800_mem_type(struct openchrome_drm_private *dev_private,
 		break;
 	case 4:
 		freq = 7; /* 233 MHz */
+		break;
 	default:
 		break;
 	}
@@ -363,6 +375,7 @@ static int p4m800_mem_type(struct openchrome_drm_private *dev_private,
 		break;
 	case 0x06:
 		dev_private->vram_type = VIA_MEM_DDR_400;
+		break;
 	default:
 		break;
 	}
@@ -400,6 +413,7 @@ static int km8xx_mem_type(struct openchrome_drm_private *dev_private)
 			case 0x03:
 				dev_private->vram_type =
 						VIA_MEM_DDR2_800;
+				break;
 			default:
 				break;
 			}
@@ -426,6 +440,7 @@ static int km8xx_mem_type(struct openchrome_drm_private *dev_private)
 			case 0x07:
 				dev_private->vram_type =
 						VIA_MEM_DDR_400;
+				break;
 			default:
 				break;
 			}
@@ -460,6 +475,7 @@ static int km8xx_mem_type(struct openchrome_drm_private *dev_private)
 			case 0x06:
 				dev_private->vram_type =
 						VIA_MEM_DDR3_1600;
+				break;
 			default:
 				break;
 			}
@@ -484,6 +500,7 @@ static int km8xx_mem_type(struct openchrome_drm_private *dev_private)
 			case 0x04:
 				dev_private->vram_type =
 						VIA_MEM_DDR2_1066;
+				break;
 			default:
 				break;
 			}
@@ -507,6 +524,7 @@ static int km8xx_mem_type(struct openchrome_drm_private *dev_private)
 			break;
 		case 0x03:
 			dev_private->vram_type = VIA_MEM_DDR2_800;
+			break;
 		default:
 			break;
 		}
@@ -543,6 +561,7 @@ static int cn400_mem_type(struct openchrome_drm_private *dev_private,
 		break;
 	case 4:
 		freq = 7; /* 233 MHz */
+		break;
 	default:
 		break;
 	}
@@ -570,6 +589,7 @@ static int cn400_mem_type(struct openchrome_drm_private *dev_private,
 		break;
 	case 0x06:
 		dev_private->vram_type = VIA_MEM_DDR_400;
+		break;
 	default:
 		break;
 	}
@@ -602,6 +622,7 @@ static int cn700_mem_type(struct openchrome_drm_private *dev_private,
 			break;
 		case 0x05:
 			dev_private->vram_type = VIA_MEM_DDR2_533;
+			break;
 		default:
 			break;
 		}
@@ -638,6 +659,7 @@ static int cx700_mem_type(struct openchrome_drm_private *dev_private,
 			break;
 		case 3:
 			dev_private->vram_type = VIA_MEM_DDR_400;
+			break;
 		default:
 			break;
 		}
@@ -656,9 +678,11 @@ static int cx700_mem_type(struct openchrome_drm_private *dev_private,
 			break;
 		case 6:
 			dev_private->vram_type = VIA_MEM_DDR2_800;
+			break;
 		default:
 			break;
 		}
+		break;
 	default:
 		break;
 	}
@@ -705,6 +729,7 @@ static int vx900_mem_type(struct openchrome_drm_private *dev_private,
 			break;
 		case 7:
 			dev_private->vram_type = VIA_MEM_DDR2_1066;
+			break;
 		default:
 			break;
 		}
@@ -730,6 +755,7 @@ static int vx900_mem_type(struct openchrome_drm_private *dev_private,
 			break;
 		case 7:
 			dev_private->vram_type = VIA_MEM_DDR3_1066;
+			break;
 		default:
 			break;
 		}
