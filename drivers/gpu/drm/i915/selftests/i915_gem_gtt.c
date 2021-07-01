@@ -186,7 +186,7 @@ retry:
 		if (err)
 			goto err_ppgtt_cleanup;
 
-		err = i915_vm_pin_pt_stash(&ppgtt->vm, &stash);
+		err = i915_vm_map_pt_stash(&ppgtt->vm, &stash);
 		if (err) {
 			i915_vm_free_pt_stash(&ppgtt->vm, &stash);
 			goto err_ppgtt_cleanup;
@@ -208,7 +208,7 @@ retry:
 		if (err)
 			goto err_ppgtt_cleanup;
 
-		err = i915_vm_pin_pt_stash(&ppgtt->vm, &stash);
+		err = i915_vm_map_pt_stash(&ppgtt->vm, &stash);
 		if (err) {
 			i915_vm_free_pt_stash(&ppgtt->vm, &stash);
 			goto err_ppgtt_cleanup;
@@ -325,11 +325,10 @@ retry:
 							   BIT_ULL(size)))
 					goto alloc_vm_end;
 
-				err = i915_vm_pin_pt_stash(vm, &stash);
+				err = i915_vm_map_pt_stash(vm, &stash);
 				if (!err)
 					vm->allocate_va_range(vm, &stash,
 							      addr, BIT_ULL(size));
-
 				i915_vm_free_pt_stash(vm, &stash);
 alloc_vm_end:
 				if (err == -EDEADLK) {
@@ -1106,7 +1105,8 @@ static int igt_ppgtt_shrink_boom(void *arg)
 	return exercise_ppgtt(arg, shrink_boom);
 }
 
-static int sort_holes(void *priv, struct list_head *A, struct list_head *B)
+static int sort_holes(void *priv, const struct list_head *A,
+		      const struct list_head *B)
 {
 	struct drm_mm_node *a = list_entry(A, typeof(*a), hole_stack);
 	struct drm_mm_node *b = list_entry(B, typeof(*b), hole_stack);
@@ -1884,9 +1884,9 @@ static int igt_cs_tlb(void *arg)
 		u32 *cs = batch + i * 64 / sizeof(*cs);
 		u64 addr = (vm->total - PAGE_SIZE) + i * sizeof(u32);
 
-		GEM_BUG_ON(INTEL_GEN(i915) < 6);
+		GEM_BUG_ON(GRAPHICS_VER(i915) < 6);
 		cs[0] = MI_STORE_DWORD_IMM_GEN4;
-		if (INTEL_GEN(i915) >= 8) {
+		if (GRAPHICS_VER(i915) >= 8) {
 			cs[1] = lower_32_bits(addr);
 			cs[2] = upper_32_bits(addr);
 			cs[3] = i;
@@ -1967,10 +1967,9 @@ retry:
 			if (err)
 				goto end_ww;
 
-			err = i915_vm_pin_pt_stash(vm, &stash);
+			err = i915_vm_map_pt_stash(vm, &stash);
 			if (!err)
 				vm->allocate_va_range(vm, &stash, offset, chunk_size);
-
 			i915_vm_free_pt_stash(vm, &stash);
 end_ww:
 			if (err == -EDEADLK) {

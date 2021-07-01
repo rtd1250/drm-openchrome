@@ -56,9 +56,17 @@ int
 i915_gem_mmap_ioctl(struct drm_device *dev, void *data,
 		    struct drm_file *file)
 {
+	struct drm_i915_private *i915 = to_i915(dev);
 	struct drm_i915_gem_mmap *args = data;
 	struct drm_i915_gem_object *obj;
 	unsigned long addr;
+
+	/*
+	 * mmap ioctl is disallowed for all discrete platforms,
+	 * and for all platforms with GRAPHICS_VER > 12.
+	 */
+	if (IS_DGFX(i915) || GRAPHICS_VER(i915) > 12)
+		return -EOPNOTSUPP;
 
 	if (args->flags & ~(I915_MMAP_WC))
 		return -EINVAL;
@@ -189,7 +197,7 @@ compute_partial_view(const struct drm_i915_gem_object *obj,
 	struct i915_ggtt_view view;
 
 	if (i915_gem_object_is_tiled(obj))
-		chunk = roundup(chunk, tile_row_pages(obj));
+		chunk = roundup(chunk, tile_row_pages(obj) ?: 1);
 
 	view.type = I915_GGTT_VIEW_PARTIAL;
 	view.partial.offset = rounddown(page_offset, chunk);

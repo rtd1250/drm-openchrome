@@ -401,15 +401,13 @@ ENTRY(\name)
 	brasl	%r14,.Lcleanup_sie_int
 #endif
 0:	CHECK_STACK __LC_SAVE_AREA_ASYNC
-	lgr	%r11,%r15
 	aghi	%r15,-(STACK_FRAME_OVERHEAD + __PT_SIZE)
-	stg	%r11,__SF_BACKCHAIN(%r15)
 	j	2f
 1:	BPENTER __TI_flags(%r12),_TIF_ISOLATE_BP
 	lctlg	%c1,%c1,__LC_KERNEL_ASCE
 	lg	%r15,__LC_KERNEL_STACK
-	xc	__SF_BACKCHAIN(8,%r15),__SF_BACKCHAIN(%r15)
-2:	la	%r11,STACK_FRAME_OVERHEAD(%r15)
+2:	xc	__SF_BACKCHAIN(8,%r15),__SF_BACKCHAIN(%r15)
+	la	%r11,STACK_FRAME_OVERHEAD(%r15)
 	stmg	%r0,%r7,__PT_R0(%r11)
 	# clear user controlled registers to prevent speculative use
 	xgr	%r0,%r0
@@ -445,6 +443,7 @@ INT_HANDLER io_int_handler,__LC_IO_OLD_PSW,do_io_irq
  * Load idle PSW.
  */
 ENTRY(psw_idle)
+	stg	%r14,(__SF_GPRS+8*8)(%r15)
 	stg	%r3,__SF_EMPTY(%r15)
 	larl	%r1,psw_idle_exit
 	stg	%r1,__SF_EMPTY+8(%r15)
@@ -652,9 +651,9 @@ ENDPROC(stack_overflow)
 .Lcleanup_sie_mcck:
 	larl	%r13,.Lsie_entry
 	slgr	%r9,%r13
-	larl	%r13,.Lsie_skip
+	lghi	%r13,.Lsie_skip - .Lsie_entry
 	clgr	%r9,%r13
-	jh	.Lcleanup_sie_int
+	jhe	.Lcleanup_sie_int
 	oi	__LC_CPU_FLAGS+7, _CIF_MCCK_GUEST
 .Lcleanup_sie_int:
 	BPENTER	__SF_SIE_FLAGS(%r15),(_TIF_ISOLATE_BP|_TIF_ISOLATE_BP_GUEST)
