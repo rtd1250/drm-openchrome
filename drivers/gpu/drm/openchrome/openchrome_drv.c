@@ -30,6 +30,7 @@
 #include <linux/console.h>
 #include <linux/module.h>
 
+#include <drm/drm_aperture.h>
 #include <drm/drm_drv.h>
 #include <drm/drm_file.h>
 #include <drm/drm_pciids.h>
@@ -192,8 +193,8 @@ static int openchrome_pci_probe(struct pci_dev *pdev,
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	ret = drm_fb_helper_remove_conflicting_pci_framebuffers(pdev,
-						"openchromedrmfb");
+	ret = drm_aperture_remove_conflicting_pci_framebuffers(pdev,
+							"openchromedrmfb");
 	if (ret) {
 		goto exit;
 	}
