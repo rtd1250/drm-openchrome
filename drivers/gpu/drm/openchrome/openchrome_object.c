@@ -40,6 +40,7 @@
 
 #include <drm/ttm/ttm_bo_api.h>
 #include <drm/ttm/ttm_bo_driver.h>
+#include <drm/ttm/ttm_range_manager.h>
 
 #include "openchrome_drv.h"
 
