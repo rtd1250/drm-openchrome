@@ -133,15 +133,6 @@ static int openchrome_bo_move(struct ttm_buffer_object *bo,
 	return ret;
 }
 
-static int openchrome_bo_verify_access(struct ttm_buffer_object *bo,
-					struct file *filp)
-{
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return 0;
-}
-
 static void openchrome_bo_delete_mem_notify(struct ttm_buffer_object *bo)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -184,7 +175,6 @@ struct ttm_device_funcs openchrome_bo_driver = {
 	.eviction_valuable = ttm_bo_eviction_valuable,
 	.evict_flags = openchrome_bo_evict_flags,
 	.move = openchrome_bo_move,
-	.verify_access = openchrome_bo_verify_access,
 	.delete_mem_notify = openchrome_bo_delete_mem_notify,
 	.io_mem_reserve = openchrome_bo_io_mem_reserve,
 };

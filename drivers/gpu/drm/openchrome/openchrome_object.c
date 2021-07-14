@@ -36,6 +36,7 @@
  */
 
 #include <drm/drm_file.h>
+#include <drm/drm_gem_ttm_helper.h>
 
 #include <drm/ttm/ttm_bo_api.h>
 #include <drm/ttm/ttm_bo_driver.h>
@@ -55,30 +56,18 @@ static void openchrome_gem_free(struct drm_gem_object *obj)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static const struct drm_gem_object_funcs openchrome_gem_object_funcs = {
-	.free = openchrome_gem_free,
+static const struct vm_operations_struct openchrome_ttm_bo_vm_ops = {
+	.fault = ttm_bo_vm_fault,
+	.open = ttm_bo_vm_open,
+	.close = ttm_bo_vm_close,
+	.access = ttm_bo_vm_access
 };
 
-int openchrome_ttm_mmap(struct file *filp, struct vm_area_struct *vma)
-{
-	struct drm_file *file_priv = filp->private_data;
-	struct openchrome_drm_private *dev_private =
-				file_priv->minor->dev->dev_private;
-	int ret = -EINVAL;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	if (!dev_private) {
-		DRM_DEBUG_KMS("No device private data.\n");
-		ret = -EINVAL;
-		goto exit;
-	}
-
-	ret = ttm_bo_mmap(filp, vma, &dev_private->bdev);
-exit:
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return ret;
-}
+static const struct drm_gem_object_funcs openchrome_gem_object_funcs = {
+	.free = openchrome_gem_free,
+	.mmap = drm_gem_ttm_mmap,
+	.vm_ops = &openchrome_ttm_bo_vm_ops,
+};
 
 void openchrome_ttm_domain_to_placement(struct openchrome_bo *bo,
 					uint32_t ttm_domain)

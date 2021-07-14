@@ -154,7 +154,7 @@ static const struct file_operations openchrome_driver_fops = {
 	.open		= drm_open,
 	.release	= drm_release,
 	.unlocked_ioctl = drm_ioctl,
-	.mmap		= openchrome_ttm_mmap,
+	.mmap		= drm_gem_mmap,
 	.poll		= drm_poll,
 	.llseek		= noop_llseek,
 };
