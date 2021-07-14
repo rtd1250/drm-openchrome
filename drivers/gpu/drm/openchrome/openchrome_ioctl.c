@@ -66,9 +66,9 @@ static int openchrome_gem_create_ioctl(struct drm_device *dev,
 	}
 
 	args->size		= bo->ttm_bo.base.size;
-	args->domain		= bo->ttm_bo.mem.placement;
+	args->domain		= bo->ttm_bo.resource->placement;
 	args->handle		= handle;
-	args->offset		= bo->ttm_bo.mem.start << PAGE_SHIFT;
+	args->offset		= bo->ttm_bo.resource->start << PAGE_SHIFT;
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;

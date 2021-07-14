@@ -181,10 +181,10 @@ static void openchrome_cursor_address(struct drm_crtc *crtc,
 		 */
 		if (iga->index) {
 			VIA_WRITE(HI_FBOFFSET,
-			ttm_bo->kmap.bo->mem.start << PAGE_SHIFT);
+			ttm_bo->kmap.bo->resource->start << PAGE_SHIFT);
 		} else {
 			VIA_WRITE(PRIM_HI_FBOFFSET,
-			ttm_bo->kmap.bo->mem.start << PAGE_SHIFT);
+			ttm_bo->kmap.bo->resource->start << PAGE_SHIFT);
 		}
 		break;
 	default:
@@ -192,7 +192,7 @@ static void openchrome_cursor_address(struct drm_crtc *crtc,
 		 * Program Hardware Icon (HI) offset.
 		 */
 		VIA_WRITE(HI_FBOFFSET,
-			ttm_bo->kmap.bo->mem.start << PAGE_SHIFT);
+			ttm_bo->kmap.bo->resource->start << PAGE_SHIFT);
 		break;
 	}
 
@@ -283,7 +283,7 @@ static int openchrome_cursor_prepare_fb(struct drm_plane *plane,
 	ret = openchrome_bo_pin(bo, TTM_PL_VRAM);
 	ttm_bo_unreserve(&bo->ttm_bo);
 	ret = ttm_bo_kmap(&bo->ttm_bo, 0,
-				bo->ttm_bo.mem.num_pages,
+				bo->ttm_bo.resource->num_pages,
 				&bo->kmap);
 	if (ret) {
 		goto exit;

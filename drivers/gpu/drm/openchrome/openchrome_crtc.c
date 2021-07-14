@@ -1921,7 +1921,7 @@ void openchrome_primary_atomic_update(struct drm_plane *plane,
 		via_iga1_set_color_depth(dev_private, fb->format->depth);
 
 		/* Set the framebuffer offset */
-		addr = round_up((bo->ttm_bo.mem.start << PAGE_SHIFT) +
+		addr = round_up((bo->ttm_bo.resource->start << PAGE_SHIFT) +
 				pitch, 16) >> 1;
 
 		vga_wcrt(VGABASE, 0x0D, addr & 0xFF);
@@ -1944,7 +1944,7 @@ void openchrome_primary_atomic_update(struct drm_plane *plane,
 		via_iga2_set_color_depth(dev_private, fb->format->depth);
 
 		/* Set the framebuffer offset */
-		addr = round_up((bo->ttm_bo.mem.start << PAGE_SHIFT) +
+		addr = round_up((bo->ttm_bo.resource->start << PAGE_SHIFT) +
 				pitch, 16);
 		/* Bits 9 to 3 of the frame buffer go into bits 7 to 1
 		 * of the register. Bit 0 is for setting tile mode or

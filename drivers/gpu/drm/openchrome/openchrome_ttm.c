@@ -95,7 +95,7 @@ static void openchrome_bo_evict_flags(struct ttm_buffer_object *bo,
 		goto exit;
 	}
 
-	switch (bo->mem.mem_type) {
+	switch (bo->resource->mem_type) {
 	case TTM_PL_VRAM:
 		openchrome_ttm_domain_to_placement(driver_bo,
 						TTM_PL_VRAM);
@@ -124,9 +124,9 @@ static int openchrome_bo_move(struct ttm_buffer_object *bo,
 	openchrome_bo_move_notify(bo, evict, new_mem);
 	ret = ttm_bo_move_memcpy(bo, ctx, new_mem);
 	if (ret) {
-		swap(*new_mem, bo->mem);
+		swap(*new_mem, *bo->resource);
 		openchrome_bo_move_notify(bo, false, new_mem);
-		swap(*new_mem, bo->mem);
+		swap(*new_mem, *bo->resource);
 	}
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
