@@ -352,7 +352,8 @@ void via_analog_probe(struct drm_device *dev)
 {
 	struct openchrome_drm_private *dev_private =
 						dev->dev_private;
-	u16 chipset = dev->pdev->device;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
+	u16 chipset = pdev->device;
 	u8 sr13, sr5a;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);

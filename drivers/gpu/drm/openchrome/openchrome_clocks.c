@@ -57,6 +57,7 @@ struct pll_mrn_value {
 u32
 via_get_clk_value(struct drm_device *dev, u32 freq)
 {
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	u32 best_pll_n = 2, best_pll_r = 0, best_pll_m = 2, best_clk_diff = freq;
 	u32 pll_fout, pll_fvco, pll_mrn = 0;
 	u32 pll_n, pll_r, pll_m, clk_diff;
@@ -68,8 +69,8 @@ via_get_clk_value(struct drm_device *dev, u32 freq)
 		{ 0, 0, 0, 0, 0 } };
 	int count;
 
-    if ((dev->pdev->device != PCI_DEVICE_ID_VIA_CLE266) 
-        && (dev->pdev->device != PCI_DEVICE_ID_VIA_KM400)) {
+    if ((pdev->device != PCI_DEVICE_ID_VIA_CLE266)
+        && (pdev->device != PCI_DEVICE_ID_VIA_KM400)) {
 		/* DN[6:0] */
 		for (pll_n = 2; pll_n < 6; pll_n++) {
 			/* DR[2:0] */
@@ -150,7 +151,7 @@ via_get_clk_value(struct drm_device *dev, u32 freq)
 		}
 	}
 
-	switch (dev->pdev->device) {
+	switch (pdev->device) {
 	case PCI_DEVICE_ID_VIA_CLE266:
 	case PCI_DEVICE_ID_VIA_KM400:
 		/* Clock Synthesizer Value 0[7:6]: DR[1:0]
@@ -201,6 +202,7 @@ via_set_vclock(struct drm_crtc *crtc, u32 clk)
 	struct openchrome_drm_private *dev_private =
 						crtc->dev->dev_private;
 	struct drm_device *dev = crtc->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	unsigned long max_loop = 50, i = 0;
 
 	if (!iga->index) {
@@ -208,8 +210,8 @@ via_set_vclock(struct drm_crtc *crtc, u32 clk)
 		svga_wcrt_mask(VGABASE, 0x17, 0x00, BIT(7));
 
 		/* set clk */
-		if ((dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
-		    (dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
+		if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
+		    (pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
 			vga_wseq(VGABASE, 0x46, (clk & 0xFF00) >> 8);	/* rshift + divisor */
 			vga_wseq(VGABASE, 0x47, (clk & 0x00FF));	/* multiplier */
 		} else {
@@ -235,8 +237,8 @@ via_set_vclock(struct drm_crtc *crtc, u32 clk)
 		svga_wcrt_mask(VGABASE, 0x6A, 0x00, BIT(6));
 
 		/* set clk */
-		if ((dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
-		    (dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
+		if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
+		    (pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
 			vga_wseq(VGABASE, 0x44, (clk & 0xFF00) >> 8);
 			vga_wseq(VGABASE, 0x45, (clk & 0x00FF));
 		} else {

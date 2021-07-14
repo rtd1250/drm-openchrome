@@ -172,6 +172,8 @@ static int openchrome_gamma_set(struct drm_crtc *crtc,
 				uint32_t size,
 				struct drm_modeset_acquire_ctx *ctx)
 {
+	struct drm_device *dev = crtc->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct openchrome_drm_private *dev_private =
 						crtc->dev->dev_private;
 	struct via_crtc *iga = container_of(crtc,
@@ -274,7 +276,7 @@ static int openchrome_gamma_set(struct drm_crtc *crtc,
 
 			/* Old platforms LUT are 6 bits in size.
 			 * Newer it is 8 bits. */
-			switch (crtc->dev->pdev->device) {
+			switch (pdev->device) {
 			case PCI_DEVICE_ID_VIA_CLE266:
 			case PCI_DEVICE_ID_VIA_KM400:
 			case PCI_DEVICE_ID_VIA_K8M800:
@@ -379,6 +381,7 @@ static int via_iga1_display_fifo_regs(
 			struct drm_display_mode *mode,
 			struct drm_framebuffer *fb)
 {
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	u32 reg_value;
 	unsigned int fifo_max_depth = 0;
 	unsigned int fifo_threshold = 0;
@@ -389,7 +392,7 @@ static int via_iga1_display_fifo_regs(
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	switch (dev->pdev->device) {
+	switch (pdev->device) {
 	case PCI_DEVICE_ID_VIA_CLE266:
 		if (dev_private->revision == CLE266_REVISION_AX) {
 			if (mode->hdisplay > 1024) {
@@ -715,20 +718,20 @@ static int via_iga1_display_fifo_regs(
 		goto exit;
 	}
 
-	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
-		(dev->pdev->device == PCI_DEVICE_ID_VIA_KM400) ||
-		(dev->pdev->device == PCI_DEVICE_ID_VIA_K8M800) ||
-		(dev->pdev->device == PCI_DEVICE_ID_VIA_PM800) ||
-		(dev->pdev->device == PCI_DEVICE_ID_VIA_CN700) ||
-		(dev->pdev->device == PCI_DEVICE_ID_VIA_VT3157)) {
+	if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
+		(pdev->device == PCI_DEVICE_ID_VIA_KM400) ||
+		(pdev->device == PCI_DEVICE_ID_VIA_K8M800) ||
+		(pdev->device == PCI_DEVICE_ID_VIA_PM800) ||
+		(pdev->device == PCI_DEVICE_ID_VIA_CN700) ||
+		(pdev->device == PCI_DEVICE_ID_VIA_VT3157)) {
 		/* Force PREQ to be always higher than TREQ. */
 		svga_wseq_mask(VGABASE, 0x18, BIT(6), BIT(6));
 	} else {
 		svga_wseq_mask(VGABASE, 0x18, 0x00, BIT(6));
 	}
 
-	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
-		(dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
+	if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
+		(pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
 		if (enable_extended_display_fifo) {
 			reg_value = VIA_READ(0x0298);
 			VIA_WRITE(0x0298, reg_value | 0x20000000);
@@ -781,6 +784,7 @@ static int via_iga2_display_fifo_regs(
 			struct drm_display_mode *mode,
 			struct drm_framebuffer *fb)
 {
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	u32 reg_value;
 	unsigned int fifo_max_depth = 0;
 	unsigned int fifo_threshold = 0;
@@ -791,7 +795,7 @@ static int via_iga2_display_fifo_regs(
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	switch (dev->pdev->device) {
+	switch (pdev->device) {
 	case PCI_DEVICE_ID_VIA_CLE266:
 		if (dev_private->revision == CLE266_REVISION_AX) {
 			if (((dev_private->vram_type <= VIA_MEM_DDR_200) &&
@@ -1045,8 +1049,8 @@ static int via_iga2_display_fifo_regs(
 		goto exit;
 	}
 
-	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
-		(dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
+	if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
+		(pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
 		if (enable_extended_display_fifo) {
 			/* Enable IGA2 extended display FIFO. */
 			svga_wcrt_mask(VGABASE, 0x6a, BIT(5), BIT(5));
@@ -1056,8 +1060,8 @@ static int via_iga2_display_fifo_regs(
 		}
 	}
 
-	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
-		(dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
+	if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
+		(pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
 		/* Set IGA2 Display FIFO Depth Select */
 		reg_value = IGA2_FIFO_DEPTH_SELECT_FORMULA(fifo_max_depth);
 		load_value_to_registers(VGABASE, &iga->fifo_depth, reg_value);
@@ -1172,10 +1176,11 @@ via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 	struct openchrome_drm_private *dev_private =
 					iga->base.dev->dev_private;
 	struct drm_device *dev = iga->base.dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	u32 reg_value = 0;
 
 	if (!iga->index) {
-		if (dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA) {
+		if (pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA) {
 			/* Disable IGA1 shadow timing */
 			svga_wcrt_mask(VGABASE, 0x45, 0x00, BIT(0));
 
@@ -1271,6 +1276,7 @@ via_set_scale_path(struct drm_crtc *crtc, u32 scale_type)
 						crtc->dev->dev_private;
 	u8 reg_cr_fd = vga_rcrt(VGABASE, 0xFD);
 	struct drm_device *dev = crtc->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 
 	if (!iga->index)
 		/* register reuse: select IGA1 path */
@@ -1280,7 +1286,7 @@ via_set_scale_path(struct drm_crtc *crtc, u32 scale_type)
 		reg_cr_fd &= ~BIT(7);
 
 	/* only IGA1 up scaling need to clear this bit CRFD.5. */
-	if (dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA) {
+	if (pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA) {
 		if (!iga->index
 			&& ((VIA_HOR_EXPAND & scale_type)
 			|| (VIA_VER_EXPAND & scale_type)))
@@ -1580,6 +1586,7 @@ void openchrome_mode_set_nofb(struct drm_crtc *crtc)
 	struct openchrome_drm_private *dev_private =
 						crtc->dev->dev_private;
 	struct drm_device *dev = crtc->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	u8 reg_value = 0;
 	int ret;
 
@@ -1590,7 +1597,7 @@ void openchrome_mode_set_nofb(struct drm_crtc *crtc)
 		via_load_vpit_regs(dev_private);
 
 		/* Unlock */
-		via_unlock_crtc(VGABASE, dev->pdev->device);
+		via_unlock_crtc(VGABASE, pdev->device);
 
 		/* IGA1 reset */
 		vga_wcrt(VGABASE, 0x09, 0x00); /* initial CR09=0 */
@@ -1662,7 +1669,7 @@ void openchrome_mode_set_nofb(struct drm_crtc *crtc)
 		via_load_vpit_regs(dev_private);
 
 		/* Unlock */
-		via_unlock_crtc(VGABASE, dev->pdev->device);
+		via_unlock_crtc(VGABASE, pdev->device);
 
 		/* disable IGA scales first */
 		via_disable_iga_scaling(crtc);
@@ -1916,6 +1923,7 @@ void openchrome_primary_atomic_update(struct drm_plane *plane,
 		/* Set the framebuffer offset */
 		addr = round_up((bo->ttm_bo.mem.start << PAGE_SHIFT) +
 				pitch, 16) >> 1;
+
 		vga_wcrt(VGABASE, 0x0D, addr & 0xFF);
 		vga_wcrt(VGABASE, 0x0C, (addr >> 8) & 0xFF);
 		/* Yes order of setting these registers matters on some hardware */
@@ -2040,6 +2048,7 @@ static void openchrome_crtc_param_init(
 		uint32_t index)
 {
 	struct drm_device *dev = dev_private->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_crtc *iga = container_of(crtc,
 						struct via_crtc, base);
 	u16 *gamma;
@@ -2051,12 +2060,12 @@ static void openchrome_crtc_param_init(
 
 		iga->timings.hdisplay.count = ARRAY_SIZE(iga2_hor_addr);
 		iga->timings.hdisplay.regs = iga2_hor_addr;
-		if (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA)
+		if (pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA)
 			iga->timings.hdisplay.count--;
 
 		iga->timings.hblank_start.count = ARRAY_SIZE(iga2_hor_blank_start);
 		iga->timings.hblank_start.regs = iga2_hor_blank_start;
-		if (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA)
+		if (pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA)
 			iga->timings.hblank_start.count--;
 
 		iga->timings.hblank_end.count = ARRAY_SIZE(iga2_hor_blank_end);
@@ -2064,8 +2073,8 @@ static void openchrome_crtc_param_init(
 
 		iga->timings.hsync_start.count = ARRAY_SIZE(iga2_hor_sync_start);
 		iga->timings.hsync_start.regs = iga2_hor_sync_start;
-		if (dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266
-			|| dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)
+		if (pdev->device == PCI_DEVICE_ID_VIA_CLE266
+			|| pdev->device == PCI_DEVICE_ID_VIA_KM400)
 			iga->timings.hsync_start.count--;
 
 		iga->timings.hsync_end.count = ARRAY_SIZE(iga2_hor_sync_end);
@@ -2090,8 +2099,8 @@ static void openchrome_crtc_param_init(
 		iga->timings.vsync_end.regs = iga2_ver_sync_end;
 
 		/* Secondary FIFO setup */
-		if ((dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
-			(dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
+		if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
+			(pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
 			iga->fifo_depth.count =
 				ARRAY_SIZE(iga2_cle266_fifo_depth_select);
 			iga->fifo_depth.regs = iga2_cle266_fifo_depth_select;
@@ -2125,12 +2134,12 @@ static void openchrome_crtc_param_init(
 
 		iga->timings.hdisplay.count = ARRAY_SIZE(iga1_hor_addr);
 		iga->timings.hdisplay.regs = iga1_hor_addr;
-		if (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA)
+		if (pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA)
 			iga->timings.hdisplay.count--;
 
 		iga->timings.hblank_start.count = ARRAY_SIZE(iga1_hor_blank_start);
 		iga->timings.hblank_start.regs = iga1_hor_blank_start;
-		if (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA)
+		if (pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA)
 			iga->timings.hblank_start.count--;
 
 		iga->timings.hblank_end.count = ARRAY_SIZE(iga1_hor_blank_end);
@@ -2161,8 +2170,8 @@ static void openchrome_crtc_param_init(
 		iga->timings.vsync_end.regs = iga1_ver_sync_end;
 
 		/* Primary FIFO setup */
-		if ((dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
-			(dev->pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
+		if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
+			(pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
 			iga->fifo_depth.count = ARRAY_SIZE(iga1_cle266_fifo_depth_select);
 			iga->fifo_depth.regs = iga1_cle266_fifo_depth_select;
 

@@ -52,9 +52,9 @@ int openchrome_dev_pm_ops_suspend(struct device *dev)
 	 * are only available on VX800, VX855, and VX900 chipsets. This bug
 	 * was observed on VIA Embedded EPIA-M830 mainboard.
 	 */
-	if ((drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
-		(drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
-		(drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA)) {
+	if ((pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
+		(pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
+		(pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA)) {
 		dev_private->saved_sr14 = vga_rseq(VGABASE, 0x14);
 
 		dev_private->saved_sr66 = vga_rseq(VGABASE, 0x66);
@@ -147,9 +147,9 @@ int openchrome_dev_pm_ops_resume(struct device *dev)
 	 * are only available on VX800, VX855, and VX900 chipsets. This bug
 	 * was observed on VIA Embedded EPIA-M830 mainboard.
 	 */
-	if ((drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
-		(drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
-		(drm_dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA)) {
+	if ((pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
+		(pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
+		(pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA)) {
 		vga_wseq(VGABASE, 0x14, dev_private->saved_sr14);
 
 		vga_wseq(VGABASE, 0x66, dev_private->saved_sr66);

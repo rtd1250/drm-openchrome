@@ -409,7 +409,8 @@ static const struct drm_connector_helper_funcs via_dvi_connector_helper_funcs = 
 void via_tmds_probe(struct drm_device *dev)
 {
 	struct openchrome_drm_private *dev_private = dev->dev_private;
-	u16 chipset = dev->pdev->device;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
+	u16 chipset = pdev->device;
 	u8 sr13, sr5a;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -541,7 +542,8 @@ void openchrome_ext_dvi_probe(struct drm_device *dev)
 {
 	struct openchrome_drm_private *dev_private = dev->dev_private;
 	struct i2c_adapter *i2c_bus;
-	u16 chipset = dev->pdev->device;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
+	u16 chipset = pdev->device;
 	u8 sr12, sr13;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);

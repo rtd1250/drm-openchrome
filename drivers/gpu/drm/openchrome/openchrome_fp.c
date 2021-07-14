@@ -591,11 +591,12 @@ static void via_fp_dpms(struct drm_encoder *encoder, int mode)
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
 	struct drm_device *dev = encoder->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct openchrome_drm_private *dev_private =
 					encoder->dev->dev_private;
 
 	/* PCI Device ID */
-	u16 chipset = dev->pdev->device;
+	u16 chipset = pdev->device;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -687,11 +688,12 @@ static void via_fp_prepare(struct drm_encoder *encoder)
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
 	struct drm_device *dev = encoder->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct openchrome_drm_private *dev_private =
 					encoder->dev->dev_private;
 
 	/* PCI Device ID */
-	u16 chipset = dev->pdev->device;
+	u16 chipset = pdev->device;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -706,11 +708,12 @@ static void via_fp_commit(struct drm_encoder *encoder)
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
 	struct drm_device *dev = encoder->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct openchrome_drm_private *dev_private =
 					encoder->dev->dev_private;
 
 	/* PCI Device ID */
-	u16 chipset = dev->pdev->device;
+	u16 chipset = pdev->device;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -726,11 +729,13 @@ via_fp_mode_set(struct drm_encoder *encoder, struct drm_display_mode *mode,
 {
 	struct via_crtc *iga = container_of(encoder->crtc, struct via_crtc, base);
 	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
+	struct drm_device *dev = encoder->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct openchrome_drm_private *dev_private =
 					encoder->dev->dev_private;
 
 	/* PCI Device ID */
-	u16 chipset = encoder->dev->pdev->device;
+	u16 chipset = pdev->device;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -771,11 +776,12 @@ static void via_fp_disable(struct drm_encoder *encoder)
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
 	struct drm_device *dev = encoder->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct openchrome_drm_private *dev_private =
 					encoder->dev->dev_private;
 
 	/* PCI Device ID */
-	u16 chipset = dev->pdev->device;
+	u16 chipset = pdev->device;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -802,6 +808,8 @@ const struct drm_encoder_funcs via_lvds_enc_funcs = {
 static enum drm_connector_status
 via_fp_detect(struct drm_connector *connector,  bool force)
 {
+	struct drm_device *dev = connector->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_connector *con = container_of(connector,
 					struct via_connector, base);
 	struct openchrome_drm_private *dev_private =
@@ -858,8 +866,7 @@ via_fp_detect(struct drm_connector *connector,  bool force)
 		i2c_bus_bit = i2c_bus_bit << 1;
 	}
 
-	if (connector->dev->pdev->device ==
-					PCI_DEVICE_ID_VIA_CLE266) {
+	if (pdev->device == PCI_DEVICE_ID_VIA_CLE266) {
 		mask = BIT(3);
 	} else {
 		mask = BIT(1);
@@ -1033,6 +1040,7 @@ via_fp_mode_valid(struct drm_connector *connector,
 	struct drm_property *prop = connector->dev->mode_config.scaling_mode_property;
 	struct drm_display_mode *native_mode = NULL, *tmp, *t;
 	struct drm_device *dev = connector->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	u64 scale_mode = DRM_MODE_SCALE_CENTER;
 
 	list_for_each_entry_safe(tmp, t, &connector->modes, head) {
@@ -1050,7 +1058,7 @@ via_fp_mode_valid(struct drm_connector *connector,
 		return MODE_PANEL;
 
 	/* Don't support mode larger than physical size */
-	if (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA) {
+	if (pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA) {
 		if (mode->hdisplay > native_mode->hdisplay)
 			return MODE_PANEL;
 		if (mode->vdisplay > native_mode->vdisplay)
@@ -1085,11 +1093,12 @@ struct drm_connector_helper_funcs via_fp_connector_helper_funcs = {
  */
 void via_fp_probe(struct drm_device *dev)
 {
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct openchrome_drm_private *dev_private = dev->dev_private;
 	struct drm_connector connector;
 	struct i2c_adapter *i2c_bus;
 	struct edid *edid;
-	u16 chipset = dev->pdev->device;
+	u16 chipset = pdev->device;
 	u8 sr12, sr13, sr5a;
 	u8 cr3b;
 

@@ -52,13 +52,14 @@
 static void openchrome_hide_cursor(struct drm_device *dev,
 					struct drm_crtc *crtc)
 {
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_crtc *iga = container_of(crtc,
 					struct via_crtc, base);
 	struct openchrome_drm_private *dev_private =
 					dev->dev_private;
 	uint32_t temp;
 
-	switch (dev->pdev->device) {
+	switch (pdev->device) {
 	case PCI_DEVICE_ID_VIA_VT3157:
 	case PCI_DEVICE_ID_VIA_VT3343:
 	case PCI_DEVICE_ID_VIA_P4M900:
@@ -84,12 +85,13 @@ static void openchrome_hide_cursor(struct drm_device *dev,
 static void openchrome_show_cursor(struct drm_crtc *crtc)
 {
 	struct drm_device *dev = crtc->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_crtc *iga = container_of(crtc,
 					struct via_crtc, base);
 	struct openchrome_drm_private *dev_private =
 					crtc->dev->dev_private;
 
-	switch (dev->pdev->device) {
+	switch (pdev->device) {
 	case PCI_DEVICE_ID_VIA_VT3157:
 	case PCI_DEVICE_ID_VIA_VT3343:
 	case PCI_DEVICE_ID_VIA_P4M900:
@@ -126,7 +128,7 @@ static void openchrome_show_cursor(struct drm_crtc *crtc)
 		break;
 	}
 
-	switch (dev->pdev->device) {
+	switch (pdev->device) {
 	case PCI_DEVICE_ID_VIA_VT3157:
 	case PCI_DEVICE_ID_VIA_VT3343:
 	case PCI_DEVICE_ID_VIA_P4M900:
@@ -161,12 +163,13 @@ static void openchrome_cursor_address(struct drm_crtc *crtc,
 					struct openchrome_bo *ttm_bo)
 {
 	struct drm_device *dev = crtc->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_crtc *iga = container_of(crtc,
 					struct via_crtc, base);
 	struct openchrome_drm_private *dev_private =
 					crtc->dev->dev_private;
 
-	switch (dev->pdev->device) {
+	switch (pdev->device) {
 	case PCI_DEVICE_ID_VIA_VT3157:
 	case PCI_DEVICE_ID_VIA_VT3343:
 	case PCI_DEVICE_ID_VIA_P4M900:
@@ -201,6 +204,7 @@ static void openchrome_set_hi_location(struct drm_crtc *crtc,
 					int crtc_y)
 {
 	struct drm_device *dev = crtc->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_crtc *iga = container_of(crtc,
 					struct via_crtc, base);
 	struct openchrome_drm_private *dev_private =
@@ -220,7 +224,7 @@ static void openchrome_set_hi_location(struct drm_crtc *crtc,
 		location_y = crtc_y;
 	}
 
-	switch (dev->pdev->device) {
+	switch (pdev->device) {
 	case PCI_DEVICE_ID_VIA_VT3157:
 	case PCI_DEVICE_ID_VIA_VT3343:
 	case PCI_DEVICE_ID_VIA_P4M900:

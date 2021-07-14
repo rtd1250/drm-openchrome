@@ -38,6 +38,7 @@ via_encoder_commit(struct drm_encoder *encoder)
 	struct openchrome_drm_private *dev_private =
 					encoder->dev->dev_private;
 	struct drm_device *dev = encoder->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_crtc *iga = NULL;
 	u8 value = 0;
 
@@ -54,7 +55,7 @@ via_encoder_commit(struct drm_encoder *encoder)
 		/* DVP0 Data Source Selection. */
 		svga_wcrt_mask(VGABASE, 0x96, value, BIT(4));
 		/* enable DVP0 under CX700 */
-		if (encoder->dev->pdev->device == PCI_DEVICE_ID_VIA_VT3157)
+		if (pdev->device == PCI_DEVICE_ID_VIA_VT3157)
 			svga_wcrt_mask(VGABASE, 0x91, BIT(5), BIT(5));
 		/* Turn on DVP0 clk */
 		svga_wseq_mask(VGABASE, 0x1E, 0xC0, BIT(7) | BIT(6));
@@ -64,10 +65,10 @@ via_encoder_commit(struct drm_encoder *encoder)
 		svga_wcrt_mask(VGABASE, 0x9B, value, BIT(4));
 		/* enable DVP1 under these chipset. Does DVI exist
 		 * for pre CX700 hardware */
-		if ((dev->pdev->device == PCI_DEVICE_ID_VIA_VT3157) ||
-		    (dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
-		    (dev->pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
-		    (dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA))
+		if ((pdev->device == PCI_DEVICE_ID_VIA_VT3157) ||
+		    (pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
+		    (pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
+		    (pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA))
 			svga_wcrt_mask(VGABASE, 0xD3, 0x00, BIT(5));
 		/* Turn on DVP1 clk */
 		svga_wseq_mask(VGABASE, 0x1E, 0x30, BIT(5) | BIT(4));
@@ -75,10 +76,10 @@ via_encoder_commit(struct drm_encoder *encoder)
 
 	case VIA_DI_PORT_DFPH:
 		/* Port 96 is used on older hardware for the DVP0 */
-		if ((dev->pdev->device != PCI_DEVICE_ID_VIA_VT3157) &&
-		    (dev->pdev->device != PCI_DEVICE_ID_VIA_VT1122) &&
-		    (dev->pdev->device != PCI_DEVICE_ID_VIA_VX875) &&
-		    (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA))
+		if ((pdev->device != PCI_DEVICE_ID_VIA_VT3157) &&
+		    (pdev->device != PCI_DEVICE_ID_VIA_VT1122) &&
+		    (pdev->device != PCI_DEVICE_ID_VIA_VX875) &&
+		    (pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA))
 			svga_wcrt_mask(VGABASE, 0x96, value, BIT(4));
 
 		svga_wcrt_mask(VGABASE, 0x97, value, BIT(4));
@@ -88,10 +89,10 @@ via_encoder_commit(struct drm_encoder *encoder)
 
 	case VIA_DI_PORT_DFPL:
 		/* Port 9B is used on older hardware for the DVP1 */
-		if ((dev->pdev->device != PCI_DEVICE_ID_VIA_VT3157) &&
-		    (dev->pdev->device != PCI_DEVICE_ID_VIA_VT1122) &&
-		    (dev->pdev->device != PCI_DEVICE_ID_VIA_VX875) &&
-		    (dev->pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA))
+		if ((pdev->device != PCI_DEVICE_ID_VIA_VT3157) &&
+		    (pdev->device != PCI_DEVICE_ID_VIA_VT1122) &&
+		    (pdev->device != PCI_DEVICE_ID_VIA_VX875) &&
+		    (pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA))
 			svga_wcrt_mask(VGABASE, 0x9B, value, BIT(4));
 
 		svga_wcrt_mask(VGABASE, 0x99, value, BIT(4));
@@ -100,8 +101,8 @@ via_encoder_commit(struct drm_encoder *encoder)
 		break;
 
 	case VIA_DI_PORT_DFP:
-		if ((dev->pdev->device == PCI_DEVICE_ID_VIA_K8M890) ||
-		    (dev->pdev->device == PCI_DEVICE_ID_VIA_VT3343))
+		if ((pdev->device == PCI_DEVICE_ID_VIA_K8M890) ||
+		    (pdev->device == PCI_DEVICE_ID_VIA_VT3343))
 			svga_wcrt_mask(VGABASE, 0x97, 0x84,
 					BIT(7) | BIT(2) | BIT(1) | BIT(0));
 
@@ -141,7 +142,7 @@ via_encoder_commit(struct drm_encoder *encoder)
 	/* Older chipsets only used CR91 to control all DI ports.
 	 * For newer chipsets (CX700 and above) CR91 and CRD3 are
 	 * used to control DVP0 and DVP1 seperately */
-	if (iga->index && dev->pdev->device != PCI_DEVICE_ID_VIA_VT3157)
+	if (iga->index && pdev->device != PCI_DEVICE_ID_VIA_VT3157)
 		svga_wcrt_mask(VGABASE, 0x91, 0x00, BIT(5));
 
 	/* Now turn on the display */
@@ -323,6 +324,7 @@ static struct td_timer td_timer_regs[] = {
 static void
 via_init_td_timing_regs(struct drm_device *dev)
 {
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct openchrome_drm_private *dev_private = dev->dev_private;
 	unsigned int td_timer[4] = { 500, 50, 0, 510 }, i;
 	struct vga_registers timings;
@@ -340,7 +342,7 @@ via_init_td_timing_regs(struct drm_device *dev)
 
 	/* Note: VT3353 have two hardware power sequences
 	 * other chips only have one hardware power sequence */
-	if (dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) {
+	if (pdev->device == PCI_DEVICE_ID_VIA_VT1122) {
 		/* set CRD4[0] to "1" to select 2nd LCD power sequence. */
 		svga_wcrt_mask(VGABASE, 0xD4, BIT(0), BIT(0));
 		/* Fill secondary power sequence */
@@ -388,9 +390,10 @@ via_hwcursor_init(struct openchrome_drm_private *dev_private)
 static void
 via_init_crtc_regs(struct drm_device *dev)
 {
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct openchrome_drm_private *dev_private = dev->dev_private;
 
-	via_unlock_crtc(VGABASE, dev->pdev->device);
+	via_unlock_crtc(VGABASE, pdev->device);
 
 	/* always set to 1 */
 	svga_wcrt_mask(VGABASE, 0x03, BIT(7), BIT(7));
@@ -412,11 +415,11 @@ via_init_crtc_regs(struct drm_device *dev)
 	vga_wcrt(VGABASE, 0x14, 0x00);
 
 	/* If K8M800, enable Prefetch Mode. */
-	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_K8M800) ||
-	    (dev->pdev->device == PCI_DEVICE_ID_VIA_K8M890))
+	if ((pdev->device == PCI_DEVICE_ID_VIA_K8M800) ||
+	    (pdev->device == PCI_DEVICE_ID_VIA_K8M890))
 		svga_wcrt_mask(VGABASE, 0x33, 0x00, BIT(3));
 
-	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_CLE266) &&
+	if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) &&
 	    (dev_private->revision == CLE266_REVISION_AX))
 		svga_wseq_mask(VGABASE, 0x1A, BIT(1), BIT(1));
 
@@ -426,11 +429,12 @@ via_init_crtc_regs(struct drm_device *dev)
 static void
 via_display_init(struct drm_device *dev)
 {
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct openchrome_drm_private *dev_private = dev->dev_private;
 	u8 index = 0x3D, value;
 
 	/* Check if spread spectrum is enabled */
-	if (dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA)
+	if (pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA)
 		index = 0x2C;
 
 	value = vga_rseq(VGABASE, 0x1E);
@@ -459,6 +463,7 @@ via_display_init(struct drm_device *dev)
 int
 via_modeset_init(struct drm_device *dev)
 {
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct openchrome_drm_private *dev_private = dev->dev_private;
 	uint32_t i;
 	int ret = 0;
@@ -502,7 +507,7 @@ via_modeset_init(struct drm_device *dev)
 
 	via_fp_init(dev);
 
-	switch (dev->pdev->device) {
+	switch (pdev->device) {
 	case PCI_DEVICE_ID_VIA_VX900_VGA:
 		via_hdmi_init(dev, VIA_DI_PORT_NONE);
 		break;

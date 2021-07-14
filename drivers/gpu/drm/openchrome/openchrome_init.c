@@ -767,6 +767,7 @@ static int vx900_mem_type(struct openchrome_drm_private *dev_private,
 int openchrome_vram_detect(struct openchrome_drm_private *dev_private)
 {
 	struct drm_device *dev = dev_private->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct pci_dev *bridge = NULL;
 	struct pci_dev *fn3 = NULL;
 	char *name = "unknown";
@@ -791,19 +792,19 @@ int openchrome_vram_detect(struct openchrome_drm_private *dev_private)
 		goto out_err;
 	}
 
-	if (!fn3 && dev->pdev->device != PCI_DEVICE_ID_VIA_CLE266
-		&& dev->pdev->device != PCI_DEVICE_ID_VIA_KM400) {
+	if (!fn3 && pdev->device != PCI_DEVICE_ID_VIA_CLE266
+		&& pdev->device != PCI_DEVICE_ID_VIA_KM400) {
 		ret = -EINVAL;
 		DRM_ERROR("No function 3 on host bridge...\n");
 		goto out_err;
 	}
 
-	if (dev->pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA) {
+	if (pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA) {
 		dev_private->vram_start =
-				pci_resource_start(dev->pdev, 2);
+				pci_resource_start(pdev, 2);
 	} else {
 		dev_private->vram_start =
-				pci_resource_start(dev->pdev, 0);
+				pci_resource_start(pdev, 0);
 	}
 
 	switch (bridge->device) {
@@ -1014,6 +1015,7 @@ static void openchrome_quirks_init(
 			struct openchrome_drm_private *dev_private)
 {
 	struct drm_device *dev = dev_private->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -1026,9 +1028,9 @@ static void openchrome_quirks_init(
 	 * setting to handle DVI. As a result, the code needs to know
 	 * this in order to support DVI properly.
 	 */
-	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_VT3157) &&
-		(dev->pdev->subsystem_vendor == 0x1509) &&
-		(dev->pdev->subsystem_device == 0x2d30)) {
+	if ((pdev->device == PCI_DEVICE_ID_VIA_VT3157) &&
+		(pdev->subsystem_vendor == 0x1509) &&
+		(pdev->subsystem_device == 0x2d30)) {
 		dev_private->is_via_nanobook = true;
 	} else {
 		dev_private->is_via_nanobook = false;
@@ -1039,9 +1041,9 @@ static void openchrome_quirks_init(
 	 * due to its flat panel connected to DVP1 (Digital
 	 * Video Port 1) rather than its LVDS channel.
 	 */
-	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) &&
-		(dev->pdev->subsystem_vendor == 0x152d) &&
-		(dev->pdev->subsystem_device == 0x0771)) {
+	if ((pdev->device == PCI_DEVICE_ID_VIA_VT1122) &&
+		(pdev->subsystem_vendor == 0x152d) &&
+		(pdev->subsystem_device == 0x0771)) {
 		dev_private->is_quanta_il1 = true;
 	} else {
 		dev_private->is_quanta_il1 = false;
@@ -1053,9 +1055,9 @@ static void openchrome_quirks_init(
 	 * flag register is needed for properly controlling its
 	 * FP.
 	 */
-	if ((dev->pdev->device == PCI_DEVICE_ID_VIA_VT1122) &&
-		(dev->pdev->subsystem_vendor == 0x144d) &&
-		(dev->pdev->subsystem_device == 0xc04e)) {
+	if ((pdev->device == PCI_DEVICE_ID_VIA_VT1122) &&
+		(pdev->subsystem_vendor == 0x144d) &&
+		(pdev->subsystem_device == 0xc04e)) {
 		dev_private->is_samsung_nc20 = true;
 	} else {
 		dev_private->is_samsung_nc20 = false;
@@ -1097,6 +1099,7 @@ int openchrome_mmio_init(
 			struct openchrome_drm_private *dev_private)
 {
 	struct drm_device *dev = dev_private->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -1107,8 +1110,8 @@ int openchrome_mmio_init(
 	 * Obtain the starting base address and size, and
 	 * map it to the OS for use.
 	 */
-	dev_private->mmio_base = pci_resource_start(dev->pdev, 1);
-	dev_private->mmio_size = pci_resource_len(dev->pdev, 1);
+	dev_private->mmio_base = pci_resource_start(pdev, 1);
+	dev_private->mmio_size = pci_resource_len(pdev, 1);
 	dev_private->mmio = ioremap(dev_private->mmio_base,
 					dev_private->mmio_size);
 	if (!dev_private->mmio) {
@@ -1165,11 +1168,12 @@ void openchrome_graphics_unlock(
 void chip_revision_info(struct openchrome_drm_private *dev_private)
 {
 	struct drm_device *dev = dev_private->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	u8 tmp;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	switch (dev->pdev->device) {
+	switch (pdev->device) {
 	/* CLE266 Chipset */
 	case PCI_DEVICE_ID_VIA_CLE266:
 		/* CR4F only defined in CLE266.CX chipset. */

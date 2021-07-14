@@ -251,6 +251,7 @@ via_hdmi_enc_mode_set(struct drm_encoder *encoder,
 	struct openchrome_drm_private *dev_private = encoder->dev->dev_private;
 	struct drm_connector *connector = NULL, *con;
 	struct drm_device *dev = encoder->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 
 	list_for_each_entry(con, &dev->mode_config.connector_list, head) {
 		if (encoder ==  con->encoder) {
@@ -286,7 +287,7 @@ via_hdmi_enc_mode_set(struct drm_encoder *encoder,
 				/* FIXME VIA where do you get this value from ??? */
 				u32 v_sync_adjust = 0;
 
-				switch (dev->pdev->device) {
+				switch (pdev->device) {
 				case PCI_DEVICE_ID_VIA_VX875:
 					svga_wcrt_mask(VGABASE, 0xFB,
 							v_sync_adjust & 0xFF, 0xFF);
@@ -359,7 +360,7 @@ via_hdmi_enc_mode_set(struct drm_encoder *encoder,
 
 	/* Patch for clock skew */
 	if (enc->di_port == VIA_DI_PORT_DVP1) {
-		switch (dev->pdev->device) {
+		switch (pdev->device) {
 		case PCI_DEVICE_ID_VIA_VT3157:	/* CX700 */
 			svga_wcrt_mask(VGABASE, 0x65, 0x0B, 0x0F);
 			svga_wcrt_mask(VGABASE, 0x9B, 0x00, 0x0F);
@@ -673,6 +674,7 @@ static const struct drm_connector_helper_funcs via_hdmi_connector_helper_funcs =
 void
 via_hdmi_init(struct drm_device *dev, u32 di_port)
 {
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_connector *dvi, *hdmi;
 	struct via_encoder *enc;
 
@@ -703,7 +705,7 @@ via_hdmi_init(struct drm_device *dev, u32 di_port)
 	hdmi->base.doublescan_allowed = false;
 	INIT_LIST_HEAD(&hdmi->props);
 
-	switch (dev->pdev->device) {
+	switch (pdev->device) {
 	case PCI_DEVICE_ID_VIA_VT3157:
 	case PCI_DEVICE_ID_VIA_VT1122:
 		hdmi->base.interlace_allowed = false;
@@ -724,7 +726,7 @@ via_hdmi_init(struct drm_device *dev, u32 di_port)
 	dvi->base.doublescan_allowed = false;
 	INIT_LIST_HEAD(&dvi->props);
 
-	switch (dev->pdev->device) {
+	switch (pdev->device) {
 	case PCI_DEVICE_ID_VIA_VT3157:
 	case PCI_DEVICE_ID_VIA_VT3353:
 		dvi->base.interlace_allowed = false;
