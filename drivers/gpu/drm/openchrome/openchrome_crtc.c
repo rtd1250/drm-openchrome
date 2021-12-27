@@ -1580,7 +1580,7 @@ void openchrome_mode_set_nofb(struct drm_crtc *crtc)
 {
 	struct via_crtc *iga = container_of(crtc,
 						struct via_crtc, base);
-	struct drm_display_mode *mode = &crtc->mode;
+	struct drm_display_mode *mode = &crtc->state->mode;
 	struct drm_display_mode *adjusted_mode =
 					&crtc->state->adjusted_mode;
 	struct openchrome_drm_private *dev_private =
