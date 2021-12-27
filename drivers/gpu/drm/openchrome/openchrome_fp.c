@@ -793,7 +793,6 @@ static void via_fp_disable(struct drm_encoder *encoder)
 
 const struct drm_encoder_helper_funcs via_lvds_helper_funcs = {
 	.dpms = via_fp_dpms,
-	.mode_fixup = via_lvds_mode_fixup,
 	.prepare = via_fp_prepare,
 	.commit = via_fp_commit,
 	.mode_set = via_fp_mode_set,
