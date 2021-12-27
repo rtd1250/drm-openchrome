@@ -79,6 +79,17 @@ static void via_iga_common_init(void __iomem *regs)
 	 *               1: Enable */
 	svga_wseq_mask(regs, 0x15, BIT(5) | BIT(1), BIT(5) | BIT(1));
 
+	/*
+	 * Disable simultaneous display.
+	 * Turning this on causes IGA1 to have a display issue.
+	 */
+	/*
+	 * 3X5.6B[3]   - Simultaneous Display Enable
+	 *               0: Disable
+	 *               1: Enable
+	 */
+	svga_wcrt_mask(regs, 0x6B, 0x00, BIT(3));
+
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
