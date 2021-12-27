@@ -1376,11 +1376,6 @@ void via_fp_init(struct drm_device *dev)
 	con->base.doublescan_allowed = false;
 	con->base.interlace_allowed = false;
 
-	drm_mode_create_scaling_mode_property(dev);
-	drm_object_attach_property(&con->base.base,
-					dev->mode_config.scaling_mode_property,
-					DRM_MODE_SCALE_CENTER);
-
 	/* Now setup the encoder */
 	drm_encoder_init(dev, &enc->base, &via_lvds_enc_funcs,
 						DRM_MODE_ENCODER_LVDS, NULL);
