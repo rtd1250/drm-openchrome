@@ -1083,7 +1083,6 @@ via_fp_mode_valid(struct drm_connector *connector,
 
 struct drm_connector_helper_funcs via_fp_connector_helper_funcs = {
 	.get_modes = via_fp_get_modes,
-	.mode_valid = via_fp_mode_valid,
 };
 
 /*
