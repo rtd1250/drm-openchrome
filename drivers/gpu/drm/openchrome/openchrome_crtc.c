@@ -1903,9 +1903,9 @@ void openchrome_primary_atomic_update(struct drm_plane *plane,
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct openchrome_drm_private *dev_private =
 						crtc->dev->dev_private;
-	struct drm_gem_object *gem = fb->obj[0];
-	struct openchrome_bo *bo = container_of(gem,
-					struct openchrome_bo, gem);
+	struct drm_gem_object *gem;
+	struct ttm_buffer_object *ttm_bo;
+	struct openchrome_bo *bo;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -1916,6 +1916,10 @@ void openchrome_primary_atomic_update(struct drm_plane *plane,
 					fb->format->depth);
 		goto exit;
 	}
+
+	gem = fb->obj[0];
+	ttm_bo = container_of(gem, struct ttm_buffer_object, base);
+	bo = container_of(ttm_bo, struct openchrome_bo, ttm_bo);
 
 	if (!iga->index) {
 		via_iga1_set_color_depth(dev_private, fb->format->depth);
@@ -1970,8 +1974,9 @@ exit:
 static int openchrome_primary_prepare_fb(struct drm_plane *plane,
 				struct drm_plane_state *new_state)
 {
-	struct openchrome_bo *bo;
 	struct drm_gem_object *gem;
+	struct ttm_buffer_object *ttm_bo;
+	struct openchrome_bo *bo;
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -1981,7 +1986,8 @@ static int openchrome_primary_prepare_fb(struct drm_plane *plane,
 	}
 
 	gem = new_state->fb->obj[0];
-	bo = container_of(gem, struct openchrome_bo, gem);
+	ttm_bo = container_of(gem, struct ttm_buffer_object, base);
+	bo = container_of(ttm_bo, struct openchrome_bo, ttm_bo);
 
 	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
 	if (ret) {
@@ -1998,8 +2004,9 @@ exit:
 static void openchrome_primary_cleanup_fb(struct drm_plane *plane,
 				struct drm_plane_state *old_state)
 {
-	struct openchrome_bo *bo;
 	struct drm_gem_object *gem;
+	struct ttm_buffer_object *ttm_bo;
+	struct openchrome_bo *bo;
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -2009,7 +2016,8 @@ static void openchrome_primary_cleanup_fb(struct drm_plane *plane,
 	}
 
 	gem = old_state->fb->obj[0];
-	bo = container_of(gem, struct openchrome_bo, gem);
+	ttm_bo = container_of(gem, struct ttm_buffer_object, base);
+	bo = container_of(ttm_bo, struct openchrome_bo, ttm_bo);
 
 	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
 	if (ret) {

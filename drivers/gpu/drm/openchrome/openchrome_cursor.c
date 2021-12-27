@@ -263,6 +263,7 @@ static int openchrome_cursor_prepare_fb(struct drm_plane *plane,
 				struct drm_plane_state *new_state)
 {
 	struct drm_gem_object *gem;
+	struct ttm_buffer_object *ttm_bo;
 	struct openchrome_bo *bo;
 	int ret = 0;
 
@@ -273,7 +274,8 @@ static int openchrome_cursor_prepare_fb(struct drm_plane *plane,
 	}
 
 	gem = new_state->fb->obj[0];
-	bo = container_of(gem, struct openchrome_bo, gem);
+	ttm_bo = container_of(gem, struct ttm_buffer_object, base);
+	bo = container_of(ttm_bo, struct openchrome_bo, ttm_bo);
 
 	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
 	if (ret) {
@@ -298,6 +300,7 @@ static void openchrome_cursor_cleanup_fb(struct drm_plane *plane,
 				struct drm_plane_state *old_state)
 {
 	struct drm_gem_object *gem;
+	struct ttm_buffer_object *ttm_bo;
 	struct openchrome_bo *bo;
 	int ret;
 
@@ -308,7 +311,8 @@ static void openchrome_cursor_cleanup_fb(struct drm_plane *plane,
 	}
 
 	gem = old_state->fb->obj[0];
-	bo = container_of(gem, struct openchrome_bo, gem);
+	ttm_bo = container_of(gem, struct ttm_buffer_object, base);
+	bo = container_of(ttm_bo, struct openchrome_bo, ttm_bo);
 
 	ttm_bo_kunmap(&bo->kmap);
 	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
@@ -366,14 +370,16 @@ static void openchrome_cursor_atomic_update(struct drm_plane *plane,
 	struct drm_plane_state *old_state =
 			drm_atomic_get_old_plane_state(state, plane);
 	struct drm_crtc *crtc = new_state->crtc;
-	struct openchrome_bo *bo;
 	struct drm_gem_object *gem;
+	struct ttm_buffer_object *ttm_bo;
+	struct openchrome_bo *bo;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	if (new_state->fb != old_state->fb) {
 		gem = new_state->fb->obj[0];
-		bo = container_of(gem, struct openchrome_bo, gem);
+		ttm_bo = container_of(gem, struct ttm_buffer_object, base);
+		bo = container_of(ttm_bo, struct openchrome_bo, ttm_bo);
 		openchrome_cursor_address(crtc, bo);
 	}
 

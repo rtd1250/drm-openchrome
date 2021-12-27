@@ -108,8 +108,8 @@ static int openchrome_driver_dumb_create(
 		goto exit;
 	}
 
-	ret = drm_gem_handle_create(file_priv, &bo->gem, &handle);
-	drm_gem_object_put(&bo->gem);
+	ret = drm_gem_handle_create(file_priv, &bo->ttm_bo.base, &handle);
+	drm_gem_object_put(&bo->ttm_bo.base);
 	if (ret) {
 		goto exit;
 	}
@@ -129,6 +129,7 @@ static int openchrome_driver_dumb_map_offset(
 				uint64_t *offset)
 {
 	struct drm_gem_object *gem;
+	struct ttm_buffer_object *ttm_bo;
 	struct openchrome_bo *bo;
 	int ret = 0;
 
@@ -140,7 +141,8 @@ static int openchrome_driver_dumb_map_offset(
 		goto exit;
 	}
 
-	bo = container_of(gem, struct openchrome_bo, gem);
+	ttm_bo = container_of(gem, struct ttm_buffer_object, base);
+	bo = container_of(ttm_bo, struct openchrome_bo, ttm_bo);
 	*offset = drm_vma_node_offset_addr(&bo->ttm_bo.base.vma_node);
 
 	drm_gem_object_put(gem);

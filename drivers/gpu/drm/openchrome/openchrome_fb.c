@@ -188,7 +188,7 @@ openchrome_fb_probe(struct drm_fb_helper *helper,
 		goto exit;
 	}
 
-	gem = &openchrome_fb->bo->gem;
+	gem = &openchrome_fb->bo->ttm_bo.base;
 	ret = openchrome_framebuffer_init(dev, gem, &mode_cmd, &fb);
 	if (ret) {
 		goto free_bo;

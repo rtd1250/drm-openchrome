@@ -57,9 +57,9 @@ static int openchrome_gem_create_ioctl(struct drm_device *dev,
 		goto exit;
 	}
 
-	ret = drm_gem_handle_create(file_priv, &bo->gem,
+	ret = drm_gem_handle_create(file_priv, &bo->ttm_bo.base,
 					&handle);
-	drm_gem_object_put(&bo->gem);
+	drm_gem_object_put(&bo->ttm_bo.base);
 	if (ret) {
 		openchrome_bo_destroy(bo, false);
 		goto exit;
@@ -80,6 +80,7 @@ static int openchrome_gem_map_ioctl(struct drm_device *dev,
 {
 	struct drm_openchrome_gem_map *args = data;
 	struct drm_gem_object *gem;
+	struct ttm_buffer_object *ttm_bo;
 	struct openchrome_bo *bo;
 	int ret = 0;
 
@@ -91,7 +92,8 @@ static int openchrome_gem_map_ioctl(struct drm_device *dev,
 		goto exit;
 	}
 
-	bo = container_of(gem, struct openchrome_bo, gem);
+	ttm_bo = container_of(gem, struct ttm_buffer_object, base);
+	bo = container_of(ttm_bo, struct openchrome_bo, ttm_bo);
 
 	args->map_offset = drm_vma_node_offset_addr(
 					&bo->ttm_bo.base.vma_node);

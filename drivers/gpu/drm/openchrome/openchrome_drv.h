@@ -195,7 +195,6 @@ struct openchrome_bo {
 	struct ttm_bo_kmap_obj		kmap;
 	struct ttm_placement		placement;
 	struct ttm_place		placements[OPENCHROME_TTM_PL_NUM];
-	struct drm_gem_object		gem;
 };
 
 struct openchrome_framebuffer {

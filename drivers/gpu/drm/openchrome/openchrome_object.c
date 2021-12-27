@@ -47,10 +47,13 @@
 
 static void openchrome_gem_free(struct drm_gem_object *obj)
 {
-	struct openchrome_bo *bo = container_of(obj,
-					struct openchrome_bo, gem);
+	struct ttm_buffer_object *ttm_bo;
+	struct openchrome_bo *bo;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	ttm_bo = container_of(obj, struct ttm_buffer_object, base);
+	bo = container_of(ttm_bo, struct openchrome_bo, ttm_bo);
 
 	ttm_bo_put(&bo->ttm_bo);
 
@@ -112,12 +115,13 @@ void openchrome_ttm_domain_to_placement(struct openchrome_bo *bo,
 
 void openchrome_ttm_bo_destroy(struct ttm_buffer_object *tbo)
 {
-	struct openchrome_bo *bo = container_of(tbo,
-					struct openchrome_bo, ttm_bo);
+	struct openchrome_bo *bo;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	drm_gem_object_release(&bo->gem);
+	bo = container_of(tbo, struct openchrome_bo, ttm_bo);
+
+	drm_gem_object_release(&bo->ttm_bo.base);
 	kfree(bo);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
@@ -187,13 +191,13 @@ int openchrome_bo_create(struct drm_device *dev,
 	 */
 	size = ALIGN(size, PAGE_SIZE);
 
-	ret = drm_gem_object_init(dev, &bo->gem, size);
+	ret = drm_gem_object_init(dev, &bo->ttm_bo.base, size);
 	if (ret) {
 		DRM_ERROR("Cannot initialize a GEM object.\n");
 		goto error;
 	}
 
-	bo->gem.funcs = &openchrome_gem_object_funcs;
+	bo->ttm_bo.base.funcs = &openchrome_gem_object_funcs;
 
 	openchrome_ttm_domain_to_placement(bo, ttm_domain);
 	ret = ttm_bo_init(&dev_private->bdev,
