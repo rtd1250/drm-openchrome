@@ -49,9 +49,9 @@
 #include "openchrome_drv.h"
 
 
-static void openchrome_hide_cursor(struct drm_device *dev,
-					struct drm_crtc *crtc)
+static void openchrome_hide_cursor(struct drm_crtc *crtc)
 {
+	struct drm_device *dev = crtc->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_crtc *iga = container_of(crtc,
 					struct via_crtc, base);
@@ -396,12 +396,13 @@ void openchrome_cursor_atomic_disable(struct drm_plane *plane,
 {
 	struct drm_plane_state *new_state =
 			drm_atomic_get_new_plane_state(state, plane);
-	struct drm_device *dev = plane->dev;
 	struct drm_crtc *crtc = new_state->crtc;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	openchrome_hide_cursor(dev, crtc);
+	if (crtc) {
+		openchrome_hide_cursor(crtc);
+	}
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
