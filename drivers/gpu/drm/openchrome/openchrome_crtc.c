@@ -1578,15 +1578,15 @@ via_set_iga2_downscale_source_timing(struct drm_crtc *crtc,
 
 void openchrome_mode_set_nofb(struct drm_crtc *crtc)
 {
-	struct via_crtc *iga = container_of(crtc,
-						struct via_crtc, base);
+	struct drm_device *dev = crtc->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct drm_display_mode *mode = &crtc->state->mode;
 	struct drm_display_mode *adjusted_mode =
 					&crtc->state->adjusted_mode;
+	struct via_crtc *iga = container_of(crtc,
+						struct via_crtc, base);
 	struct openchrome_drm_private *dev_private =
 						crtc->dev->dev_private;
-	struct drm_device *dev = crtc->dev;
-	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	u8 reg_value = 0;
 	int ret;
 
