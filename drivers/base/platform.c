@@ -125,26 +125,6 @@ void __iomem *devm_platform_ioremap_resource(struct platform_device *pdev,
 EXPORT_SYMBOL_GPL(devm_platform_ioremap_resource);
 
 /**
- * devm_platform_ioremap_resource_wc - write-combined variant of
- *                                     devm_platform_ioremap_resource()
- *
- * @pdev: platform device to use both for memory resource lookup as well as
- *        resource management
- * @index: resource index
- *
- * Return: a pointer to the remapped memory or an ERR_PTR() encoded error code
- * on failure.
- */
-void __iomem *devm_platform_ioremap_resource_wc(struct platform_device *pdev,
-						unsigned int index)
-{
-	struct resource *res;
-
-	res = platform_get_resource(pdev, IORESOURCE_MEM, index);
-	return devm_ioremap_resource_wc(&pdev->dev, res);
-}
-
-/**
  * devm_platform_ioremap_resource_byname - call devm_ioremap_resource for
  *					   a platform device, retrieve the
  *					   resource by name
@@ -1355,7 +1335,7 @@ static umode_t platform_dev_attrs_visible(struct kobject *kobj, struct attribute
 	return a->mode;
 }
 
-static struct attribute_group platform_dev_group = {
+static const struct attribute_group platform_dev_group = {
 	.attrs = platform_dev_attrs,
 	.is_visible = platform_dev_attrs_visible,
 };
@@ -1458,7 +1438,7 @@ out:
 	return ret;
 }
 
-static int platform_remove(struct device *_dev)
+static void platform_remove(struct device *_dev)
 {
 	struct platform_driver *drv = to_platform_driver(_dev->driver);
 	struct platform_device *dev = to_platform_device(_dev);
@@ -1470,8 +1450,6 @@ static int platform_remove(struct device *_dev)
 			dev_warn(_dev, "remove callback returned a non-zero value. This will be ignored.\n");
 	}
 	dev_pm_domain_detach(_dev, true);
-
-	return 0;
 }
 
 static void platform_shutdown(struct device *_dev)

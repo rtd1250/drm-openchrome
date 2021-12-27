@@ -119,10 +119,9 @@ static bool vfio_pci_is_denylisted(struct pci_dev *pdev)
  * has no way to get to it and routing can be disabled externally at the
  * bridge.
  */
-static unsigned int vfio_pci_set_vga_decode(void *opaque, bool single_vga)
+static unsigned int vfio_pci_set_decode(struct pci_dev *pdev, bool single_vga)
 {
-	struct vfio_pci_device *vdev = opaque;
-	struct pci_dev *tmp = NULL, *pdev = vdev->pdev;
+	struct pci_dev *tmp = NULL;
 	unsigned char max_busnr;
 	unsigned int decodes;
 
@@ -477,13 +476,10 @@ static void vfio_pci_disable(struct vfio_pci_device *vdev)
 	 * We can not use the "try" reset interface here, which will
 	 * overwrite the previously restored configuration information.
 	 */
-	if (vdev->reset_works && pci_cfg_access_trylock(pdev)) {
-		if (device_trylock(&pdev->dev)) {
-			if (!__pci_reset_function_locked(pdev))
-				vdev->needs_reset = false;
-			device_unlock(&pdev->dev);
-		}
-		pci_cfg_access_unlock(pdev);
+	if (vdev->reset_works && pci_dev_trylock(pdev)) {
+		if (!__pci_reset_function_locked(pdev))
+			vdev->needs_reset = false;
+		pci_dev_unlock(pdev);
 	}
 
 	pci_restore_state(pdev);
@@ -558,8 +554,6 @@ static void vfio_pci_release(struct vfio_device *core_vdev)
 	}
 
 	mutex_unlock(&vdev->reflck->lock);
-
-	module_put(THIS_MODULE);
 }
 
 static int vfio_pci_open(struct vfio_device *core_vdev)
@@ -567,9 +561,6 @@ static int vfio_pci_open(struct vfio_device *core_vdev)
 	struct vfio_pci_device *vdev =
 		container_of(core_vdev, struct vfio_pci_device, vdev);
 	int ret = 0;
-
-	if (!try_module_get(THIS_MODULE))
-		return -ENODEV;
 
 	mutex_lock(&vdev->reflck->lock);
 
@@ -584,8 +575,6 @@ static int vfio_pci_open(struct vfio_device *core_vdev)
 	vdev->refcnt++;
 error:
 	mutex_unlock(&vdev->reflck->lock);
-	if (ret)
-		module_put(THIS_MODULE);
 	return ret;
 }
 
@@ -1594,6 +1583,7 @@ static vm_fault_t vfio_pci_mmap_fault(struct vm_fault *vmf)
 {
 	struct vm_area_struct *vma = vmf->vma;
 	struct vfio_pci_device *vdev = vma->vm_private_data;
+	struct vfio_pci_mmap_vma *mmap_vma;
 	vm_fault_t ret = VM_FAULT_NOPAGE;
 
 	mutex_lock(&vdev->vma_lock);
@@ -1601,24 +1591,36 @@ static vm_fault_t vfio_pci_mmap_fault(struct vm_fault *vmf)
 
 	if (!__vfio_pci_memory_enabled(vdev)) {
 		ret = VM_FAULT_SIGBUS;
-		mutex_unlock(&vdev->vma_lock);
+		goto up_out;
+	}
+
+	/*
+	 * We populate the whole vma on fault, so we need to test whether
+	 * the vma has already been mapped, such as for concurrent faults
+	 * to the same vma.  io_remap_pfn_range() will trigger a BUG_ON if
+	 * we ask it to fill the same range again.
+	 */
+	list_for_each_entry(mmap_vma, &vdev->vma_list, vma_next) {
+		if (mmap_vma->vma == vma)
+			goto up_out;
+	}
+
+	if (io_remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
+			       vma->vm_end - vma->vm_start,
+			       vma->vm_page_prot)) {
+		ret = VM_FAULT_SIGBUS;
+		zap_vma_ptes(vma, vma->vm_start, vma->vm_end - vma->vm_start);
 		goto up_out;
 	}
 
 	if (__vfio_pci_add_vma(vdev, vma)) {
 		ret = VM_FAULT_OOM;
-		mutex_unlock(&vdev->vma_lock);
-		goto up_out;
+		zap_vma_ptes(vma, vma->vm_start, vma->vm_end - vma->vm_start);
 	}
-
-	mutex_unlock(&vdev->vma_lock);
-
-	if (io_remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
-			       vma->vm_end - vma->vm_start, vma->vm_page_prot))
-		ret = VM_FAULT_SIGBUS;
 
 up_out:
 	up_read(&vdev->memory_lock);
+	mutex_unlock(&vdev->vma_lock);
 	return ret;
 }
 
@@ -1951,10 +1953,10 @@ static int vfio_pci_vga_init(struct vfio_pci_device *vdev)
 	if (!vfio_pci_is_vga(pdev))
 		return 0;
 
-	ret = vga_client_register(pdev, vdev, NULL, vfio_pci_set_vga_decode);
+	ret = vga_client_register(pdev, vfio_pci_set_decode);
 	if (ret)
 		return ret;
-	vga_set_legacy_decoding(pdev, vfio_pci_set_vga_decode(vdev, false));
+	vga_set_legacy_decoding(pdev, vfio_pci_set_decode(pdev, false));
 	return 0;
 }
 
@@ -1964,7 +1966,7 @@ static void vfio_pci_vga_uninit(struct vfio_pci_device *vdev)
 
 	if (!vfio_pci_is_vga(pdev))
 		return;
-	vga_client_register(pdev, NULL, NULL, NULL);
+	vga_client_unregister(pdev);
 	vga_set_legacy_decoding(pdev, VGA_RSRC_NORMAL_IO | VGA_RSRC_NORMAL_MEM |
 					      VGA_RSRC_LEGACY_IO |
 					      VGA_RSRC_LEGACY_MEM);
