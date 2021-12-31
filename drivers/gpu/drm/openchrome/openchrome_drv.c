@@ -196,7 +196,7 @@ static int openchrome_pci_probe(struct pci_dev *pdev,
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	ret = drm_aperture_remove_conflicting_pci_framebuffers(pdev,
-							"openchromedrmfb");
+						&openchrome_driver);
 	if (ret) {
 		goto exit;
 	}
