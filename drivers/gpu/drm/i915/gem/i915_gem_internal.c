@@ -42,7 +42,7 @@ static int i915_gem_object_get_pages_internal(struct drm_i915_gem_object *obj)
 
 	max_order = MAX_ORDER;
 #ifdef CONFIG_SWIOTLB
-	if (is_swiotlb_active()) {
+	if (is_swiotlb_active(obj->base.dev->dev)) {
 		unsigned int max_segment;
 
 		max_segment = swiotlb_max_segment();
@@ -134,6 +134,8 @@ static void i915_gem_object_put_pages_internal(struct drm_i915_gem_object *obj,
 	internal_free_pages(pages);
 
 	obj->mm.dirty = false;
+
+	__start_cpu_write(obj);
 }
 
 static const struct drm_i915_gem_object_ops i915_gem_object_internal_ops = {
