@@ -279,7 +279,6 @@ static const struct drm_connector_funcs via_analog_connector_funcs = {
 	.dpms = drm_helper_connector_dpms,
 	.detect = via_analog_detect,
 	.fill_modes = drm_helper_probe_single_connector_modes,
-	.set_property = via_connector_set_property,
 	.destroy = via_connector_destroy,
 	.reset = drm_atomic_helper_connector_reset,
 	.atomic_duplicate_state =

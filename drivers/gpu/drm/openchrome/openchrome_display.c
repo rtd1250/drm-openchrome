@@ -272,20 +272,6 @@ via_connector_mode_valid(struct drm_connector *connector,
 	return MODE_OK;
 }
 
-int
-via_connector_set_property(struct drm_connector *connector,
-				struct drm_property *property, uint64_t value)
-{
-	struct drm_encoder *encoder = connector->encoder;
-	struct drm_device *dev = connector->dev;
-
-	if (encoder) {
-		if (property == dev->mode_config.dpms_property)
-			encoder->helper_private->dpms(encoder, (uint32_t)(value & 0xf));
-	}
-	return 0;
-}
-
 void
 via_connector_destroy(struct drm_connector *connector)
 {

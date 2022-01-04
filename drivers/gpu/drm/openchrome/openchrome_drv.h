@@ -463,9 +463,6 @@ extern void via_encoder_disable(struct drm_encoder *encoder);
 extern void via_encoder_commit(struct drm_encoder *encoder);
 
 /* connectors */
-extern int via_connector_set_property(struct drm_connector *connector,
-					struct drm_property *property,
-					uint64_t value);
 extern int via_connector_mode_valid(struct drm_connector *connector,
 					struct drm_display_mode *mode);
 extern void via_connector_destroy(struct drm_connector *connector);
