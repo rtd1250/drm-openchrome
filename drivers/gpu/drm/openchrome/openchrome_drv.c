@@ -33,7 +33,10 @@
 #include <drm/drm_aperture.h>
 #include <drm/drm_drv.h>
 #include <drm/drm_file.h>
+#include <drm/drm_gem.h>
 #include <drm/drm_pciids.h>
+
+#include <drm/ttm/ttm_bo_api.h>
 
 #include "openchrome_drv.h"
 

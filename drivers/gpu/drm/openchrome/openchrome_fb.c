@@ -31,6 +31,8 @@
 #include <drm/drm_gem.h>
 #include <drm_gem_framebuffer_helper.h>
 
+#include <drm/ttm/ttm_bo_api.h>
+
 #include "openchrome_drv.h"
 
 

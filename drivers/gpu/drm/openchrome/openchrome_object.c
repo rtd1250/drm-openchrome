@@ -36,6 +36,7 @@
  */
 
 #include <drm/drm_file.h>
+#include <drm/drm_gem.h>
 #include <drm/drm_gem_ttm_helper.h>
 
 #include <drm/ttm/ttm_bo_api.h>
