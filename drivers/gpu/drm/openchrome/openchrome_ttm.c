@@ -78,7 +78,6 @@ err_ttm_tt_init:
 static void openchrome_ttm_tt_destroy(struct ttm_device *bdev,
 					struct ttm_tt *tt)
 {
-	ttm_tt_destroy_common(bdev, tt);
 	ttm_tt_fini(tt);
 	kfree(tt);
 }
