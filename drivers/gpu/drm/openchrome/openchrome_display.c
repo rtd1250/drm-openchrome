@@ -29,57 +29,6 @@
 #include "openchrome_drv.h"
 
 void
-via_encoder_disable(struct drm_encoder *encoder)
-{
-	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
-	struct openchrome_drm_private *dev_private =
-					encoder->dev->dev_private;
-
-	/* First turn off the display */
-	encoder->helper_private->dpms(encoder, DRM_MODE_DPMS_OFF);
-
-	switch (enc->di_port) {
-	case VIA_DI_PORT_DVP0:
-		svga_wseq_mask(VGABASE, 0x1E, 0x00, BIT(7) | BIT(6));
-		break;
-
-	case VIA_DI_PORT_DVP1:
-		svga_wseq_mask(VGABASE, 0x1E, 0x00, BIT(5) | BIT(4));
-		break;
-
-	case VIA_DI_PORT_DFPH:
-		svga_wseq_mask(VGABASE, 0x2A, 0x00, BIT(3) | BIT(2));
-		break;
-
-	case VIA_DI_PORT_DFPL:
-		svga_wseq_mask(VGABASE, 0x2A, 0x00, BIT(1) | BIT(0));
-		break;
-
-	case VIA_DI_PORT_DFP:
-		svga_wseq_mask(VGABASE, 0x2A, 0x00,
-				BIT(3) | BIT(2) | BIT(1) | BIT(0));
-		break;
-
-	/* TTL LCD, Quanta case */
-	case VIA_DI_PORT_DFPL + VIA_DI_PORT_DVP1:
-		svga_wseq_mask(VGABASE, 0x1E, 0x00, BIT(5) | BIT(4));
-		svga_wseq_mask(VGABASE, 0x2A, 0x00, BIT(1) | BIT(0));
-		break;
-
-	case VIA_DI_PORT_DFPH + VIA_DI_PORT_DFPL + VIA_DI_PORT_DVP1:
-		svga_wseq_mask(VGABASE, 0x1E, 0x00, BIT(5) | BIT(4));
-		svga_wseq_mask(VGABASE, 0x2A, 0x00,
-				BIT(3) | BIT(2) | BIT(1) | BIT(0));
-		break;
-
-	case VIA_DI_PORT_NONE:
-	default:
-		DRM_ERROR("Unsupported DIPort.\n");
-		break;
-	}
-}
-
-void
 via_set_sync_polarity(struct drm_encoder *encoder, struct drm_display_mode *mode,
 			struct drm_display_mode *adjusted_mode)
 {

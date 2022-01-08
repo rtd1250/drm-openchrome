@@ -390,7 +390,6 @@ static const struct drm_encoder_helper_funcs via_hdmi_enc_helper_funcs = {
 	.mode_fixup = via_hdmi_enc_mode_fixup,
 	.mode_set = via_hdmi_enc_mode_set,
 	.prepare = via_encoder_prepare,
-	.disable = via_encoder_disable,
 };
 
 static unsigned int via_check_hdmi_i2c_status(
