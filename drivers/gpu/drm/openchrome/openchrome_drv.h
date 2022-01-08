@@ -457,7 +457,6 @@ extern void via_set_sync_polarity(struct drm_encoder *encoder,
 				struct drm_display_mode *mode,
 				struct drm_display_mode *adjusted_mode);
 extern void via_encoder_cleanup(struct drm_encoder *encoder);
-extern void via_encoder_prepare(struct drm_encoder *encoder);
 
 /* connectors */
 extern int via_connector_mode_valid(struct drm_connector *connector,

@@ -72,12 +72,6 @@ via_set_sync_polarity(struct drm_encoder *encoder, struct drm_display_mode *mode
 	}
 }
 
-void
-via_encoder_prepare(struct drm_encoder *encoder)
-{
-	encoder->helper_private->dpms(encoder, DRM_MODE_DPMS_OFF);
-}
-
 void via_encoder_cleanup(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
