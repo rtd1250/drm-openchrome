@@ -108,8 +108,8 @@ error_free:
  * svm_migrate_copy_memory_gart - sdma copy data between ram and vram
  *
  * @adev: amdgpu device the sdma ring running
- * @src: source page address array
- * @dst: destination page address array
+ * @sys: system DMA pointer to be copied
+ * @vram: vram destination DMA pointer
  * @npages: number of pages to copy
  * @direction: enum MIGRATION_COPY_DIR
  * @mfence: output, sdma fence to signal after sdma is done
@@ -330,7 +330,6 @@ svm_migrate_copy_to_vram(struct amdgpu_device *adev, struct svm_range *prange,
 			migrate->dst[i] = svm_migrate_addr_to_pfn(adev, dst[i]);
 			svm_migrate_get_vram_page(prange, migrate->dst[i]);
 			migrate->dst[i] = migrate_pfn(migrate->dst[i]);
-			migrate->dst[i] |= MIGRATE_PFN_LOCKED;
 			src[i] = dma_map_page(dev, spage, 0, PAGE_SIZE,
 					      DMA_TO_DEVICE);
 			r = dma_mapping_error(dev, src[i]);
@@ -550,7 +549,7 @@ static void svm_migrate_page_free(struct page *page)
 
 	if (svm_bo) {
 		pr_debug_ratelimited("ref: %d\n", kref_read(&svm_bo->kref));
-		svm_range_bo_unref(svm_bo);
+		svm_range_bo_unref_async(svm_bo);
 	}
 }
 
@@ -623,7 +622,6 @@ svm_migrate_copy_to_ram(struct amdgpu_device *adev, struct svm_range *prange,
 				     dst[i] >> PAGE_SHIFT, page_to_pfn(dpage));
 
 		migrate->dst[i] = migrate_pfn(page_to_pfn(dpage));
-		migrate->dst[i] |= MIGRATE_PFN_LOCKED;
 		j++;
 	}
 
@@ -940,7 +938,7 @@ int svm_migrate_init(struct amdgpu_device *adev)
 	void *r;
 
 	/* Page migration works on Vega10 or newer */
-	if (kfddev->device_info->asic_family < CHIP_VEGA10)
+	if (!KFD_IS_SOC15(kfddev))
 		return -EINVAL;
 
 	pgmap = &kfddev->pgmap;
