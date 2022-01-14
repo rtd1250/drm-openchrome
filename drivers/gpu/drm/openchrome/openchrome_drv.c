@@ -271,6 +271,7 @@ static int __init openchrome_init(void)
 	}
 
 	if (!openchrome_modeset) {
+		ret = -EINVAL;
 		goto exit;
 	}
 
