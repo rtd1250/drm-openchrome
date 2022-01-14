@@ -27,7 +27,6 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include <linux/console.h>
 #include <linux/module.h>
 
 #include <drm/drm_aperture.h>
@@ -267,7 +266,7 @@ static int __init openchrome_init(void)
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	if ((openchrome_modeset == -1) &&
-		(vgacon_text_force())) {
+		(drm_firmware_drivers_only())) {
 		openchrome_modeset = 0;
 	}
 
