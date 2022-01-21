@@ -166,26 +166,6 @@ via_init_td_timing_regs(struct drm_device *dev)
 }
 
 static void
-via_hwcursor_init(struct openchrome_drm_private *dev_private)
-{
-	/* set 0 as transparent color key */
-	VIA_WRITE(PRIM_HI_TRANSCOLOR, 0);
-	VIA_WRITE(PRIM_HI_FIFO, 0x0D000D0F);
-	VIA_WRITE(PRIM_HI_INVTCOLOR, 0X00FFFFFF);
-	VIA_WRITE(V327_HI_INVTCOLOR, 0X00FFFFFF);
-
-	/* set 0 as transparent color key */
-	VIA_WRITE(HI_TRANSPARENT_COLOR, 0);
-	VIA_WRITE(HI_INVTCOLOR, 0X00FFFFFF);
-	VIA_WRITE(ALPHA_V3_PREFIFO_CONTROL, 0xE0000);
-	VIA_WRITE(ALPHA_V3_FIFO_CONTROL, 0xE0F0000);
-
-	/* Turn both cursors off. */
-	VIA_WRITE(PRIM_HI_CTRL, VIA_READ(PRIM_HI_CTRL) & 0xFFFFFFFA);
-	VIA_WRITE(HI_CONTROL, VIA_READ(HI_CONTROL) & 0xFFFFFFFA);
-}
-
-static void
 via_init_crtc_regs(struct drm_device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
@@ -280,8 +260,6 @@ via_modeset_init(struct drm_device *dev)
 		DRM_ERROR("Failed to initialize I2C bus!\n");
 		goto exit;
 	}
-
-	via_hwcursor_init(dev_private);
 
 	for (i = 0; i < OPENCHROME_MAX_CRTC; i++) {
 		ret = openchrome_crtc_init(dev_private, i);
