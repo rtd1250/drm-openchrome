@@ -1048,8 +1048,8 @@ via_tmds_set_display_source(void __iomem *regs, u8 displaySource)
 }
 
 
-extern void load_register_tables(void __iomem *regbase, struct vga_registers *regs);
-extern void load_value_to_registers(void __iomem *regbase, struct vga_registers *regs,
+void load_register_tables(void __iomem *regbase, struct vga_registers *regs);
+void load_value_to_registers(void __iomem *regbase, struct vga_registers *regs,
 					unsigned int value);
 
 #endif /* __CRTC_HW_H__ */

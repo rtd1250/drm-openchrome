@@ -369,10 +369,8 @@ extern int openchrome_driver_num_ioctls;
 extern struct ttm_device_funcs openchrome_bo_driver;
 
 int openchrome_vram_detect(struct openchrome_drm_private *dev_private);
-extern int openchrome_vram_init(
-			struct openchrome_drm_private *dev_private);
-extern void openchrome_vram_fini(
-			struct openchrome_drm_private *dev_private);
+int openchrome_vram_init(struct openchrome_drm_private *dev_private);
+void openchrome_vram_fini(struct openchrome_drm_private *dev_private);
 int openchrome_mmio_init(struct openchrome_drm_private *dev_private);
 void openchrome_mmio_fini(struct openchrome_drm_private *dev_private);
 void openchrome_graphics_unlock(
@@ -422,60 +420,60 @@ extern const uint32_t openchrome_cursor_formats[];
 extern const unsigned int openchrome_cursor_formats_size;
 
 /* display */
-extern int via_modeset_init(struct drm_device *dev);
-extern void via_modeset_fini(struct drm_device *dev);
+int via_modeset_init(struct drm_device *dev);
+void via_modeset_fini(struct drm_device *dev);
 
 /* i2c */
-extern struct i2c_adapter *via_find_ddc_bus(int port);
-extern void via_i2c_readbytes(struct i2c_adapter *adapter,
+struct i2c_adapter *via_find_ddc_bus(int port);
+void via_i2c_readbytes(struct i2c_adapter *adapter,
 				u8 slave_addr, char offset,
 				u8 *buffer, unsigned int size);
-extern void via_i2c_writebytes(struct i2c_adapter *adapter,
+void via_i2c_writebytes(struct i2c_adapter *adapter,
 				u8 slave_addr, char offset,
 				u8 *data, unsigned int size);
-extern int via_i2c_init(struct drm_device *dev);
-extern void via_i2c_exit(void);
+int via_i2c_init(struct drm_device *dev);
+void via_i2c_exit(void);
 
 /* clock */
-extern u32 via_get_clk_value(struct drm_device *dev, u32 clk);
-extern void via_set_vclock(struct drm_crtc *crtc, u32 clk);
+u32 via_get_clk_value(struct drm_device *dev, u32 clk);
+void via_set_vclock(struct drm_crtc *crtc, u32 clk);
 
 /* framebuffers */
 void openchrome_mode_config_init(
 			struct openchrome_drm_private *dev_private);
-extern int openchrome_fb_init(struct drm_device *dev);
-extern void openchrome_fb_fini(struct drm_device *dev);
+int openchrome_fb_init(struct drm_device *dev);
+void openchrome_fb_fini(struct drm_device *dev);
 
 /* crtc */
-extern void via_load_crtc_pixel_timing(struct drm_crtc *crtc,
+void via_load_crtc_pixel_timing(struct drm_crtc *crtc,
 					struct drm_display_mode *mode);
 int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
 				uint32_t index);
 
 /* encoders */
-extern void via_set_sync_polarity(struct drm_encoder *encoder,
+void via_set_sync_polarity(struct drm_encoder *encoder,
 				struct drm_display_mode *mode,
 				struct drm_display_mode *adjusted_mode);
-extern void via_encoder_cleanup(struct drm_encoder *encoder);
+void via_encoder_cleanup(struct drm_encoder *encoder);
 
 /* connectors */
-extern int via_connector_mode_valid(struct drm_connector *connector,
+int via_connector_mode_valid(struct drm_connector *connector,
 					struct drm_display_mode *mode);
-extern void via_connector_destroy(struct drm_connector *connector);
+void via_connector_destroy(struct drm_connector *connector);
 
-extern void via_analog_probe(struct drm_device *dev);
-extern bool openchrome_vt1632_probe(struct i2c_adapter *i2c_bus);
-extern bool openchrome_sii164_probe(struct i2c_adapter *i2c_bus);
-extern void openchrome_ext_dvi_probe(struct drm_device *dev);
-extern void via_tmds_probe(struct drm_device *dev);
-extern void via_fp_probe(struct drm_device *dev);
+void via_analog_probe(struct drm_device *dev);
+bool openchrome_vt1632_probe(struct i2c_adapter *i2c_bus);
+bool openchrome_sii164_probe(struct i2c_adapter *i2c_bus);
+void openchrome_ext_dvi_probe(struct drm_device *dev);
+void via_tmds_probe(struct drm_device *dev);
+void via_fp_probe(struct drm_device *dev);
 
-extern void via_hdmi_init(struct drm_device *dev, u32 di_port);
-extern void via_analog_init(struct drm_device *dev);
-extern void openchrome_vt1632_init(struct drm_device *dev);
-extern void openchrome_sii164_init(struct drm_device *dev);
-extern void openchrome_ext_dvi_init(struct drm_device *dev);
-extern void via_tmds_init(struct drm_device *dev);
-extern void via_fp_init(struct drm_device *dev);
+void via_hdmi_init(struct drm_device *dev, u32 di_port);
+void via_analog_init(struct drm_device *dev);
+void openchrome_vt1632_init(struct drm_device *dev);
+void openchrome_sii164_init(struct drm_device *dev);
+void openchrome_ext_dvi_init(struct drm_device *dev);
+void via_tmds_init(struct drm_device *dev);
+void via_fp_init(struct drm_device *dev);
 
 #endif /* _OPENCHROME_DRV_H */
