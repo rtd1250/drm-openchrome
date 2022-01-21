@@ -122,45 +122,6 @@ via_init_td_timing_regs(struct drm_device *dev)
 }
 
 static void
-via_init_crtc_regs(struct drm_device *dev)
-{
-	struct pci_dev *pdev = to_pci_dev(dev->dev);
-	struct openchrome_drm_private *dev_private = dev->dev_private;
-
-	via_unlock_crtc(VGABASE, pdev->device);
-
-	/* always set to 1 */
-	svga_wcrt_mask(VGABASE, 0x03, BIT(7), BIT(7));
-	/* bits 0 to 7 of line compare */
-	vga_wcrt(VGABASE, 0x18, 0xFF);
-	/* bit 8 of line compare */
-	svga_wcrt_mask(VGABASE, 0x07, BIT(4), BIT(4));
-	/* bit 9 of line compare */
-	svga_wcrt_mask(VGABASE, 0x09, BIT(6), BIT(6));
-	/* bit 10 of line compare */
-	svga_wcrt_mask(VGABASE, 0x35, BIT(4), BIT(4));
-	/* adjust hsync by one character - value 011 */
-	svga_wcrt_mask(VGABASE, 0x33, 0x06, 0x07);
-	/* extend mode always set to e3h */
-	vga_wcrt(VGABASE, 0x17, 0xE3);
-	/* extend mode always set to 0h */
-	vga_wcrt(VGABASE, 0x08, 0x00);
-	/* extend mode always set to 0h */
-	vga_wcrt(VGABASE, 0x14, 0x00);
-
-	/* If K8M800, enable Prefetch Mode. */
-	if ((pdev->device == PCI_DEVICE_ID_VIA_K8M800) ||
-	    (pdev->device == PCI_DEVICE_ID_VIA_K8M890))
-		svga_wcrt_mask(VGABASE, 0x33, 0x00, BIT(3));
-
-	if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) &&
-	    (dev_private->revision == CLE266_REVISION_AX))
-		svga_wseq_mask(VGABASE, 0x1A, BIT(1), BIT(1));
-
-	via_lock_crtc(VGABASE);
-}
-
-static void
 via_display_init(struct drm_device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
@@ -182,9 +143,6 @@ via_display_init(struct drm_device *dev)
 		dev_private->spread_spectrum = true;
 	} else
 		dev_private->spread_spectrum = false;
-
-	/* Load fixed CRTC timing registers */
-	via_init_crtc_regs(dev);
 
 	/* Init TD timing register (power sequence) */
 	via_init_td_timing_regs(dev);
