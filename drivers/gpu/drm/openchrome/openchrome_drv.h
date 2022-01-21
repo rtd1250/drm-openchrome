@@ -431,6 +431,7 @@ void via_i2c_readbytes(struct i2c_adapter *adapter,
 void via_i2c_writebytes(struct i2c_adapter *adapter,
 				u8 slave_addr, char offset,
 				u8 *data, unsigned int size);
+void via_i2c_reg_init(struct openchrome_drm_private *dev_private);
 int via_i2c_init(struct drm_device *dev);
 void via_i2c_exit(void);
 

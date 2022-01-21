@@ -180,6 +180,16 @@ via_i2c_writebytes(struct i2c_adapter *adapter,
 	kfree(out_buf);
 }
 
+void via_i2c_reg_init(struct openchrome_drm_private *dev_private)
+{
+	svga_wseq_mask(VGABASE, 0x31, 0x30, 0x30);
+	svga_wseq_mask(VGABASE, 0x26, 0x30, 0x30);
+	vga_wseq(VGABASE, 0x2C, 0xc2);
+	vga_wseq(VGABASE, 0x3D, 0xc0);
+	svga_wseq_mask(VGABASE, 0x2C, 0x30, 0x30);
+	svga_wseq_mask(VGABASE, 0x3D, 0x30, 0x30);
+}
+
 int via_i2c_init(struct drm_device *dev)
 {
 	int types[] = { SERIAL, SERIAL, GPIO, GPIO, GPIO };
