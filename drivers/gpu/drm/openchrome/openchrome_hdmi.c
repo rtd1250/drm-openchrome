@@ -381,8 +381,6 @@ via_hdmi_enc_mode_set(struct drm_encoder *encoder,
 			break;
 		}
 	}
-
-	via_set_sync_polarity(encoder, mode, adjusted_mode);
 }
 
 static const struct drm_encoder_helper_funcs via_hdmi_enc_helper_funcs = {

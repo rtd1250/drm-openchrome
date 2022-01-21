@@ -452,9 +452,6 @@ int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
 				uint32_t index);
 
 /* encoders */
-void via_set_sync_polarity(struct drm_encoder *encoder,
-				struct drm_display_mode *mode,
-				struct drm_display_mode *adjusted_mode);
 void via_encoder_cleanup(struct drm_encoder *encoder);
 
 /* connectors */
