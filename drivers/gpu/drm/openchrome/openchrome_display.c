@@ -121,37 +121,6 @@ via_init_td_timing_regs(struct drm_device *dev)
 	}
 }
 
-static void
-via_display_init(struct drm_device *dev)
-{
-	struct pci_dev *pdev = to_pci_dev(dev->dev);
-	struct openchrome_drm_private *dev_private = dev->dev_private;
-	u8 index = 0x3D, value;
-
-	/* Check if spread spectrum is enabled */
-	if (pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA)
-		index = 0x2C;
-
-	value = vga_rseq(VGABASE, 0x1E);
-	if (value & BIT(3)) {
-		value = vga_rseq(VGABASE, index);
-		vga_wseq(VGABASE, index, value & 0xFE);
-
-		value = vga_rseq(VGABASE, 0x1E);
-		vga_wseq(VGABASE, 0x1E, value & 0xF7);
-
-		dev_private->spread_spectrum = true;
-	} else
-		dev_private->spread_spectrum = false;
-
-	/* Init TD timing register (power sequence) */
-	via_init_td_timing_regs(dev);
-
-	/* I/O address bit to be 1. Enable access */
-	/* to frame buffer at A0000-BFFFFh */
-	svga_wmisc_mask(VGABASE, BIT(0), BIT(0));
-}
-
 int
 via_modeset_init(struct drm_device *dev)
 {
@@ -166,7 +135,8 @@ via_modeset_init(struct drm_device *dev)
 	dev_private->number_fp = 0;
 	dev_private->number_dvi = 0;
 
-	via_display_init(dev);
+	/* Init TD timing register (power sequence) */
+	via_init_td_timing_regs(dev);
 
 	via_i2c_reg_init(dev_private);
 	ret = via_i2c_init(dev);
