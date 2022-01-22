@@ -31,9 +31,11 @@
 
 #include <drm/drm_aperture.h>
 #include <drm/drm_drv.h>
+#include <drm/drm_fb_helper.h>
 #include <drm/drm_file.h>
 #include <drm/drm_gem.h>
 #include <drm/drm_pciids.h>
+#include <drm/drm_prime.h>
 
 #include <drm/ttm/ttm_bo_api.h>
 
@@ -171,6 +173,7 @@ static struct drm_driver openchrome_driver = {
 	.open = openchrome_driver_open,
 	.postclose = openchrome_driver_postclose,
 	.lastclose = openchrome_driver_lastclose,
+	.gem_prime_mmap = drm_gem_prime_mmap,
 	.dumb_create = openchrome_driver_dumb_create,
 	.dumb_map_offset = openchrome_driver_dumb_map_offset,
 	.ioctls = openchrome_driver_ioctls,
@@ -223,6 +226,7 @@ static int openchrome_pci_probe(struct pci_dev *pdev,
 		goto err_drm_dev_put;
 	}
 
+	drm_fbdev_generic_setup(dev, 32);
 	goto exit;
 err_drm_dev_put:
 	drm_dev_put(dev);

@@ -442,8 +442,6 @@ void via_set_vclock(struct drm_crtc *crtc, u32 clk);
 /* framebuffers */
 void openchrome_mode_config_init(
 			struct openchrome_drm_private *dev_private);
-int openchrome_fb_init(struct drm_device *dev);
-void openchrome_fb_fini(struct drm_device *dev);
 
 /* crtc */
 void via_load_crtc_pixel_timing(struct drm_crtc *crtc,

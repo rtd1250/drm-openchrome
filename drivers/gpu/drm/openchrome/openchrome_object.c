@@ -70,6 +70,8 @@ static const struct vm_operations_struct openchrome_ttm_bo_vm_ops = {
 
 static const struct drm_gem_object_funcs openchrome_gem_object_funcs = {
 	.free = openchrome_gem_free,
+	.vmap = drm_gem_ttm_vmap,
+	.vunmap = drm_gem_ttm_vunmap,
 	.mmap = drm_gem_ttm_mmap,
 	.vm_ops = &openchrome_ttm_bo_vm_ops,
 };
