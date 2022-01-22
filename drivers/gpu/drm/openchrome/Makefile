@@ -11,7 +11,6 @@ openchrome-y := openchrome_analog.o \
 		openchrome_display.o \
 		openchrome_drv.o \
 		openchrome_encoder.o \
-		openchrome_fb.o \
 		openchrome_fp.o \
 		openchrome_hdmi.o \
 		openchrome_i2c.o \
