@@ -28,11 +28,6 @@
 #include <linux/module.h>
 #include <linux/console.h>
 
-#include <drm/drm_atomic_helper.h>
-#include <drm/drm_drv.h>
-#include <drm/drm_gem_framebuffer_helper.h>
-#include <drm/drm_mode_config.h>
-
 #include "openchrome_drv.h"
 
 
@@ -1263,40 +1258,6 @@ void openchrome_device_fini(struct openchrome_drm_private *dev_private)
 
 	openchrome_mmio_fini(dev_private);
 	openchrome_vram_fini(dev_private);
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-}
-
-static const struct
-drm_mode_config_funcs openchrome_drm_mode_config_funcs = {
-	.fb_create		= drm_gem_fb_create,
-	.atomic_check		= drm_atomic_helper_check,
-	.atomic_commit		= drm_atomic_helper_commit,
-};
-
-void openchrome_mode_config_init(
-			struct openchrome_drm_private *dev_private)
-{
-	struct drm_device *dev = dev_private->dev;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	drm_mode_config_init(dev);
-
-	dev->mode_config.min_width = 0;
-	dev->mode_config.min_height = 0;
-	dev->mode_config.max_width = 2044;
-	dev->mode_config.max_height = 4096;
-
-	dev->mode_config.funcs = &openchrome_drm_mode_config_funcs;
-
-	dev->mode_config.fb_base = dev_private->vram_start;
-
-	dev->mode_config.preferred_depth = 24;
-	dev->mode_config.prefer_shadow_fbdev = true;
-
-	dev->mode_config.cursor_width =
-	dev->mode_config.cursor_height = OPENCHROME_CURSOR_SIZE;
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
