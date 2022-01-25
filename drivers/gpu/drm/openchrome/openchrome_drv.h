@@ -378,6 +378,8 @@ void openchrome_graphics_unlock(
 void chip_revision_info(struct openchrome_drm_private *dev_private);
 int openchrome_device_init(struct openchrome_drm_private *dev_private);
 void openchrome_device_fini(struct openchrome_drm_private *dev_private);
+void openchrome_mode_config_init(
+			struct openchrome_drm_private *dev_private);
 int openchrome_drm_init(struct drm_device *dev);
 void openchrome_drm_fini(struct drm_device *dev);
 
@@ -438,10 +440,6 @@ void via_i2c_exit(void);
 /* clock */
 u32 via_get_clk_value(struct drm_device *dev, u32 clk);
 void via_set_vclock(struct drm_crtc *crtc, u32 clk);
-
-/* framebuffers */
-void openchrome_mode_config_init(
-			struct openchrome_drm_private *dev_private);
 
 /* crtc */
 void via_load_crtc_pixel_timing(struct drm_crtc *crtc,
