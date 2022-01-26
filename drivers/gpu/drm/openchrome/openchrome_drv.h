@@ -52,8 +52,6 @@
 #include <drm/ttm/ttm_bo_driver.h>
 #include <drm/ttm/ttm_placement.h>
 
-#include <drm/openchrome_drm.h>
-
 #include "openchrome_crtc_hw.h"
 #include "openchrome_regs.h"
 

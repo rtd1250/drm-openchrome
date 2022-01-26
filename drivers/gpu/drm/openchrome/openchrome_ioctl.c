@@ -33,6 +33,8 @@
 
 #include <drm/ttm/ttm_bo_api.h>
 
+#include <uapi/drm/openchrome_drm.h>
+
 #include "openchrome_drv.h"
 
 
