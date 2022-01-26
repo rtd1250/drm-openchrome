@@ -27,8 +27,6 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include <linux/module.h>
-
 #include <drm/drm_aperture.h>
 #include <drm/drm_drv.h>
 #include <drm/drm_fb_helper.h>
