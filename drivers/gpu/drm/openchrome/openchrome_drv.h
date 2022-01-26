@@ -42,7 +42,6 @@
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_encoder.h>
 #include <drm/drm_fb_helper.h>
-#include <drm/drm_ioctl.h>
 #include <drm/drm_plane.h>
 
 #include <drm/ttm/ttm_bo_api.h>
@@ -358,7 +357,6 @@ disable_second_display_channel(void __iomem *regs)
 }
 
 
-extern const struct drm_ioctl_desc openchrome_driver_ioctls[];
 extern int openchrome_driver_num_ioctls;
 
 extern struct ttm_device_funcs openchrome_bo_driver;

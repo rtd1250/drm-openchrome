@@ -30,8 +30,6 @@
 #include <linux/pci.h>
 #include <linux/pci_ids.h>
 
-#include <drm/drm_ioctl.h>
-
 #include "openchrome_drv.h"
 
 

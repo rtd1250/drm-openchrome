@@ -34,6 +34,7 @@
 #include <drm/drm_fb_helper.h>
 #include <drm/drm_file.h>
 #include <drm/drm_gem.h>
+#include <drm/drm_ioctl.h>
 #include <drm/drm_pciids.h>
 #include <drm/drm_prime.h>
 
@@ -41,6 +42,8 @@
 
 #include "openchrome_drv.h"
 
+
+extern const struct drm_ioctl_desc openchrome_driver_ioctls[];
 
 /*
  * For now, this device driver will be disabled, unless the

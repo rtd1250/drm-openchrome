@@ -40,7 +40,6 @@
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_fourcc.h>
 #include <drm/drm_gem.h>
-#include <drm/drm_ioctl.h>
 #include <drm/drm_mode.h>
 #include <drm/drm_modeset_helper_vtables.h>
 #include <drm/drm_plane.h>
