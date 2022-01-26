@@ -26,7 +26,6 @@
  */
 
 #include <linux/module.h>
-#include <linux/console.h>
 
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_drv.h>
