@@ -30,6 +30,7 @@
  * James Simmons <jsimmons@infradead.org>
  */
 
+#include <linux/pci.h>
 #include <linux/pci_ids.h>
 
 #include <drm/drm_atomic.h>

@@ -34,7 +34,6 @@
 #define _OPENCHROME_DRV_H
 
 
-#include <linux/pci.h>
 #include <linux/pci_ids.h>
 
 #include <video/vga.h>

@@ -30,6 +30,7 @@
 
 
 #include <linux/console.h>
+#include <linux/pci.h>
 
 #include "openchrome_drv.h"
 

@@ -25,6 +25,7 @@
  */
 
 #include <linux/delay.h>
+#include <linux/pci.h>
 
 #include <asm/olpc.h>
 

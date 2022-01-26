@@ -25,6 +25,8 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#include <linux/pci.h>
+
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_gem_framebuffer_helper.h>
 #include <drm/drm_mode_config.h>
