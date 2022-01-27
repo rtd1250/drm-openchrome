@@ -344,12 +344,6 @@ via_unlock_crtc(void __iomem *regs, int pci_id)
 	svga_wcrt_mask(regs, 0x47, 0, mask);
 }
 
-static inline void
-disable_second_display_channel(void __iomem *regs)
-{
-	svga_wcrt_mask(regs, 0x6A, 0x00, BIT(7));
-}
-
 
 extern int openchrome_driver_num_ioctls;
 
