@@ -345,12 +345,6 @@ via_unlock_crtc(void __iomem *regs, int pci_id)
 }
 
 static inline void
-enable_second_display_channel(void __iomem *regs)
-{
-	svga_wcrt_mask(regs, 0x6A, BIT(7), BIT(7));
-}
-
-static inline void
 disable_second_display_channel(void __iomem *regs)
 {
 	svga_wcrt_mask(regs, 0x6A, 0x00, BIT(7));

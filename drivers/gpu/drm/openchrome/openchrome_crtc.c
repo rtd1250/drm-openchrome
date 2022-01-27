@@ -261,7 +261,8 @@ static int openchrome_gamma_set(struct drm_crtc *crtc,
 			 * Enable second display channel just in case.
 			 */
 			if (!(vga_rcrt(VGABASE, 0x6A) & BIT(7)))
-				enable_second_display_channel(VGABASE);
+				svga_wcrt_mask(VGABASE, 0x6A,
+						BIT(7), BIT(7));
 
 			/* Fill in IGA2's LUT */
 			for (i = 0; i < end; i++) {
@@ -312,7 +313,8 @@ static int openchrome_gamma_set(struct drm_crtc *crtc,
 			 * again.
 			 */
 			if (!(vga_rcrt(VGABASE, 0x6A) & BIT(7)))
-				enable_second_display_channel(VGABASE);
+				svga_wcrt_mask(VGABASE, 0x6A,
+						BIT(7), BIT(7));
 
 			/* Fill in IGA2's gamma */
 			for (i = 0; i < end; i++) {
@@ -1797,7 +1799,7 @@ void openchrome_mode_set_nofb(struct drm_crtc *crtc)
 		/* Set palette LUT to 8-bit mode. */
 		via_iga2_set_palette_lut_resolution(VGABASE, true);
 
-		enable_second_display_channel(VGABASE);
+		svga_wcrt_mask(VGABASE, 0x6A, BIT(7), BIT(7));
 	}
 
 exit:
