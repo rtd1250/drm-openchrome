@@ -205,7 +205,10 @@ static int openchrome_gamma_set(struct drm_crtc *crtc,
 	}
 
 	if (!iga->index) {
-		if (crtc->primary->fb->format->cpp[0] * 8 == 8) {
+		/*
+		 * Is it an 8-bit color mode?
+		 */
+		if (crtc->primary->fb->format->cpp[0] == 1) {
 			/* Prepare for initialize IGA1's LUT: */
 			vga_wseq(VGABASE, 0x1A, sr1a & 0xFE);
 			/* Change to Primary Display's LUT */
@@ -249,7 +252,10 @@ static int openchrome_gamma_set(struct drm_crtc *crtc,
 			vga_wseq(VGABASE, 0x1A, sr1a);
 		}
 	} else {
-		if (crtc->primary->fb->format->cpp[0] * 8 == 8) {
+		/*
+		 * Is it an 8-bit color mode?
+		 */
+		if (crtc->primary->fb->format->cpp[0] == 1) {
 			/* Change Shadow to Secondary Display's LUT */
 			svga_wseq_mask(VGABASE, 0x1A, BIT(0), BIT(0));
 			/* Enable Secondary Display Engine */
@@ -1913,7 +1919,7 @@ void openchrome_primary_atomic_update(struct drm_plane *plane,
 	struct drm_crtc *crtc = new_state->crtc;
 	struct drm_framebuffer *fb = new_state->fb;
 	uint32_t pitch = (new_state->crtc_y * fb->pitches[0]) +
-			(new_state->crtc_x * ((fb->format->cpp[0] * 8) >> 3));
+			(new_state->crtc_x * fb->format->cpp[0]);
 	uint32_t addr;
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct openchrome_drm_private *dev_private =
@@ -1950,7 +1956,8 @@ void openchrome_primary_atomic_update(struct drm_plane *plane,
 		vga_wcrt(VGABASE, 0x34, (addr >> 16) & 0xFF);
 
 		/* Load fetch count registers */
-		pitch = ALIGN(crtc->mode.hdisplay * (fb->format->cpp[0] * 8) >> 3, 16);
+		pitch = ALIGN(crtc->mode.hdisplay * fb->format->cpp[0],
+				16);
 		load_value_to_registers(VGABASE, &iga->fetch, pitch >> 4);
 
 		/* Set the primary pitch */
