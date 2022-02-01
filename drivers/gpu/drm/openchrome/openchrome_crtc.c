@@ -192,12 +192,10 @@ static int openchrome_gamma_set(struct drm_crtc *crtc,
 	struct via_crtc *iga = container_of(crtc,
 						struct via_crtc, base);
 	int end = (size > 256) ? 256 : size, i;
-	u8 val = 0, sr1a;
+	u8 val = 0;
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	sr1a = vga_rseq(VGABASE, 0x1A);
 
 	if ((!crtc->enabled) || (!crtc->primary->fb)) {
 		ret = -EINVAL;
@@ -206,11 +204,14 @@ static int openchrome_gamma_set(struct drm_crtc *crtc,
 
 	if (!iga->index) {
 		/*
+		 * Access IGA1's pallette LUT.
+		 */
+		svga_wseq_mask(VGABASE, 0x1A, 0x00, BIT(0));
+
+		/*
 		 * Is it an 8-bit color mode?
 		 */
 		if (crtc->primary->fb->format->cpp[0] == 1) {
-			/* Prepare for initialize IGA1's LUT: */
-			vga_wseq(VGABASE, 0x1A, sr1a & 0xFE);
 			/* Change to Primary Display's LUT */
 			val = vga_rseq(VGABASE, 0x1B);
 			vga_wseq(VGABASE, 0x1B, val);
@@ -233,12 +234,9 @@ static int openchrome_gamma_set(struct drm_crtc *crtc,
 			 * previously
 			 */
 			svga_wcrt_mask(VGABASE, 0x33, 0x00, BIT(7));
-			/* access Primary Display's LUT */
-			vga_wseq(VGABASE, 0x1A, sr1a & 0xFE);
 		} else {
 			/* Enable Gamma */
 			svga_wcrt_mask(VGABASE, 0x33, BIT(7), BIT(7));
-			svga_wseq_mask(VGABASE, 0x1A, 0x00, BIT(0));
 
 			/* Fill in IGA1's gamma */
 			for (i = 0; i < end; i++) {
@@ -249,15 +247,17 @@ static int openchrome_gamma_set(struct drm_crtc *crtc,
 				vga_w(VGABASE, VGA_PEL_D, g[i] >> 8);
 				vga_w(VGABASE, VGA_PEL_D, b[i] >> 8);
 			}
-			vga_wseq(VGABASE, 0x1A, sr1a);
 		}
 	} else {
+		/*
+		 * Access IGA2's pallette LUT.
+		 */
+		svga_wseq_mask(VGABASE, 0x1A, BIT(0), BIT(0));
+
 		/*
 		 * Is it an 8-bit color mode?
 		 */
 		if (crtc->primary->fb->format->cpp[0] == 1) {
-			/* Change Shadow to Secondary Display's LUT */
-			svga_wseq_mask(VGABASE, 0x1A, BIT(0), BIT(0));
 			/* Enable Secondary Display Engine */
 			svga_wseq_mask(VGABASE, 0x1B, BIT(7), BIT(7));
 			/* Second Display Color Depth, 8bpp */
@@ -284,13 +284,9 @@ static int openchrome_gamma_set(struct drm_crtc *crtc,
 			 * previously
 			 */
 			svga_wcrt_mask(VGABASE, 0x6A, 0x00, BIT(1));
-
-			/* access Primary Display's LUT */
-			vga_wseq(VGABASE, 0x1A, sr1a & 0xFE);
 		} else {
 			u8 reg_bits = BIT(1);
 
-			svga_wseq_mask(VGABASE, 0x1A, BIT(0), BIT(0));
 			/* Bit 1 enables gamma */
 			svga_wcrt_mask(VGABASE, 0x6A, BIT(1), BIT(1));
 
@@ -331,8 +327,6 @@ static int openchrome_gamma_set(struct drm_crtc *crtc,
 				vga_w(VGABASE, VGA_PEL_D, g[i] >> 8);
 				vga_w(VGABASE, VGA_PEL_D, b[i] >> 8);
 			}
-			/* access Primary Display's LUT */
-			vga_wseq(VGABASE, 0x1A, sr1a);
 		}
 	}
 
