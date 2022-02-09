@@ -2075,8 +2075,6 @@ static void openchrome_crtc_param_init(
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_crtc *iga = container_of(crtc,
 						struct via_crtc, base);
-	u16 *gamma;
-	uint32_t i;
 
 	if (iga->index) {
 		iga->timings.htotal.count = ARRAY_SIZE(iga2_hor_total);
@@ -2227,15 +2225,25 @@ static void openchrome_crtc_param_init(
 		iga->offset.count = ARRAY_SIZE(iga1_offset);
 		iga->offset.regs = iga1_offset;
 	}
+}
+
+static void openchrome_gamma_init(struct drm_crtc *crtc)
+{
+	u16 *gamma;
+	uint32_t i;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	drm_mode_crtc_set_gamma_size(crtc, 256);
-	gamma = crtc->gamma_store;
 
+	gamma = crtc->gamma_store;
 	for (i = 0; i < 256; i++) {
 		gamma[i] = i << 8 | i;
 		gamma[i + 256] = i << 8 | i;
 		gamma[i + 512] = i << 8 | i;
 	}
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static const uint32_t openchrome_primary_formats[] = {
@@ -2319,6 +2327,7 @@ int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
 	iga->index = index;
 
 	openchrome_crtc_param_init(dev_private, &iga->base, index);
+	openchrome_gamma_init(&iga->base);
 	goto exit;
 free_crtc:
 	kfree(iga);
