@@ -2227,14 +2227,19 @@ static void openchrome_crtc_param_init(
 	}
 }
 
-static void openchrome_gamma_init(struct drm_crtc *crtc)
+static int openchrome_gamma_init(struct drm_crtc *crtc)
 {
 	u16 *gamma;
 	uint32_t i;
+	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	drm_mode_crtc_set_gamma_size(crtc, 256);
+	ret = drm_mode_crtc_set_gamma_size(crtc, 256);
+	if (ret) {
+		DRM_ERROR("Failed to set gamma size!\n");
+		goto exit;
+	}
 
 	gamma = crtc->gamma_store;
 	for (i = 0; i < 256; i++) {
@@ -2243,7 +2248,9 @@ static void openchrome_gamma_init(struct drm_crtc *crtc)
 		gamma[i + 512] = i << 8 | i;
 	}
 
+exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
 }
 
 static const uint32_t openchrome_primary_formats[] = {
@@ -2327,7 +2334,11 @@ int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
 	iga->index = index;
 
 	openchrome_crtc_param_init(dev_private, &iga->base, index);
-	openchrome_gamma_init(&iga->base);
+	ret = openchrome_gamma_init(&iga->base);
+	if (ret) {
+		goto free_crtc;
+	}
+
 	goto exit;
 free_crtc:
 	kfree(iga);
