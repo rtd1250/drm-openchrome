@@ -1924,14 +1924,6 @@ void openchrome_primary_atomic_update(struct drm_plane *plane,
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if ((fb->format->depth != 8) && (fb->format->depth != 16) &&
-		(fb->format->depth != 24)) {
-		DRM_ERROR("Unsupported IGA%s Color Depth: %d bit\n",
-					(!iga->index) ? "1" : "2",
-					fb->format->depth);
-		goto exit;
-	}
-
 	gem = fb->obj[0];
 	ttm_bo = container_of(gem, struct ttm_buffer_object, base);
 	bo = container_of(ttm_bo, struct openchrome_bo, ttm_bo);
@@ -1983,7 +1975,6 @@ void openchrome_primary_atomic_update(struct drm_plane *plane,
 		load_value_to_registers(VGABASE, &iga->offset, pitch >> 3);
 	}
 
-exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
