@@ -140,7 +140,7 @@ static void via_fp_castle_rock_soft_power_seq(
 			struct openchrome_drm_private *dev_private,
 			bool power_state)
 {
-	DRM_DEBUG_KMS("Entered via_fp_castle_rock_soft_power_seq.\n");
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	if (power_state) {
 		/* Wait for 25 ms. */
@@ -186,14 +186,14 @@ static void via_fp_castle_rock_soft_power_seq(
 		via_fp_set_primary_soft_vdd(VGABASE, false);
 	}
 
-	DRM_DEBUG_KMS("Exiting via_fp_castle_rock_soft_power_seq.\n");
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static void via_fp_primary_soft_power_seq(
 			struct openchrome_drm_private *dev_private,
 			bool power_state)
 {
-	DRM_DEBUG_KMS("Entered via_fp_primary_soft_power_seq.\n");
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	/* Turn off FP hardware power sequence. */
 	via_fp_set_primary_hard_power(VGABASE, false);
@@ -254,14 +254,14 @@ static void via_fp_primary_soft_power_seq(
 		via_fp_set_primary_direct_display_period(VGABASE, false);
 	}
 
-	DRM_DEBUG_KMS("Exiting via_fp_primary_soft_power_seq.\n");
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static void via_fp_secondary_soft_power_seq(
 			struct openchrome_drm_private *dev_private,
 			bool power_state)
 {
-	DRM_DEBUG_KMS("Entered via_fp_secondary_soft_power_seq.\n");
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	/* Turn off FP hardware power sequence. */
 	via_fp_set_secondary_hard_power(VGABASE, false);
@@ -322,14 +322,14 @@ static void via_fp_secondary_soft_power_seq(
 		via_fp_set_secondary_direct_display_period(VGABASE, false);
 	}
 
-	DRM_DEBUG_KMS("Exiting via_fp_secondary_soft_power_seq.\n");
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static void via_fp_primary_hard_power_seq(
 			struct openchrome_drm_private *dev_private,
 			bool power_state)
 {
-	DRM_DEBUG_KMS("Entered via_fp_primary_hard_power_seq.\n");
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	/* Use hardware FP power sequence control. */
 	via_fp_set_primary_power_seq_type(VGABASE, true);
@@ -354,7 +354,7 @@ static void via_fp_primary_hard_power_seq(
 		via_fp_set_primary_direct_display_period(VGABASE, false);
 	}
 
-	DRM_DEBUG_KMS("Exiting via_fp_primary_hard_power_seq.\n");
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static void via_fp_power(
@@ -362,7 +362,7 @@ static void via_fp_power(
 			unsigned short device,
 			u32 di_port, bool power_state)
 {
-	DRM_DEBUG_KMS("Entered via_fp_power.\n");
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	switch (device) {
 	case PCI_DEVICE_ID_VIA_CLE266:
@@ -406,7 +406,7 @@ static void via_fp_power(
 		break;
 	}
 
-	DRM_DEBUG_KMS("Exiting via_fp_power.\n");
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 /*
@@ -544,7 +544,7 @@ static void via_fp_display_source(
 {
 	u8 display_source = index & 0x01;
 
-	DRM_DEBUG_KMS("Entered via_fp_display_source.\n");
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	switch(di_port) {
 	case VIA_DI_PORT_DVP0:
@@ -584,7 +584,7 @@ static void via_fp_display_source(
 	DRM_DEBUG_KMS("FP Display Source: IGA%d\n",
 			display_source + 1);
 
-	DRM_DEBUG_KMS("Exiting via_fp_display_source.\n");
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static void via_fp_dpms(struct drm_encoder *encoder, int mode)

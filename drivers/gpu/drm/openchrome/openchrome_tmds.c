@@ -156,7 +156,7 @@ static void via_tmds_sync_polarity(
 {
 	u8 syncPolarity = 0x00;
 
-	DRM_DEBUG_KMS("Entered via_tmds_sync_polarity.\n");
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	if (flags & DRM_MODE_FLAG_NHSYNC) {
 		syncPolarity |= BIT(0);
@@ -172,7 +172,7 @@ static void via_tmds_sync_polarity(
 	DRM_INFO("TMDS (DVI) Vertical Sync Polarity: %s\n",
 		(syncPolarity & BIT(1)) ? "-" : "+");
 
-	DRM_DEBUG_KMS("Exiting via_tmds_sync_polarity.\n");
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 /*
@@ -184,13 +184,13 @@ static void via_tmds_display_source(
 {
 	u8 displaySource = index;
 
-	DRM_DEBUG_KMS("Entered via_tmds_display_source.\n");
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	via_tmds_set_display_source(VGABASE, displaySource & 0x01);
 	DRM_INFO("TMDS (DVI) Display Source: IGA%d\n",
 			(displaySource & 0x01) + 1);
 
-	DRM_DEBUG_KMS("Exiting via_tmds_display_source.\n");
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 /*

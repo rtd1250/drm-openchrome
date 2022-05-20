@@ -39,13 +39,14 @@
 static void via_analog_power(struct openchrome_drm_private *dev_private,
 				bool outputState)
 {
-	DRM_DEBUG_KMS("Entered via_analog_power.\n");
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
 
 	via_analog_set_power(VGABASE, outputState);
 	DRM_INFO("Analog (VGA) Power: %s\n",
 			outputState ? "On" : "Off");
 
-	DRM_DEBUG_KMS("Exiting via_analog_power.\n");
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 /*
@@ -57,7 +58,7 @@ static void via_analog_sync_polarity(
 {
 	u8 syncPolarity = 0x00;
 
-	DRM_DEBUG_KMS("Entered via_analog_sync_polarity.\n");
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	if (flags & DRM_MODE_FLAG_NHSYNC) {
 		syncPolarity |= BIT(0);
@@ -73,7 +74,7 @@ static void via_analog_sync_polarity(
 	DRM_INFO("Analog (VGA) Vertical Sync Polarity: %s\n",
 		(syncPolarity & BIT(1)) ? "-" : "+");
 
-	DRM_DEBUG_KMS("Exiting via_analog_sync_polarity.\n");
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 /*
@@ -85,13 +86,13 @@ static void via_analog_display_source(
 {
 	u8 displaySource = index;
 
-	DRM_DEBUG_KMS("Entered via_analog_display_source.\n");
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	via_analog_set_display_source(VGABASE, displaySource & 0x01);
 	DRM_INFO("Analog (VGA) Display Source: IGA%d\n",
 			(displaySource & 0x01) + 1);
 
-	DRM_DEBUG_KMS("Exiting via_analog_display_source.\n");
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 /*
@@ -110,7 +111,7 @@ via_analog_dpms(struct drm_encoder *encoder, int mode)
 	struct openchrome_drm_private *dev_private =
 					encoder->dev->dev_private;
 
-	DRM_DEBUG_KMS("Entered via_analog_dpms.\n");
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	switch (mode) {
 	case DRM_MODE_DPMS_ON:
@@ -134,7 +135,7 @@ via_analog_dpms(struct drm_encoder *encoder, int mode)
 		break;
 	}
 
-	DRM_DEBUG_KMS("Exiting via_analog_dpms.\n");
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 /* Pass our mode to the connectors and the CRTC to give them a chance to
@@ -162,12 +163,12 @@ via_analog_mode_set(struct drm_encoder *encoder,
 					encoder->dev->dev_private;
 	struct via_crtc *iga = container_of(encoder->crtc, struct via_crtc, base);
 
-	DRM_DEBUG_KMS("Entered via_analog_mode_set.\n");
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	via_analog_sync_polarity(dev_private, adjusted_mode->flags);
 	via_analog_display_source(dev_private, iga->index);
 
-	DRM_DEBUG_KMS("Exiting via_analog_mode_set.\n");
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static void
@@ -176,14 +177,14 @@ via_analog_prepare(struct drm_encoder *encoder)
 	struct openchrome_drm_private *dev_private =
 					encoder->dev->dev_private;
 
-	DRM_DEBUG_KMS("Entered via_analog_prepare.\n");
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	if (encoder->crtc) {
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_OFF);
 		via_analog_power(dev_private, false);
 	}
 
-	DRM_DEBUG_KMS("Exiting via_analog_prepare.\n");
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static void
@@ -192,14 +193,14 @@ via_analog_commit(struct drm_encoder *encoder)
 	struct openchrome_drm_private *dev_private =
 					encoder->dev->dev_private;
 
-	DRM_DEBUG_KMS("Entered via_analog_commit.\n");
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	if (encoder->crtc) {
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_ON);
 		via_analog_power(dev_private, true);
 	}
 
-	DRM_DEBUG_KMS("Exiting via_analog_commit.\n");
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static void
@@ -208,12 +209,12 @@ via_analog_disable(struct drm_encoder *encoder)
 	struct openchrome_drm_private *dev_private =
 					encoder->dev->dev_private;
 
-	DRM_DEBUG_KMS("Entered via_analog_disable.\n");
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_OFF);
 	via_analog_power(dev_private, false);
 
-	DRM_DEBUG_KMS("Exiting via_analog_disable.\n");
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static const struct drm_encoder_helper_funcs via_dac_enc_helper_funcs = {
