@@ -223,6 +223,9 @@ static int openchrome_pci_probe(struct pci_dev *pdev,
 	pci_set_drvdata(pdev, dev);
 
 	ret = openchrome_drm_init(dev);
+	if (ret) {
+		goto err_drm_dev_put;
+	}
 
 	ret = drm_dev_register(dev, ent->driver_data);
 	if (ret) {
