@@ -354,7 +354,7 @@ static void via_fp_primary_hard_power_seq(
 		via_fp_set_primary_direct_display_period(VGABASE, false);
 	}
 
-	DRM_DEBUG_KMS("Entered via_fp_primary_hard_power_seq.\n");
+	DRM_DEBUG_KMS("Exiting via_fp_primary_hard_power_seq.\n");
 }
 
 static void via_fp_power(
