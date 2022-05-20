@@ -51,8 +51,9 @@ static const struct drm_encoder_funcs via_hdmi_enc_funcs = {
 static void
 via_hdmi_enc_dpms(struct drm_encoder *encoder, int mode)
 {
+	struct drm_device *dev = encoder->dev;
 	struct openchrome_drm_private *dev_private =
-			encoder->dev->dev_private;
+						to_openchrome_private(dev);
 
 	switch (mode) {
 	case DRM_MODE_DPMS_SUSPEND:
@@ -161,7 +162,9 @@ static void
 via_hdmi_native_mode_set(struct via_crtc *iga, struct drm_display_mode *mode,
 			bool audio_off)
 {
-	struct openchrome_drm_private *dev_private = iga->base.dev->dev_private;
+	struct drm_device *dev = iga->base.dev;
+	struct openchrome_drm_private *dev_private =
+						to_openchrome_private(dev);
 	u32 reg_c280, reg_c284;
 	int max_packet, delay;
 	u8 value = BIT(0);
@@ -248,10 +251,11 @@ via_hdmi_enc_mode_set(struct drm_encoder *encoder,
 {
 	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
 	struct via_crtc *iga = container_of(encoder->crtc, struct via_crtc, base);
-	struct openchrome_drm_private *dev_private = encoder->dev->dev_private;
 	struct drm_connector *connector = NULL, *con;
 	struct drm_device *dev = encoder->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
+	struct openchrome_drm_private *dev_private =
+						to_openchrome_private(dev);
 
 	list_for_each_entry(con, &dev->mode_config.connector_list, head) {
 		if (encoder ==  con->encoder) {
@@ -499,8 +503,9 @@ struct edid *
 via_hdmi_get_edid(struct drm_connector *connector)
 {
 	bool print_bad_edid = !connector->bad_edid_counter || (drm_debug_enabled(DRM_UT_KMS));
+	struct drm_device *dev = connector->dev;
 	struct openchrome_drm_private *dev_private =
-					connector->dev->dev_private;
+						to_openchrome_private(dev);
 	struct edid *edid = NULL;
 	int i, j = 0;
 	u8 *block;
@@ -591,8 +596,9 @@ out:
 static enum drm_connector_status
 via_hdmi_detect(struct drm_connector *connector, bool force)
 {
+	struct drm_device *dev = connector->dev;
 	struct openchrome_drm_private *dev_private =
-					connector->dev->dev_private;
+						to_openchrome_private(dev);
 	enum drm_connector_status ret = connector_status_disconnected;
 	u32 mm_c730 = VIA_READ(0xc730) & 0xC0000000;
 	struct edid *edid = NULL;

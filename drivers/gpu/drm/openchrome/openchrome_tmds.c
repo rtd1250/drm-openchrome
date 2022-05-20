@@ -204,8 +204,9 @@ static void via_tmds_dpms(struct drm_encoder *encoder, int mode)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
+	struct drm_device *dev = encoder->dev;
 	struct openchrome_drm_private *dev_private =
-					encoder->dev->dev_private;
+						to_openchrome_private(dev);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -247,8 +248,9 @@ static void via_tmds_prepare(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
+	struct drm_device *dev = encoder->dev;
 	struct openchrome_drm_private *dev_private =
-					encoder->dev->dev_private;
+						to_openchrome_private(dev);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -262,8 +264,9 @@ static void via_tmds_commit(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
+	struct drm_device *dev = encoder->dev;
 	struct openchrome_drm_private *dev_private =
-					encoder->dev->dev_private;
+						to_openchrome_private(dev);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -281,8 +284,9 @@ via_tmds_mode_set(struct drm_encoder *encoder,
 			struct drm_display_mode *mode,
 			struct drm_display_mode *adjusted_mode)
 {
+	struct drm_device *dev = encoder->dev;
 	struct openchrome_drm_private *dev_private =
-					encoder->dev->dev_private;
+						to_openchrome_private(dev);
 	struct via_crtc *iga = container_of(encoder->crtc,
 						struct via_crtc, base);
 
@@ -299,8 +303,9 @@ static void via_tmds_disable(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
+	struct drm_device *dev = encoder->dev;
 	struct openchrome_drm_private *dev_private =
-					encoder->dev->dev_private;
+						to_openchrome_private(dev);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -409,8 +414,9 @@ static const struct drm_connector_helper_funcs via_dvi_connector_helper_funcs = 
  */
 void via_tmds_probe(struct drm_device *dev)
 {
-	struct openchrome_drm_private *dev_private = dev->dev_private;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
+	struct openchrome_drm_private *dev_private =
+						to_openchrome_private(dev);
 	u16 chipset = pdev->device;
 	u8 sr13, sr5a;
 
@@ -489,7 +495,8 @@ void via_tmds_probe(struct drm_device *dev)
 
 void via_tmds_init(struct drm_device *dev)
 {
-	struct openchrome_drm_private *dev_private = dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						to_openchrome_private(dev);
 	struct via_connector *con;
 	struct via_encoder *enc;
 
@@ -541,9 +548,10 @@ exit:
  */
 void openchrome_ext_dvi_probe(struct drm_device *dev)
 {
-	struct openchrome_drm_private *dev_private = dev->dev_private;
-	struct i2c_adapter *i2c_bus;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
+	struct openchrome_drm_private *dev_private =
+						to_openchrome_private(dev);
+	struct i2c_adapter *i2c_bus;
 	u16 chipset = pdev->device;
 	u8 sr12, sr13;
 

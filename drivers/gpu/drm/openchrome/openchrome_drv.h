@@ -204,7 +204,7 @@ enum via_engine {
 };
 
 struct openchrome_drm_private {
-	struct drm_device *dev;
+	struct drm_device dev;
 
 	struct ttm_device		bdev;
 
@@ -310,6 +310,9 @@ struct openchrome_drm_private {
 
 	u32 mapped_i2c_bus;
 };
+
+
+#define to_openchrome_private(x) container_of(x, struct openchrome_drm_private, dev)
 
 
 /* VIA MMIO register access */

@@ -769,7 +769,7 @@ static int vx900_mem_type(struct openchrome_drm_private *dev_private,
 
 int openchrome_vram_detect(struct openchrome_drm_private *dev_private)
 {
-	struct drm_device *dev = dev_private->dev;
+	struct drm_device *dev = &dev_private->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct pci_dev *bridge = NULL;
 	struct pci_dev *fn3 = NULL;
@@ -1017,7 +1017,7 @@ static void openchrome_flag_init(struct openchrome_drm_private *dev_private)
 static void openchrome_quirks_init(
 			struct openchrome_drm_private *dev_private)
 {
-	struct drm_device *dev = dev_private->dev;
+	struct drm_device *dev = &dev_private->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -1101,7 +1101,7 @@ void openchrome_vram_fini(struct openchrome_drm_private *dev_private)
 int openchrome_mmio_init(
 			struct openchrome_drm_private *dev_private)
 {
-	struct drm_device *dev = dev_private->dev;
+	struct drm_device *dev = &dev_private->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	int ret = 0;
 
@@ -1170,7 +1170,7 @@ void openchrome_graphics_unlock(
 
 void chip_revision_info(struct openchrome_drm_private *dev_private)
 {
-	struct drm_device *dev = dev_private->dev;
+	struct drm_device *dev = &dev_private->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	u8 tmp;
 
@@ -1275,7 +1275,7 @@ drm_mode_config_funcs openchrome_drm_mode_config_funcs = {
 void openchrome_mode_config_init(
 			struct openchrome_drm_private *dev_private)
 {
-	struct drm_device *dev = dev_private->dev;
+	struct drm_device *dev = &dev_private->dev;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -1301,34 +1301,24 @@ void openchrome_mode_config_init(
 
 int openchrome_drm_init(struct drm_device *dev)
 {
-	struct openchrome_drm_private *dev_private;
+	struct openchrome_drm_private *dev_private =
+						to_openchrome_private(dev);
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	dev_private = kzalloc(sizeof(struct openchrome_drm_private),
-				GFP_KERNEL);
-	if (!dev_private) {
-		ret = -ENOMEM;
-		DRM_ERROR("Failed to allocate private "
-				"storage memory.\n");
-		goto exit;
-	}
-
-	dev->dev_private = (void *) dev_private;
-	dev_private->dev = dev;
 	dev_private->vram_mtrr = -ENXIO;
 
 	ret = openchrome_device_init(dev_private);
 	if (ret) {
 		DRM_ERROR("Failed to initialize Chrome IGP.\n");
-		goto error_free_private;
+		goto exit;
 	}
 
 	ret = openchrome_mm_init(dev_private);
 	if (ret) {
 		DRM_ERROR("Failed to initialize TTM.\n");
-		goto error_free_private;
+		goto exit;
 	}
 
 	chip_revision_info(dev_private);
@@ -1345,8 +1335,6 @@ error_modeset:
 	openchrome_mm_fini(dev_private);
 	openchrome_mmio_fini(dev_private);
 	openchrome_vram_fini(dev_private);
-error_free_private:
-	kfree(dev_private);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
@@ -1354,7 +1342,8 @@ exit:
 
 void openchrome_drm_fini(struct drm_device *dev)
 {
-	struct openchrome_drm_private *dev_private = dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						to_openchrome_private(dev);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -1362,7 +1351,6 @@ void openchrome_drm_fini(struct drm_device *dev)
 	openchrome_mm_fini(dev_private);
 	openchrome_mmio_fini(dev_private);
 	openchrome_vram_fini(dev_private);
-	kfree(dev_private);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }

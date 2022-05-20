@@ -594,7 +594,7 @@ static void via_fp_dpms(struct drm_encoder *encoder, int mode)
 	struct drm_device *dev = encoder->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct openchrome_drm_private *dev_private =
-					encoder->dev->dev_private;
+						to_openchrome_private(dev);
 
 	/* PCI Device ID */
 	u16 chipset = pdev->device;
@@ -691,7 +691,7 @@ static void via_fp_prepare(struct drm_encoder *encoder)
 	struct drm_device *dev = encoder->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct openchrome_drm_private *dev_private =
-					encoder->dev->dev_private;
+						to_openchrome_private(dev);
 
 	/* PCI Device ID */
 	u16 chipset = pdev->device;
@@ -711,7 +711,7 @@ static void via_fp_commit(struct drm_encoder *encoder)
 	struct drm_device *dev = encoder->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct openchrome_drm_private *dev_private =
-					encoder->dev->dev_private;
+						to_openchrome_private(dev);
 
 	/* PCI Device ID */
 	u16 chipset = pdev->device;
@@ -733,7 +733,7 @@ via_fp_mode_set(struct drm_encoder *encoder, struct drm_display_mode *mode,
 	struct drm_device *dev = encoder->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct openchrome_drm_private *dev_private =
-					encoder->dev->dev_private;
+						to_openchrome_private(dev);
 
 	/* PCI Device ID */
 	u16 chipset = pdev->device;
@@ -779,7 +779,7 @@ static void via_fp_disable(struct drm_encoder *encoder)
 	struct drm_device *dev = encoder->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct openchrome_drm_private *dev_private =
-					encoder->dev->dev_private;
+						to_openchrome_private(dev);
 
 	/* PCI Device ID */
 	u16 chipset = pdev->device;
@@ -813,7 +813,7 @@ via_fp_detect(struct drm_connector *connector,  bool force)
 	struct via_connector *con = container_of(connector,
 					struct via_connector, base);
 	struct openchrome_drm_private *dev_private =
-					connector->dev->dev_private;
+						to_openchrome_private(dev);
 	enum drm_connector_status ret = connector_status_disconnected;
 	struct i2c_adapter *i2c_bus;
 	struct edid *edid = NULL;
@@ -939,7 +939,8 @@ via_fp_get_modes(struct drm_connector *connector)
 {
 	struct via_connector *con = container_of(connector, struct via_connector, base);
 	struct drm_device *dev = connector->dev;
-	struct openchrome_drm_private *dev_private = dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						to_openchrome_private(dev);
 	struct i2c_adapter *i2c_bus;
 	struct edid *edid = NULL;
 	struct drm_display_mode *native_mode = NULL;
@@ -1092,7 +1093,8 @@ struct drm_connector_helper_funcs via_fp_connector_helper_funcs = {
 void via_fp_probe(struct drm_device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
-	struct openchrome_drm_private *dev_private = dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						to_openchrome_private(dev);
 	struct drm_connector connector;
 	struct i2c_adapter *i2c_bus;
 	struct edid *edid;
@@ -1338,7 +1340,8 @@ void via_fp_probe(struct drm_device *dev)
 
 void via_fp_init(struct drm_device *dev)
 {
-	struct openchrome_drm_private *dev_private = dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						to_openchrome_private(dev);
 	struct via_connector *con;
 	struct via_encoder *enc;
 

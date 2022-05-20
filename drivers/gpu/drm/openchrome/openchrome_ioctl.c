@@ -43,7 +43,8 @@ static int openchrome_gem_create_ioctl(struct drm_device *dev,
 					struct drm_file *file_priv)
 {
 	struct drm_openchrome_gem_create *args = data;
-	struct openchrome_drm_private *dev_private = dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						to_openchrome_private(dev);
 	struct openchrome_bo *bo;
 	uint32_t handle;
 	int ret;

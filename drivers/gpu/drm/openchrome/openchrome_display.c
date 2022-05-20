@@ -91,7 +91,8 @@ static void
 via_init_td_timing_regs(struct drm_device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
-	struct openchrome_drm_private *dev_private = dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						to_openchrome_private(dev);
 	unsigned int td_timer[4] = { 500, 50, 0, 510 }, i;
 	struct vga_registers timings;
 	u32 reg_value;
@@ -127,7 +128,8 @@ int
 via_modeset_init(struct drm_device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
-	struct openchrome_drm_private *dev_private = dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						to_openchrome_private(dev);
 	uint32_t i;
 	int ret = 0;
 

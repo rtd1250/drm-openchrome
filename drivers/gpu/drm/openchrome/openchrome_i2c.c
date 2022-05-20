@@ -33,7 +33,8 @@ static void via_i2c_setsda(void *data, int state)
 {
 	struct via_i2c_stuff *i2c = data;
 	struct drm_device *dev = i2c_get_adapdata(&i2c->adapter);
-	struct openchrome_drm_private *dev_private = dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						to_openchrome_private(dev);
 	u8 value, mask;
 
 	if (i2c->is_active == GPIO) {
@@ -51,7 +52,8 @@ static void via_i2c_setscl(void *data, int state)
 {
 	struct via_i2c_stuff *i2c = data;
 	struct drm_device *dev = i2c_get_adapdata(&i2c->adapter);
-	struct openchrome_drm_private *dev_private = dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						to_openchrome_private(dev);
 	u8 value, mask;
 
 	if (i2c->is_active == GPIO) {
@@ -69,7 +71,8 @@ static int via_i2c_getsda(void *data)
 {
 	struct via_i2c_stuff *i2c = data;
 	struct drm_device *dev = i2c_get_adapdata(&i2c->adapter);
-	struct openchrome_drm_private *dev_private = dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						to_openchrome_private(dev);
 
 	return vga_rseq(VGABASE, i2c->i2c_port) & BIT(2);
 }
@@ -78,7 +81,8 @@ static int via_i2c_getscl(void *data)
 {
 	struct via_i2c_stuff *i2c = data;
 	struct drm_device *dev = i2c_get_adapdata(&i2c->adapter);
-	struct openchrome_drm_private *dev_private = dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						to_openchrome_private(dev);
 
 	return vga_rseq(VGABASE, i2c->i2c_port) & BIT(3);
 }

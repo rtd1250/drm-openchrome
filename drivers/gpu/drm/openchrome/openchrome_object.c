@@ -173,7 +173,8 @@ int openchrome_bo_create(struct drm_device *dev,
 				bool kmap,
 				struct openchrome_bo **bo_ptr)
 {
-	struct openchrome_drm_private *dev_private = dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						to_openchrome_private(dev);
 	struct openchrome_bo *bo;
 	int ret;
 
@@ -277,7 +278,7 @@ exit:
 
 int openchrome_mm_init(struct openchrome_drm_private *dev_private)
 {
-	struct drm_device *dev = dev_private->dev;
+	struct drm_device *dev = &dev_private->dev;
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);

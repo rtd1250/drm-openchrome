@@ -134,8 +134,9 @@ static void openchrome_sii164_dpms(struct drm_encoder *encoder, int mode)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
+	struct drm_device *dev = encoder->dev;
 	struct openchrome_drm_private *dev_private =
-					encoder->dev->dev_private;
+						to_openchrome_private(dev);
 	struct i2c_adapter *i2c_bus;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -197,8 +198,9 @@ static void openchrome_sii164_mode_set(struct drm_encoder *encoder,
 	struct via_crtc *iga = container_of(encoder->crtc, struct via_crtc, base);
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
+	struct drm_device *dev = encoder->dev;
 	struct openchrome_drm_private *dev_private =
-					encoder->dev->dev_private;
+						to_openchrome_private(dev);
 	struct i2c_adapter *i2c_bus;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -240,8 +242,9 @@ static void openchrome_sii164_prepare(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
+	struct drm_device *dev = encoder->dev;
 	struct openchrome_drm_private *dev_private =
-					encoder->dev->dev_private;
+						to_openchrome_private(dev);
 	struct i2c_adapter *i2c_bus;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -272,8 +275,9 @@ static void openchrome_sii164_commit(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
+	struct drm_device *dev = encoder->dev;
 	struct openchrome_drm_private *dev_private =
-					encoder->dev->dev_private;
+						to_openchrome_private(dev);
 	struct i2c_adapter *i2c_bus;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -305,8 +309,9 @@ static void openchrome_sii164_disable(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
+	struct drm_device *dev = encoder->dev;
 	struct openchrome_drm_private *dev_private =
-					encoder->dev->dev_private;
+						to_openchrome_private(dev);
 	struct i2c_adapter *i2c_bus;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -526,7 +531,8 @@ void openchrome_sii164_init(struct drm_device *dev)
 {
 	struct via_connector *con;
 	struct via_encoder *enc;
-	struct openchrome_drm_private *dev_private = dev->dev_private;
+	struct openchrome_drm_private *dev_private =
+						to_openchrome_private(dev);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
