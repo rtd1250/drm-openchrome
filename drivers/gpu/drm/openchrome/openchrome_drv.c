@@ -43,7 +43,7 @@
 #include "openchrome_drv.h"
 
 
-extern const struct drm_ioctl_desc openchrome_driver_ioctls[];
+extern const struct drm_ioctl_desc via_driver_ioctls[];
 
 /*
  * For now, this device driver will be disabled, unless the
@@ -156,7 +156,7 @@ exit:
 	return ret;
 }
 
-static const struct file_operations openchrome_driver_fops = {
+static const struct file_operations via_driver_fops = {
 	.owner		= THIS_MODULE,
 	.open		= drm_open,
 	.release	= drm_release,
@@ -166,7 +166,7 @@ static const struct file_operations openchrome_driver_fops = {
 	.llseek		= noop_llseek,
 };
 
-static struct drm_driver openchrome_driver = {
+static struct drm_driver via_driver = {
 	.driver_features = DRIVER_HAVE_IRQ |
 				DRIVER_GEM |
 				DRIVER_MODESET |
@@ -177,8 +177,8 @@ static struct drm_driver openchrome_driver = {
 	.gem_prime_mmap = drm_gem_prime_mmap,
 	.dumb_create = openchrome_driver_dumb_create,
 	.dumb_map_offset = openchrome_driver_dumb_map_offset,
-	.ioctls = openchrome_driver_ioctls,
-	.fops = &openchrome_driver_fops,
+	.ioctls = via_driver_ioctls,
+	.fops = &via_driver_fops,
 	.name = DRIVER_NAME,
 	.desc = DRIVER_DESC,
 	.date = DRIVER_DATE,
@@ -187,11 +187,11 @@ static struct drm_driver openchrome_driver = {
 	.patchlevel = DRIVER_PATCHLEVEL,
 };
 
-static struct pci_device_id openchrome_pci_table[] = {
+static struct pci_device_id via_pci_table[] = {
 	viadrv_PCI_IDS,
 };
 
-MODULE_DEVICE_TABLE(pci, openchrome_pci_table);
+MODULE_DEVICE_TABLE(pci, via_pci_table);
 
 static int openchrome_pci_probe(struct pci_dev *pdev,
 				const struct pci_device_id *ent)
@@ -203,7 +203,7 @@ static int openchrome_pci_probe(struct pci_dev *pdev,
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	ret = drm_aperture_remove_conflicting_pci_framebuffers(pdev,
-						&openchrome_driver);
+								&via_driver);
 	if (ret) {
 		goto exit;
 	}
@@ -214,7 +214,7 @@ static int openchrome_pci_probe(struct pci_dev *pdev,
 	}
 
 	dev_priv = devm_drm_dev_alloc(&pdev->dev,
-					&openchrome_driver,
+					&via_driver,
 					struct via_drm_priv,
 					dev);
 	if (IS_ERR(dev_priv)) {
@@ -257,17 +257,17 @@ static void openchrome_pci_remove(struct pci_dev *pdev)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static const struct dev_pm_ops openchrome_dev_pm_ops = {
+static const struct dev_pm_ops via_dev_pm_ops = {
 	.suspend	= openchrome_dev_pm_ops_suspend,
 	.resume		= openchrome_dev_pm_ops_resume,
 };
 
-static struct pci_driver openchrome_pci_driver = {
+static struct pci_driver via_pci_driver = {
 	.name		= DRIVER_NAME,
-	.id_table	= openchrome_pci_table,
+	.id_table	= via_pci_table,
 	.probe		= openchrome_pci_probe,
 	.remove		= openchrome_pci_remove,
-	.driver.pm	= &openchrome_dev_pm_ops,
+	.driver.pm	= &via_dev_pm_ops,
 };
 
 static int __init openchrome_init(void)
@@ -286,9 +286,9 @@ static int __init openchrome_init(void)
 		goto exit;
 	}
 
-	openchrome_driver.num_ioctls = openchrome_driver_num_ioctls;
+	via_driver.num_ioctls = via_driver_num_ioctls;
 
-	ret = pci_register_driver(&openchrome_pci_driver);
+	ret = pci_register_driver(&via_pci_driver);
 
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
@@ -303,7 +303,7 @@ static void __exit openchrome_exit(void)
 		goto exit;
 	}
 
-	pci_unregister_driver(&openchrome_pci_driver);
+	pci_unregister_driver(&via_pci_driver);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }

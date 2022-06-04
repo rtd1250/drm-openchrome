@@ -167,7 +167,7 @@ static int openchrome_bo_io_mem_reserve(struct ttm_device *bdev,
 	return ret;
 }
 
-struct ttm_device_funcs openchrome_bo_driver = {
+struct ttm_device_funcs via_bo_driver = {
 	.ttm_tt_create = openchrome_ttm_tt_create,
 	.ttm_tt_destroy = openchrome_ttm_tt_destroy,
 	.eviction_valuable = ttm_bo_eviction_valuable,

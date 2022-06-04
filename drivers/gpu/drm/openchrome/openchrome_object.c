@@ -61,19 +61,19 @@ static void openchrome_gem_free(struct drm_gem_object *obj)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static const struct vm_operations_struct openchrome_ttm_bo_vm_ops = {
+static const struct vm_operations_struct via_ttm_bo_vm_ops = {
 	.fault = ttm_bo_vm_fault,
 	.open = ttm_bo_vm_open,
 	.close = ttm_bo_vm_close,
 	.access = ttm_bo_vm_access
 };
 
-static const struct drm_gem_object_funcs openchrome_gem_object_funcs = {
+static const struct drm_gem_object_funcs via_gem_object_funcs = {
 	.free = openchrome_gem_free,
 	.vmap = drm_gem_ttm_vmap,
 	.vunmap = drm_gem_ttm_vunmap,
 	.mmap = drm_gem_ttm_mmap,
-	.vm_ops = &openchrome_ttm_bo_vm_ops,
+	.vm_ops = &via_ttm_bo_vm_ops,
 };
 
 void openchrome_ttm_domain_to_placement(struct via_bo *bo,
@@ -200,7 +200,7 @@ int openchrome_bo_create(struct drm_device *dev,
 		goto error;
 	}
 
-	bo->ttm_bo.base.funcs = &openchrome_gem_object_funcs;
+	bo->ttm_bo.base.funcs = &via_gem_object_funcs;
 
 	openchrome_ttm_domain_to_placement(bo, ttm_domain);
 	ret = ttm_bo_init(&dev_priv->bdev,
@@ -286,7 +286,7 @@ int openchrome_mm_init(struct via_drm_priv *dev_priv)
 	 * Initialize bdev ttm_bo_device struct.
 	 */
 	ret = ttm_device_init(&dev_priv->bdev,
-				&openchrome_bo_driver,
+				&via_bo_driver,
 				dev->dev,
 				dev->anon_inode->i_mapping,
 				dev->vma_offset_manager,

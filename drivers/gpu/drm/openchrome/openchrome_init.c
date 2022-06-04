@@ -1208,8 +1208,7 @@ void openchrome_device_fini(struct via_drm_priv *dev_priv)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static const struct drm_mode_config_funcs
-openchrome_drm_mode_config_funcs = {
+static const struct drm_mode_config_funcs via_drm_mode_config_funcs = {
 	.fb_create		= drm_gem_fb_create,
 	.atomic_check		= drm_atomic_helper_check,
 	.atomic_commit		= drm_atomic_helper_commit,
@@ -1228,7 +1227,7 @@ void openchrome_mode_config_init(struct via_drm_priv *dev_priv)
 	dev->mode_config.max_width = 2044;
 	dev->mode_config.max_height = 4096;
 
-	dev->mode_config.funcs = &openchrome_drm_mode_config_funcs;
+	dev->mode_config.funcs = &via_drm_mode_config_funcs;
 
 	dev->mode_config.fb_base = dev_priv->vram_start;
 

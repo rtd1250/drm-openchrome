@@ -402,8 +402,7 @@ void openchrome_cursor_atomic_disable(struct drm_plane *plane,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-const struct drm_plane_helper_funcs
-openchrome_cursor_drm_plane_helper_funcs = {
+const struct drm_plane_helper_funcs via_cursor_drm_plane_helper_funcs = {
 	.prepare_fb	= openchrome_cursor_prepare_fb,
 	.cleanup_fb	= openchrome_cursor_cleanup_fb,
 	.atomic_check	= openchrome_cursor_atomic_check,
@@ -411,7 +410,7 @@ openchrome_cursor_drm_plane_helper_funcs = {
 	.atomic_disable	= openchrome_cursor_atomic_disable,
 };
 
-const struct drm_plane_funcs openchrome_cursor_drm_plane_funcs = {
+const struct drm_plane_funcs via_cursor_drm_plane_funcs = {
 	.update_plane = drm_atomic_helper_update_plane,
 	.disable_plane = drm_atomic_helper_disable_plane,
 	.destroy = drm_plane_cleanup,

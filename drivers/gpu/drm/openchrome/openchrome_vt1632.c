@@ -145,7 +145,7 @@ static void openchrome_vt1632_init_registers(struct i2c_adapter *i2c_bus)
 }
 
 
-static const struct drm_encoder_funcs openchrome_vt1632_drm_encoder_funcs = {
+static const struct drm_encoder_funcs via_vt1632_drm_encoder_funcs = {
 	.destroy = via_encoder_cleanup,
 };
 
@@ -350,7 +350,7 @@ exit:
 
 
 static const struct drm_encoder_helper_funcs
-openchrome_vt1632_drm_encoder_helper_funcs = {
+via_vt1632_drm_encoder_helper_funcs = {
 	.dpms = openchrome_vt1632_dpms,
 	.mode_fixup = openchrome_vt1632_mode_fixup,
 	.mode_set = openchrome_vt1632_mode_set,
@@ -396,8 +396,7 @@ exit:
 	return ret;
 }
 
-static const struct drm_connector_funcs
-openchrome_vt1632_drm_connector_funcs = {
+static const struct drm_connector_funcs via_vt1632_drm_connector_funcs = {
 	.dpms = drm_helper_connector_dpms,
 	.detect = openchrome_vt1632_detect,
 	.fill_modes = drm_helper_probe_single_connector_modes,
@@ -503,7 +502,7 @@ exit:
 }
 
 static const struct drm_connector_helper_funcs
-openchrome_vt1632_drm_connector_helper_funcs = {
+via_vt1632_drm_connector_helper_funcs = {
 	.mode_valid = openchrome_vt1632_mode_valid,
 	.get_modes = openchrome_vt1632_get_modes,
 };
@@ -559,9 +558,10 @@ void openchrome_vt1632_init(struct drm_device *dev)
 		goto exit;
 	}
 
-	drm_encoder_init(dev, &enc->base, &openchrome_vt1632_drm_encoder_funcs,
+	drm_encoder_init(dev, &enc->base, &via_vt1632_drm_encoder_funcs,
 						DRM_MODE_ENCODER_TMDS, NULL);
-	drm_encoder_helper_add(&enc->base, &openchrome_vt1632_drm_encoder_helper_funcs);
+	drm_encoder_helper_add(&enc->base,
+					&via_vt1632_drm_encoder_helper_funcs);
 
 	enc->base.possible_crtcs = BIT(1) | BIT(0);
 	enc->base.possible_clones = 0;
@@ -575,9 +575,10 @@ void openchrome_vt1632_init(struct drm_device *dev)
 
 	con = &enc->cons[0];
 
-	drm_connector_init(dev, &con->base, &openchrome_vt1632_drm_connector_funcs,
+	drm_connector_init(dev, &con->base, &via_vt1632_drm_connector_funcs,
 				DRM_MODE_CONNECTOR_DVID);
-	drm_connector_helper_add(&con->base, &openchrome_vt1632_drm_connector_helper_funcs);
+	drm_connector_helper_add(&con->base,
+				&via_vt1632_drm_connector_helper_funcs);
 	drm_connector_register(&con->base);
 
 	con->base.doublescan_allowed = false;

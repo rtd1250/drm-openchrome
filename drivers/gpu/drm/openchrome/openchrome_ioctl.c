@@ -123,11 +123,11 @@ static int openchrome_gem_unmap_ioctl(struct drm_device *dev,
 }
 
 
-const struct drm_ioctl_desc openchrome_driver_ioctls[] = {
+const struct drm_ioctl_desc via_driver_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_CREATE, openchrome_gem_create_ioctl, DRM_AUTH | DRM_UNLOCKED),
 	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_MAP, openchrome_gem_map_ioctl, DRM_AUTH | DRM_UNLOCKED),
 	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_UNMAP, openchrome_gem_unmap_ioctl, DRM_AUTH | DRM_UNLOCKED),
 };
 
 
-int openchrome_driver_num_ioctls = ARRAY_SIZE(openchrome_driver_ioctls);
+int via_driver_num_ioctls = ARRAY_SIZE(via_driver_ioctls);

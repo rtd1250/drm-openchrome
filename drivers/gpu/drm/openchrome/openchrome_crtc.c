@@ -340,7 +340,7 @@ static void openchrome_crtc_destroy(struct drm_crtc *crtc)
 	kfree(iga);
 }
 
-static const struct drm_crtc_funcs openchrome_drm_crtc_funcs = {
+static const struct drm_crtc_funcs via_drm_crtc_funcs = {
 	.reset = drm_atomic_helper_crtc_reset,
 	.gamma_set = openchrome_gamma_set,
 	.set_config = drm_atomic_helper_set_config,
@@ -1828,8 +1828,7 @@ static void openchrome_crtc_helper_atomic_disable(struct drm_crtc *crtc,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static const struct drm_crtc_helper_funcs
-openchrome_drm_crtc_helper_funcs = {
+static const struct drm_crtc_helper_funcs via_drm_crtc_helper_funcs = {
 	.mode_set_nofb = openchrome_mode_set_nofb,
 	.atomic_enable = openchrome_crtc_helper_atomic_enable,
 	.atomic_disable = openchrome_crtc_helper_atomic_disable,
@@ -2021,7 +2020,7 @@ exit:
 }
 
 static const struct drm_plane_helper_funcs
-openchrome_primary_drm_plane_helper_funcs = {
+via_primary_drm_plane_helper_funcs = {
 	.prepare_fb = openchrome_primary_prepare_fb,
 	.cleanup_fb = openchrome_primary_cleanup_fb,
 	.atomic_check = openchrome_primary_atomic_check,
@@ -2029,7 +2028,7 @@ openchrome_primary_drm_plane_helper_funcs = {
 	.atomic_disable = openchrome_primary_atomic_disable,
 };
 
-static const struct drm_plane_funcs openchrome_primary_drm_plane_funcs = {
+static const struct drm_plane_funcs via_primary_drm_plane_funcs = {
 	.update_plane	= drm_atomic_helper_update_plane,
 	.disable_plane = drm_atomic_helper_disable_plane,
 	.destroy = drm_plane_cleanup,
@@ -2253,9 +2252,9 @@ int openchrome_crtc_init(struct via_drm_priv *dev_priv, uint32_t index)
 	}
 
 	drm_plane_helper_add(primary,
-			&openchrome_primary_drm_plane_helper_funcs);
+			&via_primary_drm_plane_helper_funcs);
 	ret = drm_universal_plane_init(dev, primary, possible_crtcs,
-			&openchrome_primary_drm_plane_funcs,
+			&via_primary_drm_plane_funcs,
 			openchrome_primary_formats,
 			ARRAY_SIZE(openchrome_primary_formats),
 			NULL, DRM_PLANE_TYPE_PRIMARY, NULL);
@@ -2273,9 +2272,9 @@ int openchrome_crtc_init(struct via_drm_priv *dev_priv, uint32_t index)
 	}
 
 	drm_plane_helper_add(cursor,
-			&openchrome_cursor_drm_plane_helper_funcs);
+			&via_cursor_drm_plane_helper_funcs);
 	ret = drm_universal_plane_init(dev, cursor, possible_crtcs,
-			&openchrome_cursor_drm_plane_funcs,
+			&via_cursor_drm_plane_funcs,
 			openchrome_cursor_formats,
 			openchrome_cursor_formats_size,
 			NULL, DRM_PLANE_TYPE_CURSOR, NULL);
@@ -2293,10 +2292,10 @@ int openchrome_crtc_init(struct via_drm_priv *dev_priv, uint32_t index)
 	}
 
 	drm_crtc_helper_add(&iga->base,
-			&openchrome_drm_crtc_helper_funcs);
+			&via_drm_crtc_helper_funcs);
 	ret = drm_crtc_init_with_planes(dev, &iga->base,
 					primary, cursor,
-					&openchrome_drm_crtc_funcs,
+					&via_drm_crtc_funcs,
 					NULL);
 	if (ret) {
 		DRM_ERROR("Failed to initialize CRTC!\n");

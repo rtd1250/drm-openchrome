@@ -346,9 +346,9 @@ via_unlock_crtc(void __iomem *regs, int pci_id)
 }
 
 
-extern int openchrome_driver_num_ioctls;
+extern int via_driver_num_ioctls;
 
-extern struct ttm_device_funcs openchrome_bo_driver;
+extern struct ttm_device_funcs via_bo_driver;
 
 int openchrome_vram_detect(struct via_drm_priv *dev_priv);
 int openchrome_vram_init(struct via_drm_priv *dev_priv);
@@ -394,9 +394,8 @@ void openchrome_transmitter_data_drive_strength(
 void openchrome_transmitter_display_source(struct via_drm_priv *dev_priv,
 						u32 di_port, int index);
 
-extern const struct drm_plane_helper_funcs
-openchrome_cursor_drm_plane_helper_funcs;
-extern const struct drm_plane_funcs openchrome_cursor_drm_plane_funcs;
+extern const struct drm_plane_helper_funcs via_cursor_drm_plane_helper_funcs;
+extern const struct drm_plane_funcs via_cursor_drm_plane_funcs;
 extern const uint32_t openchrome_cursor_formats[];
 extern const unsigned int openchrome_cursor_formats_size;
 
