@@ -28,7 +28,7 @@
  * Kevin Brace <kevinbrace@gmx.com>
  */
 /*
- * openchrome_ttm.c
+ * via_ttm.c
  *
  * TTM code as part of the TTM memory allocator.
  * Currently a basic implementation with no DMA support.

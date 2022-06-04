@@ -28,7 +28,7 @@
  * Kevin Brace <kevinbrace@gmx.com>
  */
 /*
- * openchrome_object.c
+ * via_object.c
  *
  * Manages Buffer Objects (BO) via TTM.
  * Part of the TTM memory allocator.
