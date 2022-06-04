@@ -85,10 +85,9 @@ static void openchrome_driver_lastclose(struct drm_device *dev)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static int openchrome_driver_dumb_create(
-				struct drm_file *file_priv,
-				struct drm_device *dev,
-				struct drm_mode_create_dumb *args)
+static int openchrome_driver_dumb_create(struct drm_file *file_priv,
+					struct drm_device *dev,
+					struct drm_mode_create_dumb *args)
 {
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	struct openchrome_bo *bo;
@@ -129,11 +128,10 @@ exit:
 	return ret;
 }
 
-static int openchrome_driver_dumb_map_offset(
-				struct drm_file *file_priv,
-				struct drm_device *dev,
-				uint32_t handle,
-				uint64_t *offset)
+static int openchrome_driver_dumb_map_offset(struct drm_file *file_priv,
+						struct drm_device *dev,
+						uint32_t handle,
+						uint64_t *offset)
 {
 	struct drm_gem_object *gem;
 	struct ttm_buffer_object *ttm_bo;

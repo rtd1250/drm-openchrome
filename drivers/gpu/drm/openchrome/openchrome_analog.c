@@ -103,8 +103,7 @@ static const struct drm_encoder_funcs via_dac_enc_funcs = {
 /*
  * Manage the power state of analog (VGA) DAC.
  */
-static void
-via_analog_dpms(struct drm_encoder *encoder, int mode)
+static void via_analog_dpms(struct drm_encoder *encoder, int mode)
 {
 	struct drm_device *dev = encoder->dev;
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
@@ -140,10 +139,9 @@ via_analog_dpms(struct drm_encoder *encoder, int mode)
  * adjust it according to limitations or connector properties, and also
  * a chance to reject the mode entirely. Useful for things like scaling.
  */
-static bool
-via_analog_mode_fixup(struct drm_encoder *encoder,
-		 const struct drm_display_mode *mode,
-		 struct drm_display_mode *adjusted_mode)
+static bool via_analog_mode_fixup(struct drm_encoder *encoder,
+				const struct drm_display_mode *mode,
+				struct drm_display_mode *adjusted_mode)
 {
 	drm_mode_set_crtcinfo(adjusted_mode, 0);
 	return true;
@@ -152,10 +150,9 @@ via_analog_mode_fixup(struct drm_encoder *encoder,
 /*
  * Handle analog (VGA) mode setting.
  */
-static void
-via_analog_mode_set(struct drm_encoder *encoder,
-			struct drm_display_mode *mode,
-			struct drm_display_mode *adjusted_mode)
+static void via_analog_mode_set(struct drm_encoder *encoder,
+				struct drm_display_mode *mode,
+				struct drm_display_mode *adjusted_mode)
 {
 	struct drm_device *dev = encoder->dev;
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
@@ -169,8 +166,7 @@ via_analog_mode_set(struct drm_encoder *encoder,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void
-via_analog_prepare(struct drm_encoder *encoder)
+static void via_analog_prepare(struct drm_encoder *encoder)
 {
 	struct drm_device *dev = encoder->dev;
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
@@ -185,8 +181,7 @@ via_analog_prepare(struct drm_encoder *encoder)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void
-via_analog_commit(struct drm_encoder *encoder)
+static void via_analog_commit(struct drm_encoder *encoder)
 {
 	struct drm_device *dev = encoder->dev;
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
@@ -201,8 +196,7 @@ via_analog_commit(struct drm_encoder *encoder)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void
-via_analog_disable(struct drm_encoder *encoder)
+static void via_analog_disable(struct drm_encoder *encoder)
 {
 	struct drm_device *dev = encoder->dev;
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);

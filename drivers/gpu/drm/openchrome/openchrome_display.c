@@ -38,8 +38,7 @@ void via_encoder_cleanup(struct drm_encoder *encoder)
 	kfree(enc);
 }
 
-int
-via_connector_mode_valid(struct drm_connector *connector,
+int via_connector_mode_valid(struct drm_connector *connector,
 			struct drm_display_mode *mode)
 {
 	/* Check Clock Range */
@@ -52,8 +51,7 @@ via_connector_mode_valid(struct drm_connector *connector,
 	return MODE_OK;
 }
 
-void
-via_connector_destroy(struct drm_connector *connector)
+void via_connector_destroy(struct drm_connector *connector)
 {
 	struct via_connector *con = container_of(connector, struct via_connector, base);
 	struct drm_property *property, *tmp;
@@ -87,8 +85,7 @@ static struct td_timer td_timer_regs[] = {
  * Function Name:  via_init_td_timing_regs
  * Description: Init TD timing register (power sequence)
  */
-static void
-via_init_td_timing_regs(struct drm_device *dev)
+static void via_init_td_timing_regs(struct drm_device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
@@ -123,8 +120,7 @@ via_init_td_timing_regs(struct drm_device *dev)
 	}
 }
 
-int
-via_modeset_init(struct drm_device *dev)
+int via_modeset_init(struct drm_device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);

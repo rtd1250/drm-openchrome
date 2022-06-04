@@ -396,9 +396,8 @@ void openchrome_transmitter_clock_drive_strength(
 void openchrome_transmitter_data_drive_strength(
 					struct via_drm_priv *dev_priv,
 					u32 di_port, u8 drive_strength);
-void openchrome_transmitter_display_source(
-					struct via_drm_priv *dev_priv,
-					u32 di_port, int index);
+void openchrome_transmitter_display_source(struct via_drm_priv *dev_priv,
+						u32 di_port, int index);
 
 extern const struct drm_plane_helper_funcs
 openchrome_cursor_drm_plane_helper_funcs;
@@ -413,11 +412,11 @@ void via_modeset_fini(struct drm_device *dev);
 /* i2c */
 struct i2c_adapter *via_find_ddc_bus(int port);
 void via_i2c_readbytes(struct i2c_adapter *adapter,
-				u8 slave_addr, char offset,
-				u8 *buffer, unsigned int size);
+			u8 slave_addr, char offset,
+			u8 *buffer, unsigned int size);
 void via_i2c_writebytes(struct i2c_adapter *adapter,
-				u8 slave_addr, char offset,
-				u8 *data, unsigned int size);
+			u8 slave_addr, char offset,
+			u8 *data, unsigned int size);
 void via_i2c_reg_init(struct via_drm_priv *dev_priv);
 int via_i2c_init(struct drm_device *dev);
 void via_i2c_exit(void);
@@ -428,9 +427,8 @@ void via_set_vclock(struct drm_crtc *crtc, u32 clk);
 
 /* crtc */
 void via_load_crtc_pixel_timing(struct drm_crtc *crtc,
-					struct drm_display_mode *mode);
-int openchrome_crtc_init(struct via_drm_priv *dev_priv,
-				uint32_t index);
+				struct drm_display_mode *mode);
+int openchrome_crtc_init(struct via_drm_priv *dev_priv, uint32_t index);
 
 /* encoders */
 void via_encoder_cleanup(struct drm_encoder *encoder);

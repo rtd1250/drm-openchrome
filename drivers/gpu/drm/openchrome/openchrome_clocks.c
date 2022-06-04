@@ -52,8 +52,7 @@ struct pll_mrn_value {
  * [15:8 ]  DR[2:0]
  * [7 :0 ]  DN[6:0]
  */
-u32
-via_get_clk_value(struct drm_device *dev, u32 freq)
+u32 via_get_clk_value(struct drm_device *dev, u32 freq)
 {
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	u32 best_pll_n = 2, best_pll_r = 0, best_pll_m = 2, best_clk_diff = freq;
@@ -193,8 +192,7 @@ via_get_clk_value(struct drm_device *dev, u32 freq)
 }
 
 /* Set VCLK */
-void
-via_set_vclock(struct drm_crtc *crtc, u32 clk)
+void via_set_vclock(struct drm_crtc *crtc, u32 clk)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_device *dev = crtc->dev;

@@ -99,8 +99,8 @@ struct i2c_adapter *via_find_ddc_bus(int port)
 	return adapter;
 }
 
-static int
-create_i2c_bus(struct drm_device *dev, struct via_i2c_stuff *i2c_par)
+static int create_i2c_bus(struct drm_device *dev,
+				struct via_i2c_stuff *i2c_par)
 {
 	struct i2c_adapter *adapter = &i2c_par->adapter;
 	struct i2c_algo_bit_data *algo = &i2c_par->algo;
@@ -127,8 +127,7 @@ create_i2c_bus(struct drm_device *dev, struct via_i2c_stuff *i2c_par)
 	return i2c_bit_add_bus(adapter);
 }
 
-void
-via_i2c_readbytes(struct i2c_adapter *adapter,
+void via_i2c_readbytes(struct i2c_adapter *adapter,
 			u8 slave_addr, char offset,
 			u8 *buffer, unsigned int size)
 {
@@ -158,8 +157,7 @@ via_i2c_readbytes(struct i2c_adapter *adapter,
 		*buffer = in_buf[0];
 }
 
-void
-via_i2c_writebytes(struct i2c_adapter *adapter,
+void via_i2c_writebytes(struct i2c_adapter *adapter,
 			u8 slave_addr, char offset,
 			u8 *data, unsigned int size)
 {

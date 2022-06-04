@@ -228,10 +228,9 @@ static void via_tmds_dpms(struct drm_encoder *encoder, int mode)
  * adjust it according to limitations or connector properties, and also
  * a chance to reject the mode entirely. Usefule for things like scaling.
  */
-static bool
-via_tmds_mode_fixup(struct drm_encoder *encoder,
-		 const struct drm_display_mode *mode,
-		 struct drm_display_mode *adjusted_mode)
+static bool via_tmds_mode_fixup(struct drm_encoder *encoder,
+				const struct drm_display_mode *mode,
+				struct drm_display_mode *adjusted_mode)
 {
 	drm_mode_set_crtcinfo(adjusted_mode, 0);
 	return true;
@@ -270,10 +269,9 @@ static void via_tmds_commit(struct drm_encoder *encoder)
 /*
  * Handle CX700 / VX700 and VX800 integrated TMDS (DVI) mode setting.
  */
-static void
-via_tmds_mode_set(struct drm_encoder *encoder,
-			struct drm_display_mode *mode,
-			struct drm_display_mode *adjusted_mode)
+static void via_tmds_mode_set(struct drm_encoder *encoder,
+				struct drm_display_mode *mode,
+				struct drm_display_mode *adjusted_mode)
 {
 	struct drm_device *dev = encoder->dev;
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
@@ -314,8 +312,9 @@ static const struct drm_encoder_helper_funcs
 	.disable = via_tmds_disable,
 };
 
-static enum drm_connector_status
-via_tmds_detect(struct drm_connector *connector, bool force)
+static enum drm_connector_status via_tmds_detect(
+					struct drm_connector *connector,
+					bool force)
 {
 	struct via_connector *con = container_of(connector, struct via_connector, base);
 	enum drm_connector_status ret = connector_status_disconnected;

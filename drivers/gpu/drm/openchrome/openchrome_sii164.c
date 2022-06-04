@@ -42,7 +42,8 @@
 #define SII164_PDB		BIT(0)
 
 
-static void openchrome_sii164_power(struct i2c_adapter *i2c_bus, bool power_state)
+static void openchrome_sii164_power(struct i2c_adapter *i2c_bus,
+					bool power_state)
 {
 	u8 buf;
 	u8 power_bit;
@@ -80,8 +81,7 @@ static bool openchrome_sii164_sense(struct i2c_adapter *i2c_bus)
 	return rx_detected;
 }
 
-static void openchrome_sii164_display_registers(
-					struct i2c_adapter *i2c_bus)
+static void openchrome_sii164_display_registers(struct i2c_adapter *i2c_bus)
 {
 	uint8_t i;
 	u8 buf;
@@ -97,8 +97,7 @@ static void openchrome_sii164_display_registers(
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void openchrome_sii164_init_registers(
-					struct i2c_adapter *i2c_bus)
+static void openchrome_sii164_init_registers(struct i2c_adapter *i2c_bus)
 {
 	u8 buf;
 
@@ -191,8 +190,8 @@ static bool openchrome_sii164_mode_fixup(struct drm_encoder *encoder,
 }
 
 static void openchrome_sii164_mode_set(struct drm_encoder *encoder,
-					struct drm_display_mode *mode,
-					struct drm_display_mode *adjusted_mode)
+				struct drm_display_mode *mode,
+				struct drm_display_mode *adjusted_mode)
 {
 	struct via_crtc *iga = container_of(encoder->crtc, struct via_crtc, base);
 	struct via_encoder *enc = container_of(encoder,

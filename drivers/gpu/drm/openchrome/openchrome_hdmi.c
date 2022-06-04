@@ -48,8 +48,7 @@ static const struct drm_encoder_funcs via_hdmi_enc_funcs = {
 	.destroy = via_encoder_cleanup,
 };
 
-static void
-via_hdmi_enc_dpms(struct drm_encoder *encoder, int mode)
+static void via_hdmi_enc_dpms(struct drm_encoder *encoder, int mode)
 {
 	struct drm_device *dev = encoder->dev;
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
@@ -74,10 +73,9 @@ via_hdmi_enc_dpms(struct drm_encoder *encoder, int mode)
 	}
 }
 
-static bool
-via_hdmi_enc_mode_fixup(struct drm_encoder *encoder,
-		 const struct drm_display_mode *mode,
-		 struct drm_display_mode *adjusted_mode)
+static bool via_hdmi_enc_mode_fixup(struct drm_encoder *encoder,
+				const struct drm_display_mode *mode,
+				struct drm_display_mode *adjusted_mode)
 {
 	uint32_t panelHSyncTime = 0, panelHBlankStart = 0, newHBlankStart = 0;
 	uint32_t panelVSyncTime = 0, panelVBlankStart = 0, newVBlankStart = 0;
@@ -157,9 +155,9 @@ via_hdmi_enc_mode_fixup(struct drm_encoder *encoder,
 	return true;
 }
 
-static void
-via_hdmi_native_mode_set(struct via_crtc *iga, struct drm_display_mode *mode,
-			bool audio_off)
+static void via_hdmi_native_mode_set(struct via_crtc *iga,
+					struct drm_display_mode *mode,
+					bool audio_off)
 {
 	struct drm_device *dev = iga->base.dev;
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
@@ -242,10 +240,9 @@ via_hdmi_native_mode_set(struct via_crtc *iga, struct drm_display_mode *mode,
 	svga_wcrt_mask(VGABASE, 0xFF, value, BIT(1) | BIT(0));
 }
 
-static void
-via_hdmi_enc_mode_set(struct drm_encoder *encoder,
-		struct drm_display_mode *mode,
-		struct drm_display_mode *adjusted_mode)
+static void via_hdmi_enc_mode_set(struct drm_encoder *encoder,
+				struct drm_display_mode *mode,
+				struct drm_display_mode *adjusted_mode)
 {
 	struct via_encoder *enc = container_of(encoder, struct via_encoder, base);
 	struct via_crtc *iga = container_of(encoder->crtc, struct via_crtc, base);
@@ -488,8 +485,7 @@ unsigned int via_ddc_read_bytes_by_hdmi(struct via_drm_priv *dev_priv,
 	return status;
 }
 
-struct edid *
-via_hdmi_get_edid(struct drm_connector *connector)
+struct edid* via_hdmi_get_edid(struct drm_connector *connector)
 {
 	bool print_bad_edid = !connector->bad_edid_counter || (drm_debug_enabled(DRM_UT_KMS));
 	struct drm_device *dev = connector->dev;
@@ -602,10 +598,9 @@ via_hdmi_detect(struct drm_connector *connector, bool force)
 	return ret;
 }
 
-static int
-via_hdmi_set_property(struct drm_connector *connector,
-		  struct drm_property *property,
-		  uint64_t value)
+static int via_hdmi_set_property(struct drm_connector *connector,
+					struct drm_property *property,
+					uint64_t value)
 {
 	struct drm_device *dev = connector->dev;
 
@@ -627,15 +622,13 @@ static const struct drm_connector_funcs via_hdmi_connector_funcs = {
 			drm_atomic_helper_connector_destroy_state,
 };
 
-static int
-via_hdmi_mode_valid(struct drm_connector *connector,
-			struct drm_display_mode *mode)
+static int via_hdmi_mode_valid(struct drm_connector *connector,
+				struct drm_display_mode *mode)
 {
 	return MODE_OK;
 }
 
-int
-via_hdmi_get_modes(struct drm_connector *connector)
+int via_hdmi_get_modes(struct drm_connector *connector)
 {
 	struct edid *edid = via_hdmi_get_edid(connector);
 
@@ -657,8 +650,7 @@ static const struct drm_connector_helper_funcs via_hdmi_connector_helper_funcs =
 	.get_modes = via_hdmi_get_modes,
 };
 
-void
-via_hdmi_init(struct drm_device *dev, u32 di_port)
+void via_hdmi_init(struct drm_device *dev, u32 di_port)
 {
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_connector *dvi, *hdmi;

@@ -1102,8 +1102,7 @@ exit:
 }
 
 /* Load CRTC Pixel Timing registers */
-void
-via_load_crtc_pixel_timing(struct drm_crtc *crtc,
+void via_load_crtc_pixel_timing(struct drm_crtc *crtc,
 				struct drm_display_mode *mode)
 {
 	struct drm_device *dev = crtc->dev;
@@ -1179,8 +1178,7 @@ via_load_crtc_pixel_timing(struct drm_crtc *crtc,
 }
 
 /* Load CRTC timing registers */
-void
-via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
+void via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 {
 	struct drm_device *dev = iga->base.dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
@@ -1276,8 +1274,7 @@ via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
  * crtc : which IGA
  * scale_type : upscaling(VIA_EXPAND) or downscaling(VIA_SHRINK)
  */
-void
-via_set_scale_path(struct drm_crtc *crtc, u32 scale_type)
+void via_set_scale_path(struct drm_crtc *crtc, u32 scale_type)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_device *dev = crtc->dev;
@@ -1322,8 +1319,7 @@ via_set_scale_path(struct drm_crtc *crtc, u32 scale_type)
 }
 
 /* disable IGA scaling */
-static void
-via_disable_iga_scaling(struct drm_crtc *crtc)
+static void via_disable_iga_scaling(struct drm_crtc *crtc)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_device *dev = crtc->dev;
@@ -1369,8 +1365,7 @@ via_disable_iga_scaling(struct drm_crtc *crtc)
  * scale_type	=	VIA_HOR_EXPAND or VIA_VER_EXPAND or VIA_EXPAND or
  *			VIA_SHRINK or VIA_SHRINK + VIA_EXPAND
  */
-bool
-via_set_iga_scale_function(struct drm_crtc *crtc, u32 scale_type)
+bool via_set_iga_scale_function(struct drm_crtc *crtc, u32 scale_type)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_device *dev = crtc->dev;
@@ -1531,10 +1526,9 @@ bool via_load_iga_scale_factor_regs(struct via_drm_priv *dev_priv,
 	return true;
 }
 
-void
-via_set_iga2_downscale_source_timing(struct drm_crtc *crtc,
-					struct drm_display_mode *mode,
-					struct drm_display_mode *adjusted_mode)
+void via_set_iga2_downscale_source_timing(struct drm_crtc *crtc,
+				struct drm_display_mode *mode,
+				struct drm_display_mode *adjusted_mode)
 {
 	unsigned int viewx = adjusted_mode->hdisplay,
 			viewy = adjusted_mode->vdisplay;
@@ -1842,7 +1836,7 @@ drm_crtc_helper_funcs openchrome_drm_crtc_helper_funcs = {
 };
 
 static int openchrome_primary_atomic_check(struct drm_plane *plane,
-				 struct drm_atomic_state *state)
+					struct drm_atomic_state *state)
 {
 	struct drm_plane_state *new_plane_state =
 			drm_atomic_get_new_plane_state(state, plane);
@@ -2240,8 +2234,7 @@ static const uint32_t openchrome_primary_formats[] = {
 	DRM_FORMAT_RGB332,
 };
 
-int openchrome_crtc_init(struct via_drm_priv *dev_priv,
-				uint32_t index)
+int openchrome_crtc_init(struct via_drm_priv *dev_priv, uint32_t index)
 {
 	struct drm_device *dev = &dev_priv->dev;
 	struct via_crtc *iga;

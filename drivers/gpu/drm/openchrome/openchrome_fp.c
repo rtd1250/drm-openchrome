@@ -98,9 +98,8 @@ exit:
 }
 
 /* caculate the cetering timing using mode and adjusted_mode */
-static void
-via_centering_timing(const struct drm_display_mode *mode,
-			struct drm_display_mode *adjusted_mode)
+static void via_centering_timing(const struct drm_display_mode *mode,
+				struct drm_display_mode *adjusted_mode)
 {
 	int panel_hsync_time = adjusted_mode->hsync_end -
 		adjusted_mode->hsync_start;
@@ -604,10 +603,9 @@ static void via_fp_dpms(struct drm_encoder *encoder, int mode)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static bool
-via_lvds_mode_fixup(struct drm_encoder *encoder,
-			const struct drm_display_mode *mode,
-			struct drm_display_mode *adjusted_mode)
+static bool via_lvds_mode_fixup(struct drm_encoder *encoder,
+				const struct drm_display_mode *mode,
+				struct drm_display_mode *adjusted_mode)
 {
 	struct drm_property *prop = encoder->dev->mode_config.scaling_mode_property;
 	struct via_crtc *iga = container_of(encoder->crtc, struct via_crtc, base);
@@ -1012,9 +1010,8 @@ exit:
 	return count;
 }
 
-static int
-via_fp_mode_valid(struct drm_connector *connector,
-			struct drm_display_mode *mode)
+static int via_fp_mode_valid(struct drm_connector *connector,
+				struct drm_display_mode *mode)
 {
 	struct drm_property *prop = connector->dev->mode_config.scaling_mode_property;
 	struct drm_display_mode *native_mode = NULL, *tmp, *t;
