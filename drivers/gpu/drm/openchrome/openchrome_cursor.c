@@ -261,7 +261,7 @@ static int openchrome_cursor_prepare_fb(struct drm_plane *plane,
 {
 	struct drm_gem_object *gem;
 	struct ttm_buffer_object *ttm_bo;
-	struct openchrome_bo *bo;
+	struct via_bo *bo;
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -298,7 +298,7 @@ static void openchrome_cursor_cleanup_fb(struct drm_plane *plane,
 {
 	struct drm_gem_object *gem;
 	struct ttm_buffer_object *ttm_bo;
-	struct openchrome_bo *bo;
+	struct via_bo *bo;
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);

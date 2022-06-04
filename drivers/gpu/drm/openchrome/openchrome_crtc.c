@@ -1903,7 +1903,7 @@ void openchrome_primary_atomic_update(struct drm_plane *plane,
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	struct drm_gem_object *gem;
 	struct ttm_buffer_object *ttm_bo;
-	struct openchrome_bo *bo;
+	struct via_bo *bo;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -1966,7 +1966,7 @@ static int openchrome_primary_prepare_fb(struct drm_plane *plane,
 {
 	struct drm_gem_object *gem;
 	struct ttm_buffer_object *ttm_bo;
-	struct openchrome_bo *bo;
+	struct via_bo *bo;
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -1996,7 +1996,7 @@ static void openchrome_primary_cleanup_fb(struct drm_plane *plane,
 {
 	struct drm_gem_object *gem;
 	struct ttm_buffer_object *ttm_bo;
-	struct openchrome_bo *bo;
+	struct via_bo *bo;
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);

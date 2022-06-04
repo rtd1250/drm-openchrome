@@ -90,7 +90,7 @@ static int openchrome_driver_dumb_create(struct drm_file *file_priv,
 					struct drm_mode_create_dumb *args)
 {
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
-	struct openchrome_bo *bo;
+	struct via_bo *bo;
 	uint32_t handle, pitch;
 	uint64_t size;
 	int ret;
@@ -135,7 +135,7 @@ static int openchrome_driver_dumb_map_offset(struct drm_file *file_priv,
 {
 	struct drm_gem_object *gem;
 	struct ttm_buffer_object *ttm_bo;
-	struct openchrome_bo *bo;
+	struct via_bo *bo;
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);

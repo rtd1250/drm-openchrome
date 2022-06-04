@@ -85,7 +85,7 @@ static void openchrome_ttm_tt_destroy(struct ttm_device *bdev,
 static void openchrome_bo_evict_flags(struct ttm_buffer_object *bo,
 					struct ttm_placement *placement)
 {
-	struct openchrome_bo *driver_bo = to_ttm_bo(bo);
+	struct via_bo *driver_bo = to_ttm_bo(bo);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 

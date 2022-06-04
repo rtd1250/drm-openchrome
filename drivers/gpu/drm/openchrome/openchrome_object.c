@@ -49,7 +49,7 @@
 static void openchrome_gem_free(struct drm_gem_object *obj)
 {
 	struct ttm_buffer_object *ttm_bo;
-	struct openchrome_bo *bo;
+	struct via_bo *bo;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -76,7 +76,7 @@ static const struct drm_gem_object_funcs openchrome_gem_object_funcs = {
 	.vm_ops = &openchrome_ttm_bo_vm_ops,
 };
 
-void openchrome_ttm_domain_to_placement(struct openchrome_bo *bo,
+void openchrome_ttm_domain_to_placement(struct via_bo *bo,
 					uint32_t ttm_domain)
 {
 	unsigned i = 0;
@@ -118,7 +118,7 @@ void openchrome_ttm_domain_to_placement(struct openchrome_bo *bo,
 
 void openchrome_ttm_bo_destroy(struct ttm_buffer_object *tbo)
 {
-	struct openchrome_bo *bo;
+	struct via_bo *bo;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -130,7 +130,7 @@ void openchrome_ttm_bo_destroy(struct ttm_buffer_object *tbo)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-int openchrome_bo_pin(struct openchrome_bo *bo,
+int openchrome_bo_pin(struct via_bo *bo,
 			uint32_t ttm_domain)
 {
 	struct ttm_operation_ctx ctx = {false, false};
@@ -156,7 +156,7 @@ exit:
 	return ret;
 }
 
-void openchrome_bo_unpin(struct openchrome_bo *bo)
+void openchrome_bo_unpin(struct via_bo *bo)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -171,15 +171,15 @@ int openchrome_bo_create(struct drm_device *dev,
 				enum ttm_bo_type type,
 				uint32_t ttm_domain,
 				bool kmap,
-				struct openchrome_bo **bo_ptr)
+				struct via_bo **bo_ptr)
 {
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
-	struct openchrome_bo *bo;
+	struct via_bo *bo;
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-//	bo = kzalloc(sizeof(struct openchrome_bo), GFP_KERNEL);
+//	bo = kzalloc(sizeof(struct via_bo), GFP_KERNEL);
 	bo = kzalloc(sizeof(*bo), GFP_KERNEL);
 	if (!bo) {
 		DRM_ERROR("Cannot allocate a TTM buffer object.\n");
@@ -249,7 +249,7 @@ exit:
 	return ret;
 }
 
-void openchrome_bo_destroy(struct openchrome_bo *bo, bool kmap)
+void openchrome_bo_destroy(struct via_bo *bo, bool kmap)
 {
 	int ret;
 

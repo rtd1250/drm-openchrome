@@ -183,7 +183,7 @@ struct via_state {
 	struct vga_regset seq_regs[256];
 };
 
-struct openchrome_bo {
+struct via_bo {
 	struct ttm_buffer_object	ttm_bo;
 	struct ttm_bo_kmap_obj		kmap;
 	struct ttm_placement		placement;
@@ -310,7 +310,7 @@ struct via_drm_priv {
  * Shortcut for using container_of macro.
  */
 #define to_via_drm_priv(x)	container_of(x, struct via_drm_priv, dev)
-#define to_ttm_bo(x)		container_of(x, struct openchrome_bo, ttm_bo)
+#define to_ttm_bo(x)		container_of(x, struct via_bo, ttm_bo)
 
 
 /* VIA MMIO register access */
@@ -366,19 +366,19 @@ void openchrome_drm_fini(struct drm_device *dev);
 int openchrome_dev_pm_ops_suspend(struct device *dev);
 int openchrome_dev_pm_ops_resume(struct device *dev);
 
-void openchrome_ttm_domain_to_placement(struct openchrome_bo *bo,
+void openchrome_ttm_domain_to_placement(struct via_bo *bo,
 					uint32_t ttm_domain);
 void openchrome_ttm_bo_destroy(struct ttm_buffer_object *tbo);
-int openchrome_bo_pin(struct openchrome_bo *bo, uint32_t ttm_domain);
-void openchrome_bo_unpin(struct openchrome_bo *bo);
+int openchrome_bo_pin(struct via_bo *bo, uint32_t ttm_domain);
+void openchrome_bo_unpin(struct via_bo *bo);
 int openchrome_bo_create(struct drm_device *dev,
 				struct ttm_device *bdev,
 				uint64_t size,
 				enum ttm_bo_type type,
 				uint32_t ttm_domain,
 				bool kmap,
-				struct openchrome_bo **bo_ptr);
-void openchrome_bo_destroy(struct openchrome_bo *bo, bool kmap);
+				struct via_bo **bo_ptr);
+void openchrome_bo_destroy(struct via_bo *bo, bool kmap);
 int openchrome_mm_init(struct via_drm_priv *dev_priv);
 void openchrome_mm_fini(struct via_drm_priv *dev_priv);
 
