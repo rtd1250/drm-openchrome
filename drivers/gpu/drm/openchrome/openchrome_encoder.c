@@ -33,7 +33,7 @@
 #include "openchrome_drv.h"
 
 
-void openchrome_transmitter_io_pad_state(struct via_drm_priv *dev_private,
+void openchrome_transmitter_io_pad_state(struct via_drm_priv *dev_priv,
 						uint32_t di_port,
 						bool io_pad_on)
 {
@@ -86,7 +86,7 @@ void openchrome_transmitter_io_pad_state(struct via_drm_priv *dev_private,
 }
 
 void openchrome_transmitter_clock_drive_strength(
-					struct via_drm_priv *dev_private,
+					struct via_drm_priv *dev_priv,
 					u32 di_port, u8 drive_strength)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -108,7 +108,7 @@ void openchrome_transmitter_clock_drive_strength(
 }
 
 void openchrome_transmitter_data_drive_strength(
-					struct via_drm_priv *dev_private,
+					struct via_drm_priv *dev_priv,
 					u32 di_port, u8 drive_strength)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -129,7 +129,7 @@ void openchrome_transmitter_data_drive_strength(
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-void openchrome_transmitter_display_source(struct via_drm_priv *dev_private,
+void openchrome_transmitter_display_source(struct via_drm_priv *dev_priv,
 						u32 di_port, int index)
 {
 	u8 display_source = index & 0x01;

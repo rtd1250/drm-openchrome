@@ -39,7 +39,7 @@ int openchrome_dev_pm_ops_suspend(struct device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev);
 	struct drm_device *drm_dev = pci_get_drvdata(pdev);
-	struct via_drm_priv *dev_private = to_via_drm_priv(drm_dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(drm_dev);
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -56,18 +56,18 @@ int openchrome_dev_pm_ops_suspend(struct device *dev)
 	if ((pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA)) {
-		dev_private->saved_sr14 = vga_rseq(VGABASE, 0x14);
+		dev_priv->saved_sr14 = vga_rseq(VGABASE, 0x14);
 
-		dev_private->saved_sr66 = vga_rseq(VGABASE, 0x66);
-		dev_private->saved_sr67 = vga_rseq(VGABASE, 0x67);
-		dev_private->saved_sr68 = vga_rseq(VGABASE, 0x68);
-		dev_private->saved_sr69 = vga_rseq(VGABASE, 0x69);
-		dev_private->saved_sr6a = vga_rseq(VGABASE, 0x6a);
-		dev_private->saved_sr6b = vga_rseq(VGABASE, 0x6b);
-		dev_private->saved_sr6c = vga_rseq(VGABASE, 0x6c);
-		dev_private->saved_sr6d = vga_rseq(VGABASE, 0x6d);
-		dev_private->saved_sr6e = vga_rseq(VGABASE, 0x6e);
-		dev_private->saved_sr6f = vga_rseq(VGABASE, 0x6f);
+		dev_priv->saved_sr66 = vga_rseq(VGABASE, 0x66);
+		dev_priv->saved_sr67 = vga_rseq(VGABASE, 0x67);
+		dev_priv->saved_sr68 = vga_rseq(VGABASE, 0x68);
+		dev_priv->saved_sr69 = vga_rseq(VGABASE, 0x69);
+		dev_priv->saved_sr6a = vga_rseq(VGABASE, 0x6a);
+		dev_priv->saved_sr6b = vga_rseq(VGABASE, 0x6b);
+		dev_priv->saved_sr6c = vga_rseq(VGABASE, 0x6c);
+		dev_priv->saved_sr6d = vga_rseq(VGABASE, 0x6d);
+		dev_priv->saved_sr6e = vga_rseq(VGABASE, 0x6e);
+		dev_priv->saved_sr6f = vga_rseq(VGABASE, 0x6f);
 	}
 
 	/*
@@ -76,11 +76,11 @@ int openchrome_dev_pm_ops_suspend(struct device *dev)
 	 * Their values need to be saved because they get lost
 	 * when resuming from standby.
 	 */
-	dev_private->saved_cr3b = vga_rcrt(VGABASE, 0x3b);
-	dev_private->saved_cr3c = vga_rcrt(VGABASE, 0x3c);
-	dev_private->saved_cr3d = vga_rcrt(VGABASE, 0x3d);
-	dev_private->saved_cr3e = vga_rcrt(VGABASE, 0x3e);
-	dev_private->saved_cr3f = vga_rcrt(VGABASE, 0x3f);
+	dev_priv->saved_cr3b = vga_rcrt(VGABASE, 0x3b);
+	dev_priv->saved_cr3c = vga_rcrt(VGABASE, 0x3c);
+	dev_priv->saved_cr3d = vga_rcrt(VGABASE, 0x3d);
+	dev_priv->saved_cr3e = vga_rcrt(VGABASE, 0x3e);
+	dev_priv->saved_cr3f = vga_rcrt(VGABASE, 0x3f);
 
 	console_unlock();
 
@@ -101,7 +101,7 @@ int openchrome_dev_pm_ops_resume(struct device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev);
 	struct drm_device *drm_dev = pci_get_drvdata(pdev);
-	struct via_drm_priv *dev_private = to_via_drm_priv(drm_dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(drm_dev);
 	void __iomem *regs = ioport_map(0x3c0, 100);
 	u8 val;
 	int ret = 0;
@@ -150,18 +150,18 @@ int openchrome_dev_pm_ops_resume(struct device *dev)
 	if ((pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA)) {
-		vga_wseq(VGABASE, 0x14, dev_private->saved_sr14);
+		vga_wseq(VGABASE, 0x14, dev_priv->saved_sr14);
 
-		vga_wseq(VGABASE, 0x66, dev_private->saved_sr66);
-		vga_wseq(VGABASE, 0x67, dev_private->saved_sr67);
-		vga_wseq(VGABASE, 0x68, dev_private->saved_sr68);
-		vga_wseq(VGABASE, 0x69, dev_private->saved_sr69);
-		vga_wseq(VGABASE, 0x6a, dev_private->saved_sr6a);
-		vga_wseq(VGABASE, 0x6b, dev_private->saved_sr6b);
-		vga_wseq(VGABASE, 0x6c, dev_private->saved_sr6c);
-		vga_wseq(VGABASE, 0x6d, dev_private->saved_sr6d);
-		vga_wseq(VGABASE, 0x6e, dev_private->saved_sr6e);
-		vga_wseq(VGABASE, 0x6f, dev_private->saved_sr6f);
+		vga_wseq(VGABASE, 0x66, dev_priv->saved_sr66);
+		vga_wseq(VGABASE, 0x67, dev_priv->saved_sr67);
+		vga_wseq(VGABASE, 0x68, dev_priv->saved_sr68);
+		vga_wseq(VGABASE, 0x69, dev_priv->saved_sr69);
+		vga_wseq(VGABASE, 0x6a, dev_priv->saved_sr6a);
+		vga_wseq(VGABASE, 0x6b, dev_priv->saved_sr6b);
+		vga_wseq(VGABASE, 0x6c, dev_priv->saved_sr6c);
+		vga_wseq(VGABASE, 0x6d, dev_priv->saved_sr6d);
+		vga_wseq(VGABASE, 0x6e, dev_priv->saved_sr6e);
+		vga_wseq(VGABASE, 0x6f, dev_priv->saved_sr6f);
 	}
 
 	/*
@@ -170,11 +170,11 @@ int openchrome_dev_pm_ops_resume(struct device *dev)
 	 * Their values need to be restored because they are undefined
 	 * after resuming from standby.
 	 */
-	vga_wcrt(VGABASE, 0x3b, dev_private->saved_cr3b);
-	vga_wcrt(VGABASE, 0x3c, dev_private->saved_cr3c);
-	vga_wcrt(VGABASE, 0x3d, dev_private->saved_cr3d);
-	vga_wcrt(VGABASE, 0x3e, dev_private->saved_cr3e);
-	vga_wcrt(VGABASE, 0x3f, dev_private->saved_cr3f);
+	vga_wcrt(VGABASE, 0x3b, dev_priv->saved_cr3b);
+	vga_wcrt(VGABASE, 0x3c, dev_priv->saved_cr3c);
+	vga_wcrt(VGABASE, 0x3d, dev_priv->saved_cr3d);
+	vga_wcrt(VGABASE, 0x3e, dev_priv->saved_cr3e);
+	vga_wcrt(VGABASE, 0x3f, dev_priv->saved_cr3f);
 
 	console_unlock();
 

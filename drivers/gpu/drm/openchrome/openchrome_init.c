@@ -34,7 +34,7 @@
 #include "openchrome_drv.h"
 
 
-static int cle266_mem_type(struct via_drm_priv *dev_private,
+static int cle266_mem_type(struct via_drm_priv *dev_priv,
 				struct pci_dev *bridge)
 {
 	u8 type, fsb, freq;
@@ -104,13 +104,13 @@ static int cle266_mem_type(struct via_drm_priv *dev_private,
 	case 0x00: /* SDR */
 		switch (freq) {
 		case 66:
-			dev_private->vram_type = VIA_MEM_SDR66;
+			dev_priv->vram_type = VIA_MEM_SDR66;
 			break;
 		case 100:
-			dev_private->vram_type = VIA_MEM_SDR100;
+			dev_priv->vram_type = VIA_MEM_SDR100;
 			break;
 		case 133:
-			dev_private->vram_type = VIA_MEM_SDR133;
+			dev_priv->vram_type = VIA_MEM_SDR133;
 			break;
 		default:
 			break;
@@ -120,10 +120,10 @@ static int cle266_mem_type(struct via_drm_priv *dev_private,
 	case 0x02: /* DDR */
 		switch (freq) {
 		case 100:
-			dev_private->vram_type = VIA_MEM_DDR_200;
+			dev_priv->vram_type = VIA_MEM_DDR_200;
 			break;
 		case 133:
-			dev_private->vram_type = VIA_MEM_DDR_266;
+			dev_priv->vram_type = VIA_MEM_DDR_266;
 			break;
 		default:
 			break;
@@ -135,7 +135,7 @@ static int cle266_mem_type(struct via_drm_priv *dev_private,
 	return ret;
 }
 
-static int km400_mem_type(struct via_drm_priv *dev_private,
+static int km400_mem_type(struct via_drm_priv *dev_priv,
 				struct pci_dev *bridge)
 {
 	u8 fsb, freq, rev;
@@ -161,20 +161,16 @@ static int km400_mem_type(struct via_drm_priv *dev_private,
 		case 0x00:
 			switch (freq) {
 			case 0x00:
-				dev_private->vram_type =
-						VIA_MEM_DDR_200;
+				dev_priv->vram_type = VIA_MEM_DDR_200;
 				break;
 			case 0x01:
-				dev_private->vram_type =
-						VIA_MEM_DDR_266;
+				dev_priv->vram_type = VIA_MEM_DDR_266;
 				break;
 			case 0x02:
-				dev_private->vram_type =
-						VIA_MEM_DDR_400;
+				dev_priv->vram_type = VIA_MEM_DDR_400;
 				break;
 			case 0x03:
-				dev_private->vram_type =
-						VIA_MEM_DDR_333;
+				dev_priv->vram_type = VIA_MEM_DDR_333;
 				break;
 			default:
 				break;
@@ -184,16 +180,13 @@ static int km400_mem_type(struct via_drm_priv *dev_private,
 		case 0x01:
 			switch (freq) {
 			case 0x00:
-				dev_private->vram_type =
-						VIA_MEM_DDR_266;
+				dev_priv->vram_type = VIA_MEM_DDR_266;
 				break;
 			case 0x01:
-				dev_private->vram_type =
-						VIA_MEM_DDR_333;
+				dev_priv->vram_type = VIA_MEM_DDR_333;
 				break;
 			case 0x02:
-				dev_private->vram_type =
-						VIA_MEM_DDR_400;
+				dev_priv->vram_type = VIA_MEM_DDR_400;
 				break;
 			default:
 				break;
@@ -204,15 +197,13 @@ static int km400_mem_type(struct via_drm_priv *dev_private,
 		case 0x03:
 			switch (freq) {
 			case 0x00:
-				dev_private->vram_type = VIA_MEM_DDR_333;
+				dev_priv->vram_type = VIA_MEM_DDR_333;
 				break;
 			case 0x02:
-				dev_private->vram_type =
-						VIA_MEM_DDR_400;
+				dev_priv->vram_type = VIA_MEM_DDR_400;
 				break;
 			case 0x03:
-				dev_private->vram_type =
-						VIA_MEM_DDR_266;
+				dev_priv->vram_type = VIA_MEM_DDR_266;
 				break;
 			default:
 				break;
@@ -233,23 +224,19 @@ static int km400_mem_type(struct via_drm_priv *dev_private,
 		case 0x00:
 			switch (freq) {
 			case 0x00:
-				dev_private->vram_type =
-						VIA_MEM_DDR_200;
+				dev_priv->vram_type = VIA_MEM_DDR_200;
 				break;
 			case 0x01:
-				dev_private->vram_type =
-						VIA_MEM_DDR_266;
+				dev_priv->vram_type = VIA_MEM_DDR_266;
 				break;
 			case 0x03:
-				dev_private->vram_type =
-						VIA_MEM_DDR_333;
+				dev_priv->vram_type = VIA_MEM_DDR_333;
 				break;
 			case 0x07:
-				dev_private->vram_type =
-						VIA_MEM_DDR_400;
+				dev_priv->vram_type = VIA_MEM_DDR_400;
 				break;
 			default:
-				dev_private->vram_type = VIA_MEM_NONE;
+				dev_priv->vram_type = VIA_MEM_NONE;
 				break;
 			}
 			break;
@@ -257,16 +244,13 @@ static int km400_mem_type(struct via_drm_priv *dev_private,
 		case 0x01:
 			switch (freq) {
 			case 0x00:
-				dev_private->vram_type =
-						VIA_MEM_DDR_266;
+				dev_priv->vram_type = VIA_MEM_DDR_266;
 				break;
 			case 0x01:
-				dev_private->vram_type =
-						VIA_MEM_DDR_333;
+				dev_priv->vram_type = VIA_MEM_DDR_333;
 				break;
 			case 0x03:
-				dev_private->vram_type =
-						VIA_MEM_DDR_400;
+				dev_priv->vram_type = VIA_MEM_DDR_400;
 				break;
 			default:
 				break;
@@ -276,16 +260,13 @@ static int km400_mem_type(struct via_drm_priv *dev_private,
 		case 0x02:
 			switch (freq) {
 			case 0x00:
-				dev_private->vram_type =
-						VIA_MEM_DDR_400;
+				dev_priv->vram_type = VIA_MEM_DDR_400;
 				break;
 			case 0x04:
-				dev_private->vram_type =
-						VIA_MEM_DDR_333;
+				dev_priv->vram_type = VIA_MEM_DDR_333;
 				break;
 			case 0x06:
-				dev_private->vram_type =
-						VIA_MEM_DDR_266;
+				dev_priv->vram_type = VIA_MEM_DDR_266;
 				break;
 			default:
 				break;
@@ -295,16 +276,13 @@ static int km400_mem_type(struct via_drm_priv *dev_private,
 		case 0x03:
 			switch (freq) {
 			case 0x00:
-				dev_private->vram_type =
-						VIA_MEM_DDR_333;
+				dev_priv->vram_type = VIA_MEM_DDR_333;
 				break;
 			case 0x01:
-				dev_private->vram_type =
-						VIA_MEM_DDR_400;
+				dev_priv->vram_type = VIA_MEM_DDR_400;
 				break;
 			case 0x04:
-				dev_private->vram_type =
-						VIA_MEM_DDR_266;
+				dev_priv->vram_type = VIA_MEM_DDR_266;
 				break;
 			default:
 				break;
@@ -317,7 +295,7 @@ static int km400_mem_type(struct via_drm_priv *dev_private,
 	return ret;
 }
 
-static int p4m800_mem_type(struct via_drm_priv *dev_private,
+static int p4m800_mem_type(struct via_drm_priv *dev_priv,
 				struct pci_bus *bus,
 				struct pci_dev *fn3)
 {
@@ -368,16 +346,16 @@ static int p4m800_mem_type(struct via_drm_priv *dev_private,
 
 	switch (freq) {
 	case 0x03:
-		dev_private->vram_type = VIA_MEM_DDR_200;
+		dev_priv->vram_type = VIA_MEM_DDR_200;
 		break;
 	case 0x04:
-		dev_private->vram_type = VIA_MEM_DDR_266;
+		dev_priv->vram_type = VIA_MEM_DDR_266;
 		break;
 	case 0x05:
-		dev_private->vram_type = VIA_MEM_DDR_333;
+		dev_priv->vram_type = VIA_MEM_DDR_333;
 		break;
 	case 0x06:
-		dev_private->vram_type = VIA_MEM_DDR_400;
+		dev_priv->vram_type = VIA_MEM_DDR_400;
 		break;
 	default:
 		break;
@@ -385,7 +363,7 @@ static int p4m800_mem_type(struct via_drm_priv *dev_private,
 	return ret;
 }
 
-static int km8xx_mem_type(struct via_drm_priv *dev_private)
+static int km8xx_mem_type(struct via_drm_priv *dev_priv)
 {
 	struct pci_dev *dram, *misc = NULL;
 	int ret = -ENXIO;
@@ -402,20 +380,16 @@ static int km8xx_mem_type(struct via_drm_priv *dev_private)
 			pci_read_config_byte(dram, 0x94, &type);
 			switch (type & 0x03) {
 			case 0x00:
-				dev_private->vram_type =
-						VIA_MEM_DDR2_400;
+				dev_priv->vram_type = VIA_MEM_DDR2_400;
 				break;
 			case 0x01:
-				dev_private->vram_type =
-						VIA_MEM_DDR2_533;
+				dev_priv->vram_type = VIA_MEM_DDR2_533;
 				break;
 			case 0x02:
-				dev_private->vram_type =
-						VIA_MEM_DDR2_667;
+				dev_priv->vram_type = VIA_MEM_DDR2_667;
 				break;
 			case 0x03:
-				dev_private->vram_type =
-						VIA_MEM_DDR2_800;
+				dev_priv->vram_type = VIA_MEM_DDR2_800;
 				break;
 			default:
 				break;
@@ -429,20 +403,16 @@ static int km8xx_mem_type(struct via_drm_priv *dev_private)
 
 			switch (type) {
 			case 0x00:
-				dev_private->vram_type =
-						VIA_MEM_DDR_200;
+				dev_priv->vram_type = VIA_MEM_DDR_200;
 				break;
 			case 0x02:
-				dev_private->vram_type =
-						VIA_MEM_DDR_266;
+				dev_priv->vram_type = VIA_MEM_DDR_266;
 				break;
 			case 0x05:
-				dev_private->vram_type =
-						VIA_MEM_DDR_333;
+				dev_priv->vram_type = VIA_MEM_DDR_333;
 				break;
 			case 0x07:
-				dev_private->vram_type =
-						VIA_MEM_DDR_400;
+				dev_priv->vram_type = VIA_MEM_DDR_400;
 				break;
 			default:
 				break;
@@ -464,20 +434,16 @@ static int km8xx_mem_type(struct via_drm_priv *dev_private)
 		if (type & 0x01) {	/* DDR3 */
 			switch (tmp & 0x07) {
 			case 0x03:
-				dev_private->vram_type =
-						VIA_MEM_DDR3_800;
+				dev_priv->vram_type = VIA_MEM_DDR3_800;
 				break;
 			case 0x04:
-				dev_private->vram_type =
-						VIA_MEM_DDR3_1066;
+				dev_priv->vram_type = VIA_MEM_DDR3_1066;
 				break;
 			case 0x05:
-				dev_private->vram_type =
-						VIA_MEM_DDR3_1333;
+				dev_priv->vram_type = VIA_MEM_DDR3_1333;
 				break;
 			case 0x06:
-				dev_private->vram_type =
-						VIA_MEM_DDR3_1600;
+				dev_priv->vram_type = VIA_MEM_DDR3_1600;
 				break;
 			default:
 				break;
@@ -485,24 +451,19 @@ static int km8xx_mem_type(struct via_drm_priv *dev_private)
 		} else {		/* DDR2 */
 			switch (tmp & 0x07) {
 			case 0x00:
-				dev_private->vram_type =
-						VIA_MEM_DDR2_400;
+				dev_priv->vram_type = VIA_MEM_DDR2_400;
 				break;
 			case 0x01:
-				dev_private->vram_type =
-						VIA_MEM_DDR2_533;
+				dev_priv->vram_type = VIA_MEM_DDR2_533;
 				break;
 			case 0x02:
-				dev_private->vram_type =
-						VIA_MEM_DDR2_667;
+				dev_priv->vram_type = VIA_MEM_DDR2_667;
 				break;
 			case 0x03:
-				dev_private->vram_type =
-						VIA_MEM_DDR2_800;
+				dev_priv->vram_type = VIA_MEM_DDR2_800;
 				break;
 			case 0x04:
-				dev_private->vram_type =
-						VIA_MEM_DDR2_1066;
+				dev_priv->vram_type = VIA_MEM_DDR2_1066;
 				break;
 			default:
 				break;
@@ -520,13 +481,13 @@ static int km8xx_mem_type(struct via_drm_priv *dev_private)
 
 		switch (tmp & 0x07) {
 		case 0x01:
-			dev_private->vram_type = VIA_MEM_DDR2_533;
+			dev_priv->vram_type = VIA_MEM_DDR2_533;
 			break;
 		case 0x02:
-			dev_private->vram_type = VIA_MEM_DDR2_667;
+			dev_priv->vram_type = VIA_MEM_DDR2_667;
 			break;
 		case 0x03:
-			dev_private->vram_type = VIA_MEM_DDR2_800;
+			dev_priv->vram_type = VIA_MEM_DDR2_800;
 			break;
 		default:
 			break;
@@ -535,7 +496,7 @@ static int km8xx_mem_type(struct via_drm_priv *dev_private)
 	return ret;
 }
 
-static int cn400_mem_type(struct via_drm_priv *dev_private,
+static int cn400_mem_type(struct via_drm_priv *dev_priv,
 				struct pci_bus *bus,
 				struct pci_dev *fn3)
 {
@@ -582,16 +543,16 @@ static int cn400_mem_type(struct via_drm_priv *dev_private,
 
 	switch (freq) {
 	case 0x03:
-		dev_private->vram_type = VIA_MEM_DDR_200;
+		dev_priv->vram_type = VIA_MEM_DDR_200;
 		break;
 	case 0x04:
-		dev_private->vram_type = VIA_MEM_DDR_266;
+		dev_priv->vram_type = VIA_MEM_DDR_266;
 		break;
 	case 0x05:
-		dev_private->vram_type = VIA_MEM_DDR_333;
+		dev_priv->vram_type = VIA_MEM_DDR_333;
 		break;
 	case 0x06:
-		dev_private->vram_type = VIA_MEM_DDR_400;
+		dev_priv->vram_type = VIA_MEM_DDR_400;
 		break;
 	default:
 		break;
@@ -599,7 +560,7 @@ static int cn400_mem_type(struct via_drm_priv *dev_private,
 	return ret;
 }
 
-static int cn700_mem_type(struct via_drm_priv *dev_private,
+static int cn700_mem_type(struct via_drm_priv *dev_priv,
 				struct pci_dev *fn3)
 {
 	int ret;
@@ -609,22 +570,22 @@ static int cn700_mem_type(struct via_drm_priv *dev_private,
 	if (!ret) {
 		switch (tmp & 0x07) {
 		case 0x00:
-			dev_private->vram_type = VIA_MEM_DDR_200;
+			dev_priv->vram_type = VIA_MEM_DDR_200;
 			break;
 		case 0x01:
-			dev_private->vram_type = VIA_MEM_DDR_266;
+			dev_priv->vram_type = VIA_MEM_DDR_266;
 			break;
 		case 0x02:
-			dev_private->vram_type = VIA_MEM_DDR_333;
+			dev_priv->vram_type = VIA_MEM_DDR_333;
 			break;
 		case 0x03:
-			dev_private->vram_type = VIA_MEM_DDR_400;
+			dev_priv->vram_type = VIA_MEM_DDR_400;
 			break;
 		case 0x04:
-			dev_private->vram_type = VIA_MEM_DDR2_400;
+			dev_priv->vram_type = VIA_MEM_DDR2_400;
 			break;
 		case 0x05:
-			dev_private->vram_type = VIA_MEM_DDR2_533;
+			dev_priv->vram_type = VIA_MEM_DDR2_533;
 			break;
 		default:
 			break;
@@ -633,7 +594,7 @@ static int cn700_mem_type(struct via_drm_priv *dev_private,
 	return ret;
 }
 
-static int cx700_mem_type(struct via_drm_priv *dev_private,
+static int cx700_mem_type(struct via_drm_priv *dev_priv,
 				struct pci_dev *fn3)
 {
 	u8 type, clock;
@@ -652,16 +613,16 @@ static int cx700_mem_type(struct via_drm_priv *dev_private,
 	case 0:
 		switch (clock & 0x07) {
 		case 0:
-			dev_private->vram_type = VIA_MEM_DDR_200;
+			dev_priv->vram_type = VIA_MEM_DDR_200;
 			break;
 		case 1:
-			dev_private->vram_type = VIA_MEM_DDR_266;
+			dev_priv->vram_type = VIA_MEM_DDR_266;
 			break;
 		case 2:
-			dev_private->vram_type = VIA_MEM_DDR_333;
+			dev_priv->vram_type = VIA_MEM_DDR_333;
 			break;
 		case 3:
-			dev_private->vram_type = VIA_MEM_DDR_400;
+			dev_priv->vram_type = VIA_MEM_DDR_400;
 			break;
 		default:
 			break;
@@ -671,16 +632,16 @@ static int cx700_mem_type(struct via_drm_priv *dev_private,
 	case 1:
 		switch (clock & 0x07) {
 		case 3:
-			dev_private->vram_type = VIA_MEM_DDR2_400;
+			dev_priv->vram_type = VIA_MEM_DDR2_400;
 			break;
 		case 4:
-			dev_private->vram_type = VIA_MEM_DDR2_533;
+			dev_priv->vram_type = VIA_MEM_DDR2_533;
 			break;
 		case 5:
-			dev_private->vram_type = VIA_MEM_DDR2_667;
+			dev_priv->vram_type = VIA_MEM_DDR2_667;
 			break;
 		case 6:
-			dev_private->vram_type = VIA_MEM_DDR2_800;
+			dev_priv->vram_type = VIA_MEM_DDR2_800;
 			break;
 		default:
 			break;
@@ -692,7 +653,7 @@ static int cx700_mem_type(struct via_drm_priv *dev_private,
 	return ret;
 }
 
-static int vx900_mem_type(struct via_drm_priv *dev_private,
+static int vx900_mem_type(struct via_drm_priv *dev_priv,
 				struct pci_dev *fn3)
 {
 	int ret;
@@ -715,23 +676,21 @@ static int vx900_mem_type(struct via_drm_priv *dev_private,
 		switch (clock & 0x0F) {
 		case 0:
 			if (volt)
-				dev_private->vram_type =
-						VIA_MEM_DDR2_800;
+				dev_priv->vram_type = VIA_MEM_DDR2_800;
 			else
-				dev_private->vram_type =
-						VIA_MEM_DDR2_533;
+				dev_priv->vram_type = VIA_MEM_DDR2_533;
 			break;
 		case 4:
-			dev_private->vram_type = VIA_MEM_DDR2_533;
+			dev_priv->vram_type = VIA_MEM_DDR2_533;
 			break;
 		case 5:
-			dev_private->vram_type = VIA_MEM_DDR2_667;
+			dev_priv->vram_type = VIA_MEM_DDR2_667;
 			break;
 		case 6:
-			dev_private->vram_type = VIA_MEM_DDR2_800;
+			dev_priv->vram_type = VIA_MEM_DDR2_800;
 			break;
 		case 7:
-			dev_private->vram_type = VIA_MEM_DDR2_1066;
+			dev_priv->vram_type = VIA_MEM_DDR2_1066;
 			break;
 		default:
 			break;
@@ -741,23 +700,21 @@ static int vx900_mem_type(struct via_drm_priv *dev_private,
 		switch (clock & 0x0F) {
 		case 0:
 			if (volt)
-				dev_private->vram_type =
-						VIA_MEM_DDR3_800;
+				dev_priv->vram_type = VIA_MEM_DDR3_800;
 			else
-				dev_private->vram_type =
-						VIA_MEM_DDR3_533;
+				dev_priv->vram_type = VIA_MEM_DDR3_533;
 			break;
 		case 4:
-			dev_private->vram_type = VIA_MEM_DDR3_533;
+			dev_priv->vram_type = VIA_MEM_DDR3_533;
 			break;
 		case 5:
-			dev_private->vram_type = VIA_MEM_DDR3_667;
+			dev_priv->vram_type = VIA_MEM_DDR3_667;
 			break;
 		case 6:
-			dev_private->vram_type = VIA_MEM_DDR3_800;
+			dev_priv->vram_type = VIA_MEM_DDR3_800;
 			break;
 		case 7:
-			dev_private->vram_type = VIA_MEM_DDR3_1066;
+			dev_priv->vram_type = VIA_MEM_DDR3_1066;
 			break;
 		default:
 			break;
@@ -767,9 +724,9 @@ static int vx900_mem_type(struct via_drm_priv *dev_private,
 	return ret;
 }
 
-int openchrome_vram_detect(struct via_drm_priv *dev_private)
+int openchrome_vram_detect(struct via_drm_priv *dev_priv)
 {
-	struct drm_device *dev = &dev_private->dev;
+	struct drm_device *dev = &dev_priv->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct pci_dev *bridge = NULL;
 	struct pci_dev *fn3 = NULL;
@@ -803,48 +760,43 @@ int openchrome_vram_detect(struct via_drm_priv *dev_private)
 	}
 
 	if (pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA) {
-		dev_private->vram_start =
-				pci_resource_start(pdev, 2);
+		dev_priv->vram_start = pci_resource_start(pdev, 2);
 	} else {
-		dev_private->vram_start =
-				pci_resource_start(pdev, 0);
+		dev_priv->vram_start = pci_resource_start(pdev, 0);
 	}
 
 	switch (bridge->device) {
 
 	/* CLE266 */
 	case PCI_DEVICE_ID_VIA_862X_0:
-		ret = cle266_mem_type(dev_private, bridge);
+		ret = cle266_mem_type(dev_priv, bridge);
 		if (ret)
 			goto out_err;
 
 		ret = pci_read_config_byte(bridge, 0xE1, &size);
 		if (ret)
 			goto out_err;
-		dev_private->vram_size =
-				(1 << ((size & 0x70) >> 4)) << 20;
+		dev_priv->vram_size = (1 << ((size & 0x70) >> 4)) << 20;
 		break;
 
 	/* KM400 / KN400 / KM400A / KN400A */
 	case PCI_DEVICE_ID_VIA_8378_0:
-		ret = km400_mem_type(dev_private, bridge);
+		ret = km400_mem_type(dev_priv, bridge);
 
 		ret = pci_read_config_byte(bridge, 0xE1, &size);
 		if (ret)
 			goto out_err;
-		dev_private->vram_size =
-				(1 << ((size & 0x70) >> 4)) << 20;
+		dev_priv->vram_size = (1 << ((size & 0x70) >> 4)) << 20;
 		break;
 
 	/* P4M800 */
 	case PCI_DEVICE_ID_VIA_3296_0:
-		ret = p4m800_mem_type(dev_private, bus, fn3);
+		ret = p4m800_mem_type(dev_priv, bus, fn3);
 
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
 		if (ret)
 			goto out_err;
-		dev_private->vram_size =
-				(1 << ((size & 0x70) >> 4)) << 20;
+		dev_priv->vram_size = (1 << ((size & 0x70) >> 4)) << 20;
 		break;
 
 	/* K8M800 / K8N800 */
@@ -854,13 +806,12 @@ int openchrome_vram_detect(struct via_drm_priv *dev_private)
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
 		if (ret)
 			goto out_err;
-		dev_private->vram_size =
-				(1 << ((size & 0x70) >> 4)) << 20;
+		dev_priv->vram_size = (1 << ((size & 0x70) >> 4)) << 20;
 
 		if (bridge->device == PCI_DEVICE_ID_VIA_VT3336)
-			dev_private->vram_size <<= 2;
+			dev_priv->vram_size <<= 2;
 
-		ret = km8xx_mem_type(dev_private);
+		ret = km8xx_mem_type(dev_priv);
 		if (ret)
 			goto out_err;
 		break;
@@ -870,10 +821,9 @@ int openchrome_vram_detect(struct via_drm_priv *dev_private)
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
 		if (ret)
 			goto out_err;
-		dev_private->vram_size =
-				(1 << ((size & 0x70) >> 4)) << 20;
+		dev_priv->vram_size = (1 << ((size & 0x70) >> 4)) << 20;
 
-		ret = cn400_mem_type(dev_private, bus, fn3);
+		ret = cn400_mem_type(dev_priv, bus, fn3);
 		if (ret)
 			goto out_err;
 		break;
@@ -885,13 +835,12 @@ int openchrome_vram_detect(struct via_drm_priv *dev_private)
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
 		if (ret)
 			goto out_err;
-		dev_private->vram_size =
-				(1 << ((size & 0x70) >> 4)) << 20;
+		dev_priv->vram_size = (1 << ((size & 0x70) >> 4)) << 20;
 
 		if (bridge->device != PCI_DEVICE_ID_VIA_P4M800CE)
-			dev_private->vram_size <<= 2;
+			dev_priv->vram_size <<= 2;
 
-		ret = cn700_mem_type(dev_private, fn3);
+		ret = cn700_mem_type(dev_priv, fn3);
 		if  (ret)
 			goto out_err;
 		break;
@@ -907,10 +856,9 @@ int openchrome_vram_detect(struct via_drm_priv *dev_private)
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
 		if (ret)
 			goto out_err;
-		dev_private->vram_size =
-				(1 << ((size & 0x70) >> 4)) << 22;
+		dev_priv->vram_size = (1 << ((size & 0x70) >> 4)) << 22;
 
-		ret = cx700_mem_type(dev_private, fn3);
+		ret = cx700_mem_type(dev_priv, fn3);
 		if (ret)
 			goto out_err;
 		break;
@@ -920,10 +868,9 @@ int openchrome_vram_detect(struct via_drm_priv *dev_private)
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
 		if (ret)
 			goto out_err;
-		dev_private->vram_size =
-				(1 << ((size & 0x70) >> 4)) << 22;
+		dev_priv->vram_size = (1 << ((size & 0x70) >> 4)) << 22;
 
-		ret = vx900_mem_type(dev_private, fn3);
+		ret = vx900_mem_type(dev_priv, fn3);
 		if (ret)
 			goto out_err;
 		break;
@@ -934,7 +881,7 @@ int openchrome_vram_detect(struct via_drm_priv *dev_private)
 		goto out_err;
 	}
 
-	switch (dev_private->vram_type) {
+	switch (dev_priv->vram_type) {
 	case VIA_MEM_SDR66:
 		name = "SDR 66";
 		break;
@@ -1004,19 +951,19 @@ out_err:
 	return ret;
 }
 
-static void openchrome_flag_init(struct via_drm_priv *dev_private)
+static void openchrome_flag_init(struct via_drm_priv *dev_priv)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	/* Set this flag for ttm_bo_device_init. */
-	dev_private->need_dma32 = true;
+	dev_priv->need_dma32 = true;
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void openchrome_quirks_init(struct via_drm_priv *dev_private)
+static void openchrome_quirks_init(struct via_drm_priv *dev_priv)
 {
-	struct drm_device *dev = &dev_private->dev;
+	struct drm_device *dev = &dev_priv->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -1033,9 +980,9 @@ static void openchrome_quirks_init(struct via_drm_priv *dev_private)
 	if ((pdev->device == PCI_DEVICE_ID_VIA_VT3157) &&
 		(pdev->subsystem_vendor == 0x1509) &&
 		(pdev->subsystem_device == 0x2d30)) {
-		dev_private->is_via_nanobook = true;
+		dev_priv->is_via_nanobook = true;
 	} else {
-		dev_private->is_via_nanobook = false;
+		dev_priv->is_via_nanobook = false;
 	}
 
 	/*
@@ -1046,9 +993,9 @@ static void openchrome_quirks_init(struct via_drm_priv *dev_private)
 	if ((pdev->device == PCI_DEVICE_ID_VIA_VT1122) &&
 		(pdev->subsystem_vendor == 0x152d) &&
 		(pdev->subsystem_device == 0x0771)) {
-		dev_private->is_quanta_il1 = true;
+		dev_priv->is_quanta_il1 = true;
 	} else {
-		dev_private->is_quanta_il1 = false;
+		dev_priv->is_quanta_il1 = false;
 	}
 
 	/*
@@ -1060,46 +1007,45 @@ static void openchrome_quirks_init(struct via_drm_priv *dev_private)
 	if ((pdev->device == PCI_DEVICE_ID_VIA_VT1122) &&
 		(pdev->subsystem_vendor == 0x144d) &&
 		(pdev->subsystem_device == 0xc04e)) {
-		dev_private->is_samsung_nc20 = true;
+		dev_priv->is_samsung_nc20 = true;
 	} else {
-		dev_private->is_samsung_nc20 = false;
+		dev_priv->is_samsung_nc20 = false;
 	}
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-int openchrome_vram_init(struct via_drm_priv *dev_private)
+int openchrome_vram_init(struct via_drm_priv *dev_priv)
 {
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	/* Add an MTRR for the video RAM. */
-	dev_private->vram_mtrr = arch_phys_wc_add(
-					dev_private->vram_start,
-					dev_private->vram_size);
+	dev_priv->vram_mtrr = arch_phys_wc_add(dev_priv->vram_start,
+						dev_priv->vram_size);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
 
-void openchrome_vram_fini(struct via_drm_priv *dev_private)
+void openchrome_vram_fini(struct via_drm_priv *dev_priv)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if (dev_private->vram_mtrr) {
-		arch_phys_wc_del(dev_private->vram_mtrr);
-		arch_io_free_memtype_wc(dev_private->vram_start,
-					dev_private->vram_size);
-		dev_private->vram_mtrr = 0;
+	if (dev_priv->vram_mtrr) {
+		arch_phys_wc_del(dev_priv->vram_mtrr);
+		arch_io_free_memtype_wc(dev_priv->vram_start,
+					dev_priv->vram_size);
+		dev_priv->vram_mtrr = 0;
 	}
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-int openchrome_mmio_init(struct via_drm_priv *dev_private)
+int openchrome_mmio_init(struct via_drm_priv *dev_priv)
 {
-	struct drm_device *dev = &dev_private->dev;
+	struct drm_device *dev = &dev_priv->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	int ret = 0;
 
@@ -1111,11 +1057,11 @@ int openchrome_mmio_init(struct via_drm_priv *dev_private)
 	 * Obtain the starting base address and size, and
 	 * map it to the OS for use.
 	 */
-	dev_private->mmio_base = pci_resource_start(pdev, 1);
-	dev_private->mmio_size = pci_resource_len(pdev, 1);
-	dev_private->mmio = ioremap(dev_private->mmio_base,
-					dev_private->mmio_size);
-	if (!dev_private->mmio) {
+	dev_priv->mmio_base = pci_resource_start(pdev, 1);
+	dev_priv->mmio_size = pci_resource_len(pdev, 1);
+	dev_priv->mmio = ioremap(dev_priv->mmio_base,
+					dev_priv->mmio_size);
+	if (!dev_priv->mmio) {
 		ret = -ENOMEM;
 		goto exit;
 	}
@@ -1125,19 +1071,19 @@ exit:
 	return ret;
 }
 
-void openchrome_mmio_fini(struct via_drm_priv *dev_private)
+void openchrome_mmio_fini(struct via_drm_priv *dev_priv)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if (dev_private->mmio) {
-		iounmap(dev_private->mmio);
-		dev_private->mmio = NULL;
+	if (dev_priv->mmio) {
+		iounmap(dev_priv->mmio);
+		dev_priv->mmio = NULL;
 	}
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-void openchrome_graphics_unlock(struct via_drm_priv *dev_private)
+void openchrome_graphics_unlock(struct via_drm_priv *dev_priv)
 {
 	uint8_t temp;
 
@@ -1165,9 +1111,9 @@ void openchrome_graphics_unlock(struct via_drm_priv *dev_private)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-void chip_revision_info(struct via_drm_priv *dev_private)
+void chip_revision_info(struct via_drm_priv *dev_priv)
 {
-	struct drm_device *dev = &dev_private->dev;
+	struct drm_device *dev = &dev_priv->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	u8 tmp;
 
@@ -1180,9 +1126,9 @@ void chip_revision_info(struct via_drm_priv *dev_private)
 		tmp = vga_rcrt(VGABASE, 0x4F);
 		vga_wcrt(VGABASE, 0x4F, 0x55);
 		if (vga_rcrt(VGABASE, 0x4F) != 0x55) {
-			dev_private->revision = CLE266_REVISION_AX;
+			dev_priv->revision = CLE266_REVISION_AX;
 		} else {
-			dev_private->revision = CLE266_REVISION_CX;
+			dev_priv->revision = CLE266_REVISION_CX;
 		}
 
 		/* Restore original CR4F value. */
@@ -1192,11 +1138,11 @@ void chip_revision_info(struct via_drm_priv *dev_private)
 	case PCI_DEVICE_ID_VIA_VT3157:
 		tmp = vga_rseq(VGABASE, 0x43);
 		if (tmp & 0x02) {
-			dev_private->revision = CX700_REVISION_700M2;
+			dev_priv->revision = CX700_REVISION_700M2;
 		} else if (tmp & 0x40) {
-			dev_private->revision = CX700_REVISION_700M;
+			dev_priv->revision = CX700_REVISION_700M;
 		} else {
-			dev_private->revision = CX700_REVISION_700;
+			dev_priv->revision = CX700_REVISION_700;
 		}
 
 		break;
@@ -1207,7 +1153,7 @@ void chip_revision_info(struct via_drm_priv *dev_private)
 	case PCI_DEVICE_ID_VIA_VX875:
 	/* VX900 Chipset */
 	case PCI_DEVICE_ID_VIA_VX900_VGA:
-		dev_private->revision = vga_rseq(VGABASE, 0x3B);
+		dev_priv->revision = vga_rseq(VGABASE, 0x3B);
 		break;
 	default:
 		break;
@@ -1216,16 +1162,16 @@ void chip_revision_info(struct via_drm_priv *dev_private)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-int openchrome_device_init(struct via_drm_priv *dev_private)
+int openchrome_device_init(struct via_drm_priv *dev_priv)
 {
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	openchrome_flag_init(dev_private);
-	openchrome_quirks_init(dev_private);
+	openchrome_flag_init(dev_priv);
+	openchrome_quirks_init(dev_priv);
 
-	ret = openchrome_vram_detect(dev_private);
+	ret = openchrome_vram_detect(dev_priv);
 	if (ret) {
 		DRM_ERROR("Failed to detect video RAM.\n");
 		goto exit;
@@ -1234,30 +1180,30 @@ int openchrome_device_init(struct via_drm_priv *dev_private)
 	/*
 	 * Map VRAM.
 	 */
-	ret = openchrome_vram_init(dev_private);
+	ret = openchrome_vram_init(dev_priv);
 	if (ret) {
 		DRM_ERROR("Failed to initialize video RAM.\n");
 		goto exit;
 	}
 
-	ret = openchrome_mmio_init(dev_private);
+	ret = openchrome_mmio_init(dev_priv);
 	if (ret) {
 		DRM_ERROR("Failed to initialize MMIO.\n");
 		goto exit;
 	}
 
-	openchrome_graphics_unlock(dev_private);
+	openchrome_graphics_unlock(dev_priv);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
 
-void openchrome_device_fini(struct via_drm_priv *dev_private)
+void openchrome_device_fini(struct via_drm_priv *dev_priv)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	openchrome_mmio_fini(dev_private);
-	openchrome_vram_fini(dev_private);
+	openchrome_mmio_fini(dev_priv);
+	openchrome_vram_fini(dev_priv);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -1269,9 +1215,9 @@ drm_mode_config_funcs openchrome_drm_mode_config_funcs = {
 	.atomic_commit		= drm_atomic_helper_commit,
 };
 
-void openchrome_mode_config_init(struct via_drm_priv *dev_private)
+void openchrome_mode_config_init(struct via_drm_priv *dev_priv)
 {
-	struct drm_device *dev = &dev_private->dev;
+	struct drm_device *dev = &dev_priv->dev;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -1284,7 +1230,7 @@ void openchrome_mode_config_init(struct via_drm_priv *dev_private)
 
 	dev->mode_config.funcs = &openchrome_drm_mode_config_funcs;
 
-	dev->mode_config.fb_base = dev_private->vram_start;
+	dev->mode_config.fb_base = dev_priv->vram_start;
 
 	dev->mode_config.preferred_depth = 24;
 	dev->mode_config.prefer_shadow_fbdev = true;
@@ -1297,26 +1243,26 @@ void openchrome_mode_config_init(struct via_drm_priv *dev_private)
 
 int openchrome_drm_init(struct drm_device *dev)
 {
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	dev_private->vram_mtrr = -ENXIO;
+	dev_priv->vram_mtrr = -ENXIO;
 
-	ret = openchrome_device_init(dev_private);
+	ret = openchrome_device_init(dev_priv);
 	if (ret) {
 		DRM_ERROR("Failed to initialize Chrome IGP.\n");
 		goto exit;
 	}
 
-	ret = openchrome_mm_init(dev_private);
+	ret = openchrome_mm_init(dev_priv);
 	if (ret) {
 		DRM_ERROR("Failed to initialize TTM.\n");
 		goto exit;
 	}
 
-	chip_revision_info(dev_private);
+	chip_revision_info(dev_priv);
 
 	ret = via_modeset_init(dev);
 	if (ret) {
@@ -1327,9 +1273,9 @@ int openchrome_drm_init(struct drm_device *dev)
 	goto exit;
 error_modeset:
 	via_modeset_fini(dev);
-	openchrome_mm_fini(dev_private);
-	openchrome_mmio_fini(dev_private);
-	openchrome_vram_fini(dev_private);
+	openchrome_mm_fini(dev_priv);
+	openchrome_mmio_fini(dev_priv);
+	openchrome_vram_fini(dev_priv);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
@@ -1337,14 +1283,14 @@ exit:
 
 void openchrome_drm_fini(struct drm_device *dev)
 {
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	via_modeset_fini(dev);
-	openchrome_mm_fini(dev_private);
-	openchrome_mmio_fini(dev_private);
-	openchrome_vram_fini(dev_private);
+	openchrome_mm_fini(dev_priv);
+	openchrome_mmio_fini(dev_priv);
+	openchrome_vram_fini(dev_priv);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }

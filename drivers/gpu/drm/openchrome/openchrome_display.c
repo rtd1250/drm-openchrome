@@ -91,7 +91,7 @@ static void
 via_init_td_timing_regs(struct drm_device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	unsigned int td_timer[4] = { 500, 50, 0, 510 }, i;
 	struct vga_registers timings;
 	u32 reg_value;
@@ -127,20 +127,20 @@ int
 via_modeset_init(struct drm_device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	uint32_t i;
 	int ret = 0;
 
-	openchrome_mode_config_init(dev_private);
+	openchrome_mode_config_init(dev_priv);
 
 	/* Initialize the number of display connectors. */
-	dev_private->number_fp = 0;
-	dev_private->number_dvi = 0;
+	dev_priv->number_fp = 0;
+	dev_priv->number_dvi = 0;
 
 	/* Init TD timing register (power sequence) */
 	via_init_td_timing_regs(dev);
 
-	via_i2c_reg_init(dev_private);
+	via_i2c_reg_init(dev_priv);
 	ret = via_i2c_init(dev);
 	if (ret) {
 		DRM_ERROR("Failed to initialize I2C bus!\n");
@@ -148,7 +148,7 @@ via_modeset_init(struct drm_device *dev)
 	}
 
 	for (i = 0; i < OPENCHROME_MAX_CRTC; i++) {
-		ret = openchrome_crtc_init(dev_private, i);
+		ret = openchrome_crtc_init(dev_priv, i);
 		if (ret) {
 			goto exit;
 		}

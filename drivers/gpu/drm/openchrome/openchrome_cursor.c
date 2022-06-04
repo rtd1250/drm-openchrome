@@ -57,7 +57,7 @@ static void openchrome_hide_cursor(struct drm_crtc *crtc)
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_crtc *iga = container_of(crtc,
 					struct via_crtc, base);
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	uint32_t temp;
 
 	switch (pdev->device) {
@@ -89,7 +89,7 @@ static void openchrome_show_cursor(struct drm_crtc *crtc)
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_crtc *iga = container_of(crtc,
 					struct via_crtc, base);
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 
 	switch (pdev->device) {
 	case PCI_DEVICE_ID_VIA_VT3157:
@@ -166,7 +166,7 @@ static void openchrome_cursor_address(struct drm_crtc *crtc,
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_crtc *iga = container_of(crtc,
 					struct via_crtc, base);
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 
 	switch (pdev->device) {
 	case PCI_DEVICE_ID_VIA_VT3157:
@@ -206,7 +206,7 @@ static void openchrome_set_hi_location(struct drm_crtc *crtc,
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_crtc *iga = container_of(crtc,
 					struct via_crtc, base);
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	uint32_t location_x = 0, location_y = 0;
 	uint32_t offset_x = 0, offset_y = 0;
 

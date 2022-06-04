@@ -33,7 +33,7 @@ static void via_i2c_setsda(void *data, int state)
 {
 	struct via_i2c_stuff *i2c = data;
 	struct drm_device *dev = i2c_get_adapdata(&i2c->adapter);
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	u8 value, mask;
 
 	if (i2c->is_active == GPIO) {
@@ -51,7 +51,7 @@ static void via_i2c_setscl(void *data, int state)
 {
 	struct via_i2c_stuff *i2c = data;
 	struct drm_device *dev = i2c_get_adapdata(&i2c->adapter);
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	u8 value, mask;
 
 	if (i2c->is_active == GPIO) {
@@ -69,7 +69,7 @@ static int via_i2c_getsda(void *data)
 {
 	struct via_i2c_stuff *i2c = data;
 	struct drm_device *dev = i2c_get_adapdata(&i2c->adapter);
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 
 	return vga_rseq(VGABASE, i2c->i2c_port) & BIT(2);
 }
@@ -78,7 +78,7 @@ static int via_i2c_getscl(void *data)
 {
 	struct via_i2c_stuff *i2c = data;
 	struct drm_device *dev = i2c_get_adapdata(&i2c->adapter);
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 
 	return vga_rseq(VGABASE, i2c->i2c_port) & BIT(3);
 }
@@ -180,7 +180,7 @@ via_i2c_writebytes(struct i2c_adapter *adapter,
 	kfree(out_buf);
 }
 
-void via_i2c_reg_init(struct via_drm_priv *dev_private)
+void via_i2c_reg_init(struct via_drm_priv *dev_priv)
 {
 	svga_wseq_mask(VGABASE, 0x31, 0x30, 0x30);
 	svga_wseq_mask(VGABASE, 0x26, 0x30, 0x30);

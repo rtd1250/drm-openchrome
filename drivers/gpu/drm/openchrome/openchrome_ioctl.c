@@ -43,7 +43,7 @@ static int openchrome_gem_create_ioctl(struct drm_device *dev,
 					struct drm_file *file_priv)
 {
 	struct drm_openchrome_gem_create *args = data;
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	struct openchrome_bo *bo;
 	uint32_t handle;
 	int ret;
@@ -51,7 +51,7 @@ static int openchrome_gem_create_ioctl(struct drm_device *dev,
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	ret = openchrome_bo_create(dev,
-					&dev_private->bdev,
+					&dev_priv->bdev,
 					args->size,
 					ttm_bo_type_device,
 					args->domain,

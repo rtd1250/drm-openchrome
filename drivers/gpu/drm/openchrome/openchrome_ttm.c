@@ -145,7 +145,7 @@ static void openchrome_bo_delete_mem_notify(struct ttm_buffer_object *bo)
 static int openchrome_bo_io_mem_reserve(struct ttm_device *bdev,
 					struct ttm_resource *mem)
 {
-	struct via_drm_priv *dev_private = container_of(bdev,
+	struct via_drm_priv *dev_priv = container_of(bdev,
 						struct via_drm_priv, bdev);
 	int ret = 0;
 
@@ -155,7 +155,7 @@ static int openchrome_bo_io_mem_reserve(struct ttm_device *bdev,
 	case TTM_PL_SYSTEM:
 		break;
 	case TTM_PL_VRAM:
-		mem->bus.offset = dev_private->vram_start +
+		mem->bus.offset = dev_priv->vram_start +
 					(mem->start << PAGE_SHIFT);
 		mem->bus.is_iomem = true;
 		break;

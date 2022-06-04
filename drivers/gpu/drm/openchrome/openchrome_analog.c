@@ -36,7 +36,7 @@
 /*
  * Enables or disables analog (VGA) output.
  */
-static void via_analog_power(struct via_drm_priv *dev_private,
+static void via_analog_power(struct via_drm_priv *dev_priv,
 				bool outputState)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -52,7 +52,7 @@ static void via_analog_power(struct via_drm_priv *dev_private,
 /*
  * Set analog (VGA) sync polarity.
  */
-static void via_analog_sync_polarity(struct via_drm_priv *dev_private,
+static void via_analog_sync_polarity(struct via_drm_priv *dev_priv,
 					unsigned int flags)
 {
 	u8 syncPolarity = 0x00;
@@ -79,7 +79,7 @@ static void via_analog_sync_polarity(struct via_drm_priv *dev_private,
 /*
  * Sets analog (VGA) display source.
  */
-static void via_analog_display_source(struct via_drm_priv *dev_private,
+static void via_analog_display_source(struct via_drm_priv *dev_priv,
 					int index)
 {
 	u8 displaySource = index;
@@ -107,26 +107,26 @@ static void
 via_analog_dpms(struct drm_encoder *encoder, int mode)
 {
 	struct drm_device *dev = encoder->dev;
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	switch (mode) {
 	case DRM_MODE_DPMS_ON:
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_ON);
-		via_analog_power(dev_private, true);
+		via_analog_power(dev_priv, true);
 		break;
 	case DRM_MODE_DPMS_STANDBY:
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_STANDBY);
-		via_analog_power(dev_private, true);
+		via_analog_power(dev_priv, true);
 		break;
 	case DRM_MODE_DPMS_SUSPEND:
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_SUSPEND);
-		via_analog_power(dev_private, true);
+		via_analog_power(dev_priv, true);
 		break;
 	case DRM_MODE_DPMS_OFF:
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_OFF);
-		via_analog_power(dev_private, false);
+		via_analog_power(dev_priv, false);
 		break;
 	default:
 		DRM_ERROR("Bad DPMS mode.");
@@ -158,13 +158,13 @@ via_analog_mode_set(struct drm_encoder *encoder,
 			struct drm_display_mode *adjusted_mode)
 {
 	struct drm_device *dev = encoder->dev;
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	struct via_crtc *iga = container_of(encoder->crtc, struct via_crtc, base);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	via_analog_sync_polarity(dev_private, adjusted_mode->flags);
-	via_analog_display_source(dev_private, iga->index);
+	via_analog_sync_polarity(dev_priv, adjusted_mode->flags);
+	via_analog_display_source(dev_priv, iga->index);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -173,13 +173,13 @@ static void
 via_analog_prepare(struct drm_encoder *encoder)
 {
 	struct drm_device *dev = encoder->dev;
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	if (encoder->crtc) {
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_OFF);
-		via_analog_power(dev_private, false);
+		via_analog_power(dev_priv, false);
 	}
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
@@ -189,13 +189,13 @@ static void
 via_analog_commit(struct drm_encoder *encoder)
 {
 	struct drm_device *dev = encoder->dev;
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	if (encoder->crtc) {
 		via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_ON);
-		via_analog_power(dev_private, true);
+		via_analog_power(dev_priv, true);
 	}
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
@@ -205,12 +205,12 @@ static void
 via_analog_disable(struct drm_encoder *encoder)
 {
 	struct drm_device *dev = encoder->dev;
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	via_analog_set_dpms_control(VGABASE, VIA_ANALOG_DPMS_OFF);
-	via_analog_power(dev_private, false);
+	via_analog_power(dev_priv, false);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -350,7 +350,7 @@ static const struct drm_connector_helper_funcs via_analog_connector_helper_funcs
 
 void via_analog_probe(struct drm_device *dev)
 {
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	u16 chipset = pdev->device;
 	u8 sr13, sr5a;
@@ -375,28 +375,28 @@ void via_analog_probe(struct drm_device *dev)
 		DRM_DEBUG_KMS("SR13: 0x%02x\n", sr13);
 
 		if (!(sr13 & BIT(2))) {
-			dev_private->analog_presence = true;
+			dev_priv->analog_presence = true;
 			DRM_DEBUG_KMS("Detected the presence of VGA.\n");
 		} else {
-			dev_private->analog_presence = false;
+			dev_priv->analog_presence = false;
 		}
 
 		/* Restore SR5A. */
 		vga_wseq(VGABASE, 0x5a, sr5a);
 		break;
 	default:
-		dev_private->analog_presence = true;
+		dev_priv->analog_presence = true;
 		DRM_DEBUG_KMS("Detected the presence of VGA.\n");
 		break;
 	}
 
-	dev_private->analog_i2c_bus = VIA_I2C_NONE;
+	dev_priv->analog_i2c_bus = VIA_I2C_NONE;
 
-	if (dev_private->analog_presence) {
-		dev_private->analog_i2c_bus = VIA_I2C_BUS2 | VIA_I2C_BUS1;
+	if (dev_priv->analog_presence) {
+		dev_priv->analog_i2c_bus = VIA_I2C_BUS2 | VIA_I2C_BUS1;
 	}
 
-	dev_private->mapped_i2c_bus |= dev_private->analog_i2c_bus;
+	dev_priv->mapped_i2c_bus |= dev_priv->analog_i2c_bus;
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -405,7 +405,7 @@ void via_analog_init(struct drm_device *dev)
 {
 	struct via_connector *con;
 	struct via_encoder *enc;
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 
 	enc = kzalloc(sizeof(*enc) + sizeof(*con), GFP_KERNEL);
 	if (!enc) {
@@ -421,7 +421,7 @@ void via_analog_init(struct drm_device *dev)
 	drm_connector_helper_add(&con->base, &via_analog_connector_helper_funcs);
 	drm_connector_register(&con->base);
 
-	con->i2c_bus = dev_private->analog_i2c_bus;
+	con->i2c_bus = dev_priv->analog_i2c_bus;
 	con->base.doublescan_allowed = false;
 	con->base.interlace_allowed = true;
 

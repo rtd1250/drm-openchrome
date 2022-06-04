@@ -199,7 +199,7 @@ via_set_vclock(struct drm_crtc *crtc, u32 clk)
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_device *dev = crtc->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	unsigned long max_loop = 50, i = 0;
 
 	if (!iga->index) {

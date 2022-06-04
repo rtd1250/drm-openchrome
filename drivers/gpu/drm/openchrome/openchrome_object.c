@@ -173,7 +173,7 @@ int openchrome_bo_create(struct drm_device *dev,
 				bool kmap,
 				struct openchrome_bo **bo_ptr)
 {
-	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	struct openchrome_bo *bo;
 	int ret;
 
@@ -203,7 +203,7 @@ int openchrome_bo_create(struct drm_device *dev,
 	bo->ttm_bo.base.funcs = &openchrome_gem_object_funcs;
 
 	openchrome_ttm_domain_to_placement(bo, ttm_domain);
-	ret = ttm_bo_init(&dev_private->bdev,
+	ret = ttm_bo_init(&dev_priv->bdev,
 				&bo->ttm_bo,
 				size,
 				type,
@@ -275,9 +275,9 @@ exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-int openchrome_mm_init(struct via_drm_priv *dev_private)
+int openchrome_mm_init(struct via_drm_priv *dev_priv)
 {
-	struct drm_device *dev = &dev_private->dev;
+	struct drm_device *dev = &dev_priv->dev;
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -285,13 +285,13 @@ int openchrome_mm_init(struct via_drm_priv *dev_private)
 	/*
 	 * Initialize bdev ttm_bo_device struct.
 	 */
-	ret = ttm_device_init(&dev_private->bdev,
+	ret = ttm_device_init(&dev_priv->bdev,
 				&openchrome_bo_driver,
 				dev->dev,
 				dev->anon_inode->i_mapping,
 				dev->vma_offset_manager,
 				false,
-				dev_private->need_dma32);
+				dev_priv->need_dma32);
 	if (ret) {
 		DRM_ERROR("Failed initializing buffer object driver.\n");
 		goto exit;
@@ -300,9 +300,9 @@ int openchrome_mm_init(struct via_drm_priv *dev_private)
 	/*
 	 * Initialize TTM range manager for VRAM management.
 	 */
-	ret = ttm_range_man_init(&dev_private->bdev, TTM_PL_VRAM,
+	ret = ttm_range_man_init(&dev_priv->bdev, TTM_PL_VRAM,
 				false,
-				dev_private->vram_size >> PAGE_SHIFT);
+				dev_priv->vram_size >> PAGE_SHIFT);
 	if (ret) {
 		DRM_ERROR("Failed initializing TTM VRAM memory manager.\n");
 		goto exit;
@@ -313,13 +313,13 @@ exit:
 	return ret;
 }
 
-void openchrome_mm_fini(struct via_drm_priv *dev_private)
+void openchrome_mm_fini(struct via_drm_priv *dev_priv)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	ttm_range_man_fini(&dev_private->bdev, TTM_PL_VRAM);
+	ttm_range_man_fini(&dev_priv->bdev, TTM_PL_VRAM);
 
-	ttm_device_fini(&dev_private->bdev);
+	ttm_device_fini(&dev_priv->bdev);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
