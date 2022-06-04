@@ -10,11 +10,11 @@ openchrome-y := openchrome_crtc.o \
 		openchrome_display.o \
 		openchrome_drv.o \
 		openchrome_encoder.o \
-		openchrome_fp.o \
 		openchrome_hdmi.o \
 		openchrome_i2c.o \
 		openchrome_init.o \
 		openchrome_ioctl.o \
+		openchrome_lvds.o \
 		openchrome_object.o \
 		openchrome_pll.o \
 		openchrome_pm.o \
