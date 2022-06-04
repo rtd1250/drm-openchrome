@@ -57,7 +57,7 @@ MODULE_PARM_DESC(modeset, "Enable DRM device driver "
 				"1 = Enabled)");
 module_param_named(modeset, via_modeset, int, 0400);
 
-static int openchrome_driver_open(struct drm_device *dev,
+static int via_driver_open(struct drm_device *dev,
 					struct drm_file *file_priv)
 {
 	int ret = 0;
@@ -68,7 +68,7 @@ static int openchrome_driver_open(struct drm_device *dev,
 	return ret;
 }
 
-static void openchrome_driver_postclose(struct drm_device *dev,
+static void via_driver_postclose(struct drm_device *dev,
 					struct drm_file *file_priv)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -76,7 +76,7 @@ static void openchrome_driver_postclose(struct drm_device *dev,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void openchrome_driver_lastclose(struct drm_device *dev)
+static void via_driver_lastclose(struct drm_device *dev)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -85,7 +85,7 @@ static void openchrome_driver_lastclose(struct drm_device *dev)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static int openchrome_driver_dumb_create(struct drm_file *file_priv,
+static int via_driver_dumb_create(struct drm_file *file_priv,
 					struct drm_device *dev,
 					struct drm_mode_create_dumb *args)
 {
@@ -103,7 +103,7 @@ static int openchrome_driver_dumb_create(struct drm_file *file_priv,
 	pitch = args->width * ((args->bpp + 7) >> 3);
 	size = pitch * args->height;
 
-	ret = openchrome_bo_create(dev,
+	ret = via_bo_create(dev,
 					&dev_priv->bdev,
 					size,
 					ttm_bo_type_device,
@@ -128,7 +128,7 @@ exit:
 	return ret;
 }
 
-static int openchrome_driver_dumb_map_offset(struct drm_file *file_priv,
+static int via_driver_dumb_map_offset(struct drm_file *file_priv,
 						struct drm_device *dev,
 						uint32_t handle,
 						uint64_t *offset)
@@ -171,12 +171,12 @@ static struct drm_driver via_driver = {
 				DRIVER_GEM |
 				DRIVER_MODESET |
 				DRIVER_ATOMIC,
-	.open = openchrome_driver_open,
-	.postclose = openchrome_driver_postclose,
-	.lastclose = openchrome_driver_lastclose,
+	.open = via_driver_open,
+	.postclose = via_driver_postclose,
+	.lastclose = via_driver_lastclose,
 	.gem_prime_mmap = drm_gem_prime_mmap,
-	.dumb_create = openchrome_driver_dumb_create,
-	.dumb_map_offset = openchrome_driver_dumb_map_offset,
+	.dumb_create = via_driver_dumb_create,
+	.dumb_map_offset = via_driver_dumb_map_offset,
 	.ioctls = via_driver_ioctls,
 	.fops = &via_driver_fops,
 	.name = DRIVER_NAME,
@@ -193,7 +193,7 @@ static struct pci_device_id via_pci_table[] = {
 
 MODULE_DEVICE_TABLE(pci, via_pci_table);
 
-static int openchrome_pci_probe(struct pci_dev *pdev,
+static int via_pci_probe(struct pci_dev *pdev,
 				const struct pci_device_id *ent)
 {
 	struct drm_device *dev;
@@ -226,7 +226,7 @@ static int openchrome_pci_probe(struct pci_dev *pdev,
 
 	pci_set_drvdata(pdev, dev);
 
-	ret = openchrome_drm_init(dev);
+	ret = via_drm_init(dev);
 	if (ret) {
 		goto error_disable_pci;
 	}
@@ -245,32 +245,32 @@ exit:
 	return ret;
 }
 
-static void openchrome_pci_remove(struct pci_dev *pdev)
+static void via_pci_remove(struct pci_dev *pdev)
 {
 	struct drm_device *dev = pci_get_drvdata(pdev);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	openchrome_drm_fini(dev);
+	via_drm_fini(dev);
 	drm_dev_unregister(dev);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static const struct dev_pm_ops via_dev_pm_ops = {
-	.suspend	= openchrome_dev_pm_ops_suspend,
-	.resume		= openchrome_dev_pm_ops_resume,
+	.suspend	= via_dev_pm_ops_suspend,
+	.resume		= via_dev_pm_ops_resume,
 };
 
 static struct pci_driver via_pci_driver = {
 	.name		= DRIVER_NAME,
 	.id_table	= via_pci_table,
-	.probe		= openchrome_pci_probe,
-	.remove		= openchrome_pci_remove,
+	.probe		= via_pci_probe,
+	.remove		= via_pci_remove,
 	.driver.pm	= &via_dev_pm_ops,
 };
 
-static int __init openchrome_init(void)
+static int __init via_init(void)
 {
 	int ret = 0;
 
@@ -295,7 +295,7 @@ exit:
 	return ret;
 }
 
-static void __exit openchrome_exit(void)
+static void __exit via_exit(void)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -308,8 +308,8 @@ exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-module_init(openchrome_init);
-module_exit(openchrome_exit);
+module_init(via_init);
+module_exit(via_exit);
 
 MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_DESCRIPTION(DRIVER_DESC);

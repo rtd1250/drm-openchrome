@@ -43,9 +43,8 @@
 #include "openchrome_drv.h"
 
 
-static void openchrome_bo_move_notify(struct ttm_buffer_object *bo,
-					bool evict,
-					struct ttm_resource *new_mem)
+static void via_bo_move_notify(struct ttm_buffer_object *bo, bool evict,
+				struct ttm_resource *new_mem)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -53,8 +52,7 @@ static void openchrome_bo_move_notify(struct ttm_buffer_object *bo,
 	return;
 }
 
-static struct ttm_tt *openchrome_ttm_tt_create(
-					struct ttm_buffer_object *bo,
+static struct ttm_tt *via_ttm_tt_create(struct ttm_buffer_object *bo,
 					uint32_t page_flags)
 {
 	struct ttm_tt *tt;
@@ -75,32 +73,29 @@ err_ttm_tt_init:
 	return NULL;
 }
 
-static void openchrome_ttm_tt_destroy(struct ttm_device *bdev,
-					struct ttm_tt *tt)
+static void via_ttm_tt_destroy(struct ttm_device *bdev, struct ttm_tt *tt)
 {
 	ttm_tt_fini(tt);
 	kfree(tt);
 }
 
-static void openchrome_bo_evict_flags(struct ttm_buffer_object *bo,
-					struct ttm_placement *placement)
+static void via_bo_evict_flags(struct ttm_buffer_object *bo,
+				struct ttm_placement *placement)
 {
 	struct via_bo *driver_bo = to_ttm_bo(bo);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if (bo->destroy == &openchrome_ttm_bo_destroy) {
+	if (bo->destroy == &via_ttm_bo_destroy) {
 		goto exit;
 	}
 
 	switch (bo->resource->mem_type) {
 	case TTM_PL_VRAM:
-		openchrome_ttm_domain_to_placement(driver_bo,
-						TTM_PL_VRAM);
+		via_ttm_domain_to_placement(driver_bo, TTM_PL_VRAM);
 		break;
 	default:
-		openchrome_ttm_domain_to_placement(driver_bo,
-						TTM_PL_SYSTEM);
+		via_ttm_domain_to_placement(driver_bo, TTM_PL_SYSTEM);
 		break;
 	}
 
@@ -109,21 +104,20 @@ exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static int openchrome_bo_move(struct ttm_buffer_object *bo,
-				bool evict,
-				struct ttm_operation_ctx *ctx,
-				struct ttm_resource *new_mem,
-				struct ttm_place *hop)
+static int via_bo_move(struct ttm_buffer_object *bo, bool evict,
+			struct ttm_operation_ctx *ctx,
+			struct ttm_resource *new_mem,
+			struct ttm_place *hop)
 {
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	openchrome_bo_move_notify(bo, evict, new_mem);
+	via_bo_move_notify(bo, evict, new_mem);
 	ret = ttm_bo_move_memcpy(bo, ctx, new_mem);
 	if (ret) {
 		swap(*new_mem, *bo->resource);
-		openchrome_bo_move_notify(bo, false, new_mem);
+		via_bo_move_notify(bo, false, new_mem);
 		swap(*new_mem, *bo->resource);
 	}
 
@@ -131,17 +125,17 @@ static int openchrome_bo_move(struct ttm_buffer_object *bo,
 	return ret;
 }
 
-static void openchrome_bo_delete_mem_notify(struct ttm_buffer_object *bo)
+static void via_bo_delete_mem_notify(struct ttm_buffer_object *bo)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	openchrome_bo_move_notify(bo, false, NULL);
+	via_bo_move_notify(bo, false, NULL);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return;
 }
 
-static int openchrome_bo_io_mem_reserve(struct ttm_device *bdev,
+static int via_bo_io_mem_reserve(struct ttm_device *bdev,
 					struct ttm_resource *mem)
 {
 	struct via_drm_priv *dev_priv = container_of(bdev,
@@ -168,11 +162,11 @@ static int openchrome_bo_io_mem_reserve(struct ttm_device *bdev,
 }
 
 struct ttm_device_funcs via_bo_driver = {
-	.ttm_tt_create = openchrome_ttm_tt_create,
-	.ttm_tt_destroy = openchrome_ttm_tt_destroy,
+	.ttm_tt_create = via_ttm_tt_create,
+	.ttm_tt_destroy = via_ttm_tt_destroy,
 	.eviction_valuable = ttm_bo_eviction_valuable,
-	.evict_flags = openchrome_bo_evict_flags,
-	.move = openchrome_bo_move,
-	.delete_mem_notify = openchrome_bo_delete_mem_notify,
-	.io_mem_reserve = openchrome_bo_io_mem_reserve,
+	.evict_flags = via_bo_evict_flags,
+	.move = via_bo_move,
+	.delete_mem_notify = via_bo_delete_mem_notify,
+	.io_mem_reserve = via_bo_io_mem_reserve,
 };

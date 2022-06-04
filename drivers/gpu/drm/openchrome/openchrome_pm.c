@@ -35,7 +35,7 @@
 #include "openchrome_drv.h"
 
 
-int openchrome_dev_pm_ops_suspend(struct device *dev)
+int via_dev_pm_ops_suspend(struct device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev);
 	struct drm_device *drm_dev = pci_get_drvdata(pdev);
@@ -97,7 +97,7 @@ exit:
 	return ret;
 }
 
-int openchrome_dev_pm_ops_resume(struct device *dev)
+int via_dev_pm_ops_resume(struct device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev);
 	struct drm_device *drm_dev = pci_get_drvdata(pdev);

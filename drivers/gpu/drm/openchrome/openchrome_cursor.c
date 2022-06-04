@@ -51,7 +51,7 @@
 #include "openchrome_drv.h"
 
 
-static void openchrome_hide_cursor(struct drm_crtc *crtc)
+static void via_hide_cursor(struct drm_crtc *crtc)
 {
 	struct drm_device *dev = crtc->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
@@ -83,7 +83,7 @@ static void openchrome_hide_cursor(struct drm_crtc *crtc)
 	}
 }
 
-static void openchrome_show_cursor(struct drm_crtc *crtc)
+static void via_show_cursor(struct drm_crtc *crtc)
 {
 	struct drm_device *dev = crtc->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
@@ -159,8 +159,8 @@ static void openchrome_show_cursor(struct drm_crtc *crtc)
 	}
 }
 
-static void openchrome_cursor_address(struct drm_crtc *crtc,
-					struct ttm_buffer_object *ttm_bo)
+static void via_cursor_address(struct drm_crtc *crtc,
+				struct ttm_buffer_object *ttm_bo)
 {
 	struct drm_device *dev = crtc->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
@@ -197,9 +197,7 @@ static void openchrome_cursor_address(struct drm_crtc *crtc,
 	return;
 }
 
-static void openchrome_set_hi_location(struct drm_crtc *crtc,
-					int crtc_x,
-					int crtc_y)
+static void via_set_hi_location(struct drm_crtc *crtc, int crtc_x, int crtc_y)
 {
 	struct drm_device *dev = crtc->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
@@ -256,8 +254,8 @@ static void openchrome_set_hi_location(struct drm_crtc *crtc,
 	}
 }
 
-static int openchrome_cursor_prepare_fb(struct drm_plane *plane,
-				struct drm_plane_state *new_state)
+static int via_cursor_prepare_fb(struct drm_plane *plane,
+					struct drm_plane_state *new_state)
 {
 	struct drm_gem_object *gem;
 	struct ttm_buffer_object *ttm_bo;
@@ -279,7 +277,7 @@ static int openchrome_cursor_prepare_fb(struct drm_plane *plane,
 		goto exit;
 	}
 
-	ret = openchrome_bo_pin(bo, TTM_PL_VRAM);
+	ret = via_bo_pin(bo, TTM_PL_VRAM);
 	ttm_bo_unreserve(&bo->ttm_bo);
 	ret = ttm_bo_kmap(&bo->ttm_bo, 0,
 				bo->ttm_bo.resource->num_pages,
@@ -293,7 +291,7 @@ exit:
 	return ret;
 }
 
-static void openchrome_cursor_cleanup_fb(struct drm_plane *plane,
+static void via_cursor_cleanup_fb(struct drm_plane *plane,
 					struct drm_plane_state *old_state)
 {
 	struct drm_gem_object *gem;
@@ -317,14 +315,14 @@ static void openchrome_cursor_cleanup_fb(struct drm_plane *plane,
 		goto exit;
 	}
 
-	openchrome_bo_unpin(bo);
+	via_bo_unpin(bo);
 	ttm_bo_unreserve(&bo->ttm_bo);
 
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static int openchrome_cursor_atomic_check(struct drm_plane *plane,
+static int via_cursor_atomic_check(struct drm_plane *plane,
 					struct drm_atomic_state *state)
 {
 	struct drm_plane_state *new_plane_state =
@@ -359,7 +357,7 @@ exit:
 	return ret;
 }
 
-static void openchrome_cursor_atomic_update(struct drm_plane *plane,
+static void via_cursor_atomic_update(struct drm_plane *plane,
 					struct drm_atomic_state *state)
 {
 	struct drm_plane_state *new_state =
@@ -375,18 +373,16 @@ static void openchrome_cursor_atomic_update(struct drm_plane *plane,
 	if (new_state->fb != old_state->fb) {
 		gem = new_state->fb->obj[0];
 		ttm_bo = container_of(gem, struct ttm_buffer_object, base);
-		openchrome_cursor_address(crtc, ttm_bo);
+		via_cursor_address(crtc, ttm_bo);
 	}
 
-	openchrome_set_hi_location(crtc,
-					new_state->crtc_x,
-					new_state->crtc_y);
-	openchrome_show_cursor(crtc);
+	via_set_hi_location(crtc, new_state->crtc_x, new_state->crtc_y);
+	via_show_cursor(crtc);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-void openchrome_cursor_atomic_disable(struct drm_plane *plane,
+void via_cursor_atomic_disable(struct drm_plane *plane,
 					struct drm_atomic_state *state)
 {
 	struct drm_plane_state *new_state =
@@ -396,18 +392,18 @@ void openchrome_cursor_atomic_disable(struct drm_plane *plane,
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	if (crtc) {
-		openchrome_hide_cursor(crtc);
+		via_hide_cursor(crtc);
 	}
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 const struct drm_plane_helper_funcs via_cursor_drm_plane_helper_funcs = {
-	.prepare_fb	= openchrome_cursor_prepare_fb,
-	.cleanup_fb	= openchrome_cursor_cleanup_fb,
-	.atomic_check	= openchrome_cursor_atomic_check,
-	.atomic_update	= openchrome_cursor_atomic_update,
-	.atomic_disable	= openchrome_cursor_atomic_disable,
+	.prepare_fb	= via_cursor_prepare_fb,
+	.cleanup_fb	= via_cursor_cleanup_fb,
+	.atomic_check	= via_cursor_atomic_check,
+	.atomic_update	= via_cursor_atomic_update,
+	.atomic_disable	= via_cursor_atomic_disable,
 };
 
 const struct drm_plane_funcs via_cursor_drm_plane_funcs = {

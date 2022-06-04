@@ -350,49 +350,42 @@ extern int via_driver_num_ioctls;
 
 extern struct ttm_device_funcs via_bo_driver;
 
-int openchrome_vram_detect(struct via_drm_priv *dev_priv);
-int openchrome_vram_init(struct via_drm_priv *dev_priv);
-void openchrome_vram_fini(struct via_drm_priv *dev_priv);
-int openchrome_mmio_init(struct via_drm_priv *dev_priv);
-void openchrome_mmio_fini(struct via_drm_priv *dev_priv);
-void openchrome_graphics_unlock(struct via_drm_priv *dev_priv);
+int via_vram_detect(struct via_drm_priv *dev_priv);
+int via_vram_init(struct via_drm_priv *dev_priv);
+void via_vram_fini(struct via_drm_priv *dev_priv);
+int via_mmio_init(struct via_drm_priv *dev_priv);
+void via_mmio_fini(struct via_drm_priv *dev_priv);
+void via_graphics_unlock(struct via_drm_priv *dev_priv);
 void chip_revision_info(struct via_drm_priv *dev_priv);
-int openchrome_device_init(struct via_drm_priv *dev_priv);
-void openchrome_device_fini(struct via_drm_priv *dev_priv);
-void openchrome_mode_config_init(struct via_drm_priv *dev_priv);
-int openchrome_drm_init(struct drm_device *dev);
-void openchrome_drm_fini(struct drm_device *dev);
+int via_device_init(struct via_drm_priv *dev_priv);
+void via_device_fini(struct via_drm_priv *dev_priv);
+void via_mode_config_init(struct via_drm_priv *dev_priv);
+int via_drm_init(struct drm_device *dev);
+void via_drm_fini(struct drm_device *dev);
 
-int openchrome_dev_pm_ops_suspend(struct device *dev);
-int openchrome_dev_pm_ops_resume(struct device *dev);
+int via_dev_pm_ops_suspend(struct device *dev);
+int via_dev_pm_ops_resume(struct device *dev);
 
-void openchrome_ttm_domain_to_placement(struct via_bo *bo,
-					uint32_t ttm_domain);
-void openchrome_ttm_bo_destroy(struct ttm_buffer_object *tbo);
-int openchrome_bo_pin(struct via_bo *bo, uint32_t ttm_domain);
-void openchrome_bo_unpin(struct via_bo *bo);
-int openchrome_bo_create(struct drm_device *dev,
-				struct ttm_device *bdev,
-				uint64_t size,
-				enum ttm_bo_type type,
-				uint32_t ttm_domain,
-				bool kmap,
-				struct via_bo **bo_ptr);
-void openchrome_bo_destroy(struct via_bo *bo, bool kmap);
-int openchrome_mm_init(struct via_drm_priv *dev_priv);
-void openchrome_mm_fini(struct via_drm_priv *dev_priv);
+void via_ttm_domain_to_placement(struct via_bo *bo, uint32_t ttm_domain);
+void via_ttm_bo_destroy(struct ttm_buffer_object *tbo);
+int via_bo_pin(struct via_bo *bo, uint32_t ttm_domain);
+void via_bo_unpin(struct via_bo *bo);
+int via_bo_create(struct drm_device *dev, struct ttm_device *bdev,
+			uint64_t size, enum ttm_bo_type type,
+			uint32_t ttm_domain, bool kmap,
+			struct via_bo **bo_ptr);
+void via_bo_destroy(struct via_bo *bo, bool kmap);
+int via_mm_init(struct via_drm_priv *dev_priv);
+void via_mm_fini(struct via_drm_priv *dev_priv);
 
-void openchrome_transmitter_io_pad_state(struct via_drm_priv *dev_priv,
-						uint32_t di_port,
-						bool io_pad_on);
-void openchrome_transmitter_clock_drive_strength(
-					struct via_drm_priv *dev_priv,
+void via_transmitter_io_pad_state(struct via_drm_priv *dev_priv,
+					uint32_t di_port, bool io_pad_on);
+void via_transmitter_clock_drive_strength(struct via_drm_priv *dev_priv,
 					u32 di_port, u8 drive_strength);
-void openchrome_transmitter_data_drive_strength(
-					struct via_drm_priv *dev_priv,
+void via_transmitter_data_drive_strength(struct via_drm_priv *dev_priv,
 					u32 di_port, u8 drive_strength);
-void openchrome_transmitter_display_source(struct via_drm_priv *dev_priv,
-						u32 di_port, int index);
+void via_transmitter_display_source(struct via_drm_priv *dev_priv,
+					u32 di_port, int index);
 
 extern const struct drm_plane_helper_funcs via_cursor_drm_plane_helper_funcs;
 extern const struct drm_plane_funcs via_cursor_drm_plane_funcs;
@@ -422,7 +415,7 @@ void via_set_vclock(struct drm_crtc *crtc, u32 clk);
 /* crtc */
 void via_load_crtc_pixel_timing(struct drm_crtc *crtc,
 				struct drm_display_mode *mode);
-int openchrome_crtc_init(struct via_drm_priv *dev_priv, uint32_t index);
+int via_crtc_init(struct via_drm_priv *dev_priv, uint32_t index);
 
 /* encoders */
 void via_encoder_cleanup(struct drm_encoder *encoder);
@@ -433,17 +426,17 @@ int via_connector_mode_valid(struct drm_connector *connector,
 void via_connector_destroy(struct drm_connector *connector);
 
 void via_dac_probe(struct drm_device *dev);
-bool openchrome_vt1632_probe(struct i2c_adapter *i2c_bus);
-bool openchrome_sii164_probe(struct i2c_adapter *i2c_bus);
-void openchrome_ext_dvi_probe(struct drm_device *dev);
+bool via_vt1632_probe(struct i2c_adapter *i2c_bus);
+bool via_sii164_probe(struct i2c_adapter *i2c_bus);
+void via_ext_dvi_probe(struct drm_device *dev);
 void via_tmds_probe(struct drm_device *dev);
 void via_lvds_probe(struct drm_device *dev);
 
 void via_hdmi_init(struct drm_device *dev, u32 di_port);
 void via_dac_init(struct drm_device *dev);
-void openchrome_vt1632_init(struct drm_device *dev);
-void openchrome_sii164_init(struct drm_device *dev);
-void openchrome_ext_dvi_init(struct drm_device *dev);
+void via_vt1632_init(struct drm_device *dev);
+void via_sii164_init(struct drm_device *dev);
+void via_ext_dvi_init(struct drm_device *dev);
 void via_tmds_init(struct drm_device *dev);
 void via_lvds_init(struct drm_device *dev);
 

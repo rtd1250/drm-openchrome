@@ -178,7 +178,7 @@ static void via_iga2_set_color_depth(struct via_drm_priv *dev_priv,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static int openchrome_gamma_set(struct drm_crtc *crtc,
+static int via_gamma_set(struct drm_crtc *crtc,
 				u16 *r, u16 *g, u16 *b,
 				uint32_t size,
 				struct drm_modeset_acquire_ctx *ctx)
@@ -332,7 +332,7 @@ exit:
 	return ret;
 }
 
-static void openchrome_crtc_destroy(struct drm_crtc *crtc)
+static void via_crtc_destroy(struct drm_crtc *crtc)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 
@@ -342,9 +342,9 @@ static void openchrome_crtc_destroy(struct drm_crtc *crtc)
 
 static const struct drm_crtc_funcs via_drm_crtc_funcs = {
 	.reset = drm_atomic_helper_crtc_reset,
-	.gamma_set = openchrome_gamma_set,
+	.gamma_set = via_gamma_set,
 	.set_config = drm_atomic_helper_set_config,
-	.destroy = openchrome_crtc_destroy,
+	.destroy = via_crtc_destroy,
 	.page_flip = drm_atomic_helper_page_flip,
 	.atomic_duplicate_state = drm_atomic_helper_crtc_duplicate_state,
 	.atomic_destroy_state = drm_atomic_helper_crtc_destroy_state,
@@ -1576,7 +1576,7 @@ void via_set_iga2_downscale_source_timing(struct drm_crtc *crtc,
 	drm_mode_destroy(crtc->dev, src_timing);
 }
 
-void openchrome_mode_set_nofb(struct drm_crtc *crtc)
+void via_mode_set_nofb(struct drm_crtc *crtc)
 {
 	struct drm_device *dev = crtc->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
@@ -1790,7 +1790,7 @@ exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void openchrome_crtc_helper_atomic_enable(struct drm_crtc *crtc,
+static void via_crtc_helper_atomic_enable(struct drm_crtc *crtc,
 					struct drm_atomic_state *state)
 {
 	struct drm_device *dev = crtc->dev;
@@ -1809,7 +1809,7 @@ static void openchrome_crtc_helper_atomic_enable(struct drm_crtc *crtc,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void openchrome_crtc_helper_atomic_disable(struct drm_crtc *crtc,
+static void via_crtc_helper_atomic_disable(struct drm_crtc *crtc,
 					struct drm_atomic_state *state)
 {
 	struct drm_device *dev = crtc->dev;
@@ -1829,12 +1829,12 @@ static void openchrome_crtc_helper_atomic_disable(struct drm_crtc *crtc,
 }
 
 static const struct drm_crtc_helper_funcs via_drm_crtc_helper_funcs = {
-	.mode_set_nofb = openchrome_mode_set_nofb,
-	.atomic_enable = openchrome_crtc_helper_atomic_enable,
-	.atomic_disable = openchrome_crtc_helper_atomic_disable,
+	.mode_set_nofb = via_mode_set_nofb,
+	.atomic_enable = via_crtc_helper_atomic_enable,
+	.atomic_disable = via_crtc_helper_atomic_disable,
 };
 
-static int openchrome_primary_atomic_check(struct drm_plane *plane,
+static int via_primary_atomic_check(struct drm_plane *plane,
 					struct drm_atomic_state *state)
 {
 	struct drm_plane_state *new_plane_state =
@@ -1878,7 +1878,7 @@ exit:
 	return ret;
 }
 
-static void openchrome_primary_atomic_disable(struct drm_plane *plane,
+static void via_primary_atomic_disable(struct drm_plane *plane,
 					struct drm_atomic_state *state)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -1887,7 +1887,7 @@ static void openchrome_primary_atomic_disable(struct drm_plane *plane,
 	return;
 }
 
-void openchrome_primary_atomic_update(struct drm_plane *plane,
+void via_primary_atomic_update(struct drm_plane *plane,
 					struct drm_atomic_state *state)
 {
 	struct drm_plane_state *new_state =
@@ -1960,7 +1960,7 @@ void openchrome_primary_atomic_update(struct drm_plane *plane,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static int openchrome_primary_prepare_fb(struct drm_plane *plane,
+static int via_primary_prepare_fb(struct drm_plane *plane,
 				struct drm_plane_state *new_state)
 {
 	struct drm_gem_object *gem;
@@ -1983,14 +1983,14 @@ static int openchrome_primary_prepare_fb(struct drm_plane *plane,
 		goto exit;
 	}
 
-	ret = openchrome_bo_pin(bo, TTM_PL_VRAM);
+	ret = via_bo_pin(bo, TTM_PL_VRAM);
 	ttm_bo_unreserve(&bo->ttm_bo);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
 
-static void openchrome_primary_cleanup_fb(struct drm_plane *plane,
+static void via_primary_cleanup_fb(struct drm_plane *plane,
 				struct drm_plane_state *old_state)
 {
 	struct drm_gem_object *gem;
@@ -2013,7 +2013,7 @@ static void openchrome_primary_cleanup_fb(struct drm_plane *plane,
 		goto exit;
 	}
 
-	openchrome_bo_unpin(bo);
+	via_bo_unpin(bo);
 	ttm_bo_unreserve(&bo->ttm_bo);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
@@ -2021,11 +2021,11 @@ exit:
 
 static const struct drm_plane_helper_funcs
 via_primary_drm_plane_helper_funcs = {
-	.prepare_fb = openchrome_primary_prepare_fb,
-	.cleanup_fb = openchrome_primary_cleanup_fb,
-	.atomic_check = openchrome_primary_atomic_check,
-	.atomic_update = openchrome_primary_atomic_update,
-	.atomic_disable = openchrome_primary_atomic_disable,
+	.prepare_fb = via_primary_prepare_fb,
+	.cleanup_fb = via_primary_cleanup_fb,
+	.atomic_check = via_primary_atomic_check,
+	.atomic_update = via_primary_atomic_update,
+	.atomic_disable = via_primary_atomic_disable,
 };
 
 static const struct drm_plane_funcs via_primary_drm_plane_funcs = {
@@ -2039,7 +2039,7 @@ static const struct drm_plane_funcs via_primary_drm_plane_funcs = {
 			drm_atomic_helper_plane_destroy_state,
 };
 
-static void openchrome_crtc_param_init(struct via_drm_priv *dev_priv,
+static void via_crtc_param_init(struct via_drm_priv *dev_priv,
 					struct drm_crtc *crtc,
 					uint32_t index)
 {
@@ -2199,7 +2199,7 @@ static void openchrome_crtc_param_init(struct via_drm_priv *dev_priv,
 	}
 }
 
-static int openchrome_gamma_init(struct drm_crtc *crtc)
+static int via_gamma_init(struct drm_crtc *crtc)
 {
 	u16 *gamma;
 	uint32_t i;
@@ -2233,7 +2233,7 @@ static const uint32_t via_primary_formats[] = {
 	DRM_FORMAT_RGB332,
 };
 
-int openchrome_crtc_init(struct via_drm_priv *dev_priv, uint32_t index)
+int via_crtc_init(struct via_drm_priv *dev_priv, uint32_t index)
 {
 	struct drm_device *dev = &dev_priv->dev;
 	struct via_crtc *iga;
@@ -2304,8 +2304,8 @@ int openchrome_crtc_init(struct via_drm_priv *dev_priv, uint32_t index)
 
 	iga->index = index;
 
-	openchrome_crtc_param_init(dev_priv, &iga->base, index);
-	ret = openchrome_gamma_init(&iga->base);
+	via_crtc_param_init(dev_priv, &iga->base, index);
+	ret = via_gamma_init(&iga->base);
 	if (ret) {
 		goto free_crtc;
 	}

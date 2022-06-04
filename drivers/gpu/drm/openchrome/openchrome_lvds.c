@@ -59,7 +59,7 @@ static via_lvds_info via_lvds_info_table[] = {
 	{1600, 1200}
 };
 
-static bool openchrome_fp_probe_edid(struct i2c_adapter *i2c_bus)
+static bool via_fp_probe_edid(struct i2c_adapter *i2c_bus)
 {
 	u8 out = 0x0;
 	u8 buf[8];
@@ -823,7 +823,7 @@ via_lvds_detect(struct drm_connector *connector, bool force)
 			continue;
 		}
 
-		if (!openchrome_fp_probe_edid(i2c_bus)) {
+		if (!via_fp_probe_edid(i2c_bus)) {
 			i2c_bus_bit = i2c_bus_bit << 1;
 			continue;
 		}

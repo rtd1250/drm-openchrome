@@ -724,7 +724,7 @@ static int vx900_mem_type(struct via_drm_priv *dev_priv,
 	return ret;
 }
 
-int openchrome_vram_detect(struct via_drm_priv *dev_priv)
+int via_vram_detect(struct via_drm_priv *dev_priv)
 {
 	struct drm_device *dev = &dev_priv->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
@@ -951,7 +951,7 @@ out_err:
 	return ret;
 }
 
-static void openchrome_flag_init(struct via_drm_priv *dev_priv)
+static void via_flag_init(struct via_drm_priv *dev_priv)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -961,7 +961,7 @@ static void openchrome_flag_init(struct via_drm_priv *dev_priv)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void openchrome_quirks_init(struct via_drm_priv *dev_priv)
+static void via_quirks_init(struct via_drm_priv *dev_priv)
 {
 	struct drm_device *dev = &dev_priv->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
@@ -1015,7 +1015,7 @@ static void openchrome_quirks_init(struct via_drm_priv *dev_priv)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-int openchrome_vram_init(struct via_drm_priv *dev_priv)
+int via_vram_init(struct via_drm_priv *dev_priv)
 {
 	int ret = 0;
 
@@ -1029,7 +1029,7 @@ int openchrome_vram_init(struct via_drm_priv *dev_priv)
 	return ret;
 }
 
-void openchrome_vram_fini(struct via_drm_priv *dev_priv)
+void via_vram_fini(struct via_drm_priv *dev_priv)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -1043,7 +1043,7 @@ void openchrome_vram_fini(struct via_drm_priv *dev_priv)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-int openchrome_mmio_init(struct via_drm_priv *dev_priv)
+int via_mmio_init(struct via_drm_priv *dev_priv)
 {
 	struct drm_device *dev = &dev_priv->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
@@ -1071,7 +1071,7 @@ exit:
 	return ret;
 }
 
-void openchrome_mmio_fini(struct via_drm_priv *dev_priv)
+void via_mmio_fini(struct via_drm_priv *dev_priv)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -1083,7 +1083,7 @@ void openchrome_mmio_fini(struct via_drm_priv *dev_priv)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-void openchrome_graphics_unlock(struct via_drm_priv *dev_priv)
+void via_graphics_unlock(struct via_drm_priv *dev_priv)
 {
 	uint8_t temp;
 
@@ -1162,16 +1162,16 @@ void chip_revision_info(struct via_drm_priv *dev_priv)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-int openchrome_device_init(struct via_drm_priv *dev_priv)
+int via_device_init(struct via_drm_priv *dev_priv)
 {
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	openchrome_flag_init(dev_priv);
-	openchrome_quirks_init(dev_priv);
+	via_flag_init(dev_priv);
+	via_quirks_init(dev_priv);
 
-	ret = openchrome_vram_detect(dev_priv);
+	ret = via_vram_detect(dev_priv);
 	if (ret) {
 		DRM_ERROR("Failed to detect video RAM.\n");
 		goto exit;
@@ -1180,30 +1180,30 @@ int openchrome_device_init(struct via_drm_priv *dev_priv)
 	/*
 	 * Map VRAM.
 	 */
-	ret = openchrome_vram_init(dev_priv);
+	ret = via_vram_init(dev_priv);
 	if (ret) {
 		DRM_ERROR("Failed to initialize video RAM.\n");
 		goto exit;
 	}
 
-	ret = openchrome_mmio_init(dev_priv);
+	ret = via_mmio_init(dev_priv);
 	if (ret) {
 		DRM_ERROR("Failed to initialize MMIO.\n");
 		goto exit;
 	}
 
-	openchrome_graphics_unlock(dev_priv);
+	via_graphics_unlock(dev_priv);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
 
-void openchrome_device_fini(struct via_drm_priv *dev_priv)
+void via_device_fini(struct via_drm_priv *dev_priv)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	openchrome_mmio_fini(dev_priv);
-	openchrome_vram_fini(dev_priv);
+	via_mmio_fini(dev_priv);
+	via_vram_fini(dev_priv);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -1214,7 +1214,7 @@ static const struct drm_mode_config_funcs via_drm_mode_config_funcs = {
 	.atomic_commit		= drm_atomic_helper_commit,
 };
 
-void openchrome_mode_config_init(struct via_drm_priv *dev_priv)
+void via_mode_config_init(struct via_drm_priv *dev_priv)
 {
 	struct drm_device *dev = &dev_priv->dev;
 
@@ -1240,7 +1240,7 @@ void openchrome_mode_config_init(struct via_drm_priv *dev_priv)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-int openchrome_drm_init(struct drm_device *dev)
+int via_drm_init(struct drm_device *dev)
 {
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	int ret = 0;
@@ -1249,13 +1249,13 @@ int openchrome_drm_init(struct drm_device *dev)
 
 	dev_priv->vram_mtrr = -ENXIO;
 
-	ret = openchrome_device_init(dev_priv);
+	ret = via_device_init(dev_priv);
 	if (ret) {
 		DRM_ERROR("Failed to initialize Chrome IGP.\n");
 		goto exit;
 	}
 
-	ret = openchrome_mm_init(dev_priv);
+	ret = via_mm_init(dev_priv);
 	if (ret) {
 		DRM_ERROR("Failed to initialize TTM.\n");
 		goto exit;
@@ -1272,24 +1272,24 @@ int openchrome_drm_init(struct drm_device *dev)
 	goto exit;
 error_modeset:
 	via_modeset_fini(dev);
-	openchrome_mm_fini(dev_priv);
-	openchrome_mmio_fini(dev_priv);
-	openchrome_vram_fini(dev_priv);
+	via_mm_fini(dev_priv);
+	via_mmio_fini(dev_priv);
+	via_vram_fini(dev_priv);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
 
-void openchrome_drm_fini(struct drm_device *dev)
+void via_drm_fini(struct drm_device *dev)
 {
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	via_modeset_fini(dev);
-	openchrome_mm_fini(dev_priv);
-	openchrome_mmio_fini(dev_priv);
-	openchrome_vram_fini(dev_priv);
+	via_mm_fini(dev_priv);
+	via_mmio_fini(dev_priv);
+	via_vram_fini(dev_priv);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }

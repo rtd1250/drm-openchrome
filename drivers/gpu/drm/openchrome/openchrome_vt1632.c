@@ -41,8 +41,7 @@
 #define VIA_VT1632_PDB		BIT(0)
 
 
-static void openchrome_vt1632_power(struct i2c_adapter *i2c_bus,
-					bool power_state)
+static void via_vt1632_power(struct i2c_adapter *i2c_bus, bool power_state)
 {
 	u8 buf;
 	u8 power_bit;
@@ -61,7 +60,7 @@ static void openchrome_vt1632_power(struct i2c_adapter *i2c_bus,
 }
 
 
-static bool openchrome_vt1632_sense(struct i2c_adapter *i2c_bus)
+static bool via_vt1632_sense(struct i2c_adapter *i2c_bus)
 {
 	u8 buf;
 	bool rx_detected = false;
@@ -80,7 +79,7 @@ static bool openchrome_vt1632_sense(struct i2c_adapter *i2c_bus)
 	return rx_detected;
 }
 
-static void openchrome_vt1632_display_registers(struct i2c_adapter *i2c_bus)
+static void via_vt1632_display_registers(struct i2c_adapter *i2c_bus)
 {
 	uint8_t i;
 	u8 buf;
@@ -96,7 +95,7 @@ static void openchrome_vt1632_display_registers(struct i2c_adapter *i2c_bus)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void openchrome_vt1632_init_registers(struct i2c_adapter *i2c_bus)
+static void via_vt1632_init_registers(struct i2c_adapter *i2c_bus)
 {
 	u8 buf;
 
@@ -148,7 +147,7 @@ static const struct drm_encoder_funcs via_vt1632_drm_encoder_funcs = {
 	.destroy = via_encoder_cleanup,
 };
 
-static void openchrome_vt1632_dpms(struct drm_encoder *encoder, int mode)
+static void via_vt1632_dpms(struct drm_encoder *encoder, int mode)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
@@ -173,19 +172,17 @@ static void openchrome_vt1632_dpms(struct drm_encoder *encoder, int mode)
 		goto exit;
 	}
 
-	openchrome_vt1632_display_registers(i2c_bus);
+	via_vt1632_display_registers(i2c_bus);
 	switch (mode) {
 	case DRM_MODE_DPMS_ON:
-		openchrome_vt1632_power(i2c_bus, true);
-		openchrome_transmitter_io_pad_state(dev_priv, enc->di_port,
-							true);
+		via_vt1632_power(i2c_bus, true);
+		via_transmitter_io_pad_state(dev_priv, enc->di_port, true);
 		break;
 	case DRM_MODE_DPMS_STANDBY:
 	case DRM_MODE_DPMS_SUSPEND:
 	case DRM_MODE_DPMS_OFF:
-		openchrome_vt1632_power(i2c_bus, false);
-		openchrome_transmitter_io_pad_state(dev_priv, enc->di_port,
-							false);
+		via_vt1632_power(i2c_bus, false);
+		via_transmitter_io_pad_state(dev_priv, enc->di_port, false);
 		break;
 	default:
 		DRM_ERROR("Bad DPMS mode.");
@@ -196,7 +193,7 @@ exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static bool openchrome_vt1632_mode_fixup(struct drm_encoder *encoder,
+static bool via_vt1632_mode_fixup(struct drm_encoder *encoder,
 				const struct drm_display_mode *mode,
 				struct drm_display_mode *adjusted_mode)
 {
@@ -208,7 +205,7 @@ static bool openchrome_vt1632_mode_fixup(struct drm_encoder *encoder,
 	return true;
 }
 
-static void openchrome_vt1632_mode_set(struct drm_encoder *encoder,
+static void via_vt1632_mode_set(struct drm_encoder *encoder,
 				struct drm_display_mode *mode,
 				struct drm_display_mode *adjusted_mode)
 {
@@ -236,24 +233,21 @@ static void openchrome_vt1632_mode_set(struct drm_encoder *encoder,
 		goto exit;
 	}
 
-	openchrome_transmitter_clock_drive_strength(dev_priv, enc->di_port,
-							0x03);
-	openchrome_transmitter_data_drive_strength(dev_priv, enc->di_port,
-							0x03);
-	openchrome_transmitter_io_pad_state(dev_priv, enc->di_port, true);
+	via_transmitter_clock_drive_strength(dev_priv, enc->di_port, 0x03);
+	via_transmitter_data_drive_strength(dev_priv, enc->di_port, 0x03);
+	via_transmitter_io_pad_state(dev_priv, enc->di_port, true);
 
-	openchrome_vt1632_display_registers(i2c_bus);
-	openchrome_vt1632_init_registers(i2c_bus);
-	openchrome_vt1632_display_registers(i2c_bus);
+	via_vt1632_display_registers(i2c_bus);
+	via_vt1632_init_registers(i2c_bus);
+	via_vt1632_display_registers(i2c_bus);
 
-	openchrome_transmitter_display_source(dev_priv, enc->di_port,
-						iga->index);
+	via_transmitter_display_source(dev_priv, enc->di_port, iga->index);
 exit:
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void openchrome_vt1632_prepare(struct drm_encoder *encoder)
+static void via_vt1632_prepare(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
@@ -278,13 +272,13 @@ static void openchrome_vt1632_prepare(struct drm_encoder *encoder)
 		goto exit;
 	}
 
-	openchrome_vt1632_power(i2c_bus, false);
-	openchrome_transmitter_io_pad_state(dev_priv, enc->di_port, false);
+	via_vt1632_power(i2c_bus, false);
+	via_transmitter_io_pad_state(dev_priv, enc->di_port, false);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void openchrome_vt1632_commit(struct drm_encoder *encoder)
+static void via_vt1632_commit(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
@@ -309,14 +303,14 @@ static void openchrome_vt1632_commit(struct drm_encoder *encoder)
 		goto exit;
 	}
 
-	openchrome_vt1632_power(i2c_bus, true);
-	openchrome_transmitter_io_pad_state(dev_priv, enc->di_port, true);
+	via_vt1632_power(i2c_bus, true);
+	via_transmitter_io_pad_state(dev_priv, enc->di_port, true);
 
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void openchrome_vt1632_disable(struct drm_encoder *encoder)
+static void via_vt1632_disable(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
@@ -341,8 +335,8 @@ static void openchrome_vt1632_disable(struct drm_encoder *encoder)
 		goto exit;
 	}
 
-	openchrome_vt1632_power(i2c_bus, false);
-	openchrome_transmitter_io_pad_state(dev_priv, enc->di_port, false);
+	via_vt1632_power(i2c_bus, false);
+	via_transmitter_io_pad_state(dev_priv, enc->di_port, false);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -350,16 +344,16 @@ exit:
 
 static const struct drm_encoder_helper_funcs
 via_vt1632_drm_encoder_helper_funcs = {
-	.dpms = openchrome_vt1632_dpms,
-	.mode_fixup = openchrome_vt1632_mode_fixup,
-	.mode_set = openchrome_vt1632_mode_set,
-	.prepare = openchrome_vt1632_prepare,
-	.commit = openchrome_vt1632_commit,
-	.disable = openchrome_vt1632_disable,
+	.dpms = via_vt1632_dpms,
+	.mode_fixup = via_vt1632_mode_fixup,
+	.mode_set = via_vt1632_mode_set,
+	.prepare = via_vt1632_prepare,
+	.commit = via_vt1632_commit,
+	.disable = via_vt1632_disable,
 };
 
 
-static enum drm_connector_status openchrome_vt1632_detect(
+static enum drm_connector_status via_vt1632_detect(
 					struct drm_connector *connector,
 					bool force)
 {
@@ -385,7 +379,7 @@ static enum drm_connector_status openchrome_vt1632_detect(
 		goto exit;
 	}
 
-	if (openchrome_vt1632_sense(i2c_bus)) {
+	if (via_vt1632_sense(i2c_bus)) {
 		ret = connector_status_connected;
 		DRM_DEBUG_KMS("DVI detected.\n");
 	}
@@ -397,7 +391,7 @@ exit:
 
 static const struct drm_connector_funcs via_vt1632_drm_connector_funcs = {
 	.dpms = drm_helper_connector_dpms,
-	.detect = openchrome_vt1632_detect,
+	.detect = via_vt1632_detect,
 	.fill_modes = drm_helper_probe_single_connector_modes,
 	.destroy = via_connector_destroy,
 	.reset = drm_atomic_helper_connector_reset,
@@ -408,7 +402,7 @@ static const struct drm_connector_funcs via_vt1632_drm_connector_funcs = {
 };
 
 
-int openchrome_vt1632_mode_valid(struct drm_connector *connector,
+int via_vt1632_mode_valid(struct drm_connector *connector,
 					struct drm_display_mode *mode)
 {
 	struct via_connector *con = container_of(connector,
@@ -459,7 +453,7 @@ exit:
 	return ret;
 }
 
-static int openchrome_vt1632_get_modes(struct drm_connector *connector)
+static int via_vt1632_get_modes(struct drm_connector *connector)
 {
 	struct via_connector *con = container_of(connector,
 					struct via_connector, base);
@@ -502,11 +496,11 @@ exit:
 
 static const struct drm_connector_helper_funcs
 via_vt1632_drm_connector_helper_funcs = {
-	.mode_valid = openchrome_vt1632_mode_valid,
-	.get_modes = openchrome_vt1632_get_modes,
+	.mode_valid = via_vt1632_mode_valid,
+	.get_modes = via_vt1632_get_modes,
 };
 
-bool openchrome_vt1632_probe(struct i2c_adapter *i2c_bus)
+bool via_vt1632_probe(struct i2c_adapter *i2c_bus)
 {
 	u8 buf;
 	u16 vendor_id, device_id, revision;
@@ -538,7 +532,7 @@ exit:
 	return device_detected;
 }
 
-void openchrome_vt1632_init(struct drm_device *dev)
+void via_vt1632_init(struct drm_device *dev)
 {
 	struct via_connector *con;
 	struct via_encoder *enc;

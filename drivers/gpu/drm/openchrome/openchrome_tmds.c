@@ -530,7 +530,7 @@ exit:
 /*
  * Probe (pre-initialization detection) of external DVI transmitters.
  */
-void openchrome_ext_dvi_probe(struct drm_device *dev)
+void via_ext_dvi_probe(struct drm_device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
@@ -547,12 +547,12 @@ void openchrome_ext_dvi_probe(struct drm_device *dev)
 	if ((!dev_priv->ext_tmds_presence) &&
 		(!(dev_priv->mapped_i2c_bus & VIA_I2C_BUS2))) {
 		i2c_bus = via_find_ddc_bus(0x31);
-		if (openchrome_vt1632_probe(i2c_bus)) {
+		if (via_vt1632_probe(i2c_bus)) {
 			dev_priv->ext_tmds_presence = true;
 			dev_priv->ext_tmds_i2c_bus = VIA_I2C_BUS2;
 			dev_priv->ext_tmds_transmitter = VIA_TMDS_VT1632;
 			dev_priv->mapped_i2c_bus |= VIA_I2C_BUS2;
-		} else if (openchrome_sii164_probe(i2c_bus)) {
+		} else if (via_sii164_probe(i2c_bus)) {
 			dev_priv->ext_tmds_presence = true;
 			dev_priv->ext_tmds_i2c_bus = VIA_I2C_BUS2;
 			dev_priv->ext_tmds_transmitter = VIA_TMDS_SII164;
@@ -563,12 +563,12 @@ void openchrome_ext_dvi_probe(struct drm_device *dev)
 	if ((!(dev_priv->ext_tmds_presence)) &&
 		(!(dev_priv->mapped_i2c_bus & VIA_I2C_BUS4))) {
 		i2c_bus = via_find_ddc_bus(0x2c);
-		if (openchrome_vt1632_probe(i2c_bus)) {
+		if (via_vt1632_probe(i2c_bus)) {
 			dev_priv->ext_tmds_presence = true;
 			dev_priv->ext_tmds_i2c_bus = VIA_I2C_BUS4;
 			dev_priv->ext_tmds_transmitter = VIA_TMDS_VT1632;
 			dev_priv->mapped_i2c_bus |= VIA_I2C_BUS4;
-		} else if (openchrome_sii164_probe(i2c_bus)) {
+		} else if (via_sii164_probe(i2c_bus)) {
 			dev_priv->ext_tmds_presence = true;
 			dev_priv->ext_tmds_i2c_bus = VIA_I2C_BUS4;
 			dev_priv->ext_tmds_transmitter = VIA_TMDS_SII164;
@@ -654,12 +654,12 @@ void openchrome_ext_dvi_probe(struct drm_device *dev)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-void openchrome_ext_dvi_init(struct drm_device *dev)
+void via_ext_dvi_init(struct drm_device *dev)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	openchrome_vt1632_init(dev);
-	openchrome_sii164_init(dev);
+	via_vt1632_init(dev);
+	via_sii164_init(dev);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }

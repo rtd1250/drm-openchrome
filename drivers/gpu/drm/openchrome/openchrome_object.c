@@ -46,7 +46,7 @@
 #include "openchrome_drv.h"
 
 
-static void openchrome_gem_free(struct drm_gem_object *obj)
+static void via_gem_free(struct drm_gem_object *obj)
 {
 	struct ttm_buffer_object *ttm_bo;
 	struct via_bo *bo;
@@ -69,14 +69,14 @@ static const struct vm_operations_struct via_ttm_bo_vm_ops = {
 };
 
 static const struct drm_gem_object_funcs via_gem_object_funcs = {
-	.free = openchrome_gem_free,
+	.free = via_gem_free,
 	.vmap = drm_gem_ttm_vmap,
 	.vunmap = drm_gem_ttm_vunmap,
 	.mmap = drm_gem_ttm_mmap,
 	.vm_ops = &via_ttm_bo_vm_ops,
 };
 
-void openchrome_ttm_domain_to_placement(struct via_bo *bo,
+void via_ttm_domain_to_placement(struct via_bo *bo,
 					uint32_t ttm_domain)
 {
 	unsigned i = 0;
@@ -116,7 +116,7 @@ void openchrome_ttm_domain_to_placement(struct via_bo *bo,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-void openchrome_ttm_bo_destroy(struct ttm_buffer_object *tbo)
+void via_ttm_bo_destroy(struct ttm_buffer_object *tbo)
 {
 	struct via_bo *bo;
 
@@ -130,8 +130,7 @@ void openchrome_ttm_bo_destroy(struct ttm_buffer_object *tbo)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-int openchrome_bo_pin(struct via_bo *bo,
-			uint32_t ttm_domain)
+int via_bo_pin(struct via_bo *bo, uint32_t ttm_domain)
 {
 	struct ttm_operation_ctx ctx = {false, false};
 	int ret = 0;
@@ -142,7 +141,7 @@ int openchrome_bo_pin(struct via_bo *bo,
 		goto pin;
 	}
 
-	openchrome_ttm_domain_to_placement(bo, ttm_domain);
+	via_ttm_domain_to_placement(bo, ttm_domain);
 	ret = ttm_bo_validate(&bo->ttm_bo, &bo->placement, &ctx);
 	if (ret) {
 		goto exit;
@@ -156,7 +155,7 @@ exit:
 	return ret;
 }
 
-void openchrome_bo_unpin(struct via_bo *bo)
+void via_bo_unpin(struct via_bo *bo)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -165,7 +164,7 @@ void openchrome_bo_unpin(struct via_bo *bo)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-int openchrome_bo_create(struct drm_device *dev,
+int via_bo_create(struct drm_device *dev,
 				struct ttm_device *bdev,
 				uint64_t size,
 				enum ttm_bo_type type,
@@ -202,16 +201,11 @@ int openchrome_bo_create(struct drm_device *dev,
 
 	bo->ttm_bo.base.funcs = &via_gem_object_funcs;
 
-	openchrome_ttm_domain_to_placement(bo, ttm_domain);
-	ret = ttm_bo_init(&dev_priv->bdev,
-				&bo->ttm_bo,
-				size,
-				type,
-				&bo->placement,
-				PAGE_SIZE >> PAGE_SHIFT,
-				false,
-				NULL, NULL,
-				openchrome_ttm_bo_destroy);
+	via_ttm_domain_to_placement(bo, ttm_domain);
+	ret = ttm_bo_init(&dev_priv->bdev, &bo->ttm_bo,
+				size, type, &bo->placement,
+				PAGE_SIZE >> PAGE_SHIFT, false,
+				NULL, NULL, via_ttm_bo_destroy);
 	if (ret) {
 		DRM_ERROR("Cannot initialize a TTM object.\n");
 		goto exit;
@@ -224,7 +218,7 @@ int openchrome_bo_create(struct drm_device *dev,
 			goto exit;
 		}
 
-		ret = openchrome_bo_pin(bo, ttm_domain);
+		ret = via_bo_pin(bo, ttm_domain);
 		ttm_bo_unreserve(&bo->ttm_bo);
 		if (ret) {
 			ttm_bo_put(&bo->ttm_bo);
@@ -249,7 +243,7 @@ exit:
 	return ret;
 }
 
-void openchrome_bo_destroy(struct via_bo *bo, bool kmap)
+void via_bo_destroy(struct via_bo *bo, bool kmap)
 {
 	int ret;
 
@@ -263,7 +257,7 @@ void openchrome_bo_destroy(struct via_bo *bo, bool kmap)
 			goto exit;
 		}
 
-		openchrome_bo_unpin(bo);
+		via_bo_unpin(bo);
 		ttm_bo_unreserve(&bo->ttm_bo);
 		if (ret) {
 			goto exit;
@@ -275,7 +269,7 @@ exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-int openchrome_mm_init(struct via_drm_priv *dev_priv)
+int via_mm_init(struct via_drm_priv *dev_priv)
 {
 	struct drm_device *dev = &dev_priv->dev;
 	int ret;
@@ -313,7 +307,7 @@ exit:
 	return ret;
 }
 
-void openchrome_mm_fini(struct via_drm_priv *dev_priv)
+void via_mm_fini(struct via_drm_priv *dev_priv)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 

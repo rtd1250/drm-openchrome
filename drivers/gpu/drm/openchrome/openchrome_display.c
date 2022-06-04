@@ -127,7 +127,7 @@ int via_modeset_init(struct drm_device *dev)
 	uint32_t i;
 	int ret = 0;
 
-	openchrome_mode_config_init(dev_priv);
+	via_mode_config_init(dev_priv);
 
 	/* Initialize the number of display connectors. */
 	dev_priv->number_fp = 0;
@@ -144,13 +144,13 @@ int via_modeset_init(struct drm_device *dev)
 	}
 
 	for (i = 0; i < VIA_MAX_CRTC; i++) {
-		ret = openchrome_crtc_init(dev_priv, i);
+		ret = via_crtc_init(dev_priv, i);
 		if (ret) {
 			goto exit;
 		}
 	}
 
-	openchrome_ext_dvi_probe(dev);
+	via_ext_dvi_probe(dev);
 	via_tmds_probe(dev);
 
 	via_lvds_probe(dev);
@@ -158,7 +158,7 @@ int via_modeset_init(struct drm_device *dev)
 	via_dac_probe(dev);
 
 
-	openchrome_ext_dvi_init(dev);
+	via_ext_dvi_init(dev);
 	via_tmds_init(dev);
 
 	via_dac_init(dev);

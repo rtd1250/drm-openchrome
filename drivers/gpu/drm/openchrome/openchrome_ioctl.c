@@ -38,7 +38,7 @@
 #include "openchrome_drv.h"
 
 
-static int openchrome_gem_create_ioctl(struct drm_device *dev,
+static int via_gem_create_ioctl(struct drm_device *dev,
 					void *data,
 					struct drm_file *file_priv)
 {
@@ -50,13 +50,9 @@ static int openchrome_gem_create_ioctl(struct drm_device *dev,
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	ret = openchrome_bo_create(dev,
-					&dev_priv->bdev,
-					args->size,
-					ttm_bo_type_device,
-					args->domain,
-					false,
-					&bo);
+	ret = via_bo_create(dev, &dev_priv->bdev, args->size,
+				ttm_bo_type_device, args->domain, false,
+				&bo);
 
 	if (ret) {
 		goto exit;
@@ -66,7 +62,7 @@ static int openchrome_gem_create_ioctl(struct drm_device *dev,
 					&handle);
 	drm_gem_object_put(&bo->ttm_bo.base);
 	if (ret) {
-		openchrome_bo_destroy(bo, false);
+		via_bo_destroy(bo, false);
 		goto exit;
 	}
 
@@ -79,7 +75,7 @@ exit:
 	return ret;
 }
 
-static int openchrome_gem_map_ioctl(struct drm_device *dev,
+static int via_gem_map_ioctl(struct drm_device *dev,
 					void *data,
 					struct drm_file *file_priv)
 {
@@ -107,7 +103,7 @@ exit:
 	return ret;
 }
 
-static int openchrome_gem_unmap_ioctl(struct drm_device *dev,
+static int via_gem_unmap_ioctl(struct drm_device *dev,
 				void *data,
 				struct drm_file *file_priv)
 {
@@ -124,9 +120,9 @@ static int openchrome_gem_unmap_ioctl(struct drm_device *dev,
 
 
 const struct drm_ioctl_desc via_driver_ioctls[] = {
-	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_CREATE, openchrome_gem_create_ioctl, DRM_AUTH | DRM_UNLOCKED),
-	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_MAP, openchrome_gem_map_ioctl, DRM_AUTH | DRM_UNLOCKED),
-	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_UNMAP, openchrome_gem_unmap_ioctl, DRM_AUTH | DRM_UNLOCKED),
+	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_CREATE, via_gem_create_ioctl, DRM_AUTH | DRM_UNLOCKED),
+	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_MAP, via_gem_map_ioctl, DRM_AUTH | DRM_UNLOCKED),
+	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_UNMAP, via_gem_unmap_ioctl, DRM_AUTH | DRM_UNLOCKED),
 };
 
 
