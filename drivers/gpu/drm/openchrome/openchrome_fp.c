@@ -40,7 +40,7 @@
 #define TD3 25
 
 /* Non-I2C bus FP native screen resolution information table.*/
-static via_fp_info via_fp_info_table[] = {
+static via_lvds_info via_lvds_info_table[] = {
 	{ 640,  480},
 	{ 800,  600},
 	{1024,  768},
@@ -135,7 +135,7 @@ static void via_centering_timing(const struct drm_display_mode *mode,
 	adjusted_mode->crtc_vsync_end = adjusted_mode->vsync_end;
 }
 
-static void via_fp_cle266_soft_power_seq(struct via_drm_priv *dev_priv,
+static void via_lvds_cle266_soft_power_seq(struct via_drm_priv *dev_priv,
 						bool power_state)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -145,214 +145,214 @@ static void via_fp_cle266_soft_power_seq(struct via_drm_priv *dev_priv,
 		mdelay(25);
 
 		/* Turn on FP VDD rail. */
-		via_fp_set_primary_soft_vdd(VGABASE, true);
+		via_lvds_set_primary_soft_vdd(VGABASE, true);
 
 		/* Wait for 510 ms. */
 		mdelay(510);
 
 		/* Turn on FP data transmission. */
-		via_fp_set_primary_soft_data(VGABASE, true);
+		via_lvds_set_primary_soft_data(VGABASE, true);
 
 		/* Wait for 1 ms. */
 		mdelay(1);
 
 		/* Turn on FP VEE rail. */
-		via_fp_set_primary_soft_vee(VGABASE, true);
+		via_lvds_set_primary_soft_vee(VGABASE, true);
 
 		/* Turn on FP back light. */
-		via_fp_set_primary_soft_back_light(VGABASE, true);
+		via_lvds_set_primary_soft_back_light(VGABASE, true);
 	} else {
 		/* Wait for 1 ms. */
 		mdelay(1);
 
 		/* Turn off FP back light. */
-		via_fp_set_primary_soft_back_light(VGABASE, false);
+		via_lvds_set_primary_soft_back_light(VGABASE, false);
 
 		/* Turn off FP VEE rail. */
-		via_fp_set_primary_soft_vee(VGABASE, false);
+		via_lvds_set_primary_soft_vee(VGABASE, false);
 
 		/* Wait for 510 ms. */
 		mdelay(510);
 
 		/* Turn off FP data transmission. */
-		via_fp_set_primary_soft_data(VGABASE, false);
+		via_lvds_set_primary_soft_data(VGABASE, false);
 
 		/* Wait for 25 ms. */
 		mdelay(25);
 
 		/* Turn off FP VDD rail. */
-		via_fp_set_primary_soft_vdd(VGABASE, false);
+		via_lvds_set_primary_soft_vdd(VGABASE, false);
 	}
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void via_fp_primary_soft_power_seq(struct via_drm_priv *dev_priv,
+static void via_lvds_primary_soft_power_seq(struct via_drm_priv *dev_priv,
 						bool power_state)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	/* Turn off FP hardware power sequence. */
-	via_fp_set_primary_hard_power(VGABASE, false);
+	via_lvds_set_primary_hard_power(VGABASE, false);
 
 	/* Use software FP power sequence control. */
-	via_fp_set_primary_power_seq_type(VGABASE, false);
+	via_lvds_set_primary_power_seq_type(VGABASE, false);
 
 	if (power_state) {
 		/* Turn on FP display period. */
-		via_fp_set_primary_direct_display_period(VGABASE, true);
+		via_lvds_set_primary_direct_display_period(VGABASE, true);
 
 		/* Wait for TD0 ms. */
 		mdelay(TD0);
 
 		/* Turn on FP VDD rail. */
-		via_fp_set_primary_soft_vdd(VGABASE, true);
+		via_lvds_set_primary_soft_vdd(VGABASE, true);
 
 		/* Wait for TD1 ms. */
 		mdelay(TD1);
 
 		/* Turn on FP data transmission. */
-		via_fp_set_primary_soft_data(VGABASE, true);
+		via_lvds_set_primary_soft_data(VGABASE, true);
 
 		/* Wait for TD2 ms. */
 		mdelay(TD2);
 
 		/* Turn on FP VEE rail. */
-		via_fp_set_primary_soft_vee(VGABASE, true);
+		via_lvds_set_primary_soft_vee(VGABASE, true);
 
 		/* Wait for TD3 ms. */
 		mdelay(TD3);
 
 		/* Turn on FP back light. */
-		via_fp_set_primary_soft_back_light(VGABASE, true);
+		via_lvds_set_primary_soft_back_light(VGABASE, true);
 	} else {
 		/* Turn off FP back light. */
-		via_fp_set_primary_soft_back_light(VGABASE, false);
+		via_lvds_set_primary_soft_back_light(VGABASE, false);
 
 		/* Wait for TD3 ms. */
 		mdelay(TD3);
 
 		/* Turn off FP VEE rail. */
-		via_fp_set_primary_soft_vee(VGABASE, false);
+		via_lvds_set_primary_soft_vee(VGABASE, false);
 
 		/* Wait for TD2 ms. */
 		mdelay(TD2);
 
 		/* Turn off FP data transmission. */
-		via_fp_set_primary_soft_data(VGABASE, false);
+		via_lvds_set_primary_soft_data(VGABASE, false);
 
 		/* Wait for TD1 ms. */
 		mdelay(TD1);
 
 		/* Turn off FP VDD rail. */
-		via_fp_set_primary_soft_vdd(VGABASE, false);
+		via_lvds_set_primary_soft_vdd(VGABASE, false);
 
 		/* Turn off FP display period. */
-		via_fp_set_primary_direct_display_period(VGABASE, false);
+		via_lvds_set_primary_direct_display_period(VGABASE, false);
 	}
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void via_fp_secondary_soft_power_seq(struct via_drm_priv *dev_priv,
+static void via_lvds_secondary_soft_power_seq(struct via_drm_priv *dev_priv,
 						bool power_state)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	/* Turn off FP hardware power sequence. */
-	via_fp_set_secondary_hard_power(VGABASE, false);
+	via_lvds_set_secondary_hard_power(VGABASE, false);
 
 	/* Use software FP power sequence control. */
-	via_fp_set_secondary_power_seq_type(VGABASE, false);
+	via_lvds_set_secondary_power_seq_type(VGABASE, false);
 
 	if (power_state) {
 		/* Turn on FP display period. */
-		via_fp_set_secondary_direct_display_period(VGABASE, true);
+		via_lvds_set_secondary_direct_display_period(VGABASE, true);
 
 		/* Wait for TD0 ms. */
 		mdelay(TD0);
 
 		/* Turn on FP VDD rail. */
-		via_fp_set_secondary_soft_vdd(VGABASE, true);
+		via_lvds_set_secondary_soft_vdd(VGABASE, true);
 
 		/* Wait for TD1 ms. */
 		mdelay(TD1);
 
 		/* Turn on FP data transmission. */
-		via_fp_set_secondary_soft_data(VGABASE, true);
+		via_lvds_set_secondary_soft_data(VGABASE, true);
 
 		/* Wait for TD2 ms. */
 		mdelay(TD2);
 
 		/* Turn on FP VEE rail. */
-		via_fp_set_secondary_soft_vee(VGABASE, true);
+		via_lvds_set_secondary_soft_vee(VGABASE, true);
 
 		/* Wait for TD3 ms. */
 		mdelay(TD3);
 
 		/* Turn on FP back light. */
-		via_fp_set_secondary_soft_back_light(VGABASE, true);
+		via_lvds_set_secondary_soft_back_light(VGABASE, true);
 	} else {
 		/* Turn off FP back light. */
-		via_fp_set_secondary_soft_back_light(VGABASE, false);
+		via_lvds_set_secondary_soft_back_light(VGABASE, false);
 
 		/* Wait for TD3 ms. */
 		mdelay(TD3);
 
 		/* Turn off FP VEE rail. */
-		via_fp_set_secondary_soft_vee(VGABASE, false);
+		via_lvds_set_secondary_soft_vee(VGABASE, false);
 
 		/* Wait for TD2 ms. */
 		mdelay(TD2);
 
 		/* Turn off FP data transmission. */
-		via_fp_set_secondary_soft_data(VGABASE, false);
+		via_lvds_set_secondary_soft_data(VGABASE, false);
 
 		/* Wait for TD1 ms. */
 		mdelay(TD1);
 
 		/* Turn off FP VDD rail. */
-		via_fp_set_secondary_soft_vdd(VGABASE, false);
+		via_lvds_set_secondary_soft_vdd(VGABASE, false);
 
 		/* Turn off FP display period. */
-		via_fp_set_secondary_direct_display_period(VGABASE, false);
+		via_lvds_set_secondary_direct_display_period(VGABASE, false);
 	}
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void via_fp_primary_hard_power_seq(struct via_drm_priv *dev_priv,
+static void via_lvds_primary_hard_power_seq(struct via_drm_priv *dev_priv,
 						bool power_state)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	/* Use hardware FP power sequence control. */
-	via_fp_set_primary_power_seq_type(VGABASE, true);
+	via_lvds_set_primary_power_seq_type(VGABASE, true);
 
 	if (power_state) {
 		/* Turn on FP display period. */
-		via_fp_set_primary_direct_display_period(VGABASE, true);
+		via_lvds_set_primary_direct_display_period(VGABASE, true);
 
 		/* Turn on FP hardware power sequence. */
-		via_fp_set_primary_hard_power(VGABASE, true);
+		via_lvds_set_primary_hard_power(VGABASE, true);
 
 		/* Turn on FP back light. */
-		via_fp_set_primary_direct_back_light_ctrl(VGABASE, true);
+		via_lvds_set_primary_direct_back_light_ctrl(VGABASE, true);
 	} else {
 		/* Turn off FP back light. */
-		via_fp_set_primary_direct_back_light_ctrl(VGABASE, false);
+		via_lvds_set_primary_direct_back_light_ctrl(VGABASE, false);
 
 		/* Turn off FP hardware power sequence. */
-		via_fp_set_primary_hard_power(VGABASE, false);
+		via_lvds_set_primary_hard_power(VGABASE, false);
 
 		/* Turn on FP display period. */
-		via_fp_set_primary_direct_display_period(VGABASE, false);
+		via_lvds_set_primary_direct_display_period(VGABASE, false);
 	}
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void via_fp_power(struct via_drm_priv *dev_priv,
+static void via_lvds_power(struct via_drm_priv *dev_priv,
 				unsigned short device,
 				u32 di_port, bool power_state)
 {
@@ -360,7 +360,7 @@ static void via_fp_power(struct via_drm_priv *dev_priv,
 
 	switch (device) {
 	case PCI_DEVICE_ID_VIA_CLE266:
-		via_fp_cle266_soft_power_seq(dev_priv, power_state);
+		via_lvds_cle266_soft_power_seq(dev_priv, power_state);
 		break;
 	case PCI_DEVICE_ID_VIA_KM400:
 	case PCI_DEVICE_ID_VIA_CN700:
@@ -369,24 +369,24 @@ static void via_fp_power(struct via_drm_priv *dev_priv,
 	case PCI_DEVICE_ID_VIA_VT3343:
 	case PCI_DEVICE_ID_VIA_K8M890:
 	case PCI_DEVICE_ID_VIA_P4M900:
-		via_fp_primary_hard_power_seq(dev_priv, power_state);
+		via_lvds_primary_hard_power_seq(dev_priv, power_state);
 		break;
 	case PCI_DEVICE_ID_VIA_VT3157:
 	case PCI_DEVICE_ID_VIA_VT1122:
 		if (di_port & VIA_DI_PORT_LVDS1) {
-			via_fp_primary_soft_power_seq(dev_priv, power_state);
+			via_lvds_primary_soft_power_seq(dev_priv, power_state);
 			via_lvds1_set_power(VGABASE, power_state);
 		}
 
 		if (di_port & VIA_DI_PORT_LVDS2) {
-			via_fp_secondary_soft_power_seq(dev_priv, power_state);
+			via_lvds_secondary_soft_power_seq(dev_priv, power_state);
 			via_lvds2_set_power(VGABASE, power_state);
 		}
 
 		break;
 	case PCI_DEVICE_ID_VIA_VX875:
 	case PCI_DEVICE_ID_VIA_VX900_VGA:
-		via_fp_primary_hard_power_seq(dev_priv, power_state);
+		via_lvds_primary_hard_power_seq(dev_priv, power_state);
 		via_lvds1_set_power(VGABASE, power_state);
 		break;
 	default:
@@ -402,7 +402,7 @@ static void via_fp_power(struct via_drm_priv *dev_priv,
 /*
  * Sets flat panel I/O pad state.
  */
-static void via_fp_io_pad_setting(struct via_drm_priv *dev_priv,
+static void via_lvds_io_pad_setting(struct via_drm_priv *dev_priv,
 					u32 di_port, bool io_pad_on)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -445,7 +445,7 @@ static void via_fp_io_pad_setting(struct via_drm_priv *dev_priv,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void via_fp_format(struct via_drm_priv *dev_priv,
+static void via_lvds_format(struct via_drm_priv *dev_priv,
 				u32 di_port, u8 format)
 {
 	u8 temp = format & 0x01;
@@ -471,7 +471,7 @@ static void via_fp_format(struct via_drm_priv *dev_priv,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void via_fp_output_format(struct via_drm_priv *dev_priv,
+static void via_lvds_output_format(struct via_drm_priv *dev_priv,
 					u32 di_port, u8 output_format)
 {
 	u8 temp = output_format & 0x01;
@@ -497,7 +497,7 @@ static void via_fp_output_format(struct via_drm_priv *dev_priv,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void via_fp_dithering(struct via_drm_priv *dev_priv,
+static void via_lvds_dithering(struct via_drm_priv *dev_priv,
 				u32 di_port, bool dithering)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -524,7 +524,7 @@ static void via_fp_dithering(struct via_drm_priv *dev_priv,
 /*
  * Sets flat panel display source.
  */
-static void via_fp_display_source(struct via_drm_priv *dev_priv,
+static void via_lvds_display_source(struct via_drm_priv *dev_priv,
 					u32 di_port, int index)
 {
 	u8 display_source = index & 0x01;
@@ -572,7 +572,7 @@ static void via_fp_display_source(struct via_drm_priv *dev_priv,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void via_fp_dpms(struct drm_encoder *encoder, int mode)
+static void via_lvds_dpms(struct drm_encoder *encoder, int mode)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
@@ -587,14 +587,14 @@ static void via_fp_dpms(struct drm_encoder *encoder, int mode)
 
 	switch (mode) {
 	case DRM_MODE_DPMS_ON:
-		via_fp_power(dev_priv, chipset, enc->di_port, true);
-		via_fp_io_pad_setting(dev_priv, enc->di_port, true);
+		via_lvds_power(dev_priv, chipset, enc->di_port, true);
+		via_lvds_io_pad_setting(dev_priv, enc->di_port, true);
 		break;
 	case DRM_MODE_DPMS_SUSPEND:
 	case DRM_MODE_DPMS_STANDBY:
 	case DRM_MODE_DPMS_OFF:
-		via_fp_power(dev_priv, chipset, enc->di_port, false);
-		via_fp_io_pad_setting(dev_priv, enc->di_port, false);
+		via_lvds_power(dev_priv, chipset, enc->di_port, false);
+		via_lvds_io_pad_setting(dev_priv, enc->di_port, false);
 		break;
 	default:
 		break;
@@ -667,7 +667,7 @@ static bool via_lvds_mode_fixup(struct drm_encoder *encoder,
 	return true;
 }
 
-static void via_fp_prepare(struct drm_encoder *encoder)
+static void via_lvds_prepare(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
@@ -680,13 +680,13 @@ static void via_fp_prepare(struct drm_encoder *encoder)
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	via_fp_power(dev_priv, chipset, enc->di_port, false);
-	via_fp_io_pad_setting(dev_priv, enc->di_port, false);
+	via_lvds_power(dev_priv, chipset, enc->di_port, false);
+	via_lvds_io_pad_setting(dev_priv, enc->di_port, false);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void via_fp_commit(struct drm_encoder *encoder)
+static void via_lvds_commit(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
@@ -699,14 +699,14 @@ static void via_fp_commit(struct drm_encoder *encoder)
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	via_fp_power(dev_priv, chipset, enc->di_port, true);
-	via_fp_io_pad_setting(dev_priv, enc->di_port, true);
+	via_lvds_power(dev_priv, chipset, enc->di_port, true);
+	via_lvds_io_pad_setting(dev_priv, enc->di_port, true);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 static void
-via_fp_mode_set(struct drm_encoder *encoder, struct drm_display_mode *mode,
+via_lvds_mode_set(struct drm_encoder *encoder, struct drm_display_mode *mode,
 		struct drm_display_mode *adjusted_mode)
 {
 	struct via_crtc *iga = container_of(encoder->crtc, struct via_crtc, base);
@@ -735,24 +735,24 @@ via_fp_mode_set(struct drm_encoder *encoder, struct drm_display_mode *mode,
 	case PCI_DEVICE_ID_VIA_VX875:
 	case PCI_DEVICE_ID_VIA_VX900_VGA:
 		/* OPENLDI Mode */
-		via_fp_format(dev_priv, enc->di_port, 0x01);
+		via_lvds_format(dev_priv, enc->di_port, 0x01);
 
 		/* Sequential Mode */
-		via_fp_output_format(dev_priv, enc->di_port, 0x01);
+		via_lvds_output_format(dev_priv, enc->di_port, 0x01);
 
 		/* Turn on dithering. */
-		via_fp_dithering(dev_priv, enc->di_port, true);
+		via_lvds_dithering(dev_priv, enc->di_port, true);
 		break;
 	default:
 		break;
 	}
 
-	via_fp_display_source(dev_priv, enc->di_port, iga->index);
+	via_lvds_display_source(dev_priv, enc->di_port, iga->index);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void via_fp_disable(struct drm_encoder *encoder)
+static void via_lvds_disable(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
@@ -765,18 +765,18 @@ static void via_fp_disable(struct drm_encoder *encoder)
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	via_fp_power(dev_priv, chipset, enc->di_port, false);
-	via_fp_io_pad_setting(dev_priv, enc->di_port, false);
+	via_lvds_power(dev_priv, chipset, enc->di_port, false);
+	via_lvds_io_pad_setting(dev_priv, enc->di_port, false);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 const struct drm_encoder_helper_funcs via_lvds_helper_funcs = {
-	.dpms = via_fp_dpms,
-	.prepare = via_fp_prepare,
-	.commit = via_fp_commit,
-	.mode_set = via_fp_mode_set,
-	.disable = via_fp_disable,
+	.dpms = via_lvds_dpms,
+	.prepare = via_lvds_prepare,
+	.commit = via_lvds_commit,
+	.mode_set = via_lvds_mode_set,
+	.disable = via_lvds_disable,
 };
 
 const struct drm_encoder_funcs via_lvds_enc_funcs = {
@@ -785,7 +785,7 @@ const struct drm_encoder_funcs via_lvds_enc_funcs = {
 
 /* Detect FP presence. */
 static enum drm_connector_status
-via_fp_detect(struct drm_connector *connector, bool force)
+via_lvds_detect(struct drm_connector *connector, bool force)
 {
 	struct drm_device *dev = connector->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
@@ -859,7 +859,7 @@ exit:
 	return ret;
 }
 
-static int via_fp_set_property(struct drm_connector *connector,
+static int via_lvds_set_property(struct drm_connector *connector,
 				struct drm_property *property,
 				uint64_t val)
 {
@@ -900,9 +900,9 @@ exit:
 	return ret;
 }
 
-struct drm_connector_funcs via_fp_connector_funcs = {
+struct drm_connector_funcs via_lvds_connector_funcs = {
 	.dpms = drm_helper_connector_dpms,
-	.detect = via_fp_detect,
+	.detect = via_lvds_detect,
 	.fill_modes = drm_helper_probe_single_connector_modes,
 	.destroy = via_connector_destroy,
 	.reset = drm_atomic_helper_connector_reset,
@@ -913,7 +913,7 @@ struct drm_connector_funcs via_fp_connector_funcs = {
 };
 
 static int
-via_fp_get_modes(struct drm_connector *connector)
+via_lvds_get_modes(struct drm_connector *connector)
 {
 	struct via_connector *con = container_of(connector, struct via_connector, base);
 	struct drm_device *dev = connector->dev;
@@ -989,8 +989,8 @@ via_fp_get_modes(struct drm_connector *connector)
 
 	reg_value = (vga_rcrt(VGABASE, 0x3f) & 0x0f);
 	hdisplay = vdisplay = 0;
-	hdisplay = via_fp_info_table[reg_value].x;
-	vdisplay = via_fp_info_table[reg_value].y;
+	hdisplay = via_lvds_info_table[reg_value].x;
+	vdisplay = via_lvds_info_table[reg_value].y;
 
 	if (hdisplay && vdisplay) {
 		native_mode = drm_cvt_mode(dev, hdisplay, vdisplay,
@@ -1010,7 +1010,7 @@ exit:
 	return count;
 }
 
-static int via_fp_mode_valid(struct drm_connector *connector,
+static int via_lvds_mode_valid(struct drm_connector *connector,
 				struct drm_display_mode *mode)
 {
 	struct drm_property *prop = connector->dev->mode_config.scaling_mode_property;
@@ -1059,14 +1059,14 @@ static int via_fp_mode_valid(struct drm_connector *connector,
 	return MODE_OK;
 }
 
-struct drm_connector_helper_funcs via_fp_connector_helper_funcs = {
-	.get_modes = via_fp_get_modes,
+struct drm_connector_helper_funcs via_lvds_connector_helper_funcs = {
+	.get_modes = via_lvds_get_modes,
 };
 
 /*
  * Probe (pre-initialization detection) FP.
  */
-void via_fp_probe(struct drm_device *dev)
+void via_lvds_probe(struct drm_device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
@@ -1247,10 +1247,10 @@ void via_fp_probe(struct drm_device *dev)
 	memset(&connector, 0, sizeof(connector));
 
 	/* Register a connector only for I2C bus probing. */
-	drm_connector_init(dev, &connector, &via_fp_connector_funcs,
+	drm_connector_init(dev, &connector, &via_lvds_connector_funcs,
 				DRM_MODE_CONNECTOR_LVDS);
 	drm_connector_helper_add(&connector,
-					&via_fp_connector_helper_funcs);
+					&via_lvds_connector_helper_funcs);
 	drm_connector_register(&connector);
 
 	if ((dev_priv->int_fp1_presence)
@@ -1297,7 +1297,7 @@ void via_fp_probe(struct drm_device *dev)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-void via_fp_init(struct drm_device *dev)
+void via_lvds_init(struct drm_device *dev)
 {
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	struct via_connector *con;
@@ -1319,9 +1319,9 @@ void via_fp_init(struct drm_device *dev)
 	con = &enc->cons[0];
 	INIT_LIST_HEAD(&con->props);
 
-	drm_connector_init(dev, &con->base, &via_fp_connector_funcs,
+	drm_connector_init(dev, &con->base, &via_lvds_connector_funcs,
 				DRM_MODE_CONNECTOR_LVDS);
-	drm_connector_helper_add(&con->base, &via_fp_connector_helper_funcs);
+	drm_connector_helper_add(&con->base, &via_lvds_connector_helper_funcs);
 	drm_connector_register(&con->base);
 
 	if (dev_priv->int_fp1_presence) {

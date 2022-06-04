@@ -153,7 +153,7 @@ int via_modeset_init(struct drm_device *dev)
 	openchrome_ext_dvi_probe(dev);
 	via_tmds_probe(dev);
 
-	via_fp_probe(dev);
+	via_lvds_probe(dev);
 
 	via_dac_probe(dev);
 
@@ -163,7 +163,7 @@ int via_modeset_init(struct drm_device *dev)
 
 	via_dac_init(dev);
 
-	via_fp_init(dev);
+	via_lvds_init(dev);
 
 	switch (pdev->device) {
 	case PCI_DEVICE_ID_VIA_VX900_VGA:

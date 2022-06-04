@@ -84,21 +84,21 @@ static void via_tmds_init_reg(struct via_drm_priv *dev_priv)
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	/* Turn off hardware controlled FP power on / off circuit. */
-	via_fp_set_primary_hard_power(VGABASE, false);
+	via_lvds_set_primary_hard_power(VGABASE, false);
 
 	/* Use software FP power sequence control. */
-	via_fp_set_primary_power_seq_type(VGABASE, false);
+	via_lvds_set_primary_power_seq_type(VGABASE, false);
 
 	/* Turn off software controlled primary FP power rails. */
-	via_fp_set_primary_soft_vdd(VGABASE, false);
-	via_fp_set_primary_soft_vee(VGABASE, false);
+	via_lvds_set_primary_soft_vdd(VGABASE, false);
+	via_lvds_set_primary_soft_vee(VGABASE, false);
 
 	/* Turn off software controlled primary FP back light
 	* control. */
-	via_fp_set_primary_soft_back_light(VGABASE, false);
+	via_lvds_set_primary_soft_back_light(VGABASE, false);
 
 	/* Turn off direct control of FP back light. */
-	via_fp_set_primary_direct_back_light_ctrl(VGABASE, false);
+	via_lvds_set_primary_direct_back_light_ctrl(VGABASE, false);
 
 	/* Activate DVI + LVDS2 mode. */
 	/* 3X5.D2[5:4] - Display Channel Select

@@ -365,8 +365,8 @@ static inline void via_dac_set_display_source(void __iomem *regs,
  * Sets KM400 or later chipset's FP primary power sequence control
  * type.
  */
-static inline void
-via_fp_set_primary_power_seq_type(void __iomem *regs, bool ctrl_type)
+static inline void via_lvds_set_primary_power_seq_type(void __iomem *regs,
+							bool ctrl_type)
 {
 	/* 3X5.91[0] - FP Primary Power Sequence Control Type
 	 *             0: Hardware Control
@@ -382,8 +382,8 @@ via_fp_set_primary_power_seq_type(void __iomem *regs, bool ctrl_type)
  * Sets KM400 or later chipset's FP primary software controlled
  * back light.
  */
-static inline void
-via_fp_set_primary_soft_back_light(void __iomem *regs, bool soft_on)
+static inline void via_lvds_set_primary_soft_back_light(void __iomem *regs,
+							bool soft_on)
 {
 	/* 3X5.91[1] - FP Primary Software Back Light On
 	 *             0: Off
@@ -398,8 +398,8 @@ via_fp_set_primary_soft_back_light(void __iomem *regs, bool soft_on)
  * Sets KM400 or later chipset's FP primary software controlled
  * VEE.
  */
-static inline void
-via_fp_set_primary_soft_vee(void __iomem *regs, bool soft_on)
+static inline void via_lvds_set_primary_soft_vee(void __iomem *regs,
+							bool soft_on)
 {
 	/* 3X5.91[2] - FP Primary Software VEE On
 	 *             0: Off
@@ -414,8 +414,8 @@ via_fp_set_primary_soft_vee(void __iomem *regs, bool soft_on)
  * Sets KM400 or later chipset's FP primary software controlled
  * data.
  */
-static inline void
-via_fp_set_primary_soft_data(void __iomem *regs, bool soft_on)
+static inline void via_lvds_set_primary_soft_data(void __iomem *regs,
+							bool soft_on)
 {
 	/* 3X5.91[3] - FP Primary Software Data On
 	 *             0: Off
@@ -430,8 +430,8 @@ via_fp_set_primary_soft_data(void __iomem *regs, bool soft_on)
  * Sets KM400 or later chipset's FP primary software controlled
  * VDD.
  */
-static inline void
-via_fp_set_primary_soft_vdd(void __iomem *regs, bool soft_on)
+static inline void via_lvds_set_primary_soft_vdd(void __iomem *regs,
+							bool soft_on)
 {
 	/* 3X5.91[4] - FP Primary Software VDD On
 	 *             0: Off
@@ -446,8 +446,8 @@ via_fp_set_primary_soft_vdd(void __iomem *regs, bool soft_on)
  * Sets KM400 or later chipset's FP primary direct back
  * light control.
  */
-static inline void
-via_fp_set_primary_direct_back_light_ctrl(void __iomem *regs, bool direct_on)
+static inline void via_lvds_set_primary_direct_back_light_ctrl(
+					void __iomem *regs, bool direct_on)
 {
 	/* 3X5.91[6] - FP Primary Direct Back Light Control
 	 *             0: On
@@ -462,8 +462,8 @@ via_fp_set_primary_direct_back_light_ctrl(void __iomem *regs, bool direct_on)
  * Sets KM400 or later chipset's FP primary direct display
  * period control.
  */
-static inline void
-via_fp_set_primary_direct_display_period(void __iomem *regs, bool direct_on)
+static inline void via_lvds_set_primary_direct_display_period(
+					void __iomem *regs, bool direct_on)
 {
 	/* 3X5.91[7] - FP Primary Direct Display Period Control
 	 *             0: On
@@ -478,8 +478,8 @@ via_fp_set_primary_direct_display_period(void __iomem *regs, bool direct_on)
  * Sets KM400 or later chipset's FP primary hardware controlled
  * power sequence.
  */
-static inline void
-via_fp_set_primary_hard_power(void __iomem *regs, bool power_state)
+static inline void via_lvds_set_primary_hard_power(void __iomem *regs,
+							bool power_state)
 {
 	/* 3X5.6A[3] - FP Primary Hardware Controlled Power Sequence
 	 *             0: Hardware Controlled Power Off
@@ -494,9 +494,8 @@ via_fp_set_primary_hard_power(void __iomem *regs, bool power_state)
  * Sets CX700 / VX700 or later chipset's FP secondary
  * power sequence control type.
  */
-static inline void
-via_fp_set_secondary_power_seq_type(void __iomem *regs,
-					bool ctrl_type)
+static inline void via_lvds_set_secondary_power_seq_type(void __iomem *regs,
+							bool ctrl_type)
 {
 	/* 3X5.D3[0] - FP Secondary Power Sequence Control Type
 	 *             0: Hardware Control
@@ -512,9 +511,8 @@ via_fp_set_secondary_power_seq_type(void __iomem *regs,
  * Sets CX700 / VX700 or later chipset's FP secondary
  * software controlled back light.
  */
-static inline void
-via_fp_set_secondary_soft_back_light(void __iomem *regs,
-					bool soft_on)
+static inline void via_lvds_set_secondary_soft_back_light(void __iomem *regs,
+								bool soft_on)
 {
 	/* 3X5.D3[1] - FP Secondary Software Back Light On
 	 *             0: Off
@@ -529,9 +527,8 @@ via_fp_set_secondary_soft_back_light(void __iomem *regs,
  * Sets CX700 / VX700 or later chipset's FP secondary software
  * controlled VEE.
  */
-static inline void
-via_fp_set_secondary_soft_vee(void __iomem *regs,
-				bool soft_on)
+static inline void via_lvds_set_secondary_soft_vee(void __iomem *regs,
+							bool soft_on)
 {
 	/* 3X5.D3[2] - FP Secondary Software VEE On
 	 *             0: Off
@@ -546,9 +543,8 @@ via_fp_set_secondary_soft_vee(void __iomem *regs,
  * Sets CX700 / VX700 or later chipset's FP secondary software
  * controlled data.
  */
-static inline void
-via_fp_set_secondary_soft_data(void __iomem *regs,
-				bool soft_on)
+static inline void via_lvds_set_secondary_soft_data(void __iomem *regs,
+							bool soft_on)
 {
 	/* 3X5.D3[3] - FP Secondary Software Data On
 	 *             0: Off
@@ -563,9 +559,8 @@ via_fp_set_secondary_soft_data(void __iomem *regs,
  * Sets CX700 / VX700 or later chipset's FP secondary software
  * controlled VDD.
  */
-static inline void
-via_fp_set_secondary_soft_vdd(void __iomem *regs,
-				bool soft_on)
+static inline void via_lvds_set_secondary_soft_vdd(void __iomem *regs,
+							bool soft_on)
 {
 	/* 3X5.D3[4] - FP Secondary Software VDD On
 	 *             0: Off
@@ -580,9 +575,8 @@ via_fp_set_secondary_soft_vdd(void __iomem *regs,
  * Sets CX700 / VX700 or later chipset's FP secondary direct back
  * light control.
  */
-static inline void
-via_fp_set_secondary_direct_back_light_ctrl(void __iomem *regs,
-						bool direct_on)
+static inline void via_lvds_set_secondary_direct_back_light_ctrl(
+					void __iomem *regs, bool direct_on)
 {
 	/* 3X5.D3[6] - FP Secondary Direct Back Light Control
 	 *             0: On
@@ -597,9 +591,8 @@ via_fp_set_secondary_direct_back_light_ctrl(void __iomem *regs,
  * Sets CX700 / VX700 or later chipset's FP secondary direct
  * display period control.
  */
-static inline void
-via_fp_set_secondary_direct_display_period(void __iomem *regs,
-						bool direct_on)
+static inline void via_lvds_set_secondary_direct_display_period(
+					void __iomem *regs, bool direct_on)
 {
 	/* 3X5.D3[7] - FP Secondary Direct Display Period Control
 	 *             0: On
@@ -613,9 +606,8 @@ via_fp_set_secondary_direct_display_period(void __iomem *regs,
 /*
  * Sets FP secondary hardware controlled power sequence enable.
  */
-static inline void
-via_fp_set_secondary_hard_power(void __iomem *regs,
-				bool power_state)
+static inline void via_lvds_set_secondary_hard_power(void __iomem *regs,
+							bool power_state)
 {
 	/* 3X5.D4[1] - Secondary Power Hardware Power Sequence Enable
 	 *             0: Off

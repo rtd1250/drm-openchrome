@@ -145,10 +145,10 @@
 #define	VIA_TMDS_SII164	BIT(1)
 
 
-typedef struct _via_fp_info {
+typedef struct _via_lvds_info {
 	u32 x;
 	u32 y;
-} via_fp_info;
+} via_lvds_info;
 
 struct via_crtc {
 	struct drm_crtc base;
@@ -437,7 +437,7 @@ bool openchrome_vt1632_probe(struct i2c_adapter *i2c_bus);
 bool openchrome_sii164_probe(struct i2c_adapter *i2c_bus);
 void openchrome_ext_dvi_probe(struct drm_device *dev);
 void via_tmds_probe(struct drm_device *dev);
-void via_fp_probe(struct drm_device *dev);
+void via_lvds_probe(struct drm_device *dev);
 
 void via_hdmi_init(struct drm_device *dev, u32 di_port);
 void via_dac_init(struct drm_device *dev);
@@ -445,6 +445,6 @@ void openchrome_vt1632_init(struct drm_device *dev);
 void openchrome_sii164_init(struct drm_device *dev);
 void openchrome_ext_dvi_init(struct drm_device *dev);
 void via_tmds_init(struct drm_device *dev);
-void via_fp_init(struct drm_device *dev);
+void via_lvds_init(struct drm_device *dev);
 
 #endif /* _OPENCHROME_DRV_H */
