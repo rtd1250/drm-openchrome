@@ -145,8 +145,8 @@ static void openchrome_bo_delete_mem_notify(struct ttm_buffer_object *bo)
 static int openchrome_bo_io_mem_reserve(struct ttm_device *bdev,
 					struct ttm_resource *mem)
 {
-	struct openchrome_drm_private *dev_private = container_of(bdev,
-					struct openchrome_drm_private, bdev);
+	struct via_drm_priv *dev_private = container_of(bdev,
+						struct via_drm_priv, bdev);
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);

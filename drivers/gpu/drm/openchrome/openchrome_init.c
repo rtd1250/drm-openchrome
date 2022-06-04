@@ -34,7 +34,7 @@
 #include "openchrome_drv.h"
 
 
-static int cle266_mem_type(struct openchrome_drm_private *dev_private,
+static int cle266_mem_type(struct via_drm_priv *dev_private,
 				struct pci_dev *bridge)
 {
 	u8 type, fsb, freq;
@@ -135,7 +135,7 @@ static int cle266_mem_type(struct openchrome_drm_private *dev_private,
 	return ret;
 }
 
-static int km400_mem_type(struct openchrome_drm_private *dev_private,
+static int km400_mem_type(struct via_drm_priv *dev_private,
 				struct pci_dev *bridge)
 {
 	u8 fsb, freq, rev;
@@ -317,7 +317,7 @@ static int km400_mem_type(struct openchrome_drm_private *dev_private,
 	return ret;
 }
 
-static int p4m800_mem_type(struct openchrome_drm_private *dev_private,
+static int p4m800_mem_type(struct via_drm_priv *dev_private,
 				struct pci_bus *bus,
 				struct pci_dev *fn3)
 {
@@ -385,7 +385,7 @@ static int p4m800_mem_type(struct openchrome_drm_private *dev_private,
 	return ret;
 }
 
-static int km8xx_mem_type(struct openchrome_drm_private *dev_private)
+static int km8xx_mem_type(struct via_drm_priv *dev_private)
 {
 	struct pci_dev *dram, *misc = NULL;
 	int ret = -ENXIO;
@@ -535,7 +535,7 @@ static int km8xx_mem_type(struct openchrome_drm_private *dev_private)
 	return ret;
 }
 
-static int cn400_mem_type(struct openchrome_drm_private *dev_private,
+static int cn400_mem_type(struct via_drm_priv *dev_private,
 				struct pci_bus *bus,
 				struct pci_dev *fn3)
 {
@@ -599,7 +599,7 @@ static int cn400_mem_type(struct openchrome_drm_private *dev_private,
 	return ret;
 }
 
-static int cn700_mem_type(struct openchrome_drm_private *dev_private,
+static int cn700_mem_type(struct via_drm_priv *dev_private,
 				struct pci_dev *fn3)
 {
 	int ret;
@@ -633,7 +633,7 @@ static int cn700_mem_type(struct openchrome_drm_private *dev_private,
 	return ret;
 }
 
-static int cx700_mem_type(struct openchrome_drm_private *dev_private,
+static int cx700_mem_type(struct via_drm_priv *dev_private,
 				struct pci_dev *fn3)
 {
 	u8 type, clock;
@@ -692,7 +692,7 @@ static int cx700_mem_type(struct openchrome_drm_private *dev_private,
 	return ret;
 }
 
-static int vx900_mem_type(struct openchrome_drm_private *dev_private,
+static int vx900_mem_type(struct via_drm_priv *dev_private,
 				struct pci_dev *fn3)
 {
 	int ret;
@@ -767,7 +767,7 @@ static int vx900_mem_type(struct openchrome_drm_private *dev_private,
 	return ret;
 }
 
-int openchrome_vram_detect(struct openchrome_drm_private *dev_private)
+int openchrome_vram_detect(struct via_drm_priv *dev_private)
 {
 	struct drm_device *dev = &dev_private->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
@@ -1004,7 +1004,7 @@ out_err:
 	return ret;
 }
 
-static void openchrome_flag_init(struct openchrome_drm_private *dev_private)
+static void openchrome_flag_init(struct via_drm_priv *dev_private)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -1014,8 +1014,7 @@ static void openchrome_flag_init(struct openchrome_drm_private *dev_private)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void openchrome_quirks_init(
-			struct openchrome_drm_private *dev_private)
+static void openchrome_quirks_init(struct via_drm_priv *dev_private)
 {
 	struct drm_device *dev = &dev_private->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
@@ -1069,7 +1068,7 @@ static void openchrome_quirks_init(
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-int openchrome_vram_init(struct openchrome_drm_private *dev_private)
+int openchrome_vram_init(struct via_drm_priv *dev_private)
 {
 	int ret = 0;
 
@@ -1084,7 +1083,7 @@ int openchrome_vram_init(struct openchrome_drm_private *dev_private)
 	return ret;
 }
 
-void openchrome_vram_fini(struct openchrome_drm_private *dev_private)
+void openchrome_vram_fini(struct via_drm_priv *dev_private)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -1098,8 +1097,7 @@ void openchrome_vram_fini(struct openchrome_drm_private *dev_private)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-int openchrome_mmio_init(
-			struct openchrome_drm_private *dev_private)
+int openchrome_mmio_init(struct via_drm_priv *dev_private)
 {
 	struct drm_device *dev = &dev_private->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
@@ -1127,7 +1125,7 @@ exit:
 	return ret;
 }
 
-void openchrome_mmio_fini(struct openchrome_drm_private *dev_private)
+void openchrome_mmio_fini(struct via_drm_priv *dev_private)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -1139,8 +1137,7 @@ void openchrome_mmio_fini(struct openchrome_drm_private *dev_private)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-void openchrome_graphics_unlock(
-			struct openchrome_drm_private *dev_private)
+void openchrome_graphics_unlock(struct via_drm_priv *dev_private)
 {
 	uint8_t temp;
 
@@ -1168,7 +1165,7 @@ void openchrome_graphics_unlock(
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-void chip_revision_info(struct openchrome_drm_private *dev_private)
+void chip_revision_info(struct via_drm_priv *dev_private)
 {
 	struct drm_device *dev = &dev_private->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
@@ -1219,7 +1216,7 @@ void chip_revision_info(struct openchrome_drm_private *dev_private)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-int openchrome_device_init(struct openchrome_drm_private *dev_private)
+int openchrome_device_init(struct via_drm_priv *dev_private)
 {
 	int ret;
 
@@ -1255,7 +1252,7 @@ exit:
 	return ret;
 }
 
-void openchrome_device_fini(struct openchrome_drm_private *dev_private)
+void openchrome_device_fini(struct via_drm_priv *dev_private)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -1272,8 +1269,7 @@ drm_mode_config_funcs openchrome_drm_mode_config_funcs = {
 	.atomic_commit		= drm_atomic_helper_commit,
 };
 
-void openchrome_mode_config_init(
-			struct openchrome_drm_private *dev_private)
+void openchrome_mode_config_init(struct via_drm_priv *dev_private)
 {
 	struct drm_device *dev = &dev_private->dev;
 
@@ -1301,8 +1297,7 @@ void openchrome_mode_config_init(
 
 int openchrome_drm_init(struct drm_device *dev)
 {
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -1342,8 +1337,7 @@ exit:
 
 void openchrome_drm_fini(struct drm_device *dev)
 {
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 

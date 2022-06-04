@@ -52,8 +52,7 @@ static void
 via_hdmi_enc_dpms(struct drm_encoder *encoder, int mode)
 {
 	struct drm_device *dev = encoder->dev;
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
 
 	switch (mode) {
 	case DRM_MODE_DPMS_SUSPEND:
@@ -163,8 +162,7 @@ via_hdmi_native_mode_set(struct via_crtc *iga, struct drm_display_mode *mode,
 			bool audio_off)
 {
 	struct drm_device *dev = iga->base.dev;
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
 	u32 reg_c280, reg_c284;
 	int max_packet, delay;
 	u8 value = BIT(0);
@@ -254,8 +252,7 @@ via_hdmi_enc_mode_set(struct drm_encoder *encoder,
 	struct drm_connector *connector = NULL, *con;
 	struct drm_device *dev = encoder->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
 
 	list_for_each_entry(con, &dev->mode_config.connector_list, head) {
 		if (encoder ==  con->encoder) {
@@ -394,9 +391,9 @@ static const struct drm_encoder_helper_funcs via_hdmi_enc_helper_funcs = {
 };
 
 static unsigned int via_check_hdmi_i2c_status(
-			struct openchrome_drm_private *dev_private,
-			unsigned int check_bits,
-			unsigned int condition)
+					struct via_drm_priv *dev_private,
+					unsigned int check_bits,
+					unsigned int condition)
 {
 	unsigned int status = true, max = 50, loop = 0;
 
@@ -421,9 +418,9 @@ static unsigned int via_check_hdmi_i2c_status(
 }
 
 unsigned int via_ddc_read_bytes_by_hdmi(
-			struct openchrome_drm_private *dev_private,
-			unsigned int offset,
-			unsigned char *block)
+				struct via_drm_priv *dev_private,
+				unsigned int offset,
+				unsigned char *block)
 {
 	unsigned int status = true, temp = 0, i;
 
@@ -504,8 +501,7 @@ via_hdmi_get_edid(struct drm_connector *connector)
 {
 	bool print_bad_edid = !connector->bad_edid_counter || (drm_debug_enabled(DRM_UT_KMS));
 	struct drm_device *dev = connector->dev;
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
 	struct edid *edid = NULL;
 	int i, j = 0;
 	u8 *block;
@@ -597,8 +593,7 @@ static enum drm_connector_status
 via_hdmi_detect(struct drm_connector *connector, bool force)
 {
 	struct drm_device *dev = connector->dev;
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
 	enum drm_connector_status ret = connector_status_disconnected;
 	u32 mm_c730 = VIA_READ(0xc730) & 0xC0000000;
 	struct edid *edid = NULL;

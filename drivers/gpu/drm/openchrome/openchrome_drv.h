@@ -203,7 +203,7 @@ enum via_engine {
 	VIA_ENG_H6S2
 };
 
-struct openchrome_drm_private {
+struct via_drm_priv {
 	struct drm_device dev;
 
 	struct ttm_device		bdev;
@@ -312,7 +312,10 @@ struct openchrome_drm_private {
 };
 
 
-#define to_openchrome_private(x) container_of(x, struct openchrome_drm_private, dev)
+/*
+ * Shortcut for using container_of macro.
+ */
+#define to_via_drm_priv(x)	container_of(x, struct via_drm_priv, dev)
 
 
 /* VIA MMIO register access */
@@ -352,18 +355,16 @@ extern int openchrome_driver_num_ioctls;
 
 extern struct ttm_device_funcs openchrome_bo_driver;
 
-int openchrome_vram_detect(struct openchrome_drm_private *dev_private);
-int openchrome_vram_init(struct openchrome_drm_private *dev_private);
-void openchrome_vram_fini(struct openchrome_drm_private *dev_private);
-int openchrome_mmio_init(struct openchrome_drm_private *dev_private);
-void openchrome_mmio_fini(struct openchrome_drm_private *dev_private);
-void openchrome_graphics_unlock(
-			struct openchrome_drm_private *dev_private);
-void chip_revision_info(struct openchrome_drm_private *dev_private);
-int openchrome_device_init(struct openchrome_drm_private *dev_private);
-void openchrome_device_fini(struct openchrome_drm_private *dev_private);
-void openchrome_mode_config_init(
-			struct openchrome_drm_private *dev_private);
+int openchrome_vram_detect(struct via_drm_priv *dev_private);
+int openchrome_vram_init(struct via_drm_priv *dev_private);
+void openchrome_vram_fini(struct via_drm_priv *dev_private);
+int openchrome_mmio_init(struct via_drm_priv *dev_private);
+void openchrome_mmio_fini(struct via_drm_priv *dev_private);
+void openchrome_graphics_unlock(struct via_drm_priv *dev_private);
+void chip_revision_info(struct via_drm_priv *dev_private);
+int openchrome_device_init(struct via_drm_priv *dev_private);
+void openchrome_device_fini(struct via_drm_priv *dev_private);
+void openchrome_mode_config_init(struct via_drm_priv *dev_private);
 int openchrome_drm_init(struct drm_device *dev);
 void openchrome_drm_fini(struct drm_device *dev);
 
@@ -383,21 +384,21 @@ int openchrome_bo_create(struct drm_device *dev,
 				bool kmap,
 				struct openchrome_bo **bo_ptr);
 void openchrome_bo_destroy(struct openchrome_bo *bo, bool kmap);
-int openchrome_mm_init(struct openchrome_drm_private *dev_private);
-void openchrome_mm_fini(struct openchrome_drm_private *dev_private);
+int openchrome_mm_init(struct via_drm_priv *dev_private);
+void openchrome_mm_fini(struct via_drm_priv *dev_private);
 
-void openchrome_transmitter_io_pad_state(
-			struct openchrome_drm_private *dev_private,
-			uint32_t di_port, bool io_pad_on);
+void openchrome_transmitter_io_pad_state(struct via_drm_priv *dev_private,
+						uint32_t di_port,
+						bool io_pad_on);
 void openchrome_transmitter_clock_drive_strength(
-			struct openchrome_drm_private *dev_private,
-			u32 di_port, u8 drive_strength);
+					struct via_drm_priv *dev_private,
+					u32 di_port, u8 drive_strength);
 void openchrome_transmitter_data_drive_strength(
-			struct openchrome_drm_private *dev_private,
-			u32 di_port, u8 drive_strength);
+					struct via_drm_priv *dev_private,
+					u32 di_port, u8 drive_strength);
 void openchrome_transmitter_display_source(
-			struct openchrome_drm_private *dev_private,
-			u32 di_port, int index);
+					struct via_drm_priv *dev_private,
+					u32 di_port, int index);
 
 extern const struct drm_plane_helper_funcs
 openchrome_cursor_drm_plane_helper_funcs;
@@ -417,7 +418,7 @@ void via_i2c_readbytes(struct i2c_adapter *adapter,
 void via_i2c_writebytes(struct i2c_adapter *adapter,
 				u8 slave_addr, char offset,
 				u8 *data, unsigned int size);
-void via_i2c_reg_init(struct openchrome_drm_private *dev_private);
+void via_i2c_reg_init(struct via_drm_priv *dev_private);
 int via_i2c_init(struct drm_device *dev);
 void via_i2c_exit(void);
 
@@ -428,7 +429,7 @@ void via_set_vclock(struct drm_crtc *crtc, u32 clk);
 /* crtc */
 void via_load_crtc_pixel_timing(struct drm_crtc *crtc,
 					struct drm_display_mode *mode);
-int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
+int openchrome_crtc_init(struct via_drm_priv *dev_private,
 				uint32_t index);
 
 /* encoders */

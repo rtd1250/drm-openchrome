@@ -90,8 +90,7 @@ static int openchrome_driver_dumb_create(
 				struct drm_device *dev,
 				struct drm_mode_create_dumb *args)
 {
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
 	struct openchrome_bo *bo;
 	uint32_t handle, pitch;
 	uint64_t size;
@@ -200,7 +199,7 @@ static int openchrome_pci_probe(struct pci_dev *pdev,
 				const struct pci_device_id *ent)
 {
 	struct drm_device *dev;
-	struct openchrome_drm_private *dev_private;
+	struct via_drm_priv *dev_private;
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -218,7 +217,7 @@ static int openchrome_pci_probe(struct pci_dev *pdev,
 
 	dev_private = devm_drm_dev_alloc(&pdev->dev,
 					&openchrome_driver,
-					struct openchrome_drm_private,
+					struct via_drm_priv,
 					dev);
 	if (IS_ERR(dev_private)) {
 		ret = PTR_ERR(dev_private);

@@ -173,8 +173,7 @@ int openchrome_bo_create(struct drm_device *dev,
 				bool kmap,
 				struct openchrome_bo **bo_ptr)
 {
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
 	struct openchrome_bo *bo;
 	int ret;
 
@@ -276,7 +275,7 @@ exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-int openchrome_mm_init(struct openchrome_drm_private *dev_private)
+int openchrome_mm_init(struct via_drm_priv *dev_private)
 {
 	struct drm_device *dev = &dev_private->dev;
 	int ret;
@@ -314,7 +313,7 @@ exit:
 	return ret;
 }
 
-void openchrome_mm_fini(struct openchrome_drm_private *dev_private)
+void openchrome_mm_fini(struct via_drm_priv *dev_private)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 

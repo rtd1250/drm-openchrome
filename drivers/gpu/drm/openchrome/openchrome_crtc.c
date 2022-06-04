@@ -95,9 +95,8 @@ static void via_iga_common_init(void __iomem *regs)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void via_iga1_set_color_depth(
-			struct openchrome_drm_private *dev_private,
-			u8 depth)
+static void via_iga1_set_color_depth(struct via_drm_priv *dev_private,
+					u8 depth)
 {
 	u8 value;
 
@@ -140,9 +139,8 @@ static void via_iga1_set_color_depth(
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static void via_iga2_set_color_depth(
-			struct openchrome_drm_private *dev_private,
-			u8 depth)
+static void via_iga2_set_color_depth(struct via_drm_priv *dev_private,
+					u8 depth)
 {
 	u8 value;
 
@@ -187,8 +185,7 @@ static int openchrome_gamma_set(struct drm_crtc *crtc,
 {
 	struct drm_device *dev = crtc->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
 	struct via_crtc *iga = container_of(crtc,
 						struct via_crtc, base);
 	int end = (size > 256) ? 256 : size, i;
@@ -353,8 +350,7 @@ static const struct drm_crtc_funcs openchrome_drm_crtc_funcs = {
 	.atomic_destroy_state = drm_atomic_helper_crtc_destroy_state,
 };
 
-static void via_load_vpit_regs(
-			struct openchrome_drm_private *dev_private)
+static void via_load_vpit_regs(struct via_drm_priv *dev_private)
 {
 	u8 ar[] = {0x00, 0x01, 0x02, 0x03,
 			0x04, 0x05, 0x06, 0x07,
@@ -389,12 +385,11 @@ static void via_load_vpit_regs(
 	vga_w(VGABASE, VGA_ATT_W, BIT(5));
 }
 
-static int via_iga1_display_fifo_regs(
-			struct drm_device *dev,
-			struct openchrome_drm_private *dev_private,
-			struct via_crtc *iga,
-			struct drm_display_mode *mode,
-			struct drm_framebuffer *fb)
+static int via_iga1_display_fifo_regs(struct drm_device *dev,
+					struct via_drm_priv *dev_private,
+					struct via_crtc *iga,
+					struct drm_display_mode *mode,
+					struct drm_framebuffer *fb)
 {
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	u32 reg_value;
@@ -792,12 +787,11 @@ exit:
 	return ret;
 }
 
-static int via_iga2_display_fifo_regs(
-			struct drm_device *dev,
-			struct openchrome_drm_private *dev_private,
-			struct via_crtc *iga,
-			struct drm_display_mode *mode,
-			struct drm_framebuffer *fb)
+static int via_iga2_display_fifo_regs(struct drm_device *dev,
+					struct via_drm_priv *dev_private,
+					struct via_crtc *iga,
+					struct drm_display_mode *mode,
+					struct drm_framebuffer *fb)
 {
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	u32 reg_value;
@@ -1114,8 +1108,7 @@ via_load_crtc_pixel_timing(struct drm_crtc *crtc,
 {
 	struct drm_device *dev = crtc->dev;
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
 	u32 reg_value = 0;
 
 	reg_value = IGA1_PIXELTIMING_HOR_TOTAL_FORMULA(mode->crtc_htotal);
@@ -1191,8 +1184,7 @@ via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 {
 	struct drm_device *dev = iga->base.dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
 	u32 reg_value = 0;
 
 	if (!iga->index) {
@@ -1290,8 +1282,7 @@ via_set_scale_path(struct drm_crtc *crtc, u32 scale_type)
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_device *dev = crtc->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
 	u8 reg_cr_fd = vga_rcrt(VGABASE, 0xFD);
 
 	if (!iga->index)
@@ -1336,8 +1327,7 @@ via_disable_iga_scaling(struct drm_crtc *crtc)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_device *dev = crtc->dev;
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
 
 	if (iga->index) {
 		/* IGA2 scalings disable */
@@ -1384,8 +1374,7 @@ via_set_iga_scale_function(struct drm_crtc *crtc, u32 scale_type)
 {
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_device *dev = crtc->dev;
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
 
 	if (!(scale_type & (VIA_SHRINK + VIA_EXPAND)))
 		return false;
@@ -1468,11 +1457,10 @@ via_set_iga_scale_function(struct drm_crtc *crtc, u32 scale_type)
  * 2. load scale factors into registers
  * 3. enable H or V scale ( set CRA2 bit7 or bit3 )
  */
-bool via_load_iga_scale_factor_regs(
-			struct openchrome_drm_private *dev_private,
-			struct drm_display_mode *mode,
-			struct drm_display_mode *adjusted_mode,
-			u32 scale_type, u32 is_hor_or_ver)
+bool via_load_iga_scale_factor_regs(struct via_drm_priv *dev_private,
+					struct drm_display_mode *mode,
+					struct drm_display_mode *adjusted_mode,
+					u32 scale_type, u32 is_hor_or_ver)
 {
 	u32 dst_hor_regs = adjusted_mode->crtc_hdisplay;
 	u32 dst_ver_regs = adjusted_mode->crtc_vdisplay;
@@ -1603,8 +1591,7 @@ void openchrome_mode_set_nofb(struct drm_crtc *crtc)
 					&crtc->state->adjusted_mode;
 	struct via_crtc *iga = container_of(crtc,
 						struct via_crtc, base);
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
 	u8 reg_value = 0;
 	int ret;
 
@@ -1813,8 +1800,7 @@ static void openchrome_crtc_helper_atomic_enable(struct drm_crtc *crtc,
 					struct drm_atomic_state *state)
 {
 	struct drm_device *dev = crtc->dev;
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
 	struct via_crtc *iga = container_of(crtc,
 						struct via_crtc, base);
 
@@ -1833,8 +1819,7 @@ static void openchrome_crtc_helper_atomic_disable(struct drm_crtc *crtc,
 					struct drm_atomic_state *state)
 {
 	struct drm_device *dev = crtc->dev;
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
 	struct via_crtc *iga = container_of(crtc,
 						struct via_crtc, base);
 
@@ -1864,8 +1849,7 @@ static int openchrome_primary_atomic_check(struct drm_plane *plane,
 	struct drm_crtc_state *new_crtc_state;
 	struct drm_device *dev = plane->dev;
 	struct drm_framebuffer *fb = new_plane_state->fb;
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
 	uint32_t frame_buffer_size;
 	int ret = 0;
 
@@ -1922,8 +1906,7 @@ void openchrome_primary_atomic_update(struct drm_plane *plane,
 	uint32_t addr;
 	struct via_crtc *iga = container_of(crtc, struct via_crtc, base);
 	struct drm_device *dev = crtc->dev;
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(dev);
 	struct drm_gem_object *gem;
 	struct ttm_buffer_object *ttm_bo;
 	struct openchrome_bo *bo;
@@ -2063,10 +2046,9 @@ static const struct drm_plane_funcs openchrome_primary_drm_plane_funcs = {
 			drm_atomic_helper_plane_destroy_state,
 };
 
-static void openchrome_crtc_param_init(
-		struct openchrome_drm_private *dev_private,
-		struct drm_crtc *crtc,
-		uint32_t index)
+static void openchrome_crtc_param_init(struct via_drm_priv *dev_private,
+					struct drm_crtc *crtc,
+					uint32_t index)
 {
 	struct drm_device *dev = &dev_private->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
@@ -2258,7 +2240,7 @@ static const uint32_t openchrome_primary_formats[] = {
 	DRM_FORMAT_RGB332,
 };
 
-int openchrome_crtc_init(struct openchrome_drm_private *dev_private,
+int openchrome_crtc_init(struct via_drm_priv *dev_private,
 				uint32_t index)
 {
 	struct drm_device *dev = &dev_private->dev;

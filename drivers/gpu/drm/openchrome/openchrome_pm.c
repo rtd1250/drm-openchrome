@@ -39,8 +39,7 @@ int openchrome_dev_pm_ops_suspend(struct device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev);
 	struct drm_device *drm_dev = pci_get_drvdata(pdev);
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(drm_dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(drm_dev);
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -102,8 +101,7 @@ int openchrome_dev_pm_ops_resume(struct device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev);
 	struct drm_device *drm_dev = pci_get_drvdata(pdev);
-	struct openchrome_drm_private *dev_private =
-						to_openchrome_private(drm_dev);
+	struct via_drm_priv *dev_private = to_via_drm_priv(drm_dev);
 	void __iomem *regs = ioport_map(0x3c0, 100);
 	u8 val;
 	int ret = 0;
