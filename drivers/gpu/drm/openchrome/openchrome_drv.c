@@ -49,13 +49,13 @@ extern const struct drm_ioctl_desc via_driver_ioctls[];
  * For now, this device driver will be disabled, unless the
  * user decides to enable it.
  */
-int openchrome_modeset = 0;
+int via_modeset = 0;
 
 MODULE_PARM_DESC(modeset, "Enable DRM device driver "
 				"(Default: Disabled, "
 				"0 = Disabled,"
 				"1 = Enabled)");
-module_param_named(modeset, openchrome_modeset, int, 0400);
+module_param_named(modeset, via_modeset, int, 0400);
 
 static int openchrome_driver_open(struct drm_device *dev,
 					struct drm_file *file_priv)
@@ -276,12 +276,12 @@ static int __init openchrome_init(void)
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if ((openchrome_modeset == -1) &&
+	if ((via_modeset == -1) &&
 		(drm_firmware_drivers_only())) {
-		openchrome_modeset = 0;
+		via_modeset = 0;
 	}
 
-	if (!openchrome_modeset) {
+	if (!via_modeset) {
 		ret = -EINVAL;
 		goto exit;
 	}
@@ -299,7 +299,7 @@ static void __exit openchrome_exit(void)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if (!openchrome_modeset) {
+	if (!via_modeset) {
 		goto exit;
 	}
 

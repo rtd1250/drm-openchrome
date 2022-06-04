@@ -36,10 +36,10 @@
 
 #define HDMI_AUDIO_ENABLED	BIT(0)
 
-int openchrome_hdmi_audio = 0;
+int via_hdmi_audio = 0;
 
 MODULE_PARM_DESC(audio, "HDMI Audio enable (1 = enable)");
-module_param_named(audio, openchrome_hdmi_audio, int, 0444);
+module_param_named(audio, via_hdmi_audio, int, 0444);
 
 /*
  * Routines for controlling stuff on the HDMI port
@@ -638,7 +638,7 @@ int via_hdmi_get_modes(struct drm_connector *connector)
 		if (edid->input & DRM_EDID_INPUT_DIGITAL) {
 			con = container_of(connector, struct via_connector, base);
 
-			if (openchrome_hdmi_audio)
+			if (via_hdmi_audio)
 				con->flags |= drm_detect_monitor_audio(edid);
 		}
 	}
