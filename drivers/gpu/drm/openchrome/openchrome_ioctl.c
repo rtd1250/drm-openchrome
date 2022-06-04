@@ -98,7 +98,7 @@ static int openchrome_gem_map_ioctl(struct drm_device *dev,
 	}
 
 	ttm_bo = container_of(gem, struct ttm_buffer_object, base);
-	bo = container_of(ttm_bo, struct openchrome_bo, ttm_bo);
+	bo = to_ttm_bo(ttm_bo);
 
 	args->map_offset = drm_vma_node_offset_addr(
 					&bo->ttm_bo.base.vma_node);

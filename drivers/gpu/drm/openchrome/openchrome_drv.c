@@ -147,7 +147,7 @@ static int openchrome_driver_dumb_map_offset(struct drm_file *file_priv,
 	}
 
 	ttm_bo = container_of(gem, struct ttm_buffer_object, base);
-	bo = container_of(ttm_bo, struct openchrome_bo, ttm_bo);
+	bo = to_ttm_bo(ttm_bo);
 	*offset = drm_vma_node_offset_addr(&bo->ttm_bo.base.vma_node);
 
 	drm_gem_object_put(gem);

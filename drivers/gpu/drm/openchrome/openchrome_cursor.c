@@ -272,7 +272,7 @@ static int openchrome_cursor_prepare_fb(struct drm_plane *plane,
 
 	gem = new_state->fb->obj[0];
 	ttm_bo = container_of(gem, struct ttm_buffer_object, base);
-	bo = container_of(ttm_bo, struct openchrome_bo, ttm_bo);
+	bo = to_ttm_bo(ttm_bo);
 
 	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
 	if (ret) {
@@ -309,7 +309,7 @@ static void openchrome_cursor_cleanup_fb(struct drm_plane *plane,
 
 	gem = old_state->fb->obj[0];
 	ttm_bo = container_of(gem, struct ttm_buffer_object, base);
-	bo = container_of(ttm_bo, struct openchrome_bo, ttm_bo);
+	bo = to_ttm_bo(ttm_bo);
 
 	ttm_bo_kunmap(&bo->kmap);
 	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);

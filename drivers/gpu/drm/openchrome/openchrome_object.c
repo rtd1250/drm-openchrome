@@ -54,7 +54,7 @@ static void openchrome_gem_free(struct drm_gem_object *obj)
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	ttm_bo = container_of(obj, struct ttm_buffer_object, base);
-	bo = container_of(ttm_bo, struct openchrome_bo, ttm_bo);
+	bo = to_ttm_bo(ttm_bo);
 
 	ttm_bo_put(&bo->ttm_bo);
 
@@ -122,7 +122,7 @@ void openchrome_ttm_bo_destroy(struct ttm_buffer_object *tbo)
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	bo = container_of(tbo, struct openchrome_bo, ttm_bo);
+	bo = to_ttm_bo(tbo);
 
 	drm_gem_object_release(&bo->ttm_bo.base);
 	kfree(bo);

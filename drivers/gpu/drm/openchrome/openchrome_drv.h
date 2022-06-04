@@ -310,6 +310,7 @@ struct via_drm_priv {
  * Shortcut for using container_of macro.
  */
 #define to_via_drm_priv(x)	container_of(x, struct via_drm_priv, dev)
+#define to_ttm_bo(x)		container_of(x, struct openchrome_bo, ttm_bo)
 
 
 /* VIA MMIO register access */
