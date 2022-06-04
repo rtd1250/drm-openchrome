@@ -190,11 +190,6 @@ struct openchrome_bo {
 	struct ttm_place		placements[OPENCHROME_TTM_PL_NUM];
 };
 
-struct openchrome_framebuffer {
-	struct drm_fb_helper		helper;
-	struct openchrome_bo		*bo;
-};
-
 enum via_engine {
 	VIA_ENG_H1 = 0,
 	VIA_ENG_H2,
@@ -213,7 +208,6 @@ struct via_drm_priv {
 
 	int revision;
 
-	struct openchrome_framebuffer *openchrome_fb;
 	u8 vram_type;
 	resource_size_t vram_start;
 	resource_size_t vram_size;
