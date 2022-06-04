@@ -329,7 +329,8 @@ exit:
 }
 
 
-static const struct drm_encoder_helper_funcs openchrome_sii164_drm_encoder_helper_funcs = {
+static const struct drm_encoder_helper_funcs
+openchrome_sii164_drm_encoder_helper_funcs = {
 	.dpms = openchrome_sii164_dpms,
 	.mode_fixup = openchrome_sii164_mode_fixup,
 	.mode_set = openchrome_sii164_mode_set,
@@ -375,7 +376,8 @@ exit:
 	return ret;
 }
 
-static const struct drm_connector_funcs openchrome_sii164_drm_connector_funcs = {
+static const struct drm_connector_funcs
+openchrome_sii164_drm_connector_funcs = {
 	.dpms = drm_helper_connector_dpms,
 	.detect = openchrome_sii164_detect,
 	.fill_modes = drm_helper_probe_single_connector_modes,
@@ -480,7 +482,8 @@ exit:
 	return count;
 }
 
-static const struct drm_connector_helper_funcs openchrome_sii164_drm_connector_helper_funcs = {
+static const struct drm_connector_helper_funcs
+openchrome_sii164_drm_connector_helper_funcs = {
 	.mode_valid = openchrome_sii164_mode_valid,
 	.get_modes = openchrome_sii164_get_modes,
 };

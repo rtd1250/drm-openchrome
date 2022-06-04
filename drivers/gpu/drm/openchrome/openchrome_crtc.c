@@ -1828,8 +1828,8 @@ static void openchrome_crtc_helper_atomic_disable(struct drm_crtc *crtc,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static const struct
-drm_crtc_helper_funcs openchrome_drm_crtc_helper_funcs = {
+static const struct drm_crtc_helper_funcs
+openchrome_drm_crtc_helper_funcs = {
 	.mode_set_nofb = openchrome_mode_set_nofb,
 	.atomic_enable = openchrome_crtc_helper_atomic_enable,
 	.atomic_disable = openchrome_crtc_helper_atomic_disable,

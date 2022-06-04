@@ -1208,8 +1208,8 @@ void openchrome_device_fini(struct via_drm_priv *dev_priv)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static const struct
-drm_mode_config_funcs openchrome_drm_mode_config_funcs = {
+static const struct drm_mode_config_funcs
+openchrome_drm_mode_config_funcs = {
 	.fb_create		= drm_gem_fb_create,
 	.atomic_check		= drm_atomic_helper_check,
 	.atomic_commit		= drm_atomic_helper_commit,

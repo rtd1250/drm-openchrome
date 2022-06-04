@@ -303,7 +303,7 @@ static void via_tmds_disable(struct drm_encoder *encoder)
 }
 
 static const struct drm_encoder_helper_funcs
-			via_tmds_enc_helper_funcs = {
+via_tmds_enc_helper_funcs = {
 	.dpms = via_tmds_dpms,
 	.mode_fixup = via_tmds_mode_fixup,
 	.prepare = via_tmds_prepare,
@@ -392,7 +392,8 @@ static int via_tmds_get_modes(struct drm_connector *connector)
 	return count;
 }
 
-static const struct drm_connector_helper_funcs via_dvi_connector_helper_funcs = {
+static const struct drm_connector_helper_funcs
+via_dvi_connector_helper_funcs = {
 	.mode_valid = via_connector_mode_valid,
 	.get_modes = via_tmds_get_modes,
 };
