@@ -66,8 +66,8 @@ u32 via_get_clk_value(struct drm_device *dev, u32 freq)
 		{ 0, 0, 0, 0, 0 } };
 	int count;
 
-    if ((pdev->device != PCI_DEVICE_ID_VIA_CLE266)
-        && (pdev->device != PCI_DEVICE_ID_VIA_KM400)) {
+	if ((pdev->device != PCI_DEVICE_ID_VIA_CLE266) &&
+		(pdev->device != PCI_DEVICE_ID_VIA_KM400)) {
 		/* DN[6:0] */
 		for (pll_n = 2; pll_n < 6; pll_n++) {
 			/* DR[2:0] */
@@ -126,7 +126,7 @@ u32 via_get_clk_value(struct drm_device *dev, u32 freq)
 	 * The code was borrowed from OpenChrome DDX device driver UMS
 	 * (User Mode Setting) section, but was modified to not use float type
 	 * variables. */
-    } else {
+	} else {
 		for (pll_r = 0; pll_r < 4; ++pll_r) {
 			for (pll_n = (pll_r == 0) ? 2 : 1; pll_n <= 7; ++pll_n) {
 				for (pll_m = 1; pll_m <= 127; ++pll_m) {
@@ -154,7 +154,7 @@ u32 via_get_clk_value(struct drm_device *dev, u32 freq)
 		/* Clock Synthesizer Value 0[7:6]: DR[1:0]
 		 * Clock Synthesizer Value 0[5:0]: DN[5:0] */
 		pll_mrn = ((best_pll_r & 0x3) << 14 |
-			   (best_pll_n & 0x1F) << 8);
+				(best_pll_n & 0x1F) << 8);
 		/* Clock Synthesizer Value 1[6:0]: DM[6:0] */
 		pll_mrn |= (best_pll_m & 0x7F);
 		break;
@@ -166,12 +166,12 @@ u32 via_get_clk_value(struct drm_device *dev, u32 freq)
 		 * Clock Synthesizer Value 1[4:2] : DR[2:0]
 		 * Clock Synthesizer Value 1[7] : DTZ[0] */
 		pll_mrn |= (((PLL_DTZ_DEFAULT & 0x1) << 7) |
-			   ((best_pll_r & 0x7) << 2) |
-			   (((best_pll_m) >> 8) & 0x3)) << 8;
+				((best_pll_r & 0x7) << 2) |
+				(((best_pll_m) >> 8) & 0x3)) << 8;
 		/* Clock Synthesizer Value 2[6:0] : DN[6:0]
 		 * Clock Synthesizer Value 2[7] : DTZ[1] */
 		pll_mrn |= (((PLL_DTZ_DEFAULT >> 1) & 0x1) << 7) |
-			   ((best_pll_n) & 0x7F);
+				((best_pll_n) & 0x7F);
 		break;
 	default:
 		/* Clock Synthesizer Value 0 : DM[7:0] */
@@ -180,12 +180,12 @@ u32 via_get_clk_value(struct drm_device *dev, u32 freq)
 		 * Clock Synthesizer Value 1[4:2] : DR[2:0]
 		 * Clock Synthesizer Value 1[7] : DTZ[0] */
 		pll_mrn |= (((PLL_DTZ_DEFAULT & 0x1) << 7) |
-			   ((best_pll_r & 0x7) << 2) |
-			   (((best_pll_m - 2) >> 8) & 0x3)) << 8;
+				((best_pll_r & 0x7) << 2) |
+				(((best_pll_m - 2) >> 8) & 0x3)) << 8;
 		/* Clock Synthesizer Value 2[6:0] : DN[6:0]
 		 * Clock Synthesizer Value 2[7] : DTZ[1] */
 		pll_mrn |= (((PLL_DTZ_DEFAULT >> 1) & 0x1) << 7) |
-			   ((best_pll_n - 2) & 0x7F);
+				((best_pll_n - 2) & 0x7F);
 		break;
 	}
 	return pll_mrn;
@@ -206,7 +206,7 @@ void via_set_vclock(struct drm_crtc *crtc, u32 clk)
 
 		/* set clk */
 		if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
-		    (pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
+			(pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
 			vga_wseq(VGABASE, 0x46, (clk & 0xFF00) >> 8);	/* rshift + divisor */
 			vga_wseq(VGABASE, 0x47, (clk & 0x00FF));	/* multiplier */
 		} else {
@@ -233,7 +233,7 @@ void via_set_vclock(struct drm_crtc *crtc, u32 clk)
 
 		/* set clk */
 		if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
-		    (pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
+			(pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
 			vga_wseq(VGABASE, 0x44, (clk & 0xFF00) >> 8);
 			vga_wseq(VGABASE, 0x45, (clk & 0x00FF));
 		} else {

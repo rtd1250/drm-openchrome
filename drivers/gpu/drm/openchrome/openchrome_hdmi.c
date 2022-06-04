@@ -592,7 +592,7 @@ via_hdmi_detect(struct drm_connector *connector, bool force)
 	edid = via_hdmi_get_edid(connector);
 	if (edid) {
 		if ((connector->connector_type != DRM_MODE_CONNECTOR_HDMIA) ^
-		    (drm_detect_hdmi_monitor(edid)))
+			(drm_detect_hdmi_monitor(edid)))
 			ret = connector_status_connected;
 	}
 	return ret;

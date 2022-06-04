@@ -421,7 +421,7 @@ static void via_fp_io_pad_setting(struct via_drm_priv *dev_priv,
 		via_fpdp_high_set_io_pad_state(VGABASE, io_pad_on ? 0x03 : 0x00);
 		break;
 	case (VIA_DI_PORT_FPDPLOW |
-	      VIA_DI_PORT_FPDPHIGH):
+		VIA_DI_PORT_FPDPHIGH):
 		via_fpdp_low_set_io_pad_state(VGABASE, io_pad_on ? 0x03 : 0x00);
 		via_fpdp_high_set_io_pad_state(VGABASE, io_pad_on ? 0x03 : 0x00);
 		break;
@@ -432,7 +432,7 @@ static void via_fp_io_pad_setting(struct via_drm_priv *dev_priv,
 		via_lvds2_set_io_pad_setting(VGABASE, io_pad_on ? 0x03 : 0x00);
 		break;
 	case (VIA_DI_PORT_LVDS1 |
-	      VIA_DI_PORT_LVDS2):
+		VIA_DI_PORT_LVDS2):
 		via_lvds1_set_io_pad_setting(VGABASE, io_pad_on ? 0x03 : 0x00);
 		via_lvds2_set_io_pad_setting(VGABASE, io_pad_on ? 0x03 : 0x00);
 		break;
@@ -641,7 +641,7 @@ static bool via_lvds_mode_fixup(struct drm_encoder *encoder,
 	drm_object_property_get_value(&connector->base, prop, &scale_mode);
 
 	if ((mode->hdisplay != native_mode->hdisplay) ||
-	    (mode->vdisplay != native_mode->vdisplay)) {
+		(mode->vdisplay != native_mode->vdisplay)) {
 		if (scale_mode == DRM_MODE_SCALE_NONE)
 			return false;
 		drm_mode_copy(adjusted_mode, native_mode);
@@ -651,7 +651,7 @@ static bool via_lvds_mode_fixup(struct drm_encoder *encoder,
 	iga->scaling_mode = VIA_NO_SCALING;
 	/* Take care of 410 downscaling */
 	if ((mode->hdisplay > native_mode->hdisplay) ||
-	    (mode->vdisplay > native_mode->vdisplay)) {
+		(mode->vdisplay > native_mode->vdisplay)) {
 		iga->scaling_mode = VIA_SHRINK;
 	} else {
 		if (!iga->index || scale_mode == DRM_MODE_SCALE_CENTER) {
@@ -1029,8 +1029,8 @@ static int via_fp_mode_valid(struct drm_connector *connector,
 	drm_object_property_get_value(&connector->base, prop, &scale_mode);
 
 	if ((scale_mode == DRM_MODE_SCALE_NONE) &&
-	    ((mode->hdisplay != native_mode->hdisplay) ||
-	     (mode->vdisplay != native_mode->vdisplay)))
+		((mode->hdisplay != native_mode->hdisplay) ||
+		(mode->vdisplay != native_mode->vdisplay)))
 		return MODE_PANEL;
 
 	/* Don't support mode larger than physical size */
@@ -1049,11 +1049,11 @@ static int via_fp_mode_valid(struct drm_connector *connector,
 
 		/* Now we can not support H V different scale */
 		if ((mode->hdisplay > native_mode->hdisplay) &&
-		    (mode->vdisplay < native_mode->vdisplay))
+			(mode->vdisplay < native_mode->vdisplay))
 			return MODE_PANEL;
 
 		if ((mode->hdisplay < native_mode->hdisplay) &&
-		    (mode->vdisplay > native_mode->vdisplay))
+			(mode->vdisplay > native_mode->vdisplay))
 			return MODE_PANEL;
 	}
 	return MODE_OK;
