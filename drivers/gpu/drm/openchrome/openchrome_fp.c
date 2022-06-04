@@ -135,7 +135,7 @@ static void via_centering_timing(const struct drm_display_mode *mode,
 	adjusted_mode->crtc_vsync_end = adjusted_mode->vsync_end;
 }
 
-static void via_fp_castle_rock_soft_power_seq(struct via_drm_priv *dev_priv,
+static void via_fp_cle266_soft_power_seq(struct via_drm_priv *dev_priv,
 						bool power_state)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -360,7 +360,7 @@ static void via_fp_power(struct via_drm_priv *dev_priv,
 
 	switch (device) {
 	case PCI_DEVICE_ID_VIA_CLE266:
-		via_fp_castle_rock_soft_power_seq(dev_priv, power_state);
+		via_fp_cle266_soft_power_seq(dev_priv, power_state);
 		break;
 	case PCI_DEVICE_ID_VIA_KM400:
 	case PCI_DEVICE_ID_VIA_CN700:
