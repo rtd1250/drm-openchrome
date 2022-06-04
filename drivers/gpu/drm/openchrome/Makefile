@@ -3,11 +3,11 @@
 # Direct Rendering Infrastructure (DRI) in XFree86 4.1.0 and higher.
 
 ccflags-y := -Iinclude/drm
-openchrome-y := openchrome_analog.o \
-		openchrome_clocks.o \
+openchrome-y := openchrome_clocks.o \
 		openchrome_crtc.o \
 		openchrome_crtc_hw.o \
 		openchrome_cursor.o \
+		openchrome_dac.o \
 		openchrome_display.o \
 		openchrome_drv.o \
 		openchrome_encoder.o \
