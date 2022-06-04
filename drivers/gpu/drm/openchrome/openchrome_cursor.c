@@ -160,7 +160,7 @@ static void openchrome_show_cursor(struct drm_crtc *crtc)
 }
 
 static void openchrome_cursor_address(struct drm_crtc *crtc,
-					struct openchrome_bo *ttm_bo)
+					struct ttm_buffer_object *ttm_bo)
 {
 	struct drm_device *dev = crtc->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
@@ -180,18 +180,17 @@ static void openchrome_cursor_address(struct drm_crtc *crtc,
 		 */
 		if (iga->index) {
 			VIA_WRITE(HI_FBOFFSET,
-			ttm_bo->kmap.bo->resource->start << PAGE_SHIFT);
+				ttm_bo->resource->start << PAGE_SHIFT);
 		} else {
 			VIA_WRITE(PRIM_HI_FBOFFSET,
-			ttm_bo->kmap.bo->resource->start << PAGE_SHIFT);
+				ttm_bo->resource->start << PAGE_SHIFT);
 		}
 		break;
 	default:
 		/*
 		 * Program Hardware Icon (HI) offset.
 		 */
-		VIA_WRITE(HI_FBOFFSET,
-			ttm_bo->kmap.bo->resource->start << PAGE_SHIFT);
+		VIA_WRITE(HI_FBOFFSET, ttm_bo->resource->start << PAGE_SHIFT);
 		break;
 	}
 
@@ -370,15 +369,13 @@ static void openchrome_cursor_atomic_update(struct drm_plane *plane,
 	struct drm_crtc *crtc = new_state->crtc;
 	struct drm_gem_object *gem;
 	struct ttm_buffer_object *ttm_bo;
-	struct openchrome_bo *bo;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	if (new_state->fb != old_state->fb) {
 		gem = new_state->fb->obj[0];
 		ttm_bo = container_of(gem, struct ttm_buffer_object, base);
-		bo = container_of(ttm_bo, struct openchrome_bo, ttm_bo);
-		openchrome_cursor_address(crtc, bo);
+		openchrome_cursor_address(crtc, ttm_bo);
 	}
 
 	openchrome_set_hi_location(crtc,
