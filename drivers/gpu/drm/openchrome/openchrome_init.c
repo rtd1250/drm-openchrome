@@ -841,7 +841,7 @@ int openchrome_vram_detect(struct via_drm_priv *dev_priv)
 			dev_priv->vram_size <<= 2;
 
 		ret = cn700_mem_type(dev_priv, fn3);
-		if  (ret)
+		if (ret)
 			goto out_err;
 		break;
 

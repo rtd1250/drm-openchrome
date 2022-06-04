@@ -252,7 +252,7 @@ static void via_hdmi_enc_mode_set(struct drm_encoder *encoder,
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 
 	list_for_each_entry(con, &dev->mode_config.connector_list, head) {
-		if (encoder ==  con->encoder) {
+		if (encoder == con->encoder) {
 			connector = con;
 			break;
 		}

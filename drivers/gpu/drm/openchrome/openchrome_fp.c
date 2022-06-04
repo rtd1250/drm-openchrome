@@ -615,7 +615,7 @@ static bool via_lvds_mode_fixup(struct drm_encoder *encoder,
 	struct drm_device *dev = encoder->dev;
 
 	list_for_each_entry(con, &dev->mode_config.connector_list, head) {
-		if (encoder ==  con->encoder) {
+		if (encoder == con->encoder) {
 			connector = con;
 			break;
 		}
@@ -785,7 +785,7 @@ const struct drm_encoder_funcs via_lvds_enc_funcs = {
 
 /* Detect FP presence. */
 static enum drm_connector_status
-via_fp_detect(struct drm_connector *connector,  bool force)
+via_fp_detect(struct drm_connector *connector, bool force)
 {
 	struct drm_device *dev = connector->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
