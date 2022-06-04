@@ -143,7 +143,7 @@ int via_modeset_init(struct drm_device *dev)
 		goto exit;
 	}
 
-	for (i = 0; i < OPENCHROME_MAX_CRTC; i++) {
+	for (i = 0; i < VIA_MAX_CRTC; i++) {
 		ret = openchrome_crtc_init(dev_priv, i);
 		if (ret) {
 			goto exit;

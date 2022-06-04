@@ -1236,7 +1236,7 @@ void openchrome_mode_config_init(struct via_drm_priv *dev_priv)
 	dev->mode_config.prefer_shadow_fbdev = true;
 
 	dev->mode_config.cursor_width =
-	dev->mode_config.cursor_height = OPENCHROME_CURSOR_SIZE;
+	dev->mode_config.cursor_height = VIA_CURSOR_SIZE;
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }

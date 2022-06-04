@@ -61,11 +61,11 @@
 #define DRIVER_AUTHOR		"OpenChrome Project"
 
 
-#define OPENCHROME_TTM_PL_NUM	2
+#define VIA_TTM_PL_NUM		2
 
-#define OPENCHROME_MAX_CRTC	2
+#define VIA_MAX_CRTC		2
 
-#define OPENCHROME_CURSOR_SIZE	64
+#define VIA_CURSOR_SIZE		64
 
 #define VIA_MM_ALIGN_SIZE	16
 
@@ -187,7 +187,7 @@ struct openchrome_bo {
 	struct ttm_buffer_object	ttm_bo;
 	struct ttm_bo_kmap_obj		kmap;
 	struct ttm_placement		placement;
-	struct ttm_place		placements[OPENCHROME_TTM_PL_NUM];
+	struct ttm_place		placements[VIA_TTM_PL_NUM];
 };
 
 enum via_engine {
