@@ -30,11 +30,11 @@
 #include <drm/drm_print.h>
 
 
-/* To be used with via_analog_set_dpms_control inline function. */
-#define VIA_ANALOG_DPMS_ON		0x00
-#define VIA_ANALOG_DPMS_STANDBY		0x01
-#define VIA_ANALOG_DPMS_SUSPEND		0x02
-#define VIA_ANALOG_DPMS_OFF		0x03
+/* To be used with via_dac_set_dpms_control inline function. */
+#define VIA_DAC_DPMS_ON		0x00
+#define VIA_DAC_DPMS_STANDBY	0x01
+#define VIA_DAC_DPMS_SUSPEND	0x02
+#define VIA_DAC_DPMS_OFF	0x03
 
 
 struct vga_regset {
@@ -292,8 +292,7 @@ via_dvp1_set_display_source(void __iomem *regs, u8 display_source)
 /*
  * Sets analog (VGA) DAC power.
  */
-static inline void
-via_analog_set_power(void __iomem *regs, bool output_state)
+static inline void via_dac_set_power(void __iomem *regs, bool output_state)
 {
 	/* 3X5.47[2] - DACOFF Backdoor Register
 	 *             0: DAC on
@@ -307,8 +306,8 @@ via_analog_set_power(void __iomem *regs, bool output_state)
 /*
  * Sets analog (VGA) DPMS state.
  */
-static inline void
-via_analog_set_dpms_control(void __iomem *regs, u8 dpms_control)
+static inline void via_dac_set_dpms_control(void __iomem *regs,
+						u8 dpms_control)
 {
 	/* 3X5.36[5:4] - DPMS Control
 	 *               00: On
@@ -330,8 +329,8 @@ via_analog_set_dpms_control(void __iomem *regs, u8 dpms_control)
 /*
  * Sets analog (VGA) sync polarity.
  */
-static inline void
-via_analog_set_sync_polarity(void __iomem *regs, u8 sync_polarity)
+static inline void via_dac_set_sync_polarity(void __iomem *regs,
+						u8 sync_polarity)
 {
 	/* 3C2[7] - Analog Vertical Sync Polarity
 	 *          0: Positive
@@ -350,8 +349,8 @@ via_analog_set_sync_polarity(void __iomem *regs, u8 sync_polarity)
 /*
  * Sets analog (VGA) display source.
  */
-static inline void
-via_analog_set_display_source(void __iomem *regs, u8 display_source)
+static inline void via_dac_set_display_source(void __iomem *regs,
+						u8 display_source)
 {
 	/* 3C5.16[6] - CRT Display Source
 	 *             0: Primary Display Stream (IGA1)

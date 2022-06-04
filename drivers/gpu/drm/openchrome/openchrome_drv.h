@@ -276,8 +276,8 @@ struct via_drm_priv {
 	 */
 	bool is_samsung_nc20;
 
-	bool analog_presence;
-	u32 analog_i2c_bus;
+	bool dac_presence;
+	u32 dac_i2c_bus;
 
 	bool int_tmds_presence;
 	u32 int_tmds_di_port;
@@ -432,7 +432,7 @@ int via_connector_mode_valid(struct drm_connector *connector,
 					struct drm_display_mode *mode);
 void via_connector_destroy(struct drm_connector *connector);
 
-void via_analog_probe(struct drm_device *dev);
+void via_dac_probe(struct drm_device *dev);
 bool openchrome_vt1632_probe(struct i2c_adapter *i2c_bus);
 bool openchrome_sii164_probe(struct i2c_adapter *i2c_bus);
 void openchrome_ext_dvi_probe(struct drm_device *dev);
@@ -440,7 +440,7 @@ void via_tmds_probe(struct drm_device *dev);
 void via_fp_probe(struct drm_device *dev);
 
 void via_hdmi_init(struct drm_device *dev, u32 di_port);
-void via_analog_init(struct drm_device *dev);
+void via_dac_init(struct drm_device *dev);
 void openchrome_vt1632_init(struct drm_device *dev);
 void openchrome_sii164_init(struct drm_device *dev);
 void openchrome_ext_dvi_init(struct drm_device *dev);

@@ -155,13 +155,13 @@ int via_modeset_init(struct drm_device *dev)
 
 	via_fp_probe(dev);
 
-	via_analog_probe(dev);
+	via_dac_probe(dev);
 
 
 	openchrome_ext_dvi_init(dev);
 	via_tmds_init(dev);
 
-	via_analog_init(dev);
+	via_dac_init(dev);
 
 	via_fp_init(dev);
 
