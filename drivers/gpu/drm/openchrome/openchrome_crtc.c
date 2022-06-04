@@ -2225,7 +2225,7 @@ exit:
 	return ret;
 }
 
-static const uint32_t openchrome_primary_formats[] = {
+static const uint32_t via_primary_formats[] = {
 	DRM_FORMAT_XRGB8888,
 	DRM_FORMAT_ARGB8888,
 	DRM_FORMAT_RGB888,
@@ -2255,8 +2255,8 @@ int openchrome_crtc_init(struct via_drm_priv *dev_priv, uint32_t index)
 			&via_primary_drm_plane_helper_funcs);
 	ret = drm_universal_plane_init(dev, primary, possible_crtcs,
 			&via_primary_drm_plane_funcs,
-			openchrome_primary_formats,
-			ARRAY_SIZE(openchrome_primary_formats),
+			via_primary_formats,
+			ARRAY_SIZE(via_primary_formats),
 			NULL, DRM_PLANE_TYPE_PRIMARY, NULL);
 	if (ret) {
 		DRM_ERROR("Failed to initialize a primary "
@@ -2275,8 +2275,8 @@ int openchrome_crtc_init(struct via_drm_priv *dev_priv, uint32_t index)
 			&via_cursor_drm_plane_helper_funcs);
 	ret = drm_universal_plane_init(dev, cursor, possible_crtcs,
 			&via_cursor_drm_plane_funcs,
-			openchrome_cursor_formats,
-			openchrome_cursor_formats_size,
+			via_cursor_formats,
+			via_cursor_formats_size,
 			NULL, DRM_PLANE_TYPE_CURSOR, NULL);
 	if (ret) {
 		DRM_ERROR("Failed to initialize a cursor "

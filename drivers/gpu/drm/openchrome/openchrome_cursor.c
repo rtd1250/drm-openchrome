@@ -419,9 +419,9 @@ const struct drm_plane_funcs via_cursor_drm_plane_funcs = {
 	.atomic_destroy_state = drm_atomic_helper_plane_destroy_state,
 };
 
-const uint32_t openchrome_cursor_formats[] = {
+const uint32_t via_cursor_formats[] = {
 	DRM_FORMAT_ARGB8888,
 };
 
-const unsigned int openchrome_cursor_formats_size =
-				ARRAY_SIZE(openchrome_cursor_formats);
+const unsigned int via_cursor_formats_size =
+				ARRAY_SIZE(via_cursor_formats);

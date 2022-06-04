@@ -396,8 +396,8 @@ void openchrome_transmitter_display_source(struct via_drm_priv *dev_priv,
 
 extern const struct drm_plane_helper_funcs via_cursor_drm_plane_helper_funcs;
 extern const struct drm_plane_funcs via_cursor_drm_plane_funcs;
-extern const uint32_t openchrome_cursor_formats[];
-extern const unsigned int openchrome_cursor_formats_size;
+extern const uint32_t via_cursor_formats[];
+extern const unsigned int via_cursor_formats_size;
 
 /* display */
 int via_modeset_init(struct drm_device *dev);
