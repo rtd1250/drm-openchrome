@@ -30,7 +30,7 @@
 #include <linux/pci.h>
 #include <linux/pci_ids.h>
 
-#include "openchrome_drv.h"
+#include "via_drv.h"
 
 
 void via_transmitter_io_pad_state(struct via_drm_priv *dev_priv,

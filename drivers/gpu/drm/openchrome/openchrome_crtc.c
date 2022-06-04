@@ -47,8 +47,8 @@
 
 #include <drm/ttm/ttm_bo_api.h>
 
-#include "openchrome_drv.h"
-#include "openchrome_disp_reg.h"
+#include "via_drv.h"
+#include "via_disp_reg.h"
 
 
 static struct vga_regset vpit_table[] = {

@@ -24,7 +24,7 @@
 
 #include <video/vga.h>
 
-#include "openchrome_crtc_hw.h"
+#include "via_crtc_hw.h"
 
 /*
  * load_register_table enables the ability to set entire

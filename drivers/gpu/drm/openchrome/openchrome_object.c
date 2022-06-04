@@ -43,7 +43,7 @@
 #include <drm/ttm/ttm_bo_driver.h>
 #include <drm/ttm/ttm_range_manager.h>
 
-#include "openchrome_drv.h"
+#include "via_drv.h"
 
 
 static void via_gem_free(struct drm_gem_object *obj)

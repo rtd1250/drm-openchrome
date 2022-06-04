@@ -32,7 +32,7 @@
 #include <linux/console.h>
 #include <linux/pci.h>
 
-#include "openchrome_drv.h"
+#include "via_drv.h"
 
 
 int via_dev_pm_ops_suspend(struct device *dev)

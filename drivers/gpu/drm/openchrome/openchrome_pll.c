@@ -23,7 +23,7 @@
 #include <linux/pci.h>
 #include <linux/pci_ids.h>
 
-#include "openchrome_drv.h"
+#include "via_drv.h"
 
 
 #define CSR_VCO_UP	600000000

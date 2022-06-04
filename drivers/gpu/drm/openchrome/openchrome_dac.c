@@ -29,8 +29,8 @@
 #include <drm/drm_atomic_state_helper.h>
 #include <drm/drm_probe_helper.h>
 
-#include "openchrome_crtc_hw.h"
-#include "openchrome_drv.h"
+#include "via_crtc_hw.h"
+#include "via_drv.h"
 
 
 /*

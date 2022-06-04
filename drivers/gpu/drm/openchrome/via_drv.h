@@ -48,8 +48,8 @@
 #include <drm/ttm/ttm_bo_driver.h>
 #include <drm/ttm/ttm_placement.h>
 
-#include "openchrome_crtc_hw.h"
-#include "openchrome_regs.h"
+#include "via_crtc_hw.h"
+#include "via_regs.h"
 
 
 #define DRIVER_MAJOR		3

@@ -40,7 +40,7 @@
 #include <drm/ttm/ttm_bo_api.h>
 #include <drm/ttm/ttm_bo_driver.h>
 
-#include "openchrome_drv.h"
+#include "via_drv.h"
 
 
 static void via_bo_move_notify(struct ttm_buffer_object *bo, bool evict,

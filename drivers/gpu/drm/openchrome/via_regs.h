@@ -26,7 +26,7 @@
 
 /*************************************************************************
  *
- *  File:       openchrome_regs.h
+ *  File:       via_regs.h
  *  Content:    The defines of VIA Technologies Chrome registers.
  *
  ************************************************************************/

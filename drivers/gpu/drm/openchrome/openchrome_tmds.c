@@ -31,7 +31,7 @@
 #include <drm/drm_atomic_state_helper.h>
 #include <drm/drm_probe_helper.h>
 
-#include "openchrome_drv.h"
+#include "via_drv.h"
 
 
 static void via_tmds_power(struct via_drm_priv *dev_priv,

@@ -40,7 +40,7 @@
 
 #include <drm/ttm/ttm_bo_api.h>
 
-#include "openchrome_drv.h"
+#include "via_drv.h"
 
 
 extern const struct drm_ioctl_desc via_driver_ioctls[];

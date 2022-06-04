@@ -48,7 +48,7 @@
 #include <drm/ttm/ttm_bo_api.h>
 #include <drm/ttm/ttm_bo_driver.h>
 
-#include "openchrome_drv.h"
+#include "via_drv.h"
 
 
 static void via_hide_cursor(struct drm_crtc *crtc)

@@ -30,7 +30,7 @@
 #include <drm/drm_atomic_state_helper.h>
 #include <drm/drm_probe_helper.h>
 
-#include "openchrome_drv.h"
+#include "via_drv.h"
 
 
 #define VIA_VT1632_VEN		BIT(5)

@@ -31,7 +31,7 @@
 #include <drm/drm_print.h>
 #include <drm/drm_probe_helper.h>
 
-#include "openchrome_drv.h"
+#include "via_drv.h"
 
 
 #define HDMI_AUDIO_ENABLED	BIT(0)

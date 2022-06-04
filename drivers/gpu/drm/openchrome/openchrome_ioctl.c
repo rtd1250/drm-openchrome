@@ -35,7 +35,7 @@
 
 #include <uapi/drm/openchrome_drm.h>
 
-#include "openchrome_drv.h"
+#include "via_drv.h"
 
 
 static int via_gem_create_ioctl(struct drm_device *dev,

@@ -31,7 +31,7 @@
 #include <drm/drm_gem_framebuffer_helper.h>
 #include <drm/drm_mode_config.h>
 
-#include "openchrome_drv.h"
+#include "via_drv.h"
 
 
 static int cle266_mem_type(struct via_drm_priv *dev_priv,

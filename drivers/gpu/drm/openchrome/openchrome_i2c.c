@@ -18,7 +18,7 @@
 
 #include <linux/delay.h>
 
-#include "openchrome_drv.h"
+#include "via_drv.h"
 
 enum viafb_i2c_adap;
 
