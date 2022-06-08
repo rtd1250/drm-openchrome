@@ -1,6 +1,11 @@
 /*
+ * Copyright 2017 Kevin Brace. All Rights Reserved.
+ * Copyright 2012 James Simmons <jsimmons@infradead.org>. All Rights Reserved.
  * Copyright 1998-2003 VIA Technologies, Inc. All Rights Reserved.
  * Copyright 2001-2003 S3 Graphics, Inc. All Rights Reserved.
+ *
+ * This DRM's standby and resume code is based on Radeon DRM's code,
+ * but it was shortened and simplified.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -16,80 +21,163 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * VIA, S3 GRAPHICS, AND/OR ITS SUPPLIERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * THE AUTHOR(S) OR COPYRIGHT HOLDER(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR
  * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include <linux/module.h>
 #include <linux/pci.h>
 
+#include <drm/drm_aperture.h>
 #include <drm/drm_drv.h>
+#include <drm/drm_fb_helper.h>
 #include <drm/drm_file.h>
+#include <drm/drm_gem.h>
+#include <drm/drm_ioctl.h>
 #include <drm/drm_pciids.h>
-#include <drm/via_drm.h>
+#include <drm/drm_prime.h>
+
+#include <drm/ttm/ttm_bo_api.h>
 
 #include "via_drv.h"
 
 
-static int via_driver_open(struct drm_device *dev, struct drm_file *file)
+extern const struct drm_ioctl_desc via_driver_ioctls[];
+
+/*
+ * For now, this device driver will be disabled, unless the
+ * user decides to enable it.
+ */
+int via_modeset = 0;
+
+MODULE_PARM_DESC(modeset, "Enable DRM device driver "
+				"(Default: Disabled, "
+				"0 = Disabled,"
+				"1 = Enabled)");
+module_param_named(modeset, via_modeset, int, 0400);
+
+static int via_driver_open(struct drm_device *dev,
+					struct drm_file *file_priv)
 {
-	struct via_file_private *file_priv;
+	int ret = 0;
 
-	DRM_DEBUG_DRIVER("\n");
-	file_priv = kmalloc(sizeof(*file_priv), GFP_KERNEL);
-	if (!file_priv)
-		return -ENOMEM;
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	file->driver_priv = file_priv;
-
-	INIT_LIST_HEAD(&file_priv->obj_list);
-
-	return 0;
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
 }
 
-static void via_driver_postclose(struct drm_device *dev, struct drm_file *file)
+static void via_driver_postclose(struct drm_device *dev,
+					struct drm_file *file_priv)
 {
-	struct via_file_private *file_priv = file->driver_priv;
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	kfree(file_priv);
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static struct pci_device_id pciidlist[] = {
-	viadrv_PCI_IDS
-};
+static void via_driver_lastclose(struct drm_device *dev)
+{
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	drm_fb_helper_lastclose(dev);
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
+static int via_driver_dumb_create(struct drm_file *file_priv,
+					struct drm_device *dev,
+					struct drm_mode_create_dumb *args)
+{
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
+	struct via_bo *bo;
+	uint32_t handle, pitch;
+	uint64_t size;
+	int ret;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	/*
+	 * Calculate the parameters for the dumb buffer.
+	 */
+	pitch = args->width * ((args->bpp + 7) >> 3);
+	size = pitch * args->height;
+
+	ret = via_bo_create(dev,
+					&dev_priv->bdev,
+					size,
+					ttm_bo_type_device,
+					TTM_PL_VRAM,
+					false,
+					&bo);
+	if (ret) {
+		goto exit;
+	}
+
+	ret = drm_gem_handle_create(file_priv, &bo->ttm_bo.base, &handle);
+	drm_gem_object_put(&bo->ttm_bo.base);
+	if (ret) {
+		goto exit;
+	}
+
+	args->handle = handle;
+	args->pitch = pitch;
+	args->size = size;
+exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
+}
+
+static int via_driver_dumb_map_offset(struct drm_file *file_priv,
+						struct drm_device *dev,
+						uint32_t handle,
+						uint64_t *offset)
+{
+	struct drm_gem_object *gem;
+	struct ttm_buffer_object *ttm_bo;
+	struct via_bo *bo;
+	int ret = 0;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	gem = drm_gem_object_lookup(file_priv, handle);
+	if (!gem) {
+		ret = -ENOENT;
+		goto exit;
+	}
+
+	ttm_bo = container_of(gem, struct ttm_buffer_object, base);
+	bo = to_ttm_bo(ttm_bo);
+	*offset = drm_vma_node_offset_addr(&bo->ttm_bo.base.vma_node);
+
+	drm_gem_object_put(gem);
+exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
+}
 
 static const struct file_operations via_driver_fops = {
-	.owner = THIS_MODULE,
-	.open = drm_open,
-	.release = drm_release,
+	.owner		= THIS_MODULE,
+	.open		= drm_open,
+	.release	= drm_release,
 	.unlocked_ioctl = drm_ioctl,
-	.mmap = drm_legacy_mmap,
-	.poll = drm_poll,
-	.compat_ioctl = drm_compat_ioctl,
-	.llseek = noop_llseek,
+	.mmap		= drm_gem_mmap,
+	.poll		= drm_poll,
+	.llseek		= noop_llseek,
 };
 
-static struct drm_driver driver = {
-	.driver_features =
-	    DRIVER_USE_AGP | DRIVER_HAVE_IRQ | DRIVER_LEGACY,
-	.load = via_driver_load,
-	.unload = via_driver_unload,
+static struct drm_driver via_driver = {
+	.driver_features = DRIVER_HAVE_IRQ |
+				DRIVER_GEM |
+				DRIVER_MODESET |
+				DRIVER_ATOMIC,
 	.open = via_driver_open,
-	.preclose = via_reclaim_buffers_locked,
 	.postclose = via_driver_postclose,
-	.context_dtor = via_final_context,
-	.get_vblank_counter = via_get_vblank_counter,
-	.enable_vblank = via_enable_vblank,
-	.disable_vblank = via_disable_vblank,
-	.irq_preinstall = via_driver_irq_preinstall,
-	.irq_postinstall = via_driver_irq_postinstall,
-	.irq_uninstall = via_driver_irq_uninstall,
-	.irq_handler = via_driver_irq_handler,
-	.dma_quiescent = via_driver_dma_quiescent,
-	.lastclose = via_lastclose,
-	.ioctls = via_ioctls,
+	.lastclose = via_driver_lastclose,
+	.gem_prime_mmap = drm_gem_prime_mmap,
+	.dumb_create = via_driver_dumb_create,
+	.dumb_map_offset = via_driver_dumb_map_offset,
+	.ioctls = via_driver_ioctls,
 	.fops = &via_driver_fops,
 	.name = DRIVER_NAME,
 	.desc = DRIVER_DESC,
@@ -99,21 +187,125 @@ static struct drm_driver driver = {
 	.patchlevel = DRIVER_PATCHLEVEL,
 };
 
+static struct pci_device_id via_pci_table[] = {
+	viadrv_PCI_IDS,
+};
+
+MODULE_DEVICE_TABLE(pci, via_pci_table);
+
+static int via_pci_probe(struct pci_dev *pdev,
+				const struct pci_device_id *ent)
+{
+	struct drm_device *dev;
+	struct via_drm_priv *dev_priv;
+	int ret;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	ret = drm_aperture_remove_conflicting_pci_framebuffers(pdev,
+								&via_driver);
+	if (ret) {
+		goto exit;
+	}
+
+	ret = pci_enable_device(pdev);
+	if (ret) {
+		goto exit;
+	}
+
+	dev_priv = devm_drm_dev_alloc(&pdev->dev,
+					&via_driver,
+					struct via_drm_priv,
+					dev);
+	if (IS_ERR(dev_priv)) {
+		ret = PTR_ERR(dev_priv);
+		goto exit;
+	}
+
+	dev = &dev_priv->dev;
+
+	pci_set_drvdata(pdev, dev);
+
+	ret = via_drm_init(dev);
+	if (ret) {
+		goto error_disable_pci;
+	}
+
+	ret = drm_dev_register(dev, ent->driver_data);
+	if (ret) {
+		goto error_disable_pci;
+	}
+
+	drm_fbdev_generic_setup(dev, 32);
+	goto exit;
+error_disable_pci:
+	pci_disable_device(pdev);
+exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
+}
+
+static void via_pci_remove(struct pci_dev *pdev)
+{
+	struct drm_device *dev = pci_get_drvdata(pdev);
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	via_drm_fini(dev);
+	drm_dev_unregister(dev);
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
+static const struct dev_pm_ops via_dev_pm_ops = {
+	.suspend	= via_dev_pm_ops_suspend,
+	.resume		= via_dev_pm_ops_resume,
+};
+
 static struct pci_driver via_pci_driver = {
-	.name = DRIVER_NAME,
-	.id_table = pciidlist,
+	.name		= DRIVER_NAME,
+	.id_table	= via_pci_table,
+	.probe		= via_pci_probe,
+	.remove		= via_pci_remove,
+	.driver.pm	= &via_dev_pm_ops,
 };
 
 static int __init via_init(void)
 {
-	driver.num_ioctls = via_max_ioctl;
-	via_init_command_verifier();
-	return drm_legacy_pci_init(&driver, &via_pci_driver);
+	int ret = 0;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	if ((via_modeset == -1) &&
+		(drm_firmware_drivers_only())) {
+		via_modeset = 0;
+	}
+
+	if (!via_modeset) {
+		ret = -EINVAL;
+		goto exit;
+	}
+
+	via_driver.num_ioctls = via_driver_num_ioctls;
+
+	ret = pci_register_driver(&via_pci_driver);
+
+exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return ret;
 }
 
 static void __exit via_exit(void)
 {
-	drm_legacy_pci_exit(&driver, &via_pci_driver);
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	if (!via_modeset) {
+		goto exit;
+	}
+
+	pci_unregister_driver(&via_pci_driver);
+exit:
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
 module_init(via_init);

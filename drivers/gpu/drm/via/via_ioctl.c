@@ -33,7 +33,7 @@
 
 #include <drm/ttm/ttm_bo_api.h>
 
-#include <uapi/drm/openchrome_drm.h>
+#include <uapi/drm/via_drm.h>
 
 #include "via_drv.h"
 
@@ -42,7 +42,7 @@ static int via_gem_create_ioctl(struct drm_device *dev,
 					void *data,
 					struct drm_file *file_priv)
 {
-	struct drm_openchrome_gem_create *args = data;
+	struct drm_via_gem_create *args = data;
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	struct via_bo *bo;
 	uint32_t handle;
@@ -79,7 +79,7 @@ static int via_gem_map_ioctl(struct drm_device *dev,
 					void *data,
 					struct drm_file *file_priv)
 {
-	struct drm_openchrome_gem_map *args = data;
+	struct drm_via_gem_map *args = data;
 	struct drm_gem_object *gem;
 	struct ttm_buffer_object *ttm_bo;
 	struct via_bo *bo;
@@ -107,7 +107,7 @@ static int via_gem_unmap_ioctl(struct drm_device *dev,
 				void *data,
 				struct drm_file *file_priv)
 {
-	struct drm_openchrome_gem_unmap *args = data;
+	struct drm_via_gem_unmap *args = data;
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -120,9 +120,9 @@ static int via_gem_unmap_ioctl(struct drm_device *dev,
 
 
 const struct drm_ioctl_desc via_driver_ioctls[] = {
-	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_CREATE, via_gem_create_ioctl, DRM_AUTH | DRM_UNLOCKED),
-	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_MAP, via_gem_map_ioctl, DRM_AUTH | DRM_UNLOCKED),
-	DRM_IOCTL_DEF_DRV(OPENCHROME_GEM_UNMAP, via_gem_unmap_ioctl, DRM_AUTH | DRM_UNLOCKED),
+	DRM_IOCTL_DEF_DRV(VIA_GEM_CREATE, via_gem_create_ioctl, DRM_AUTH | DRM_UNLOCKED),
+	DRM_IOCTL_DEF_DRV(VIA_GEM_MAP, via_gem_map_ioctl, DRM_AUTH | DRM_UNLOCKED),
+	DRM_IOCTL_DEF_DRV(VIA_GEM_UNMAP, via_gem_unmap_ioctl, DRM_AUTH | DRM_UNLOCKED),
 };
 
 

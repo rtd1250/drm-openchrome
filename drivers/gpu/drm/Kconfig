@@ -266,7 +266,7 @@ source "drivers/gpu/drm/amd/amdgpu/Kconfig"
 
 source "drivers/gpu/drm/nouveau/Kconfig"
 
-source "drivers/gpu/drm/openchrome/Kconfig"
+source "drivers/gpu/drm/via/Kconfig"
 
 source "drivers/gpu/drm/i915/Kconfig"
 
