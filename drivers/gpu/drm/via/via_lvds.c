@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Kevin Brace. All Rights Reserved.
+ * Copyright © 2016-2018 Kevin Brace.
  * Copyright 2012 James Simmons. All Rights Reserved.
  * Copyright 1998-2008 VIA Technologies, Inc. All Rights Reserved.
  * Copyright 2001-2008 S3 Graphics, Inc. All Rights Reserved.

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Kevin Brace. All Rights Reserved.
+ * Copyright © 2019-2021 Kevin Brace.
  * Copyright 2012 James Simmons. All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a

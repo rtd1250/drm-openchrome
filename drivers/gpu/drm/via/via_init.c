@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Kevin Brace. All Rights Reserved.
+ * Copyright © 2019 Kevin Brace.
  * Copyright 2012 James Simmons. All Rights Reserved.
  * Copyright 2006-2009 Luc Verhaegen.
  * Copyright 1998-2009 VIA Technologies, Inc. All Rights Reserved.
