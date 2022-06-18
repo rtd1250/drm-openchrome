@@ -23,7 +23,7 @@
 /*
  * Author(s):
  *
- * Kevin Brace <kevinbrace@gmx.com>
+ * Kevin Brace <kevinbrace@bracecomputerlab.com>
  */
 /*
  * via_object.c

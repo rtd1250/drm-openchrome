@@ -21,7 +21,7 @@
  * DEALINGS IN THE SOFTWARE.
  *
  * Authors:
- *  Kevin Brace <kevinbrace@gmx.com>
+ *  Kevin Brace <kevinbrace@bracecomputerlab.com>
  *	James Simmons <jsimmons@infradead.org>
  */
 
