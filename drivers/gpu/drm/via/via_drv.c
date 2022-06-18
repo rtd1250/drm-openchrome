@@ -166,8 +166,7 @@ static const struct file_operations via_driver_fops = {
 };
 
 static struct drm_driver via_driver = {
-	.driver_features = DRIVER_HAVE_IRQ |
-				DRIVER_GEM |
+	.driver_features = DRIVER_GEM |
 				DRIVER_MODESET |
 				DRIVER_ATOMIC,
 	.open = via_driver_open,
