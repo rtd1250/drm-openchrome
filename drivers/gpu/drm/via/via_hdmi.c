@@ -1,5 +1,5 @@
 /*
- * Copyright © 2013 James Simmons
+ * Copyright 2013 James Simmons. All Rights Reserved.
  * Copyright 1998-2012 VIA Technologies, Inc. All Rights Reserved.
  * Copyright 2001-2012 S3 Graphics, Inc. All Rights Reserved.
  *

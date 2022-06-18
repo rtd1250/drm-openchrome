@@ -1,6 +1,6 @@
 /*
  * Copyright © 2019-2020 Kevin Brace
- * Copyright 2012 James Simmons <jsimmons@infradead.org>. All Rights Reserved.
+ * Copyright 2012 James Simmons. All Rights Reserved.
  * Copyright 1998-2009 VIA Technologies, Inc. All Rights Reserved.
  * Copyright 2001-2009 S3 Graphics, Inc. All Rights Reserved.
  *
