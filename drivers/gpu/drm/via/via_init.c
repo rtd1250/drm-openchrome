@@ -25,6 +25,7 @@
  * DEALINGS IN THE SOFTWARE.
  *
  * Author(s):
+ * Kevin Brace <kevinbrace@bracecomputerlab.com>
  * James Simmons <jsimmons@infradead.org>
  * Luc Verhaegen
  */
