@@ -119,6 +119,7 @@ static int via_driver_dumb_create(struct drm_file *file_priv,
 	ret = drm_gem_handle_create(file_priv, &ttm_bo->base, &handle);
 	drm_gem_object_put(&ttm_bo->base);
 	if (ret) {
+		via_bo_destroy(bo, false);
 		goto exit;
 	}
 
