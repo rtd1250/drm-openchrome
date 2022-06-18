@@ -3,6 +3,8 @@
  * Copyright 2012 James Simmons. All Rights Reserved.
  * Copyright 1998-2009 VIA Technologies, Inc. All Rights Reserved.
  * Copyright 2001-2008 S3 Graphics, Inc. All Rights Reserved.
+ *
+ * Author(s):
  */
 
 #include <linux/delay.h>

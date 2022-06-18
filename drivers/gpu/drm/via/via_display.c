@@ -21,8 +21,8 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  *
- * Authors:
- *	James Simmons <jsimmons@infradead.org>
+ * Author(s):
+ * James Simmons <jsimmons@infradead.org>
  */
 
 #include <linux/pci.h>
