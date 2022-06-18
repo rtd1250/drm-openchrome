@@ -1,9 +1,5 @@
 /*
  * Copyright 2012 James Simmons <jsimmons@infradead.org>
- *
- * Based on code for the viafb driver.
- * UniChrome PLL parameters calculation code borrowed from OpenChrome DDX
- * device driver.
  * Copyright 1998-2008 VIA Technologies, Inc. All Rights Reserved.
  * Copyright 2001-2008 S3 Graphics, Inc. All Rights Reserved.
  *
