@@ -1,5 +1,7 @@
 /*
  * Copyright © 2013 James Simmons
+ * Copyright 1998-2012 VIA Technologies, Inc. All Rights Reserved.
+ * Copyright 2001-2012 S3 Graphics, Inc. All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
