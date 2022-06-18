@@ -25,6 +25,7 @@
  * DEALINGS IN THE SOFTWARE.
  *
  * Author(s):
+ * Luc Verhaegen
  */
 
 #include <linux/pci.h>
