@@ -4,9 +4,6 @@
  * Copyright 1998-2003 VIA Technologies, Inc. All Rights Reserved.
  * Copyright 2001-2003 S3 Graphics, Inc. All Rights Reserved.
  *
- * This DRM's standby and resume code is based on Radeon DRM's code,
- * but it was shortened and simplified.
- *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
