@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2016-2018 Kevin Brace. All Rights Reserved.
- * Copyright © 2013 James Simmons
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
