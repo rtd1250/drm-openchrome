@@ -24,6 +24,7 @@
  * DEALINGS IN THE SOFTWARE.
  *
  * Author(s):
+ * James Simmons <jsimmons@infradead.org>
  */
 
 #include <linux/delay.h>

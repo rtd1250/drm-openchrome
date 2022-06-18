@@ -22,6 +22,7 @@
  * DEALINGS IN THE SOFTWARE.
  *
  * Author(s):
+ * James Simmons <jsimmons@infradead.org>
  */
 
 #include <linux/pci.h>

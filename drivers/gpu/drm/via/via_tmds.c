@@ -22,7 +22,6 @@
  *
  * Author(s):
  * Kevin Brace <kevinbrace@bracecomputerlab.com>
- * James Simmons <jsimmons@infradead.org>
  */
 
 #include <linux/pci.h>

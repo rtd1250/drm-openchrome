@@ -5,6 +5,7 @@
  * Copyright 2001-2008 S3 Graphics, Inc. All Rights Reserved.
  *
  * Author(s):
+ * James Simmons <jsimmons@infradead.org>
  */
 
 #include <linux/delay.h>

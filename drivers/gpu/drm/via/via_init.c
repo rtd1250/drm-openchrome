@@ -25,6 +25,7 @@
  * DEALINGS IN THE SOFTWARE.
  *
  * Author(s):
+ * James Simmons <jsimmons@infradead.org>
  * Luc Verhaegen
  */
 
