@@ -45,14 +45,12 @@
 static void via_gem_free(struct drm_gem_object *obj)
 {
 	struct ttm_buffer_object *ttm_bo;
-	struct via_bo *bo;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	ttm_bo = container_of(obj, struct ttm_buffer_object, base);
-	bo = to_ttm_bo(ttm_bo);
 
-	ttm_bo_put(&bo->ttm_bo);
+	ttm_bo_put(ttm_bo);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -120,7 +118,7 @@ void via_ttm_bo_destroy(struct ttm_buffer_object *tbo)
 
 	bo = to_ttm_bo(tbo);
 
-	drm_gem_object_release(&bo->ttm_bo.base);
+	drm_gem_object_release(&tbo->base);
 	kfree(bo);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
@@ -128,23 +126,26 @@ void via_ttm_bo_destroy(struct ttm_buffer_object *tbo)
 
 int via_bo_pin(struct via_bo *bo, uint32_t ttm_domain)
 {
+	struct ttm_buffer_object *ttm_bo;
 	struct ttm_operation_ctx ctx = {false, false};
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	if (bo->ttm_bo.pin_count) {
+	ttm_bo = &bo->ttm_bo;
+
+	if (ttm_bo->pin_count) {
 		goto pin;
 	}
 
 	via_ttm_domain_to_placement(bo, ttm_domain);
-	ret = ttm_bo_validate(&bo->ttm_bo, &bo->placement, &ctx);
+	ret = ttm_bo_validate(ttm_bo, &bo->placement, &ctx);
 	if (ret) {
 		goto exit;
 	}
 
 pin:
-	ttm_bo_pin(&bo->ttm_bo);
+	ttm_bo_pin(ttm_bo);
 exit:
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
@@ -153,9 +154,13 @@ exit:
 
 void via_bo_unpin(struct via_bo *bo)
 {
+	struct ttm_buffer_object *ttm_bo;
+
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-	ttm_bo_unpin(&bo->ttm_bo);
+	ttm_bo = &bo->ttm_bo;
+
+	ttm_bo_unpin(ttm_bo);
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -168,6 +173,7 @@ int via_bo_create(struct drm_device *dev,
 				bool kmap,
 				struct via_bo **bo_ptr)
 {
+	struct ttm_buffer_object *ttm_bo;
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	struct via_bo *bo;
 	int ret;
@@ -182,6 +188,8 @@ int via_bo_create(struct drm_device *dev,
 		goto exit;
 	}
 
+	ttm_bo = &bo->ttm_bo;
+
 	/*
 	 * It is imperative to page align the requested buffer size
 	 * prior to a memory allocation request, or various memory
@@ -189,16 +197,16 @@ int via_bo_create(struct drm_device *dev,
 	 */
 	size = ALIGN(size, PAGE_SIZE);
 
-	ret = drm_gem_object_init(dev, &bo->ttm_bo.base, size);
+	ret = drm_gem_object_init(dev, &ttm_bo->base, size);
 	if (ret) {
 		DRM_ERROR("Cannot initialize a GEM object.\n");
 		goto error;
 	}
 
-	bo->ttm_bo.base.funcs = &via_gem_object_funcs;
+	ttm_bo->base.funcs = &via_gem_object_funcs;
 
 	via_ttm_domain_to_placement(bo, ttm_domain);
-	ret = ttm_bo_init(&dev_priv->bdev, &bo->ttm_bo,
+	ret = ttm_bo_init(&dev_priv->bdev, ttm_bo,
 				size, type, &bo->placement,
 				PAGE_SIZE >> PAGE_SHIFT, false,
 				NULL, NULL, via_ttm_bo_destroy);
@@ -208,24 +216,23 @@ int via_bo_create(struct drm_device *dev,
 	}
 
 	if (kmap) {
-		ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+		ret = ttm_bo_reserve(ttm_bo, true, false, NULL);
 		if (ret) {
-			ttm_bo_put(&bo->ttm_bo);
+			ttm_bo_put(ttm_bo);
 			goto exit;
 		}
 
 		ret = via_bo_pin(bo, ttm_domain);
-		ttm_bo_unreserve(&bo->ttm_bo);
+		ttm_bo_unreserve(ttm_bo);
 		if (ret) {
-			ttm_bo_put(&bo->ttm_bo);
+			ttm_bo_put(ttm_bo);
 			goto exit;
 		}
 
-		ret = ttm_bo_kmap(&bo->ttm_bo, 0,
-					bo->ttm_bo.resource->num_pages,
+		ret = ttm_bo_kmap(ttm_bo, 0, ttm_bo->resource->num_pages,
 					&bo->kmap);
 		if (ret) {
-			ttm_bo_put(&bo->ttm_bo);
+			ttm_bo_put(ttm_bo);
 			goto exit;
 		}
 	}
@@ -241,26 +248,29 @@ exit:
 
 void via_bo_destroy(struct via_bo *bo, bool kmap)
 {
+	struct ttm_buffer_object *ttm_bo;
 	int ret;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
+	ttm_bo = &bo->ttm_bo;
+
 	if (kmap) {
 		ttm_bo_kunmap(&bo->kmap);
 
-		ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+		ret = ttm_bo_reserve(ttm_bo, true, false, NULL);
 		if (ret) {
 			goto exit;
 		}
 
 		via_bo_unpin(bo);
-		ttm_bo_unreserve(&bo->ttm_bo);
+		ttm_bo_unreserve(ttm_bo);
 		if (ret) {
 			goto exit;
 		}
 	}
 
-	ttm_bo_put(&bo->ttm_bo);
+	ttm_bo_put(ttm_bo);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }

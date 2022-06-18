@@ -270,16 +270,14 @@ static int via_cursor_prepare_fb(struct drm_plane *plane,
 	ttm_bo = container_of(gem, struct ttm_buffer_object, base);
 	bo = to_ttm_bo(ttm_bo);
 
-	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+	ret = ttm_bo_reserve(ttm_bo, true, false, NULL);
 	if (ret) {
 		goto exit;
 	}
 
 	ret = via_bo_pin(bo, TTM_PL_VRAM);
-	ttm_bo_unreserve(&bo->ttm_bo);
-	ret = ttm_bo_kmap(&bo->ttm_bo, 0,
-				bo->ttm_bo.resource->num_pages,
-				&bo->kmap);
+	ttm_bo_unreserve(ttm_bo);
+	ret = ttm_bo_kmap(ttm_bo, 0, ttm_bo->resource->num_pages, &bo->kmap);
 	if (ret) {
 		goto exit;
 	}
@@ -308,13 +306,13 @@ static void via_cursor_cleanup_fb(struct drm_plane *plane,
 	bo = to_ttm_bo(ttm_bo);
 
 	ttm_bo_kunmap(&bo->kmap);
-	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+	ret = ttm_bo_reserve(ttm_bo, true, false, NULL);
 	if (ret) {
 		goto exit;
 	}
 
 	via_bo_unpin(bo);
-	ttm_bo_unreserve(&bo->ttm_bo);
+	ttm_bo_unreserve(ttm_bo);
 
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);

@@ -1912,7 +1912,7 @@ void via_primary_atomic_update(struct drm_plane *plane,
 		via_iga1_set_color_depth(dev_priv, fb->format->depth);
 
 		/* Set the framebuffer offset */
-		addr = round_up((bo->ttm_bo.resource->start << PAGE_SHIFT) +
+		addr = round_up((ttm_bo->resource->start << PAGE_SHIFT) +
 				pitch, 16) >> 1;
 
 		vga_wcrt(VGABASE, 0x0D, addr & 0xFF);
@@ -1936,7 +1936,7 @@ void via_primary_atomic_update(struct drm_plane *plane,
 		via_iga2_set_color_depth(dev_priv, fb->format->depth);
 
 		/* Set the framebuffer offset */
-		addr = round_up((bo->ttm_bo.resource->start << PAGE_SHIFT) +
+		addr = round_up((ttm_bo->resource->start << PAGE_SHIFT) +
 				pitch, 16);
 		/* Bits 9 to 3 of the frame buffer go into bits 7 to 1
 		 * of the register. Bit 0 is for setting tile mode or
@@ -1976,13 +1976,13 @@ static int via_primary_prepare_fb(struct drm_plane *plane,
 	ttm_bo = container_of(gem, struct ttm_buffer_object, base);
 	bo = to_ttm_bo(ttm_bo);
 
-	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+	ret = ttm_bo_reserve(ttm_bo, true, false, NULL);
 	if (ret) {
 		goto exit;
 	}
 
 	ret = via_bo_pin(bo, TTM_PL_VRAM);
-	ttm_bo_unreserve(&bo->ttm_bo);
+	ttm_bo_unreserve(ttm_bo);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
@@ -2006,13 +2006,13 @@ static void via_primary_cleanup_fb(struct drm_plane *plane,
 	ttm_bo = container_of(gem, struct ttm_buffer_object, base);
 	bo = to_ttm_bo(ttm_bo);
 
-	ret = ttm_bo_reserve(&bo->ttm_bo, true, false, NULL);
+	ret = ttm_bo_reserve(ttm_bo, true, false, NULL);
 	if (ret) {
 		goto exit;
 	}
 
 	via_bo_unpin(bo);
-	ttm_bo_unreserve(&bo->ttm_bo);
+	ttm_bo_unreserve(ttm_bo);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }

@@ -88,6 +88,7 @@ static int via_driver_dumb_create(struct drm_file *file_priv,
 					struct drm_device *dev,
 					struct drm_mode_create_dumb *args)
 {
+	struct ttm_buffer_object *ttm_bo;
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	struct via_bo *bo;
 	uint32_t handle, pitch;
@@ -113,8 +114,10 @@ static int via_driver_dumb_create(struct drm_file *file_priv,
 		goto exit;
 	}
 
-	ret = drm_gem_handle_create(file_priv, &bo->ttm_bo.base, &handle);
-	drm_gem_object_put(&bo->ttm_bo.base);
+	ttm_bo = &bo->ttm_bo;
+
+	ret = drm_gem_handle_create(file_priv, &ttm_bo->base, &handle);
+	drm_gem_object_put(&ttm_bo->base);
 	if (ret) {
 		goto exit;
 	}
@@ -147,7 +150,7 @@ static int via_driver_dumb_map_offset(struct drm_file *file_priv,
 
 	ttm_bo = container_of(gem, struct ttm_buffer_object, base);
 	bo = to_ttm_bo(ttm_bo);
-	*offset = drm_vma_node_offset_addr(&bo->ttm_bo.base.vma_node);
+	*offset = drm_vma_node_offset_addr(&ttm_bo->base.vma_node);
 
 	drm_gem_object_put(gem);
 exit:

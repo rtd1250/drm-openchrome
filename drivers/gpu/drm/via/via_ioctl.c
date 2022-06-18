@@ -39,6 +39,7 @@ static int via_gem_create_ioctl(struct drm_device *dev,
 					struct drm_file *file_priv)
 {
 	struct drm_via_gem_create *args = data;
+	struct ttm_buffer_object *ttm_bo;
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	struct via_bo *bo;
 	uint32_t handle;
@@ -54,18 +55,19 @@ static int via_gem_create_ioctl(struct drm_device *dev,
 		goto exit;
 	}
 
-	ret = drm_gem_handle_create(file_priv, &bo->ttm_bo.base,
-					&handle);
-	drm_gem_object_put(&bo->ttm_bo.base);
+	ttm_bo = &bo->ttm_bo;
+
+	ret = drm_gem_handle_create(file_priv, &ttm_bo->base, &handle);
+	drm_gem_object_put(&ttm_bo->base);
 	if (ret) {
 		via_bo_destroy(bo, false);
 		goto exit;
 	}
 
-	args->size		= bo->ttm_bo.base.size;
-	args->domain		= bo->ttm_bo.resource->placement;
-	args->handle		= handle;
-	args->offset		= bo->ttm_bo.resource->start << PAGE_SHIFT;
+	args->size	= ttm_bo->base.size;
+	args->domain	= ttm_bo->resource->placement;
+	args->handle	= handle;
+	args->offset	= ttm_bo->resource->start << PAGE_SHIFT;
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
@@ -78,7 +80,6 @@ static int via_gem_map_ioctl(struct drm_device *dev,
 	struct drm_via_gem_map *args = data;
 	struct drm_gem_object *gem;
 	struct ttm_buffer_object *ttm_bo;
-	struct via_bo *bo;
 	int ret = 0;
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
@@ -90,10 +91,8 @@ static int via_gem_map_ioctl(struct drm_device *dev,
 	}
 
 	ttm_bo = container_of(gem, struct ttm_buffer_object, base);
-	bo = to_ttm_bo(ttm_bo);
 
-	args->map_offset = drm_vma_node_offset_addr(
-					&bo->ttm_bo.base.vma_node);
+	args->map_offset = drm_vma_node_offset_addr(&ttm_bo->base.vma_node);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
