@@ -42,19 +42,6 @@ void via_encoder_cleanup(struct drm_encoder *encoder)
 	kfree(enc);
 }
 
-int via_connector_mode_valid(struct drm_connector *connector,
-			struct drm_display_mode *mode)
-{
-	/* Check Clock Range */
-	if (mode->clock > 400000)
-		return MODE_CLOCK_HIGH;
-
-	if (mode->clock < 25000)
-		return MODE_CLOCK_LOW;
-
-	return MODE_OK;
-}
-
 void via_connector_destroy(struct drm_connector *connector)
 {
 	struct via_connector *con = container_of(connector, struct via_connector, base);

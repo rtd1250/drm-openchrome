@@ -417,8 +417,6 @@ int via_crtc_init(struct via_drm_priv *dev_priv, uint32_t index);
 void via_encoder_cleanup(struct drm_encoder *encoder);
 
 /* connectors */
-int via_connector_mode_valid(struct drm_connector *connector,
-					struct drm_display_mode *mode);
 void via_connector_destroy(struct drm_connector *connector);
 
 void via_dac_probe(struct drm_device *dev);
