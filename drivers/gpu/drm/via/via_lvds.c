@@ -63,6 +63,61 @@ static via_lvds_info via_lvds_info_table[] = {
 	{1600, 1200}
 };
 
+/* Power sequence relations */
+struct td_timer {
+	struct vga_regset tdRegs[2];
+};
+
+static struct td_timer td_timer_regs[] = {
+	/* td_timer0 */
+	{ { { VGA_CRT_IC, 0x8B, 0, 7 }, { VGA_CRT_IC, 0x8F, 0, 3 } } },
+	/* td_timer1 */
+	{ { { VGA_CRT_IC, 0x8C, 0, 7 }, { VGA_CRT_IC, 0x8F, 4, 7 } } },
+	/* td_timer2 */
+	{ { { VGA_CRT_IC, 0x8D, 0, 7 }, { VGA_CRT_IC, 0x90, 0, 3 } } },
+	/* td_timer3 */
+	{ { { VGA_CRT_IC, 0x8E, 0, 7 }, { VGA_CRT_IC, 0x90, 4, 7 } } }
+};
+
+/*
+ * Function Name:  via_init_td_timing_regs
+ * Description: Init TD timing register (power sequence)
+ */
+static void via_init_td_timing_regs(struct drm_device *dev)
+{
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
+	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
+	unsigned int td_timer[4] = { 500, 50, 0, 510 }, i;
+	struct vga_registers timings;
+	u32 reg_value;
+
+	/* Fill primary power sequence */
+	for (i = 0; i < 4; i++) {
+		/* Calculate TD Timer, every step is 572.1uSec */
+		reg_value = td_timer[i] * 10000 / 5721;
+
+		timings.count = ARRAY_SIZE(td_timer_regs[i].tdRegs);
+		timings.regs = td_timer_regs[i].tdRegs;
+		load_value_to_registers(VGABASE, &timings, reg_value);
+	}
+
+	/* Note: VT3353 have two hardware power sequences
+	 * other chips only have one hardware power sequence */
+	if (pdev->device == PCI_DEVICE_ID_VIA_VT1122) {
+		/* set CRD4[0] to "1" to select 2nd LCD power sequence. */
+		svga_wcrt_mask(VGABASE, 0xD4, BIT(0), BIT(0));
+		/* Fill secondary power sequence */
+		for (i = 0; i < 4; i++) {
+			/* Calculate TD Timer, every step is 572.1uSec */
+			reg_value = td_timer[i] * 10000 / 5721;
+
+			timings.count = ARRAY_SIZE(td_timer_regs[i].tdRegs);
+			timings.regs = td_timer_regs[i].tdRegs;
+			load_value_to_registers(VGABASE, &timings, reg_value);
+		}
+	}
+}
+
 static bool via_fp_probe_edid(struct i2c_adapter *i2c_bus)
 {
 	u8 out = 0x0;
@@ -1356,6 +1411,9 @@ void via_lvds_init(struct drm_device *dev)
 
 	/* Put it all together */
 	drm_connector_attach_encoder(&con->base, &enc->base);
+
+	/* Init TD timing register (power sequence) */
+	via_init_td_timing_regs(dev);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return;
