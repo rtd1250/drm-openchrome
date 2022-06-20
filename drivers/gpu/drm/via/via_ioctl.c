@@ -48,9 +48,7 @@ static int via_gem_create_ioctl(struct drm_device *dev,
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	ret = via_bo_create(dev, &dev_priv->bdev, args->size,
-				ttm_bo_type_device, args->domain, false,
-				&bo);
-
+				ttm_bo_type_device, args->domain, false, &bo);
 	if (ret) {
 		goto exit;
 	}

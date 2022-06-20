@@ -103,13 +103,8 @@ static int via_driver_dumb_create(struct drm_file *file_priv,
 	pitch = args->width * ((args->bpp + 7) >> 3);
 	size = pitch * args->height;
 
-	ret = via_bo_create(dev,
-					&dev_priv->bdev,
-					size,
-					ttm_bo_type_device,
-					TTM_PL_VRAM,
-					false,
-					&bo);
+	ret = via_bo_create(dev, &dev_priv->bdev, size,
+				ttm_bo_type_device, TTM_PL_VRAM, false, &bo);
 	if (ret) {
 		goto exit;
 	}

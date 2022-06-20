@@ -166,12 +166,12 @@ void via_bo_unpin(struct via_bo *bo)
 }
 
 int via_bo_create(struct drm_device *dev,
-				struct ttm_device *bdev,
-				uint64_t size,
-				enum ttm_bo_type type,
-				uint32_t ttm_domain,
-				bool kmap,
-				struct via_bo **bo_ptr)
+			struct ttm_device *bdev,
+			uint64_t size,
+			enum ttm_bo_type type,
+			uint32_t ttm_domain,
+			bool kmap,
+			struct via_bo **bo_ptr)
 {
 	struct ttm_buffer_object *ttm_bo;
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
@@ -180,7 +180,6 @@ int via_bo_create(struct drm_device *dev,
 
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
-//	bo = kzalloc(sizeof(struct via_bo), GFP_KERNEL);
 	bo = kzalloc(sizeof(*bo), GFP_KERNEL);
 	if (!bo) {
 		DRM_ERROR("Cannot allocate a TTM buffer object.\n");
@@ -191,7 +190,7 @@ int via_bo_create(struct drm_device *dev,
 	ttm_bo = &bo->ttm_bo;
 
 	/*
-	 * It is imperative to page align the requested buffer size
+	 * It is an imperative to page align the requested buffer size
 	 * prior to a memory allocation request, or various memory
 	 * allocation related system instabilities may occur.
 	 */
