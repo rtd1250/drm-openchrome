@@ -357,6 +357,57 @@ static const struct drm_connector_funcs via_dvi_connector_funcs = {
 			drm_atomic_helper_connector_destroy_state,
 };
 
+static enum drm_mode_status via_tmds_mode_valid(
+					struct drm_connector *connector,
+					struct drm_display_mode *mode)
+{
+	struct drm_device *dev = connector->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
+	int min_clock, max_clock;
+	enum drm_mode_status status = MODE_OK;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	min_clock = 25000;
+	switch (pdev->device) {
+	/* CX700(M/M2) / VX700(M/M2) Chipset */
+	case PCI_DEVICE_ID_VIA_VT3157:
+	/* VX800 / VX820 Chipset */
+	case PCI_DEVICE_ID_VIA_VT1122:
+		max_clock = 165000;
+		break;
+	/* Illegal condition (should never get here) */
+	default:
+		max_clock = 0;
+		break;
+	}
+
+	if (mode->flags & DRM_MODE_FLAG_INTERLACE) {
+		status = MODE_NO_INTERLACE;
+		goto exit;
+	}
+
+	if (mode->flags & DRM_MODE_FLAG_DBLSCAN) {
+		status = MODE_NO_DBLESCAN;
+		goto exit;
+	}
+
+	if (mode->clock < min_clock) {
+		status = MODE_CLOCK_LOW;
+		goto exit;
+	}
+
+	if (mode->clock > max_clock) {
+		status = MODE_CLOCK_HIGH;
+		goto exit;
+	}
+
+exit:
+	DRM_DEBUG_KMS("status: %u\n", status);
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return status;
+}
+
 static int via_tmds_get_modes(struct drm_connector *connector)
 {
 	struct via_connector *con = container_of(connector, struct via_connector, base);
@@ -392,7 +443,7 @@ static int via_tmds_get_modes(struct drm_connector *connector)
 
 static const struct drm_connector_helper_funcs
 via_dvi_connector_helper_funcs = {
-	.mode_valid = via_connector_mode_valid,
+	.mode_valid = via_tmds_mode_valid,
 	.get_modes = via_tmds_get_modes,
 };
 
