@@ -283,6 +283,76 @@ static const struct drm_connector_funcs via_dac_connector_funcs = {
 			drm_atomic_helper_connector_destroy_state,
 };
 
+static enum drm_mode_status via_dac_mode_valid(
+					struct drm_connector *connector,
+					struct drm_display_mode *mode)
+{
+	struct drm_device *dev = connector->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
+	int min_clock, max_clock;
+	enum drm_mode_status status = MODE_OK;
+
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	min_clock = 25000;
+	switch (pdev->device) {
+	/* CLE266 Chipset */
+	case PCI_DEVICE_ID_VIA_CLE266:
+	/* KM400(A) / KN400(A) / P4M800 Chipset */
+	case PCI_DEVICE_ID_VIA_KM400:
+		max_clock = 250000;
+		break;
+	/* K8M800(A) / K8N800(A) Chipset */
+	case PCI_DEVICE_ID_VIA_K8M800:
+	/* P4M800 Pro / P4M800CE / VN800 / CN700 / CN333 / CN400 Chipset */
+	case PCI_DEVICE_ID_VIA_CN700:
+		max_clock = 300000;
+		break;
+	/* PM800 / PN800 / PM880 / PN880 Chipset */
+	case PCI_DEVICE_ID_VIA_PM800:
+	/* P4M890 / P4N890 Chipset */
+	case PCI_DEVICE_ID_VIA_VT3343:
+	/* K8M890 / K8N890 Chipset */
+	case PCI_DEVICE_ID_VIA_K8M890:
+	/* P4M900 / VN896 / CN896 Chipset */
+	case PCI_DEVICE_ID_VIA_P4M900:
+	/* CX700(M/M2) / VX700(M/M2) Chipset */
+	case PCI_DEVICE_ID_VIA_VT3157:
+	/* VX800 / VX820 Chipset */
+	case PCI_DEVICE_ID_VIA_VT1122:
+	/* VX855 / VX875 Chipset */
+	case PCI_DEVICE_ID_VIA_VX875:
+	/* VX900(H) Chipset */
+	case PCI_DEVICE_ID_VIA_VX900_VGA:
+		max_clock = 350000;
+		break;
+	/* Illegal condition (should never get here) */
+	default:
+		max_clock = 0;
+		break;
+	}
+
+	if (mode->flags & DRM_MODE_FLAG_DBLSCAN) {
+		status = MODE_NO_DBLESCAN;
+		goto exit;
+	}
+
+	if (mode->clock < min_clock) {
+		status = MODE_CLOCK_LOW;
+		goto exit;
+	}
+
+	if (mode->clock > max_clock) {
+		status = MODE_CLOCK_HIGH;
+		goto exit;
+	}
+
+exit:
+	DRM_DEBUG_KMS("status: %u\n", status);
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+	return status;
+}
+
 static int via_dac_get_modes(struct drm_connector *connector)
 {
 	struct via_connector *con = container_of(connector,
@@ -340,7 +410,7 @@ exit:
 
 static const struct drm_connector_helper_funcs
 via_dac_connector_helper_funcs = {
-	.mode_valid = via_connector_mode_valid,
+	.mode_valid = via_dac_mode_valid,
 	.get_modes = via_dac_get_modes,
 };
 
