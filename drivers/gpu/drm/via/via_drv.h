@@ -186,14 +186,6 @@ struct via_bo {
 	struct ttm_place		placements[VIA_TTM_PL_NUM];
 };
 
-enum via_engine {
-	VIA_ENG_H1 = 0,
-	VIA_ENG_H2,
-	VIA_ENG_H5S1,
-	VIA_ENG_H5S2VP1,
-	VIA_ENG_H6S2
-};
-
 struct via_drm_priv {
 	struct drm_device dev;
 
