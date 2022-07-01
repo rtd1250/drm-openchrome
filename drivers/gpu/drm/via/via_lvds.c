@@ -423,7 +423,7 @@ static void via_lvds_power(struct via_drm_priv *dev_priv,
 		break;
 	case PCI_DEVICE_ID_VIA_KM400:
 	case PCI_DEVICE_ID_VIA_CN700:
-	case PCI_DEVICE_ID_VIA_PM800:
+	case PCI_DEVICE_ID_VIA_PM800_GFX:
 	case PCI_DEVICE_ID_VIA_K8M800:
 	case PCI_DEVICE_ID_VIA_P4M890_GFX:
 	case PCI_DEVICE_ID_VIA_CHROME9:
@@ -1163,7 +1163,7 @@ void via_lvds_probe(struct drm_device *dev)
 		break;
 	case PCI_DEVICE_ID_VIA_KM400:
 	case PCI_DEVICE_ID_VIA_CN700:
-	case PCI_DEVICE_ID_VIA_PM800:
+	case PCI_DEVICE_ID_VIA_PM800_GFX:
 	case PCI_DEVICE_ID_VIA_K8M800:
 		/* 3C5.13[3] - DVP0D8 pin strapping
 		 *             0: AGP pins are used for AGP

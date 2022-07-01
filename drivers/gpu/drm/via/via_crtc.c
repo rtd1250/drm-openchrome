@@ -291,7 +291,7 @@ static int via_gamma_set(struct drm_crtc *crtc,
 			case PCI_DEVICE_ID_VIA_CLE266:
 			case PCI_DEVICE_ID_VIA_KM400:
 			case PCI_DEVICE_ID_VIA_K8M800:
-			case PCI_DEVICE_ID_VIA_PM800:
+			case PCI_DEVICE_ID_VIA_PM800_GFX:
 				break;
 
 			default:
@@ -585,7 +585,7 @@ static int via_iga1_display_fifo_regs(struct drm_device *dev,
 		}
 
 		break;
-	case PCI_DEVICE_ID_VIA_PM800:
+	case PCI_DEVICE_ID_VIA_PM800_GFX:
 		/* SR17[7:0] */
 		fifo_max_depth = 192;
 
@@ -729,7 +729,7 @@ static int via_iga1_display_fifo_regs(struct drm_device *dev,
 	if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_KM400) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_K8M800) ||
-		(pdev->device == PCI_DEVICE_ID_VIA_PM800) ||
+		(pdev->device == PCI_DEVICE_ID_VIA_PM800_GFX) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_CN700) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_UNICHROME_PRO_II)) {
 		/* Force PREQ to be always higher than TREQ. */
@@ -915,7 +915,7 @@ static int via_iga2_display_fifo_regs(struct drm_device *dev,
 		}
 
 		break;
-	case PCI_DEVICE_ID_VIA_PM800:
+	case PCI_DEVICE_ID_VIA_PM800_GFX:
 		/* CR95[7], CR94[7], CR68[7:4] */
 		fifo_max_depth = 96;
 

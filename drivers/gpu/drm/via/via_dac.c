@@ -309,7 +309,7 @@ static enum drm_mode_status via_dac_mode_valid(
 		max_clock = 300000;
 		break;
 	/* PM800 / PN800 / PM880 / PN880 Chipset */
-	case PCI_DEVICE_ID_VIA_PM800:
+	case PCI_DEVICE_ID_VIA_PM800_GFX:
 	/* P4M890 / P4N890 Chipset */
 	case PCI_DEVICE_ID_VIA_P4M890_GFX:
 	/* K8M890 / K8N890 Chipset */
