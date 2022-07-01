@@ -141,10 +141,10 @@
 #define	VIA_TMDS_SII164	BIT(1)
 
 
-typedef struct _via_lvds_info {
+struct via_lvds_info {
 	u32 x;
 	u32 y;
-} via_lvds_info;
+};
 
 struct via_crtc {
 	struct drm_crtc base;

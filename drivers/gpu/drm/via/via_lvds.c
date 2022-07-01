@@ -44,7 +44,7 @@
 #define TD3 25
 
 /* Non-I2C bus FP native screen resolution information table.*/
-static via_lvds_info via_lvds_info_table[] = {
+static struct via_lvds_info via_lvds_info_table[] = {
 	{ 640,  480},
 	{ 800,  600},
 	{1024,  768},
