@@ -51,7 +51,7 @@ int via_dev_pm_ops_suspend(struct device *dev)
 	 */
 	if ((pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
-		(pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA)) {
+		(pdev->device == PCI_DEVICE_ID_VIA_CHROME9_HD)) {
 		dev_priv->saved_sr14 = vga_rseq(VGABASE, 0x14);
 
 		dev_priv->saved_sr66 = vga_rseq(VGABASE, 0x66);
@@ -145,7 +145,7 @@ int via_dev_pm_ops_resume(struct device *dev)
 	 */
 	if ((pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
-		(pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA)) {
+		(pdev->device == PCI_DEVICE_ID_VIA_CHROME9_HD)) {
 		vga_wseq(VGABASE, 0x14, dev_priv->saved_sr14);
 
 		vga_wseq(VGABASE, 0x66, dev_priv->saved_sr66);

@@ -99,7 +99,7 @@ int via_modeset_init(struct drm_device *dev)
 	via_lvds_init(dev);
 
 	switch (pdev->device) {
-	case PCI_DEVICE_ID_VIA_VX900_VGA:
+	case PCI_DEVICE_ID_VIA_CHROME9_HD:
 		via_hdmi_init(dev, VIA_DI_PORT_NONE);
 		break;
 	default:

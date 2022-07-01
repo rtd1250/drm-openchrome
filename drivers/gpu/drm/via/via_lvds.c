@@ -444,7 +444,7 @@ static void via_lvds_power(struct via_drm_priv *dev_priv,
 
 		break;
 	case PCI_DEVICE_ID_VIA_VX875:
-	case PCI_DEVICE_ID_VIA_VX900_VGA:
+	case PCI_DEVICE_ID_VIA_CHROME9_HD:
 		via_lvds_primary_hard_power_seq(dev_priv, power_state);
 		via_lvds1_set_power(VGABASE, power_state);
 		break;
@@ -792,7 +792,7 @@ via_lvds_mode_set(struct drm_encoder *encoder, struct drm_display_mode *mode,
 	case PCI_DEVICE_ID_VIA_VT3157:
 	case PCI_DEVICE_ID_VIA_VT1122:
 	case PCI_DEVICE_ID_VIA_VX875:
-	case PCI_DEVICE_ID_VIA_VX900_VGA:
+	case PCI_DEVICE_ID_VIA_CHROME9_HD:
 		/* OPENLDI Mode */
 		via_lvds_format(dev_priv, enc->di_port, 0x01);
 
@@ -1093,7 +1093,7 @@ static int via_lvds_mode_valid(struct drm_connector *connector,
 		return MODE_PANEL;
 
 	/* Don't support mode larger than physical size */
-	if (pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA) {
+	if (pdev->device != PCI_DEVICE_ID_VIA_CHROME9_HD) {
 		if (mode->hdisplay > native_mode->hdisplay)
 			return MODE_PANEL;
 		if (mode->vdisplay > native_mode->vdisplay)
@@ -1210,7 +1210,7 @@ void via_lvds_probe(struct drm_device *dev)
 	case PCI_DEVICE_ID_VIA_VT3157:
 	case PCI_DEVICE_ID_VIA_VT1122:
 	case PCI_DEVICE_ID_VIA_VX875:
-	case PCI_DEVICE_ID_VIA_VX900_VGA:
+	case PCI_DEVICE_ID_VIA_CHROME9_HD:
 		/* Save SR5A. */
 		sr5a = vga_rseq(VGABASE, 0x5a);
 

@@ -166,7 +166,7 @@ u32 via_get_clk_value(struct drm_device *dev, u32 freq)
 		pll_mrn |= (best_pll_m & 0x7F);
 		break;
 	case PCI_DEVICE_ID_VIA_VX875:
-	case PCI_DEVICE_ID_VIA_VX900_VGA:
+	case PCI_DEVICE_ID_VIA_CHROME9_HD:
 		/* Clock Synthesizer Value 0 : DM[7:0] */
 		pll_mrn = (best_pll_m & 0xFF) << 16;
 		/* Clock Synthesizer Value 1[1:0] : DM[9:8]

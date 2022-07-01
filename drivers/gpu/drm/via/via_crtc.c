@@ -704,7 +704,7 @@ static int via_iga1_display_fifo_regs(struct drm_device *dev,
 		display_queue_expire_num = VX855_IGA1_DISPLAY_QUEUE_EXPIRE_NUM;
 		break;
 		/* VX900 */
-	case PCI_DEVICE_ID_VIA_VX900_VGA:
+	case PCI_DEVICE_ID_VIA_CHROME9_HD:
 		/* SR17[7:0] */
 		fifo_max_depth = VX900_IGA1_FIFO_MAX_DEPTH;
 
@@ -1034,7 +1034,7 @@ static int via_iga2_display_fifo_regs(struct drm_device *dev,
 		display_queue_expire_num = VX855_IGA2_DISPLAY_QUEUE_EXPIRE_NUM;
 		break;
 		/* VX900 */
-	case PCI_DEVICE_ID_VIA_VX900_VGA:
+	case PCI_DEVICE_ID_VIA_CHROME9_HD:
 		/* CR95[7], CR94[7], CR68[7:4] */
 		fifo_max_depth = VX900_IGA2_FIFO_MAX_DEPTH;
 
@@ -1184,7 +1184,7 @@ void via_load_crtc_timing(struct via_crtc *iga, struct drm_display_mode *mode)
 	u32 reg_value = 0;
 
 	if (!iga->index) {
-		if (pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA) {
+		if (pdev->device == PCI_DEVICE_ID_VIA_CHROME9_HD) {
 			/* Disable IGA1 shadow timing */
 			svga_wcrt_mask(VGABASE, 0x45, 0x00, BIT(0));
 
@@ -1288,7 +1288,7 @@ void via_set_scale_path(struct drm_crtc *crtc, u32 scale_type)
 		reg_cr_fd &= ~BIT(7);
 
 	/* only IGA1 up scaling need to clear this bit CRFD.5. */
-	if (pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA) {
+	if (pdev->device == PCI_DEVICE_ID_VIA_CHROME9_HD) {
 		if (!iga->index
 			&& ((VIA_HOR_EXPAND & scale_type)
 			|| (VIA_VER_EXPAND & scale_type)))
@@ -2052,12 +2052,12 @@ static void via_crtc_param_init(struct via_drm_priv *dev_priv,
 
 		iga->timings.hdisplay.count = ARRAY_SIZE(iga2_hor_addr);
 		iga->timings.hdisplay.regs = iga2_hor_addr;
-		if (pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA)
+		if (pdev->device != PCI_DEVICE_ID_VIA_CHROME9_HD)
 			iga->timings.hdisplay.count--;
 
 		iga->timings.hblank_start.count = ARRAY_SIZE(iga2_hor_blank_start);
 		iga->timings.hblank_start.regs = iga2_hor_blank_start;
-		if (pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA)
+		if (pdev->device != PCI_DEVICE_ID_VIA_CHROME9_HD)
 			iga->timings.hblank_start.count--;
 
 		iga->timings.hblank_end.count = ARRAY_SIZE(iga2_hor_blank_end);
@@ -2126,12 +2126,12 @@ static void via_crtc_param_init(struct via_drm_priv *dev_priv,
 
 		iga->timings.hdisplay.count = ARRAY_SIZE(iga1_hor_addr);
 		iga->timings.hdisplay.regs = iga1_hor_addr;
-		if (pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA)
+		if (pdev->device != PCI_DEVICE_ID_VIA_CHROME9_HD)
 			iga->timings.hdisplay.count--;
 
 		iga->timings.hblank_start.count = ARRAY_SIZE(iga1_hor_blank_start);
 		iga->timings.hblank_start.regs = iga1_hor_blank_start;
-		if (pdev->device != PCI_DEVICE_ID_VIA_VX900_VGA)
+		if (pdev->device != PCI_DEVICE_ID_VIA_CHROME9_HD)
 			iga->timings.hblank_start.count--;
 
 		iga->timings.hblank_end.count = ARRAY_SIZE(iga1_hor_blank_end);

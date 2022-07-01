@@ -764,7 +764,7 @@ int via_vram_detect(struct via_drm_priv *dev_priv)
 		goto out_err;
 	}
 
-	if (pdev->device == PCI_DEVICE_ID_VIA_VX900_VGA) {
+	if (pdev->device == PCI_DEVICE_ID_VIA_CHROME9_HD) {
 		dev_priv->vram_start = pci_resource_start(pdev, 2);
 	} else {
 		dev_priv->vram_start = pci_resource_start(pdev, 0);
@@ -1157,7 +1157,7 @@ void chip_revision_info(struct via_drm_priv *dev_priv)
 	/* VX855 / VX875 Chipset */
 	case PCI_DEVICE_ID_VIA_VX875:
 	/* VX900 Chipset */
-	case PCI_DEVICE_ID_VIA_VX900_VGA:
+	case PCI_DEVICE_ID_VIA_CHROME9_HD:
 		dev_priv->revision = vga_rseq(VGABASE, 0x3B);
 		break;
 	default:

@@ -323,7 +323,7 @@ static enum drm_mode_status via_dac_mode_valid(
 	/* VX855 / VX875 Chipset */
 	case PCI_DEVICE_ID_VIA_VX875:
 	/* VX900(H) Chipset */
-	case PCI_DEVICE_ID_VIA_VX900_VGA:
+	case PCI_DEVICE_ID_VIA_CHROME9_HD:
 		max_clock = 350000;
 		break;
 	/* Illegal condition (should never get here) */
@@ -427,7 +427,7 @@ void via_dac_probe(struct drm_device *dev)
 	case PCI_DEVICE_ID_VIA_VT3157:
 	case PCI_DEVICE_ID_VIA_VT1122:
 	case PCI_DEVICE_ID_VIA_VX875:
-	case PCI_DEVICE_ID_VIA_VX900_VGA:
+	case PCI_DEVICE_ID_VIA_CHROME9_HD:
 		sr5a = vga_rseq(VGABASE, 0x5a);
 		DRM_DEBUG_KMS("SR5A: 0x%02x\n", sr5a);
 

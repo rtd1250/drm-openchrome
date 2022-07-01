@@ -321,7 +321,7 @@ via_unlock_crtc(void __iomem *regs, int pci_id)
 
 	svga_wcrt_mask(regs, 0x11, 0, BIT(7));
 	if ((pci_id == PCI_DEVICE_ID_VIA_VX875) ||
-	    (pci_id == PCI_DEVICE_ID_VIA_VX900_VGA))
+	    (pci_id == PCI_DEVICE_ID_VIA_CHROME9_HD))
 		mask = BIT(4);
 	svga_wcrt_mask(regs, 0x47, 0, mask);
 }
