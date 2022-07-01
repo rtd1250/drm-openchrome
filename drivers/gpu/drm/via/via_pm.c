@@ -50,7 +50,7 @@ int via_dev_pm_ops_suspend(struct device *dev)
 	 * was observed on VIA Embedded EPIA-M830 mainboard.
 	 */
 	if ((pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
-		(pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
+		(pdev->device == PCI_DEVICE_ID_VIA_CHROME9_HCM) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_CHROME9_HD)) {
 		dev_priv->saved_sr14 = vga_rseq(VGABASE, 0x14);
 
@@ -144,7 +144,7 @@ int via_dev_pm_ops_resume(struct device *dev)
 	 * was observed on VIA Embedded EPIA-M830 mainboard.
 	 */
 	if ((pdev->device == PCI_DEVICE_ID_VIA_VT1122) ||
-		(pdev->device == PCI_DEVICE_ID_VIA_VX875) ||
+		(pdev->device == PCI_DEVICE_ID_VIA_CHROME9_HCM) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_CHROME9_HD)) {
 		vga_wseq(VGABASE, 0x14, dev_priv->saved_sr14);
 

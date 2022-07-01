@@ -1155,7 +1155,7 @@ void chip_revision_info(struct via_drm_priv *dev_priv)
 	case PCI_DEVICE_ID_VIA_VT1122:
 		break;
 	/* VX855 / VX875 Chipset */
-	case PCI_DEVICE_ID_VIA_VX875:
+	case PCI_DEVICE_ID_VIA_CHROME9_HCM:
 	/* VX900 Chipset */
 	case PCI_DEVICE_ID_VIA_CHROME9_HD:
 		dev_priv->revision = vga_rseq(VGABASE, 0x3B);

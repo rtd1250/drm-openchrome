@@ -63,7 +63,7 @@ static void via_hide_cursor(struct drm_crtc *crtc)
 	case PCI_DEVICE_ID_VIA_VT3343:
 	case PCI_DEVICE_ID_VIA_P4M900:
 	case PCI_DEVICE_ID_VIA_VT1122:
-	case PCI_DEVICE_ID_VIA_VX875:
+	case PCI_DEVICE_ID_VIA_CHROME9_HCM:
 	case PCI_DEVICE_ID_VIA_CHROME9_HD:
 		if (iga->index) {
 			temp = VIA_READ(HI_CONTROL);
@@ -94,7 +94,7 @@ static void via_show_cursor(struct drm_crtc *crtc)
 	case PCI_DEVICE_ID_VIA_VT3343:
 	case PCI_DEVICE_ID_VIA_P4M900:
 	case PCI_DEVICE_ID_VIA_VT1122:
-	case PCI_DEVICE_ID_VIA_VX875:
+	case PCI_DEVICE_ID_VIA_CHROME9_HCM:
 	case PCI_DEVICE_ID_VIA_CHROME9_HD:
 		/*
 		 * Program Hardware Icon (HI) FIFO, foreground color,
@@ -131,7 +131,7 @@ static void via_show_cursor(struct drm_crtc *crtc)
 	case PCI_DEVICE_ID_VIA_VT3343:
 	case PCI_DEVICE_ID_VIA_P4M900:
 	case PCI_DEVICE_ID_VIA_VT1122:
-	case PCI_DEVICE_ID_VIA_VX875:
+	case PCI_DEVICE_ID_VIA_CHROME9_HCM:
 	case PCI_DEVICE_ID_VIA_CHROME9_HD:
 		/*
 		 * Turn on Hardware Icon (HI).
@@ -171,7 +171,7 @@ static void via_cursor_address(struct drm_crtc *crtc,
 	case PCI_DEVICE_ID_VIA_VT3343:
 	case PCI_DEVICE_ID_VIA_P4M900:
 	case PCI_DEVICE_ID_VIA_VT1122:
-	case PCI_DEVICE_ID_VIA_VX875:
+	case PCI_DEVICE_ID_VIA_CHROME9_HCM:
 	case PCI_DEVICE_ID_VIA_CHROME9_HD:
 		/*
 		 * Program Hardware Icon (HI) offset.
@@ -222,7 +222,7 @@ static void via_set_hi_location(struct drm_crtc *crtc, int crtc_x, int crtc_y)
 	case PCI_DEVICE_ID_VIA_VT3343:
 	case PCI_DEVICE_ID_VIA_P4M900:
 	case PCI_DEVICE_ID_VIA_VT1122:
-	case PCI_DEVICE_ID_VIA_VX875:
+	case PCI_DEVICE_ID_VIA_CHROME9_HCM:
 	case PCI_DEVICE_ID_VIA_CHROME9_HD:
 		if (iga->index) {
 			VIA_WRITE(HI_POSSTART,

@@ -690,7 +690,7 @@ void via_ext_dvi_probe(struct drm_device *dev)
 			break;
 		case PCI_DEVICE_ID_VIA_VT3157:
 		case PCI_DEVICE_ID_VIA_VT1122:
-		case PCI_DEVICE_ID_VIA_VX875:
+		case PCI_DEVICE_ID_VIA_CHROME9_HCM:
 		case PCI_DEVICE_ID_VIA_CHROME9_HD:
 			dev_priv->ext_tmds_di_port = VIA_DI_PORT_DVP1;
 			break;
