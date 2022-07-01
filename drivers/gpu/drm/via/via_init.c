@@ -855,7 +855,7 @@ int via_vram_detect(struct via_drm_priv *dev_priv)
 	/* P4M890 / VN890 */
 	case PCI_DEVICE_ID_VIA_P4M890:
 	/* VX800 / VX820 */
-	case PCI_DEVICE_ID_VIA_VT3353:
+	case PCI_DEVICE_ID_VIA_VX800_HB:
 	/* VX855 / VX875 */
 	case PCI_DEVICE_ID_VIA_VX855_HB:
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
