@@ -430,7 +430,7 @@ static void via_lvds_power(struct via_drm_priv *dev_priv,
 	case PCI_DEVICE_ID_VIA_P4M900:
 		via_lvds_primary_hard_power_seq(dev_priv, power_state);
 		break;
-	case PCI_DEVICE_ID_VIA_VT3157:
+	case PCI_DEVICE_ID_VIA_UNICHROME_PRO_II:
 	case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 		if (di_port & VIA_DI_PORT_LVDS1) {
 			via_lvds_primary_soft_power_seq(dev_priv, power_state);
@@ -789,7 +789,7 @@ via_lvds_mode_set(struct drm_encoder *encoder, struct drm_display_mode *mode,
 	}
 
 	switch (chipset) {
-	case PCI_DEVICE_ID_VIA_VT3157:
+	case PCI_DEVICE_ID_VIA_UNICHROME_PRO_II:
 	case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 	case PCI_DEVICE_ID_VIA_CHROME9_HCM:
 	case PCI_DEVICE_ID_VIA_CHROME9_HD:
@@ -1207,7 +1207,7 @@ void via_lvds_probe(struct drm_device *dev)
 		dev_priv->int_fp2_presence = false;
 		dev_priv->int_fp2_di_port = VIA_DI_PORT_NONE;
 		break;
-	case PCI_DEVICE_ID_VIA_VT3157:
+	case PCI_DEVICE_ID_VIA_UNICHROME_PRO_II:
 	case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 	case PCI_DEVICE_ID_VIA_CHROME9_HCM:
 	case PCI_DEVICE_ID_VIA_CHROME9_HD:

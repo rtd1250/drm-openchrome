@@ -317,7 +317,7 @@ static enum drm_mode_status via_dac_mode_valid(
 	/* P4M900 / VN896 / CN896 Chipset */
 	case PCI_DEVICE_ID_VIA_P4M900:
 	/* CX700(M/M2) / VX700(M/M2) Chipset */
-	case PCI_DEVICE_ID_VIA_VT3157:
+	case PCI_DEVICE_ID_VIA_UNICHROME_PRO_II:
 	/* VX800 / VX820 Chipset */
 	case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 	/* VX855 / VX875 Chipset */
@@ -424,7 +424,7 @@ void via_dac_probe(struct drm_device *dev)
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	switch (chipset) {
-	case PCI_DEVICE_ID_VIA_VT3157:
+	case PCI_DEVICE_ID_VIA_UNICHROME_PRO_II:
 	case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 	case PCI_DEVICE_ID_VIA_CHROME9_HCM:
 	case PCI_DEVICE_ID_VIA_CHROME9_HD:

@@ -982,7 +982,7 @@ static void via_quirks_init(struct via_drm_priv *dev_priv)
 	 * setting to handle DVI. As a result, the code needs to know
 	 * this in order to support DVI properly.
 	 */
-	if ((pdev->device == PCI_DEVICE_ID_VIA_VT3157) &&
+	if ((pdev->device == PCI_DEVICE_ID_VIA_UNICHROME_PRO_II) &&
 		(pdev->subsystem_vendor == 0x1509) &&
 		(pdev->subsystem_device == 0x2d30)) {
 		dev_priv->is_via_nanobook = true;
@@ -1140,7 +1140,7 @@ void chip_revision_info(struct via_drm_priv *dev_priv)
 		vga_wcrt(VGABASE, 0x4F, tmp);
 		break;
 	/* CX700 / VX700 Chipset */
-	case PCI_DEVICE_ID_VIA_VT3157:
+	case PCI_DEVICE_ID_VIA_UNICHROME_PRO_II:
 		tmp = vga_rseq(VGABASE, 0x43);
 		if (tmp & 0x02) {
 			dev_priv->revision = CX700_REVISION_700M2;

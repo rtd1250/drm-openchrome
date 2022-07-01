@@ -619,7 +619,7 @@ static int via_iga1_display_fifo_regs(struct drm_device *dev,
 		display_queue_expire_num = CN700_IGA1_DISPLAY_QUEUE_EXPIRE_NUM;
 		break;
 		/* CX700 */
-	case PCI_DEVICE_ID_VIA_VT3157:
+	case PCI_DEVICE_ID_VIA_UNICHROME_PRO_II:
 		/* SR17[7:0] */
 		fifo_max_depth = CX700_IGA1_FIFO_MAX_DEPTH;
 
@@ -731,7 +731,7 @@ static int via_iga1_display_fifo_regs(struct drm_device *dev,
 		(pdev->device == PCI_DEVICE_ID_VIA_K8M800) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_PM800) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_CN700) ||
-		(pdev->device == PCI_DEVICE_ID_VIA_VT3157)) {
+		(pdev->device == PCI_DEVICE_ID_VIA_UNICHROME_PRO_II)) {
 		/* Force PREQ to be always higher than TREQ. */
 		svga_wseq_mask(VGABASE, 0x18, BIT(6), BIT(6));
 	} else {
@@ -949,7 +949,7 @@ static int via_iga2_display_fifo_regs(struct drm_device *dev,
 		display_queue_expire_num = CN700_IGA2_DISPLAY_QUEUE_EXPIRE_NUM;
 		break;
 		/* CX700 */
-	case PCI_DEVICE_ID_VIA_VT3157:
+	case PCI_DEVICE_ID_VIA_UNICHROME_PRO_II:
 		/* CR95[7], CR94[7], CR68[7:4] */
 		fifo_max_depth = CX700_IGA2_FIFO_MAX_DEPTH;
 

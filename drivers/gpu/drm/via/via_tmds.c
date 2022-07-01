@@ -371,7 +371,7 @@ static enum drm_mode_status via_tmds_mode_valid(
 	min_clock = 25000;
 	switch (pdev->device) {
 	/* CX700(M/M2) / VX700(M/M2) Chipset */
-	case PCI_DEVICE_ID_VIA_VT3157:
+	case PCI_DEVICE_ID_VIA_UNICHROME_PRO_II:
 	/* VX800 / VX820 Chipset */
 	case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 		max_clock = 165000;
@@ -461,7 +461,7 @@ void via_tmds_probe(struct drm_device *dev)
 
 	/* Detect the presence of integrated TMDS transmitter. */
 	switch (chipset) {
-	case PCI_DEVICE_ID_VIA_VT3157:
+	case PCI_DEVICE_ID_VIA_UNICHROME_PRO_II:
 	case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 		sr5a = vga_rseq(VGABASE, 0x5a);
 
@@ -688,7 +688,7 @@ void via_ext_dvi_probe(struct drm_device *dev)
 			}
 
 			break;
-		case PCI_DEVICE_ID_VIA_VT3157:
+		case PCI_DEVICE_ID_VIA_UNICHROME_PRO_II:
 		case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 		case PCI_DEVICE_ID_VIA_CHROME9_HCM:
 		case PCI_DEVICE_ID_VIA_CHROME9_HD:
