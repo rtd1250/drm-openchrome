@@ -250,7 +250,6 @@ static void via_hdmi_enc_mode_set(struct drm_encoder *encoder,
 	struct via_crtc *iga = container_of(encoder->crtc, struct via_crtc, base);
 	struct drm_connector *connector = NULL, *con;
 	struct drm_device *dev = encoder->dev;
-	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 
 	list_for_each_entry(con, &dev->mode_config.connector_list, head) {
@@ -287,24 +286,8 @@ static void via_hdmi_enc_mode_set(struct drm_encoder *encoder,
 				/* FIXME VIA where do you get this value from ??? */
 				u32 v_sync_adjust = 0;
 
-				switch (pdev->device) {
-				case PCI_DEVICE_ID_VIA_VX875:
-					svga_wcrt_mask(VGABASE, 0xFB,
-							v_sync_adjust & 0xFF, 0xFF);
-					svga_wcrt_mask(VGABASE, 0xFC,
-							(v_sync_adjust & 0x700) >> 8, 0x07);
-					break;
-
-				case PCI_DEVICE_ID_VIA_VX900_VGA:
-					svga_wcrt_mask(VGABASE, 0xAB, v_sync_adjust & 0xFF, 0xFF);
-					svga_wcrt_mask(VGABASE, 0xAC, (v_sync_adjust & 0x700) >> 8, 0x07);
-					break;
-
-				default:
-					svga_wcrt_mask(VGABASE, 0xFB, v_sync_adjust & 0xFF, 0xFF);
-					svga_wcrt_mask(VGABASE, 0xFC, (v_sync_adjust & 0x700) >> 8, 0x07);
-					break;
-				}
+				svga_wcrt_mask(VGABASE, 0xAB, v_sync_adjust & 0xFF, 0xFF);
+				svga_wcrt_mask(VGABASE, 0xAC, (v_sync_adjust & 0x700) >> 8, 0x07);
 			}
 		} else { /* non-interlace, clear interlace setting. */
 			if (iga->index) {
@@ -355,30 +338,6 @@ static void via_hdmi_enc_mode_set(struct drm_encoder *encoder,
 		if (mode->hdisplay == 640 && mode->vdisplay == 480) {
 			VIA_WRITE(DP_EPHY_PLL_REG, 0xD8C29E6F);
 			VIA_WRITE(DP_EPHY_PLL_REG, 0xDEC29E6F);
-		}
-	}
-
-	/* Patch for clock skew */
-	if (enc->di_port == VIA_DI_PORT_DVP1) {
-		switch (pdev->device) {
-		case PCI_DEVICE_ID_VIA_VT3157:	/* CX700 */
-			svga_wcrt_mask(VGABASE, 0x65, 0x0B, 0x0F);
-			svga_wcrt_mask(VGABASE, 0x9B, 0x00, 0x0F);
-			break;
-
-		case PCI_DEVICE_ID_VIA_VT1122:	/* VX800 */
-		case PCI_DEVICE_ID_VIA_VX875:	/* VX855 */
-			svga_wcrt_mask(VGABASE, 0x65, 0x0B, 0x0F);
-			svga_wcrt_mask(VGABASE, 0x9B, 0x0F, 0x0F);
-			break;
-
-		case PCI_DEVICE_ID_VIA_VX900_VGA:	/* VX900 */
-			svga_wcrt_mask(VGABASE, 0x65, 0x09, 0x0F);
-			svga_wcrt_mask(VGABASE, 0x9B, 0x09, 0x0F);
-			break;
-
-		default:
-			break;
 		}
 	}
 }
@@ -654,7 +613,6 @@ static const struct drm_connector_helper_funcs via_hdmi_connector_helper_funcs =
 
 void via_hdmi_init(struct drm_device *dev, u32 di_port)
 {
-	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_connector *dvi, *hdmi;
 	struct via_encoder *enc;
 
@@ -683,17 +641,9 @@ void via_hdmi_init(struct drm_device *dev, u32 di_port)
 
 	hdmi->base.polled = DRM_CONNECTOR_POLL_HPD;
 	hdmi->base.doublescan_allowed = false;
+	hdmi->base.interlace_allowed = true;
 	INIT_LIST_HEAD(&hdmi->props);
 
-	switch (pdev->device) {
-	case PCI_DEVICE_ID_VIA_VT3157:
-	case PCI_DEVICE_ID_VIA_VT1122:
-		hdmi->base.interlace_allowed = false;
-		break;
-	default:
-		hdmi->base.interlace_allowed = true;
-		break;
-	}
 	drm_connector_attach_encoder(&hdmi->base, &enc->base);
 
 	/* Setup the DVI connector */
@@ -704,16 +654,8 @@ void via_hdmi_init(struct drm_device *dev, u32 di_port)
 
 	dvi->base.polled = DRM_CONNECTOR_POLL_HPD;
 	dvi->base.doublescan_allowed = false;
+	dvi->base.interlace_allowed = true;
 	INIT_LIST_HEAD(&dvi->props);
 
-	switch (pdev->device) {
-	case PCI_DEVICE_ID_VIA_VT3157:
-	case PCI_DEVICE_ID_VIA_VT3353:
-		dvi->base.interlace_allowed = false;
-		break;
-	default:
-		dvi->base.interlace_allowed = true;
-		break;
-	}
 	drm_connector_attach_encoder(&dvi->base, &enc->base);
 }
