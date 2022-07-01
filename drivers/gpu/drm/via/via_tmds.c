@@ -672,7 +672,7 @@ void via_ext_dvi_probe(struct drm_device *dev)
 			break;
 		case PCI_DEVICE_ID_VIA_VT3343:
 		case PCI_DEVICE_ID_VIA_K8M890:
-		case PCI_DEVICE_ID_VIA_P4M900:
+		case PCI_DEVICE_ID_VIA_CHROME9_HC:
 			/* Assume DVP2 as DVP0. Hence, VIA_DI_PORT_DVP0
 			 * is used. */
 			/* 3C5.12[6] - DVP2D6 pin strapping

@@ -427,7 +427,7 @@ static void via_lvds_power(struct via_drm_priv *dev_priv,
 	case PCI_DEVICE_ID_VIA_K8M800:
 	case PCI_DEVICE_ID_VIA_VT3343:
 	case PCI_DEVICE_ID_VIA_K8M890:
-	case PCI_DEVICE_ID_VIA_P4M900:
+	case PCI_DEVICE_ID_VIA_CHROME9_HC:
 		via_lvds_primary_hard_power_seq(dev_priv, power_state);
 		break;
 	case PCI_DEVICE_ID_VIA_UNICHROME_PRO_II:
@@ -781,7 +781,7 @@ via_lvds_mode_set(struct drm_encoder *encoder, struct drm_display_mode *mode,
 
 	/* Temporary implementation.*/
 	switch (chipset) {
-	case PCI_DEVICE_ID_VIA_P4M900:
+	case PCI_DEVICE_ID_VIA_CHROME9_HC:
 		via_fpdp_low_set_adjustment(VGABASE, 0x08);
 		break;
 	default:
@@ -1183,7 +1183,7 @@ void via_lvds_probe(struct drm_device *dev)
 		break;
 	case PCI_DEVICE_ID_VIA_VT3343:
 	case PCI_DEVICE_ID_VIA_K8M890:
-	case PCI_DEVICE_ID_VIA_P4M900:
+	case PCI_DEVICE_ID_VIA_CHROME9_HC:
 		if (cr3b & BIT(1)) {
 			/* 3C5.12[4] - DVP0D4 pin strapping
 			 *             0: 12-bit FPDP (Flat Panel

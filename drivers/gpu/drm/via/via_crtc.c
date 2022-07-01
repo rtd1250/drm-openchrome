@@ -662,7 +662,7 @@ static int via_iga1_display_fifo_regs(struct drm_device *dev,
 		display_queue_expire_num = P4M890_IGA1_DISPLAY_QUEUE_EXPIRE_NUM;
 		break;
 		/* P4M900 */
-	case PCI_DEVICE_ID_VIA_P4M900:
+	case PCI_DEVICE_ID_VIA_CHROME9_HC:
 		/* SR17[7:0] */
 		fifo_max_depth = P4M900_IGA1_FIFO_MAX_DEPTH;
 
@@ -992,7 +992,7 @@ static int via_iga2_display_fifo_regs(struct drm_device *dev,
 		display_queue_expire_num = P4M890_IGA2_DISPLAY_QUEUE_EXPIRE_NUM;
 		break;
 		/* P4M900 */
-	case PCI_DEVICE_ID_VIA_P4M900:
+	case PCI_DEVICE_ID_VIA_CHROME9_HC:
 		/* CR95[7], CR94[7], CR68[7:4] */
 		fifo_max_depth = P4M900_IGA2_FIFO_MAX_DEPTH;
 
