@@ -869,7 +869,7 @@ int via_vram_detect(struct via_drm_priv *dev_priv)
 		break;
 
 	/* VX900 */
-	case PCI_DEVICE_ID_VIA_VT3410:
+	case PCI_DEVICE_ID_VIA_VX900_HB:
 		ret = pci_read_config_byte(fn3, 0xA1, &size);
 		if (ret)
 			goto out_err;
