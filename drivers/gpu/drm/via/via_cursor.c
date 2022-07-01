@@ -60,7 +60,7 @@ static void via_hide_cursor(struct drm_crtc *crtc)
 
 	switch (pdev->device) {
 	case PCI_DEVICE_ID_VIA_UNICHROME_PRO_II:
-	case PCI_DEVICE_ID_VIA_VT3343:
+	case PCI_DEVICE_ID_VIA_P4M890_GFX:
 	case PCI_DEVICE_ID_VIA_CHROME9_HC:
 	case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 	case PCI_DEVICE_ID_VIA_CHROME9_HCM:
@@ -91,7 +91,7 @@ static void via_show_cursor(struct drm_crtc *crtc)
 
 	switch (pdev->device) {
 	case PCI_DEVICE_ID_VIA_UNICHROME_PRO_II:
-	case PCI_DEVICE_ID_VIA_VT3343:
+	case PCI_DEVICE_ID_VIA_P4M890_GFX:
 	case PCI_DEVICE_ID_VIA_CHROME9_HC:
 	case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 	case PCI_DEVICE_ID_VIA_CHROME9_HCM:
@@ -128,7 +128,7 @@ static void via_show_cursor(struct drm_crtc *crtc)
 
 	switch (pdev->device) {
 	case PCI_DEVICE_ID_VIA_UNICHROME_PRO_II:
-	case PCI_DEVICE_ID_VIA_VT3343:
+	case PCI_DEVICE_ID_VIA_P4M890_GFX:
 	case PCI_DEVICE_ID_VIA_CHROME9_HC:
 	case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 	case PCI_DEVICE_ID_VIA_CHROME9_HCM:
@@ -168,7 +168,7 @@ static void via_cursor_address(struct drm_crtc *crtc,
 
 	switch (pdev->device) {
 	case PCI_DEVICE_ID_VIA_UNICHROME_PRO_II:
-	case PCI_DEVICE_ID_VIA_VT3343:
+	case PCI_DEVICE_ID_VIA_P4M890_GFX:
 	case PCI_DEVICE_ID_VIA_CHROME9_HC:
 	case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 	case PCI_DEVICE_ID_VIA_CHROME9_HCM:
@@ -219,7 +219,7 @@ static void via_set_hi_location(struct drm_crtc *crtc, int crtc_x, int crtc_y)
 
 	switch (pdev->device) {
 	case PCI_DEVICE_ID_VIA_UNICHROME_PRO_II:
-	case PCI_DEVICE_ID_VIA_VT3343:
+	case PCI_DEVICE_ID_VIA_P4M890_GFX:
 	case PCI_DEVICE_ID_VIA_CHROME9_HC:
 	case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 	case PCI_DEVICE_ID_VIA_CHROME9_HCM:
