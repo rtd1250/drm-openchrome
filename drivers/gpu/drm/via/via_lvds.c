@@ -421,7 +421,7 @@ static void via_lvds_power(struct via_drm_priv *dev_priv,
 	case PCI_DEVICE_ID_VIA_CLE266:
 		via_lvds_cle266_soft_power_seq(dev_priv, power_state);
 		break;
-	case PCI_DEVICE_ID_VIA_KM400:
+	case PCI_DEVICE_ID_VIA_KM400_GFX:
 	case PCI_DEVICE_ID_VIA_P4M800_PRO_GFX:
 	case PCI_DEVICE_ID_VIA_PM800_GFX:
 	case PCI_DEVICE_ID_VIA_K8M800_GFX:
@@ -1161,7 +1161,7 @@ void via_lvds_probe(struct drm_device *dev)
 		dev_priv->int_fp2_presence = false;
 		dev_priv->int_fp2_di_port = VIA_DI_PORT_NONE;
 		break;
-	case PCI_DEVICE_ID_VIA_KM400:
+	case PCI_DEVICE_ID_VIA_KM400_GFX:
 	case PCI_DEVICE_ID_VIA_P4M800_PRO_GFX:
 	case PCI_DEVICE_ID_VIA_PM800_GFX:
 	case PCI_DEVICE_ID_VIA_K8M800_GFX:

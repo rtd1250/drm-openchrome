@@ -289,7 +289,7 @@ static int via_gamma_set(struct drm_crtc *crtc,
 			 * Newer it is 8 bits. */
 			switch (pdev->device) {
 			case PCI_DEVICE_ID_VIA_CLE266:
-			case PCI_DEVICE_ID_VIA_KM400:
+			case PCI_DEVICE_ID_VIA_KM400_GFX:
 			case PCI_DEVICE_ID_VIA_K8M800_GFX:
 			case PCI_DEVICE_ID_VIA_PM800_GFX:
 				break;
@@ -522,7 +522,7 @@ static int via_iga1_display_fifo_regs(struct drm_device *dev,
 		}
 		break;
 
-	case PCI_DEVICE_ID_VIA_KM400:
+	case PCI_DEVICE_ID_VIA_KM400_GFX:
 		if ((mode->hdisplay >= 1600) &&
 			(dev_priv->vram_type <= VIA_MEM_DDR_200)) {
 			/* SR17[6:0] */
@@ -727,7 +727,7 @@ static int via_iga1_display_fifo_regs(struct drm_device *dev,
 	}
 
 	if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
-		(pdev->device == PCI_DEVICE_ID_VIA_KM400) ||
+		(pdev->device == PCI_DEVICE_ID_VIA_KM400_GFX) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_K8M800_GFX) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_PM800_GFX) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_P4M800_PRO_GFX) ||
@@ -739,7 +739,7 @@ static int via_iga1_display_fifo_regs(struct drm_device *dev,
 	}
 
 	if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
-		(pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
+		(pdev->device == PCI_DEVICE_ID_VIA_KM400_GFX)) {
 		if (enable_extended_display_fifo) {
 			reg_value = VIA_READ(0x0298);
 			VIA_WRITE(0x0298, reg_value | 0x20000000);
@@ -849,7 +849,7 @@ static int via_iga2_display_fifo_regs(struct drm_device *dev,
 		}
 
 		break;
-	case PCI_DEVICE_ID_VIA_KM400:
+	case PCI_DEVICE_ID_VIA_KM400_GFX:
 		if (mode->hdisplay >= 1600) {
 			/* CR68[7:4] */
 			fifo_max_depth = 120;
@@ -1057,7 +1057,7 @@ static int via_iga2_display_fifo_regs(struct drm_device *dev,
 	}
 
 	if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
-		(pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
+		(pdev->device == PCI_DEVICE_ID_VIA_KM400_GFX)) {
 		if (enable_extended_display_fifo) {
 			/* Enable IGA2 extended display FIFO. */
 			svga_wcrt_mask(VGABASE, 0x6a, BIT(5), BIT(5));
@@ -1068,7 +1068,7 @@ static int via_iga2_display_fifo_regs(struct drm_device *dev,
 	}
 
 	if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
-		(pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
+		(pdev->device == PCI_DEVICE_ID_VIA_KM400_GFX)) {
 		/* Set IGA2 Display FIFO Depth Select */
 		reg_value = IGA2_FIFO_DEPTH_SELECT_FORMULA(fifo_max_depth);
 		load_value_to_registers(VGABASE, &iga->fifo_depth, reg_value);
@@ -2066,7 +2066,7 @@ static void via_crtc_param_init(struct via_drm_priv *dev_priv,
 		iga->timings.hsync_start.count = ARRAY_SIZE(iga2_hor_sync_start);
 		iga->timings.hsync_start.regs = iga2_hor_sync_start;
 		if (pdev->device == PCI_DEVICE_ID_VIA_CLE266
-			|| pdev->device == PCI_DEVICE_ID_VIA_KM400)
+			|| pdev->device == PCI_DEVICE_ID_VIA_KM400_GFX)
 			iga->timings.hsync_start.count--;
 
 		iga->timings.hsync_end.count = ARRAY_SIZE(iga2_hor_sync_end);
@@ -2092,7 +2092,7 @@ static void via_crtc_param_init(struct via_drm_priv *dev_priv,
 
 		/* Secondary FIFO setup */
 		if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
-			(pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
+			(pdev->device == PCI_DEVICE_ID_VIA_KM400_GFX)) {
 			iga->fifo_depth.count =
 				ARRAY_SIZE(iga2_cle266_fifo_depth_select);
 			iga->fifo_depth.regs = iga2_cle266_fifo_depth_select;
@@ -2163,7 +2163,7 @@ static void via_crtc_param_init(struct via_drm_priv *dev_priv,
 
 		/* Primary FIFO setup */
 		if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
-			(pdev->device == PCI_DEVICE_ID_VIA_KM400)) {
+			(pdev->device == PCI_DEVICE_ID_VIA_KM400_GFX)) {
 			iga->fifo_depth.count = ARRAY_SIZE(iga1_cle266_fifo_depth_select);
 			iga->fifo_depth.regs = iga1_cle266_fifo_depth_select;
 

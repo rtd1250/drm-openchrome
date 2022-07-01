@@ -758,7 +758,7 @@ int via_vram_detect(struct via_drm_priv *dev_priv)
 	}
 
 	if (!fn3 && pdev->device != PCI_DEVICE_ID_VIA_CLE266
-		&& pdev->device != PCI_DEVICE_ID_VIA_KM400) {
+		&& pdev->device != PCI_DEVICE_ID_VIA_KM400_GFX) {
 		ret = -EINVAL;
 		DRM_ERROR("No function 3 on host bridge...\n");
 		goto out_err;

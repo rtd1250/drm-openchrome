@@ -299,7 +299,7 @@ static enum drm_mode_status via_dac_mode_valid(
 	/* CLE266 Chipset */
 	case PCI_DEVICE_ID_VIA_CLE266:
 	/* KM400(A) / KN400(A) / P4M800 Chipset */
-	case PCI_DEVICE_ID_VIA_KM400:
+	case PCI_DEVICE_ID_VIA_KM400_GFX:
 		max_clock = 250000;
 		break;
 	/* K8M800(A) / K8N800(A) Chipset */
