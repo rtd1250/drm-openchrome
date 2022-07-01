@@ -313,7 +313,7 @@ static enum drm_mode_status via_dac_mode_valid(
 	/* P4M890 / P4N890 Chipset */
 	case PCI_DEVICE_ID_VIA_VT3343:
 	/* K8M890 / K8N890 Chipset */
-	case PCI_DEVICE_ID_VIA_K8M890:
+	case PCI_DEVICE_ID_VIA_CHROME9:
 	/* P4M900 / VN896 / CN896 Chipset */
 	case PCI_DEVICE_ID_VIA_CHROME9_HC:
 	/* CX700(M/M2) / VX700(M/M2) Chipset */

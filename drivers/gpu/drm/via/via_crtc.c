@@ -634,7 +634,7 @@ static int via_iga1_display_fifo_regs(struct drm_device *dev,
 		break;
 
 		/* K8M890 */
-	case PCI_DEVICE_ID_VIA_K8M890:
+	case PCI_DEVICE_ID_VIA_CHROME9:
 		/* SR17[7:0] */
 		fifo_max_depth = K8M890_IGA1_FIFO_MAX_DEPTH;
 
@@ -964,7 +964,7 @@ static int via_iga2_display_fifo_regs(struct drm_device *dev,
 		break;
 
 		/* K8M890 */
-	case PCI_DEVICE_ID_VIA_K8M890:
+	case PCI_DEVICE_ID_VIA_CHROME9:
 		/* CR95[7], CR94[7], CR68[7:4] */
 		fifo_max_depth = K8M890_IGA2_FIFO_MAX_DEPTH;
 

@@ -426,7 +426,7 @@ static void via_lvds_power(struct via_drm_priv *dev_priv,
 	case PCI_DEVICE_ID_VIA_PM800:
 	case PCI_DEVICE_ID_VIA_K8M800:
 	case PCI_DEVICE_ID_VIA_VT3343:
-	case PCI_DEVICE_ID_VIA_K8M890:
+	case PCI_DEVICE_ID_VIA_CHROME9:
 	case PCI_DEVICE_ID_VIA_CHROME9_HC:
 		via_lvds_primary_hard_power_seq(dev_priv, power_state);
 		break;
@@ -1182,7 +1182,7 @@ void via_lvds_probe(struct drm_device *dev)
 		dev_priv->int_fp2_di_port = VIA_DI_PORT_NONE;
 		break;
 	case PCI_DEVICE_ID_VIA_VT3343:
-	case PCI_DEVICE_ID_VIA_K8M890:
+	case PCI_DEVICE_ID_VIA_CHROME9:
 	case PCI_DEVICE_ID_VIA_CHROME9_HC:
 		if (cr3b & BIT(1)) {
 			/* 3C5.12[4] - DVP0D4 pin strapping
