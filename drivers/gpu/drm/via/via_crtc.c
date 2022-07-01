@@ -290,7 +290,7 @@ static int via_gamma_set(struct drm_crtc *crtc,
 			switch (pdev->device) {
 			case PCI_DEVICE_ID_VIA_CLE266:
 			case PCI_DEVICE_ID_VIA_KM400:
-			case PCI_DEVICE_ID_VIA_K8M800:
+			case PCI_DEVICE_ID_VIA_K8M800_GFX:
 			case PCI_DEVICE_ID_VIA_PM800_GFX:
 				break;
 
@@ -565,7 +565,7 @@ static int via_iga1_display_fifo_regs(struct drm_device *dev,
 		}
 
 		break;
-	case PCI_DEVICE_ID_VIA_K8M800:
+	case PCI_DEVICE_ID_VIA_K8M800_GFX:
 		/* SR17[7:0] */
 		fifo_max_depth = 384;
 
@@ -728,7 +728,7 @@ static int via_iga1_display_fifo_regs(struct drm_device *dev,
 
 	if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_KM400) ||
-		(pdev->device == PCI_DEVICE_ID_VIA_K8M800) ||
+		(pdev->device == PCI_DEVICE_ID_VIA_K8M800_GFX) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_PM800_GFX) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_P4M800_PRO_GFX) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_UNICHROME_PRO_II)) {
@@ -895,7 +895,7 @@ static int via_iga2_display_fifo_regs(struct drm_device *dev,
 		}
 
 		break;
-	case PCI_DEVICE_ID_VIA_K8M800:
+	case PCI_DEVICE_ID_VIA_K8M800_GFX:
 		/* CR95[7], CR94[7], CR68[7:4] */
 		fifo_max_depth = 376;
 
