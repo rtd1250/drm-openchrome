@@ -174,11 +174,6 @@ struct via_encoder {
 	struct via_connector cons[];
 };
 
-struct via_state {
-	struct vga_regset crt_regs[256];
-	struct vga_regset seq_regs[256];
-};
-
 struct via_bo {
 	struct ttm_buffer_object	ttm_bo;
 	struct ttm_bo_kmap_obj		kmap;
@@ -204,8 +199,6 @@ struct via_drm_priv {
 	resource_size_t mmio_base;
 	resource_size_t mmio_size;
 	void __iomem		*mmio;
-
-	struct via_state pm_cache;
 
 	bool spread_spectrum;
 
