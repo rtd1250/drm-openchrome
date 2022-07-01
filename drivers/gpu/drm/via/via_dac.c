@@ -297,7 +297,7 @@ static enum drm_mode_status via_dac_mode_valid(
 	min_clock = 25000;
 	switch (pdev->device) {
 	/* CLE266 Chipset */
-	case PCI_DEVICE_ID_VIA_CLE266:
+	case PCI_DEVICE_ID_VIA_CLE266_GFX:
 	/* KM400(A) / KN400(A) / P4M800 Chipset */
 	case PCI_DEVICE_ID_VIA_KM400_GFX:
 		max_clock = 250000;

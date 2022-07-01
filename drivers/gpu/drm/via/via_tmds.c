@@ -632,7 +632,7 @@ void via_ext_dvi_probe(struct drm_device *dev)
 
 	if (dev_priv->ext_tmds_presence) {
 		switch (chipset) {
-		case PCI_DEVICE_ID_VIA_CLE266:
+		case PCI_DEVICE_ID_VIA_CLE266_GFX:
 
 			/* 3C5.12[4] - FPD17 pin strapping
 			 *             0: TMDS transmitter (DVI) /

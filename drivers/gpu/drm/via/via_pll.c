@@ -73,7 +73,7 @@ u32 via_get_clk_value(struct drm_device *dev, u32 freq)
 		{ 0, 0, 0, 0, 0 } };
 	int count;
 
-	if ((pdev->device != PCI_DEVICE_ID_VIA_CLE266) &&
+	if ((pdev->device != PCI_DEVICE_ID_VIA_CLE266_GFX) &&
 		(pdev->device != PCI_DEVICE_ID_VIA_KM400_GFX)) {
 		/* DN[6:0] */
 		for (pll_n = 2; pll_n < 6; pll_n++) {
@@ -156,7 +156,7 @@ u32 via_get_clk_value(struct drm_device *dev, u32 freq)
 	}
 
 	switch (pdev->device) {
-	case PCI_DEVICE_ID_VIA_CLE266:
+	case PCI_DEVICE_ID_VIA_CLE266_GFX:
 	case PCI_DEVICE_ID_VIA_KM400_GFX:
 		/* Clock Synthesizer Value 0[7:6]: DR[1:0]
 		 * Clock Synthesizer Value 0[5:0]: DN[5:0] */
@@ -212,7 +212,7 @@ void via_set_vclock(struct drm_crtc *crtc, u32 clk)
 		svga_wcrt_mask(VGABASE, 0x17, 0x00, BIT(7));
 
 		/* set clk */
-		if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
+		if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266_GFX) ||
 			(pdev->device == PCI_DEVICE_ID_VIA_KM400_GFX)) {
 			vga_wseq(VGABASE, 0x46, (clk & 0xFF00) >> 8);	/* rshift + divisor */
 			vga_wseq(VGABASE, 0x47, (clk & 0x00FF));	/* multiplier */
@@ -239,7 +239,7 @@ void via_set_vclock(struct drm_crtc *crtc, u32 clk)
 		svga_wcrt_mask(VGABASE, 0x6A, 0x00, BIT(6));
 
 		/* set clk */
-		if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266) ||
+		if ((pdev->device == PCI_DEVICE_ID_VIA_CLE266_GFX) ||
 			(pdev->device == PCI_DEVICE_ID_VIA_KM400_GFX)) {
 			vga_wseq(VGABASE, 0x44, (clk & 0xFF00) >> 8);
 			vga_wseq(VGABASE, 0x45, (clk & 0x00FF));

@@ -418,7 +418,7 @@ static void via_lvds_power(struct via_drm_priv *dev_priv,
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
 	switch (device) {
-	case PCI_DEVICE_ID_VIA_CLE266:
+	case PCI_DEVICE_ID_VIA_CLE266_GFX:
 		via_lvds_cle266_soft_power_seq(dev_priv, power_state);
 		break;
 	case PCI_DEVICE_ID_VIA_KM400_GFX:
@@ -903,7 +903,7 @@ via_lvds_detect(struct drm_connector *connector, bool force)
 		i2c_bus_bit = i2c_bus_bit << 1;
 	}
 
-	if (pdev->device == PCI_DEVICE_ID_VIA_CLE266) {
+	if (pdev->device == PCI_DEVICE_ID_VIA_CLE266_GFX) {
 		mask = BIT(3);
 	} else {
 		mask = BIT(1);
@@ -1149,7 +1149,7 @@ void via_lvds_probe(struct drm_device *dev)
 
 	/* Detect the presence of FPs. */
 	switch (chipset) {
-	case PCI_DEVICE_ID_VIA_CLE266:
+	case PCI_DEVICE_ID_VIA_CLE266_GFX:
 		if ((sr12 & BIT(4)) || (cr3b & BIT(3))) {
 			dev_priv->int_fp1_presence = true;
 			dev_priv->int_fp1_di_port = VIA_DI_PORT_DIP0;

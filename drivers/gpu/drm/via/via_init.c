@@ -757,7 +757,7 @@ int via_vram_detect(struct via_drm_priv *dev_priv)
 		goto out_err;
 	}
 
-	if (!fn3 && pdev->device != PCI_DEVICE_ID_VIA_CLE266
+	if (!fn3 && pdev->device != PCI_DEVICE_ID_VIA_CLE266_GFX
 		&& pdev->device != PCI_DEVICE_ID_VIA_KM400_GFX) {
 		ret = -EINVAL;
 		DRM_ERROR("No function 3 on host bridge...\n");
@@ -1126,7 +1126,7 @@ void chip_revision_info(struct via_drm_priv *dev_priv)
 
 	switch (pdev->device) {
 	/* CLE266 Chipset */
-	case PCI_DEVICE_ID_VIA_CLE266:
+	case PCI_DEVICE_ID_VIA_CLE266_GFX:
 		/* CR4F only defined in CLE266.CX chipset. */
 		tmp = vga_rcrt(VGABASE, 0x4F);
 		vga_wcrt(VGABASE, 0x4F, 0x55);
