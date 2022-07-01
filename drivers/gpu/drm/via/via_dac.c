@@ -319,7 +319,7 @@ static enum drm_mode_status via_dac_mode_valid(
 	/* CX700(M/M2) / VX700(M/M2) Chipset */
 	case PCI_DEVICE_ID_VIA_VT3157:
 	/* VX800 / VX820 Chipset */
-	case PCI_DEVICE_ID_VIA_VT1122:
+	case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 	/* VX855 / VX875 Chipset */
 	case PCI_DEVICE_ID_VIA_CHROME9_HCM:
 	/* VX900(H) Chipset */
@@ -425,7 +425,7 @@ void via_dac_probe(struct drm_device *dev)
 
 	switch (chipset) {
 	case PCI_DEVICE_ID_VIA_VT3157:
-	case PCI_DEVICE_ID_VIA_VT1122:
+	case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 	case PCI_DEVICE_ID_VIA_CHROME9_HCM:
 	case PCI_DEVICE_ID_VIA_CHROME9_HD:
 		sr5a = vga_rseq(VGABASE, 0x5a);

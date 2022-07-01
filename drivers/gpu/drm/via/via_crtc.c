@@ -676,7 +676,7 @@ static int via_iga1_display_fifo_regs(struct drm_device *dev,
 		display_queue_expire_num = P4M900_IGA1_DISPLAY_QUEUE_EXPIRE_NUM;
 		break;
 		/* VX800 */
-	case PCI_DEVICE_ID_VIA_VT1122:
+	case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 		/* SR17[7:0] */
 		fifo_max_depth = VX800_IGA1_FIFO_MAX_DEPTH;
 
@@ -1006,7 +1006,7 @@ static int via_iga2_display_fifo_regs(struct drm_device *dev,
 		display_queue_expire_num = P4M900_IGA2_DISPLAY_QUEUE_EXPIRE_NUM;
 		break;
 		/* VX800 */
-	case PCI_DEVICE_ID_VIA_VT1122:
+	case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 		/* CR95[7], CR94[7], CR68[7:4] */
 		fifo_max_depth = VX800_IGA2_FIFO_MAX_DEPTH;
 

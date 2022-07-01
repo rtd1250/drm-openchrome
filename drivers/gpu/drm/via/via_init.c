@@ -995,7 +995,7 @@ static void via_quirks_init(struct via_drm_priv *dev_priv)
 	 * due to its flat panel connected to DVP1 (Digital
 	 * Video Port 1) rather than its LVDS channel.
 	 */
-	if ((pdev->device == PCI_DEVICE_ID_VIA_VT1122) &&
+	if ((pdev->device == PCI_DEVICE_ID_VIA_CHROME9_HC3) &&
 		(pdev->subsystem_vendor == 0x152d) &&
 		(pdev->subsystem_device == 0x0771)) {
 		dev_priv->is_quanta_il1 = true;
@@ -1009,7 +1009,7 @@ static void via_quirks_init(struct via_drm_priv *dev_priv)
 	 * flag register is needed for properly controlling its
 	 * FP.
 	 */
-	if ((pdev->device == PCI_DEVICE_ID_VIA_VT1122) &&
+	if ((pdev->device == PCI_DEVICE_ID_VIA_CHROME9_HC3) &&
 		(pdev->subsystem_vendor == 0x144d) &&
 		(pdev->subsystem_device == 0xc04e)) {
 		dev_priv->is_samsung_nc20 = true;
@@ -1152,7 +1152,7 @@ void chip_revision_info(struct via_drm_priv *dev_priv)
 
 		break;
 	/* VX800 / VX820 Chipset */
-	case PCI_DEVICE_ID_VIA_VT1122:
+	case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 		break;
 	/* VX855 / VX875 Chipset */
 	case PCI_DEVICE_ID_VIA_CHROME9_HCM:

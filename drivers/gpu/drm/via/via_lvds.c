@@ -103,7 +103,7 @@ static void via_init_td_timing_regs(struct drm_device *dev)
 
 	/* Note: VT3353 have two hardware power sequences
 	 * other chips only have one hardware power sequence */
-	if (pdev->device == PCI_DEVICE_ID_VIA_VT1122) {
+	if (pdev->device == PCI_DEVICE_ID_VIA_CHROME9_HC3) {
 		/* set CRD4[0] to "1" to select 2nd LCD power sequence. */
 		svga_wcrt_mask(VGABASE, 0xD4, BIT(0), BIT(0));
 		/* Fill secondary power sequence */
@@ -431,7 +431,7 @@ static void via_lvds_power(struct via_drm_priv *dev_priv,
 		via_lvds_primary_hard_power_seq(dev_priv, power_state);
 		break;
 	case PCI_DEVICE_ID_VIA_VT3157:
-	case PCI_DEVICE_ID_VIA_VT1122:
+	case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 		if (di_port & VIA_DI_PORT_LVDS1) {
 			via_lvds_primary_soft_power_seq(dev_priv, power_state);
 			via_lvds1_set_power(VGABASE, power_state);
@@ -790,7 +790,7 @@ via_lvds_mode_set(struct drm_encoder *encoder, struct drm_display_mode *mode,
 
 	switch (chipset) {
 	case PCI_DEVICE_ID_VIA_VT3157:
-	case PCI_DEVICE_ID_VIA_VT1122:
+	case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 	case PCI_DEVICE_ID_VIA_CHROME9_HCM:
 	case PCI_DEVICE_ID_VIA_CHROME9_HD:
 		/* OPENLDI Mode */
@@ -1208,7 +1208,7 @@ void via_lvds_probe(struct drm_device *dev)
 		dev_priv->int_fp2_di_port = VIA_DI_PORT_NONE;
 		break;
 	case PCI_DEVICE_ID_VIA_VT3157:
-	case PCI_DEVICE_ID_VIA_VT1122:
+	case PCI_DEVICE_ID_VIA_CHROME9_HC3:
 	case PCI_DEVICE_ID_VIA_CHROME9_HCM:
 	case PCI_DEVICE_ID_VIA_CHROME9_HD:
 		/* Save SR5A. */
