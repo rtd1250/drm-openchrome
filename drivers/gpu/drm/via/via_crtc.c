@@ -605,7 +605,7 @@ static int via_iga1_display_fifo_regs(struct drm_device *dev,
 		}
 
 		break;
-	case PCI_DEVICE_ID_VIA_CN700:
+	case PCI_DEVICE_ID_VIA_P4M800_PRO_GFX:
 		/* SR17[7:0] */
 		fifo_max_depth = CN700_IGA1_FIFO_MAX_DEPTH;
 
@@ -730,7 +730,7 @@ static int via_iga1_display_fifo_regs(struct drm_device *dev,
 		(pdev->device == PCI_DEVICE_ID_VIA_KM400) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_K8M800) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_PM800_GFX) ||
-		(pdev->device == PCI_DEVICE_ID_VIA_CN700) ||
+		(pdev->device == PCI_DEVICE_ID_VIA_P4M800_PRO_GFX) ||
 		(pdev->device == PCI_DEVICE_ID_VIA_UNICHROME_PRO_II)) {
 		/* Force PREQ to be always higher than TREQ. */
 		svga_wseq_mask(VGABASE, 0x18, BIT(6), BIT(6));
@@ -935,7 +935,7 @@ static int via_iga2_display_fifo_regs(struct drm_device *dev,
 		}
 
 		break;
-	case PCI_DEVICE_ID_VIA_CN700:
+	case PCI_DEVICE_ID_VIA_P4M800_PRO_GFX:
 		/* CR95[7], CR94[7], CR68[7:4] */
 		fifo_max_depth = CN700_IGA2_FIFO_MAX_DEPTH;
 

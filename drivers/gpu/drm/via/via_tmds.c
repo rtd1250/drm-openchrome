@@ -653,7 +653,7 @@ void via_ext_dvi_probe(struct drm_device *dev)
 			break;
 		case PCI_DEVICE_ID_VIA_KM400:
 		case PCI_DEVICE_ID_VIA_K8M800:
-		case PCI_DEVICE_ID_VIA_CN700:
+		case PCI_DEVICE_ID_VIA_P4M800_PRO_GFX:
 		case PCI_DEVICE_ID_VIA_PM800_GFX:
 			/* 3C5.12[6] - DVP0D6 pin strapping
 			 *             0: Disable DVP0 (Digital Video Port 0) for
