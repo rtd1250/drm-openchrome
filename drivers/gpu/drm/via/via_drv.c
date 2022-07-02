@@ -185,7 +185,19 @@ static struct drm_driver via_driver = {
 };
 
 static struct pci_device_id via_pci_table[] = {
-	viadrv_PCI_IDS,
+	{0x1106, 0x3122, PCI_ANY_ID, PCI_ANY_ID, 0, 0, 0},
+	{0x1106, 0x7205, PCI_ANY_ID, PCI_ANY_ID, 0, 0, 0},
+	{0x1106, 0x3108, PCI_ANY_ID, PCI_ANY_ID, 0, 0, 0},
+	{0x1106, 0x3344, PCI_ANY_ID, PCI_ANY_ID, 0, 0, 0},
+	{0x1106, 0x3118, PCI_ANY_ID, PCI_ANY_ID, 0, 0, 0},
+	{0x1106, 0x3343, PCI_ANY_ID, PCI_ANY_ID, 0, 0, 0},
+	{0x1106, 0x3230, PCI_ANY_ID, PCI_ANY_ID, 0, 0, 0},
+	{0x1106, 0x3371, PCI_ANY_ID, PCI_ANY_ID, 0, 0, 0},
+	{0x1106, 0x3157, PCI_ANY_ID, PCI_ANY_ID, 0, 0, 0},
+	{0x1106, 0x1122, PCI_ANY_ID, PCI_ANY_ID, 0, 0, 0},
+	{0x1106, 0x5122, PCI_ANY_ID, PCI_ANY_ID, 0, 0, 0},
+	{0x1106, 0x7122, PCI_ANY_ID, PCI_ANY_ID, 0, 0, 0},
+	{0, 0, 0}
 };
 
 MODULE_DEVICE_TABLE(pci, via_pci_table);
