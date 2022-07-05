@@ -189,6 +189,23 @@ via_dip0_set_output_enable(void __iomem *regs, bool output_enable)
 }
 
 /*
+ * Sets the clock source of DIP0 (Digital Interface Port 0)
+ * interface. CLE266 chipset only.
+ */
+static inline void
+via_dip0_set_clock_source(void __iomem *regs, bool clock_source)
+{
+	/*
+	 * 3X5.6C[5] - DIP0 Clock Source
+	 *             0: External
+	 *             1: Internal
+	 */
+	svga_wcrt_mask(regs, 0x6c, clock_source ? BIT(5) : 0x00, BIT(5));
+	DRM_DEBUG_KMS("DIP0 Clock Source: %s\n",
+			clock_source ? "Internal" : "External");
+}
+
+/*
  * Sets the display source of DIP0 (Digital Interface Port 0) interface.
  * CLE266 chipset only.
  */
@@ -240,6 +257,23 @@ via_dip1_set_output_enable(void __iomem *regs, bool output_enable)
 	svga_wcrt_mask(regs, 0x93, output_enable ? BIT(0) : 0x00, BIT(0));
 	DRM_DEBUG_KMS("DIP1 Output: %s\n",
 			output_enable ? "Enable" : "Disable");
+}
+
+/*
+ * Sets the clock source of DIP1 (Digital Interface Port 1)
+ * interface. CLE266 chipset only.
+ */
+static inline void
+via_dip1_set_clock_source(void __iomem *regs, bool clock_source)
+{
+	/*
+	 * 3X5.93[5] - DIP1 Clock Source
+	 *             0: External
+	 *             1: Internal
+	 */
+	svga_wcrt_mask(regs, 0x93, clock_source ? BIT(5) : 0x00, BIT(5));
+	DRM_DEBUG_KMS("DIP1 Clock Source: %s\n",
+			clock_source ? "Internal" : "External");
 }
 
 /*

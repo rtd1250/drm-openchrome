@@ -192,6 +192,7 @@ static void via_sii164_mode_set(struct drm_encoder *encoder,
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
 	struct drm_device *dev = encoder->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	struct i2c_adapter *i2c_bus;
 
@@ -215,6 +216,9 @@ static void via_sii164_mode_set(struct drm_encoder *encoder,
 	via_transmitter_clock_drive_strength(dev_priv, enc->di_port, 0x03);
 	via_transmitter_data_drive_strength(dev_priv, enc->di_port, 0x03);
 	via_transmitter_io_pad_state(dev_priv, enc->di_port, true);
+	if (pdev->device == PCI_DEVICE_ID_VIA_CLE266_GFX) {
+		via_clock_source(dev_priv, enc->di_port, true);
+	}
 
 	via_sii164_display_registers(i2c_bus);
 	via_sii164_init_registers(i2c_bus);

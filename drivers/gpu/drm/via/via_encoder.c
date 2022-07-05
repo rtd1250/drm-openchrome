@@ -109,6 +109,25 @@ void via_output_enable(struct via_drm_priv *dev_priv, uint32_t di_port,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
+void via_clock_source(struct via_drm_priv *dev_priv, uint32_t di_port,
+			bool clock_source)
+{
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	switch(di_port) {
+	case VIA_DI_PORT_DIP0:
+		via_dip0_set_clock_source(VGABASE, clock_source);
+		break;
+	case VIA_DI_PORT_DIP1:
+		via_dip1_set_clock_source(VGABASE, clock_source);
+		break;
+	default:
+		break;
+	}
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
 void via_transmitter_clock_drive_strength(
 					struct via_drm_priv *dev_priv,
 					u32 di_port, u8 drive_strength)

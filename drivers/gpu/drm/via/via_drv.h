@@ -363,6 +363,8 @@ void via_transmitter_io_pad_state(struct via_drm_priv *dev_priv,
 					uint32_t di_port, bool io_pad_on);
 void via_output_enable(struct via_drm_priv *dev_priv,
 			uint32_t di_port, bool output_enable);
+void via_clock_source(struct via_drm_priv *dev_priv, uint32_t di_port,
+			bool clock_source);
 void via_transmitter_clock_drive_strength(struct via_drm_priv *dev_priv,
 					u32 di_port, u8 drive_strength);
 void via_transmitter_data_drive_strength(struct via_drm_priv *dev_priv,
