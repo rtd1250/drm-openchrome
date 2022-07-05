@@ -41,6 +41,10 @@ void via_transmitter_io_pad_state(struct via_drm_priv *dev_priv,
 		via_dip0_set_io_pad_state(VGABASE,
 					io_pad_on ? 0x03 : 0x00);
 		break;
+	case VIA_DI_PORT_DIP1:
+		via_dip1_set_io_pad_state(VGABASE,
+					io_pad_on ? 0x03 : 0x00);
+		break;
 	case VIA_DI_PORT_DVP0:
 		via_dvp0_set_io_pad_state(VGABASE,
 					io_pad_on ? 0x03 : 0x00);
@@ -140,6 +144,9 @@ void via_transmitter_display_source(struct via_drm_priv *dev_priv,
 	switch(di_port) {
 	case VIA_DI_PORT_DIP0:
 		via_dip0_set_display_source(VGABASE, display_source);
+		break;
+	case VIA_DI_PORT_DIP1:
+		via_dip1_set_display_source(VGABASE, display_source);
 		break;
 	case VIA_DI_PORT_DVP0:
 		via_dvp0_set_display_source(VGABASE, display_source);

@@ -189,6 +189,43 @@ via_dip0_set_display_source(void __iomem *regs, u8 display_source)
 }
 
 /*
+ * Sets DIP1 (Digital Interface Port 1) I/O pad state.
+ * CLE266 chipset only.
+ */
+static inline void
+via_dip1_set_io_pad_state(void __iomem *regs, u8 io_pad_state)
+{
+	/*
+	 * 3C5.1E[5:4] - DIP1 I/O Pad Control
+	 *               00: I/O pad off
+	 *               11: I/O pad on
+	 */
+	svga_wseq_mask(regs, 0x1e, io_pad_state << 4, BIT(5) | BIT(4));
+	DRM_DEBUG_KMS("DIP1 I/O Pad State: %s\n",
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x03) ? "On" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x02) ? "Conditional" :
+			((io_pad_state & (BIT(1) | BIT(0))) == 0x01) ? "Off" :
+									"Off");
+}
+
+/*
+ * Sets the display source of DIP1 (Digital Interface Port 1)
+ * interface. CLE266 chipset only.
+ */
+static inline void
+via_dip1_set_display_source(void __iomem *regs, u8 display_source)
+{
+	/*
+	 * 3X5.93[7] - DIP1 Data Source Selection
+	 *             0: IGA1
+	 *             1: IGA2
+	 */
+	svga_wcrt_mask(regs, 0x93, display_source << 7, BIT(7));
+	DRM_DEBUG_KMS("DIP1 Display Source: IGA%d\n",
+			(display_source & 0x01) + 1);
+}
+
+/*
  * Sets DVP0 (Digital Video Port 0) I/O pad state.
  */
 static inline void
