@@ -90,6 +90,25 @@ void via_transmitter_io_pad_state(struct via_drm_priv *dev_priv,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
+void via_output_enable(struct via_drm_priv *dev_priv, uint32_t di_port,
+			bool output_enable)
+{
+	DRM_DEBUG_KMS("Entered %s.\n", __func__);
+
+	switch(di_port) {
+	case VIA_DI_PORT_DIP0:
+		via_dip0_set_output_enable(VGABASE, output_enable);
+		break;
+	case VIA_DI_PORT_DIP1:
+		via_dip1_set_output_enable(VGABASE, output_enable);
+		break;
+	default:
+		break;
+	}
+
+	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
+}
+
 void via_transmitter_clock_drive_strength(
 					struct via_drm_priv *dev_priv,
 					u32 di_port, u8 drive_strength)

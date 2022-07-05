@@ -24,6 +24,8 @@
  * Kevin Brace <kevinbrace@bracecomputerlab.com>
  */
 
+#include <linux/pci.h>
+
 #include <drm/drm_atomic_state_helper.h>
 #include <drm/drm_probe_helper.h>
 
@@ -229,6 +231,7 @@ static void via_sii164_prepare(struct drm_encoder *encoder)
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
 	struct drm_device *dev = encoder->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	struct i2c_adapter *i2c_bus;
 
@@ -251,6 +254,10 @@ static void via_sii164_prepare(struct drm_encoder *encoder)
 
 	via_sii164_power(i2c_bus, false);
 	via_transmitter_io_pad_state(dev_priv, enc->di_port, false);
+	if (pdev->device == PCI_DEVICE_ID_VIA_CLE266_GFX) {
+		via_output_enable(dev_priv, enc->di_port, false);
+	}
+
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
@@ -260,6 +267,7 @@ static void via_sii164_commit(struct drm_encoder *encoder)
 	struct via_encoder *enc = container_of(encoder,
 					struct via_encoder, base);
 	struct drm_device *dev = encoder->dev;
+	struct pci_dev *pdev = to_pci_dev(dev->dev);
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	struct i2c_adapter *i2c_bus;
 
@@ -282,6 +290,9 @@ static void via_sii164_commit(struct drm_encoder *encoder)
 
 	via_sii164_power(i2c_bus, true);
 	via_transmitter_io_pad_state(dev_priv, enc->di_port, true);
+	if (pdev->device == PCI_DEVICE_ID_VIA_CLE266_GFX) {
+		via_output_enable(dev_priv, enc->di_port, true);
+	}
 
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);

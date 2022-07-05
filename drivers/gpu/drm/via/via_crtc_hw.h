@@ -172,6 +172,23 @@ via_dip0_set_io_pad_state(void __iomem *regs, u8 io_pad_state)
 }
 
 /*
+ * Output enable of DIP0 (Digital Interface Port 0) interface.
+ * CLE266 chipset only.
+ */
+static inline void
+via_dip0_set_output_enable(void __iomem *regs, bool output_enable)
+{
+	/*
+	* 3X5.6C[0] - DIP0 Output Enable
+	*             0: Output Disable
+	*             1: Output Enable
+	*/
+	svga_wcrt_mask(regs, 0x6c, output_enable ? BIT(0) : 0x00, BIT(0));
+	DRM_DEBUG_KMS("DIP0 Output: %s\n",
+			output_enable ? "Enable" : "Disable");
+}
+
+/*
  * Sets the display source of DIP0 (Digital Interface Port 0) interface.
  * CLE266 chipset only.
  */
@@ -206,6 +223,23 @@ via_dip1_set_io_pad_state(void __iomem *regs, u8 io_pad_state)
 			((io_pad_state & (BIT(1) | BIT(0))) == 0x02) ? "Conditional" :
 			((io_pad_state & (BIT(1) | BIT(0))) == 0x01) ? "Off" :
 									"Off");
+}
+
+/*
+ * Output enable of DIP1 (Digital Interface Port 1) interface.
+ * CLE266 chipset only.
+ */
+static inline void
+via_dip1_set_output_enable(void __iomem *regs, bool output_enable)
+{
+	/*
+	 * 3X5.93[0] - DIP1 Output Enable
+	 *             0: Output Disable
+	 *             1: Output Enable
+	 */
+	svga_wcrt_mask(regs, 0x93, output_enable ? BIT(0) : 0x00, BIT(0));
+	DRM_DEBUG_KMS("DIP1 Output: %s\n",
+			output_enable ? "Enable" : "Disable");
 }
 
 /*
