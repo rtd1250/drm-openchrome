@@ -80,6 +80,15 @@ static void via_iga_common_init(struct pci_dev *pdev, void __iomem *regs)
 	svga_wseq_mask(regs, 0x15, BIT(5) | BIT(1), BIT(5) | BIT(1));
 
 	/*
+	 * It was observed on NeoWare CA10 thin client with DVI that not
+	 * resetting CR55[7] to 0 causes the screen driven by IGA2 to get
+	 * distorted.
+	 */
+	if (pdev->device == PCI_DEVICE_ID_VIA_CLE266_GFX) {
+		svga_wcrt_mask(regs, 0x55, 0x00, BIT(7));
+	}
+
+	/*
 	 * Disable simultaneous display.
 	 * Turning this on causes IGA1 to have a display issue.
 	 */
