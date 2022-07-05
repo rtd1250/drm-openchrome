@@ -1150,9 +1150,14 @@ void via_lvds_probe(struct drm_device *dev)
 	/* Detect the presence of FPs. */
 	switch (chipset) {
 	case PCI_DEVICE_ID_VIA_CLE266_GFX:
+		/*
+		 * 3C5.12[4] - FPD17 pin strapping (DIP1)
+		 *             0: DVI / Capture
+		 *             1: Panel
+		 */
 		if ((sr12 & BIT(4)) || (cr3b & BIT(3))) {
 			dev_priv->int_fp1_presence = true;
-			dev_priv->int_fp1_di_port = VIA_DI_PORT_DIP0;
+			dev_priv->int_fp1_di_port = VIA_DI_PORT_DIP1;
 		} else {
 			dev_priv->int_fp1_presence = false;
 			dev_priv->int_fp1_di_port = VIA_DI_PORT_NONE;
