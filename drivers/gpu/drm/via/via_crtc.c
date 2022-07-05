@@ -65,7 +65,7 @@ static struct vga_regset vpit_table[] = {
 	{VGA_GFX_I, 0x08, 0xFF, 0xFF }
 };
 
-static void via_iga_common_init(void __iomem *regs)
+static void via_iga_common_init(struct pci_dev *pdev, void __iomem *regs)
 {
 	DRM_DEBUG_KMS("Entered %s.\n", __func__);
 
@@ -1657,7 +1657,7 @@ void via_mode_set_nofb(struct drm_crtc *crtc)
 			via_set_vclock(crtc, pll_regs);
 		}
 
-		via_iga_common_init(VGABASE);
+		via_iga_common_init(pdev, VGABASE);
 
 		/* Set palette LUT to 8-bit mode. */
 		via_iga1_set_palette_lut_resolution(VGABASE, true);
@@ -1776,7 +1776,7 @@ void via_mode_set_nofb(struct drm_crtc *crtc)
 			via_set_vclock(crtc, pll_regs);
 		}
 
-		via_iga_common_init(VGABASE);
+		via_iga_common_init(pdev, VGABASE);
 
 		/* Set palette LUT to 8-bit mode. */
 		via_iga2_set_palette_lut_resolution(VGABASE, true);
