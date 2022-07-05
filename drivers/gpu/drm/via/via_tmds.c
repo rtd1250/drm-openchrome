@@ -633,18 +633,16 @@ void via_ext_dvi_probe(struct drm_device *dev)
 	if (dev_priv->ext_tmds_presence) {
 		switch (chipset) {
 		case PCI_DEVICE_ID_VIA_CLE266_GFX:
-
-			/* 3C5.12[4] - FPD17 pin strapping
-			 *             0: TMDS transmitter (DVI) /
-			 *                capture device
-			 *             1: Flat panel */
-			if (!(sr12 & BIT(4))) {
+			/* 3C5.12[5] - FPD18 pin strapping (DIP0)
+			 *             0: DVI
+			 *             1: TV */
+			if (!(sr12 & BIT(5))) {
 				dev_priv->ext_tmds_di_port = VIA_DI_PORT_DIP0;
 
-			/* 3C5.12[5] - FPD18 pin strapping
-			 *             0: TMDS transmitter (DVI)
-			 *             1: TV encoder */
-			} else if (!(sr12 & BIT(5))) {
+			/* 3C5.12[4] - FPD17 pin strapping (DIP1)
+			 *             0: DVI / Capture
+			 *             1: Panel */
+			} else if (!(sr12 & BIT(4))) {
 				dev_priv->ext_tmds_di_port = VIA_DI_PORT_DIP1;
 			} else {
 				dev_priv->ext_tmds_di_port = VIA_DI_PORT_NONE;
