@@ -653,18 +653,18 @@ void via_ext_dvi_probe(struct drm_device *dev)
 		case PCI_DEVICE_ID_VIA_K8M800_GFX:
 		case PCI_DEVICE_ID_VIA_P4M800_PRO_GFX:
 		case PCI_DEVICE_ID_VIA_PM800_GFX:
-			/* 3C5.12[6] - DVP0D6 pin strapping
-			 *             0: Disable DVP0 (Digital Video Port 0) for
-			 *                DVI or TV out use
-			 *             1: Enable DVP0 (Digital Video Port 0) for
-			 *                DVI or TV out use
-			 * 3C5.12[5] - DVP0D5 pin strapping
-			 *             0: TMDS transmitter (DVI)
-			 *             1: TV encoder */
-			if ((sr12 & BIT(6)) && (!(sr12 & BIT(5)))) {
+			/*
+			 * For DVP0 to be configured to not be used for
+			 * a TV encoder, DVP0D[6] (SR12[6]) needs to be
+			 * strapped low (0).  In addition, DVP0D[5]
+			 * (SR12[5]) also needs to be strapped low (0)
+			 * for DVP0 to be configured for DVI
+			 * transmitter use.
+			 */
+			if (!(sr12 & BIT(6)) && (!(sr12 & BIT(5)))) {
 				dev_priv->ext_tmds_di_port = VIA_DI_PORT_DVP0;
 			} else {
-				dev_priv->ext_tmds_di_port = VIA_DI_PORT_DVP1;
+				dev_priv->ext_tmds_di_port = VIA_DI_PORT_NONE;
 			}
 
 			break;
