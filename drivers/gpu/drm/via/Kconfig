@@ -1,5 +1,5 @@
 config DRM_OPENCHROME
-	tristate "OpenChrome (VIA Technologies)"
+	tristate "OpenChrome (VIA Technologies Chrome)"
 	depends on DRM && PCI && X86
 	select DRM_KMS_HELPER
 	select DRM_TTM
