@@ -156,44 +156,6 @@ exit:
 	return ret;
 }
 
-/* caculate the cetering timing using mode and adjusted_mode */
-static void via_centering_timing(const struct drm_display_mode *mode,
-				struct drm_display_mode *adjusted_mode)
-{
-	int panel_hsync_time = adjusted_mode->hsync_end -
-		adjusted_mode->hsync_start;
-	int panel_vsync_time = adjusted_mode->vsync_end -
-		adjusted_mode->vsync_start;
-	int panel_hblank_start = adjusted_mode->hdisplay;
-	int panel_vbank_start = adjusted_mode->vdisplay;
-	int hborder = (adjusted_mode->hdisplay - mode->hdisplay) / 2;
-	int vborder = (adjusted_mode->vdisplay - mode->vdisplay) / 2;
-	int new_hblank_start = hborder + mode->hdisplay;
-	int new_vblank_start = vborder + mode->vdisplay;
-
-	adjusted_mode->hdisplay = mode->hdisplay;
-	adjusted_mode->hsync_start = (adjusted_mode->hsync_start -
-		panel_hblank_start) + new_hblank_start;
-	adjusted_mode->hsync_end = adjusted_mode->hsync_start +
-		panel_hsync_time;
-	adjusted_mode->vdisplay = mode->vdisplay;
-	adjusted_mode->vsync_start = (adjusted_mode->vsync_start -
-		panel_vbank_start) + new_vblank_start;
-	adjusted_mode->vsync_end = adjusted_mode->vsync_start +
-		panel_vsync_time;
-	/* Adjust Crtc H and V */
-	adjusted_mode->crtc_hdisplay = adjusted_mode->hdisplay;
-	adjusted_mode->crtc_hblank_start = new_hblank_start;
-	adjusted_mode->crtc_hblank_end = adjusted_mode->crtc_htotal - hborder;
-	adjusted_mode->crtc_hsync_start = adjusted_mode->hsync_start;
-	adjusted_mode->crtc_hsync_end = adjusted_mode->hsync_end;
-	adjusted_mode->crtc_vdisplay = adjusted_mode->vdisplay;
-	adjusted_mode->crtc_vblank_start = new_vblank_start;
-	adjusted_mode->crtc_vblank_end = adjusted_mode->crtc_vtotal - vborder;
-	adjusted_mode->crtc_vsync_start = adjusted_mode->vsync_start;
-	adjusted_mode->crtc_vsync_end = adjusted_mode->vsync_end;
-}
-
 static void via_lvds_cle266_soft_power_seq(struct via_drm_priv *dev_priv,
 						bool power_state)
 {
@@ -662,70 +624,6 @@ static void via_lvds_dpms(struct drm_encoder *encoder, int mode)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-static bool via_lvds_mode_fixup(struct drm_encoder *encoder,
-				const struct drm_display_mode *mode,
-				struct drm_display_mode *adjusted_mode)
-{
-	struct drm_property *prop = encoder->dev->mode_config.scaling_mode_property;
-	struct via_crtc *iga = container_of(encoder->crtc, struct via_crtc, base);
-	struct drm_display_mode *native_mode = NULL, *tmp, *t;
-	struct drm_connector *connector = NULL, *con;
-	u64 scale_mode = DRM_MODE_SCALE_CENTER;
-	struct drm_device *dev = encoder->dev;
-
-	list_for_each_entry(con, &dev->mode_config.connector_list, head) {
-		if (encoder == con->encoder) {
-			connector = con;
-			break;
-		}
-	}
-
-	if (!connector) {
-		DRM_INFO("LVDS encoder is not used by any connector\n");
-		return false;
-	}
-
-	list_for_each_entry_safe(tmp, t, &connector->modes, head) {
-		if (tmp->type & (DRM_MODE_TYPE_PREFERRED | DRM_MODE_TYPE_DRIVER)) {
-			native_mode = tmp;
-			break;
-		}
-	}
-
-	if (!native_mode) {
-		DRM_INFO("No native mode for LVDS\n");
-		return false;
-	}
-
-	drm_object_property_get_value(&connector->base, prop, &scale_mode);
-
-	if ((mode->hdisplay != native_mode->hdisplay) ||
-		(mode->vdisplay != native_mode->vdisplay)) {
-		if (scale_mode == DRM_MODE_SCALE_NONE)
-			return false;
-		drm_mode_copy(adjusted_mode, native_mode);
-	}
-	drm_mode_set_crtcinfo(adjusted_mode, 0);
-
-	iga->scaling_mode = VIA_NO_SCALING;
-	/* Take care of 410 downscaling */
-	if ((mode->hdisplay > native_mode->hdisplay) ||
-		(mode->vdisplay > native_mode->vdisplay)) {
-		iga->scaling_mode = VIA_SHRINK;
-	} else {
-		if (!iga->index || scale_mode == DRM_MODE_SCALE_CENTER) {
-			/* Do centering according to mode and adjusted_mode */
-			via_centering_timing(mode, adjusted_mode);
-		} else {
-			if (mode->hdisplay < native_mode->hdisplay)
-				iga->scaling_mode |= VIA_HOR_EXPAND;
-			if (mode->vdisplay < native_mode->vdisplay)
-				iga->scaling_mode |= VIA_VER_EXPAND;
-		}
-	}
-	return true;
-}
-
 static void via_lvds_prepare(struct drm_encoder *encoder)
 {
 	struct via_encoder *enc = container_of(encoder,
@@ -918,47 +816,6 @@ exit:
 	return ret;
 }
 
-static int via_lvds_set_property(struct drm_connector *connector,
-				struct drm_property *property,
-				uint64_t val)
-{
-	struct drm_device *dev = connector->dev;
-	uint64_t orig;
-	int ret;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	ret = drm_object_property_get_value(&connector->base, property, &orig);
-	if (ret) {
-		DRM_ERROR("FP Property not found!\n");
-		ret = -EINVAL;
-		goto exit;
-	}
-
-	if (orig != val) {
-		if (property == dev->mode_config.scaling_mode_property) {
-			switch (val) {
-			case DRM_MODE_SCALE_NONE:
-				break;
-			case DRM_MODE_SCALE_CENTER:
-				break;
-			case DRM_MODE_SCALE_ASPECT:
-				break;
-			case DRM_MODE_SCALE_FULLSCREEN:
-				break;
-			default:
-				DRM_ERROR("Invalid FP property!\n");
-				ret = -EINVAL;
-				break;
-			}
-		}
-	}
-
-exit:
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return ret;
-}
-
 struct drm_connector_funcs via_lvds_connector_funcs = {
 	.dpms = drm_helper_connector_dpms,
 	.detect = via_lvds_detect,
@@ -1067,55 +924,6 @@ via_lvds_get_modes(struct drm_connector *connector)
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return count;
-}
-
-static int via_lvds_mode_valid(struct drm_connector *connector,
-				struct drm_display_mode *mode)
-{
-	struct drm_property *prop = connector->dev->mode_config.scaling_mode_property;
-	struct drm_display_mode *native_mode = NULL, *tmp, *t;
-	struct drm_device *dev = connector->dev;
-	struct pci_dev *pdev = to_pci_dev(dev->dev);
-	u64 scale_mode = DRM_MODE_SCALE_CENTER;
-
-	list_for_each_entry_safe(tmp, t, &connector->modes, head) {
-		if (tmp->type & (DRM_MODE_TYPE_PREFERRED | DRM_MODE_TYPE_DRIVER)) {
-			native_mode = tmp;
-			break;
-		}
-	}
-
-	drm_object_property_get_value(&connector->base, prop, &scale_mode);
-
-	if ((scale_mode == DRM_MODE_SCALE_NONE) &&
-		((mode->hdisplay != native_mode->hdisplay) ||
-		(mode->vdisplay != native_mode->vdisplay)))
-		return MODE_PANEL;
-
-	/* Don't support mode larger than physical size */
-	if (pdev->device != PCI_DEVICE_ID_VIA_CHROME9_HD) {
-		if (mode->hdisplay > native_mode->hdisplay)
-			return MODE_PANEL;
-		if (mode->vdisplay > native_mode->vdisplay)
-			return MODE_PANEL;
-	} else {
-		/* HW limitation 410 only can
-		 * do <= 1.33 scaling */
-		if (mode->hdisplay * 100 > native_mode->hdisplay * 133)
-			return MODE_PANEL;
-		if (mode->vdisplay * 100 > native_mode->vdisplay * 133)
-			return MODE_PANEL;
-
-		/* Now we can not support H V different scale */
-		if ((mode->hdisplay > native_mode->hdisplay) &&
-			(mode->vdisplay < native_mode->vdisplay))
-			return MODE_PANEL;
-
-		if ((mode->hdisplay < native_mode->hdisplay) &&
-			(mode->vdisplay > native_mode->vdisplay))
-			return MODE_PANEL;
-	}
-	return MODE_OK;
 }
 
 struct drm_connector_helper_funcs via_lvds_connector_helper_funcs = {
