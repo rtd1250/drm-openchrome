@@ -222,4 +222,3 @@ void via_transmitter_display_source(struct via_drm_priv *dev_priv,
 
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
-
