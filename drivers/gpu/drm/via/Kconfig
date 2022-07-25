@@ -7,4 +7,3 @@ config DRM_OPENCHROME
 	  Choose this option if you have VIA Technologies UniChrome or
 	  Chrome9 integrated graphics. If M is selected the module will
 	  be called via.
-
