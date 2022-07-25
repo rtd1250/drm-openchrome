@@ -165,23 +165,29 @@ static const struct file_operations via_driver_fops = {
 };
 
 static struct drm_driver via_driver = {
-	.driver_features = DRIVER_GEM |
-				DRIVER_MODESET |
-				DRIVER_ATOMIC,
 	.open = via_driver_open,
 	.postclose = via_driver_postclose,
 	.lastclose = via_driver_lastclose,
+
 	.gem_prime_mmap = drm_gem_prime_mmap,
+
 	.dumb_create = via_driver_dumb_create,
 	.dumb_map_offset = via_driver_dumb_map_offset,
-	.ioctls = via_driver_ioctls,
-	.fops = &via_driver_fops,
-	.name = DRIVER_NAME,
-	.desc = DRIVER_DESC,
-	.date = DRIVER_DATE,
+
 	.major = DRIVER_MAJOR,
 	.minor = DRIVER_MINOR,
 	.patchlevel = DRIVER_PATCHLEVEL,
+	.name = DRIVER_NAME,
+	.desc = DRIVER_DESC,
+	.date = DRIVER_DATE,
+
+	.driver_features = DRIVER_GEM |
+				DRIVER_MODESET |
+				DRIVER_ATOMIC,
+
+	.ioctls = via_driver_ioctls,
+
+	.fops = &via_driver_fops,
 };
 
 static struct pci_device_id via_pci_table[] = {
