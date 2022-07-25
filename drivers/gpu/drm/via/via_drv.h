@@ -423,4 +423,11 @@ void via_ext_dvi_init(struct drm_device *dev);
 void via_tmds_init(struct drm_device *dev);
 void via_lvds_init(struct drm_device *dev);
 
+int via_gem_create_ioctl(struct drm_device *dev, void *data,
+				struct drm_file *file_priv);
+int via_gem_map_ioctl(struct drm_device *dev, void *data,
+			struct drm_file *file_priv);
+int via_gem_unmap_ioctl(struct drm_device *dev, void *data,
+			struct drm_file *file_priv);
+
 #endif /* _VIA_DRV_H */

@@ -25,7 +25,6 @@
  */
 
 #include <drm/drm_gem.h>
-#include <drm/drm_ioctl.h>
 
 #include <drm/ttm/ttm_bo_api.h>
 
@@ -34,9 +33,8 @@
 #include "via_drv.h"
 
 
-static int via_gem_create_ioctl(struct drm_device *dev,
-					void *data,
-					struct drm_file *file_priv)
+int via_gem_create_ioctl(struct drm_device *dev, void *data,
+				struct drm_file *file_priv)
 {
 	struct drm_via_gem_create *args = data;
 	struct ttm_buffer_object *ttm_bo;
@@ -71,9 +69,8 @@ exit:
 	return ret;
 }
 
-static int via_gem_map_ioctl(struct drm_device *dev,
-					void *data,
-					struct drm_file *file_priv)
+int via_gem_map_ioctl(struct drm_device *dev, void *data,
+			struct drm_file *file_priv)
 {
 	struct drm_via_gem_map *args = data;
 	struct drm_gem_object *gem;
@@ -96,9 +93,9 @@ exit:
 	return ret;
 }
 
-static int via_gem_unmap_ioctl(struct drm_device *dev,
-				void *data,
-				struct drm_file *file_priv)
+int via_gem_unmap_ioctl(struct drm_device *dev,
+			void *data,
+			struct drm_file *file_priv)
 {
 	struct drm_via_gem_unmap *args = data;
 	int ret;
@@ -110,13 +107,3 @@ static int via_gem_unmap_ioctl(struct drm_device *dev,
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
-
-
-const struct drm_ioctl_desc via_driver_ioctls[] = {
-	DRM_IOCTL_DEF_DRV(VIA_GEM_CREATE, via_gem_create_ioctl, DRM_AUTH | DRM_UNLOCKED),
-	DRM_IOCTL_DEF_DRV(VIA_GEM_MAP, via_gem_map_ioctl, DRM_AUTH | DRM_UNLOCKED),
-	DRM_IOCTL_DEF_DRV(VIA_GEM_UNMAP, via_gem_unmap_ioctl, DRM_AUTH | DRM_UNLOCKED),
-};
-
-
-int via_driver_num_ioctls = ARRAY_SIZE(via_driver_ioctls);

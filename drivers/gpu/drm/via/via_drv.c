@@ -39,10 +39,10 @@
 
 #include <drm/ttm/ttm_bo_api.h>
 
+#include <uapi/drm/via_drm.h>
+
 #include "via_drv.h"
 
-
-extern const struct drm_ioctl_desc via_driver_ioctls[];
 
 /*
  * For now, this device driver will be disabled, unless the
@@ -154,6 +154,12 @@ exit:
 	return ret;
 }
 
+static const struct drm_ioctl_desc via_driver_ioctls[] = {
+	DRM_IOCTL_DEF_DRV(VIA_GEM_CREATE, via_gem_create_ioctl, DRM_AUTH | DRM_UNLOCKED),
+	DRM_IOCTL_DEF_DRV(VIA_GEM_MAP, via_gem_map_ioctl, DRM_AUTH | DRM_UNLOCKED),
+	DRM_IOCTL_DEF_DRV(VIA_GEM_UNMAP, via_gem_unmap_ioctl, DRM_AUTH | DRM_UNLOCKED),
+};
+
 static const struct file_operations via_driver_fops = {
 	.owner		= THIS_MODULE,
 	.open		= drm_open,
@@ -186,6 +192,7 @@ static struct drm_driver via_driver = {
 				DRIVER_ATOMIC,
 
 	.ioctls = via_driver_ioctls,
+	.num_ioctls = ARRAY_SIZE(via_driver_ioctls),
 
 	.fops = &via_driver_fops,
 };
@@ -300,8 +307,6 @@ static int __init via_init(void)
 		ret = -EINVAL;
 		goto exit;
 	}
-
-	via_driver.num_ioctls = via_driver_num_ioctls;
 
 	ret = pci_register_driver(&via_pci_driver);
 
