@@ -155,6 +155,20 @@ exit:
 }
 
 static const struct drm_ioctl_desc via_driver_ioctls[] = {
+	DRM_IOCTL_DEF_DRV(VIA_ALLOCMEM, drm_invalid_op, DRM_AUTH),
+	DRM_IOCTL_DEF_DRV(VIA_FREEMEM, drm_invalid_op, DRM_AUTH),
+	DRM_IOCTL_DEF_DRV(VIA_AGP_INIT, drm_invalid_op, DRM_AUTH | DRM_MASTER),
+	DRM_IOCTL_DEF_DRV(VIA_FB_INIT, drm_invalid_op, DRM_AUTH | DRM_MASTER),
+	DRM_IOCTL_DEF_DRV(VIA_MAP_INIT, drm_invalid_op, DRM_AUTH | DRM_MASTER),
+	DRM_IOCTL_DEF_DRV(VIA_DEC_FUTEX, drm_invalid_op, DRM_AUTH),
+	DRM_IOCTL_DEF_DRV(VIA_DMA_INIT, drm_invalid_op, DRM_AUTH),
+	DRM_IOCTL_DEF_DRV(VIA_CMDBUFFER, drm_invalid_op, DRM_AUTH),
+	DRM_IOCTL_DEF_DRV(VIA_FLUSH, drm_invalid_op, DRM_AUTH),
+	DRM_IOCTL_DEF_DRV(VIA_PCICMD, drm_invalid_op, DRM_AUTH),
+	DRM_IOCTL_DEF_DRV(VIA_CMDBUF_SIZE, drm_invalid_op, DRM_AUTH),
+	DRM_IOCTL_DEF_DRV(VIA_WAIT_IRQ, drm_invalid_op, DRM_AUTH),
+	DRM_IOCTL_DEF_DRV(VIA_DMA_BLIT, drm_invalid_op, DRM_AUTH),
+	DRM_IOCTL_DEF_DRV(VIA_BLIT_SYNC, drm_invalid_op, DRM_AUTH),
 	DRM_IOCTL_DEF_DRV(VIA_GEM_CREATE, via_gem_create_ioctl, DRM_AUTH | DRM_UNLOCKED),
 	DRM_IOCTL_DEF_DRV(VIA_GEM_MAP, via_gem_map_ioctl, DRM_AUTH | DRM_UNLOCKED),
 	DRM_IOCTL_DEF_DRV(VIA_GEM_UNMAP, via_gem_unmap_ioctl, DRM_AUTH | DRM_UNLOCKED),
