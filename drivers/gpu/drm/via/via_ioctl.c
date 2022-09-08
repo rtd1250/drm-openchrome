@@ -33,10 +33,10 @@
 #include "via_drv.h"
 
 
-int via_gem_create_ioctl(struct drm_device *dev, void *data,
+int via_gem_alloc_ioctl(struct drm_device *dev, void *data,
 				struct drm_file *file_priv)
 {
-	struct drm_via_gem_create *args = data;
+	struct drm_via_gem_alloc *args = data;
 	struct ttm_buffer_object *ttm_bo;
 	struct via_drm_priv *dev_priv = to_via_drm_priv(dev);
 	struct via_bo *bo;
@@ -69,10 +69,10 @@ exit:
 	return ret;
 }
 
-int via_gem_map_ioctl(struct drm_device *dev, void *data,
+int via_gem_mmap_ioctl(struct drm_device *dev, void *data,
 			struct drm_file *file_priv)
 {
-	struct drm_via_gem_map *args = data;
+	struct drm_via_gem_mmap *args = data;
 	struct drm_gem_object *gem;
 	struct ttm_buffer_object *ttm_bo;
 	int ret = 0;
