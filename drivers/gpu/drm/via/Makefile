@@ -23,4 +23,4 @@ via-y := via_crtc.o \
 		via_ttm.o \
 		via_vt1632.o
 
-obj-$(CONFIG_DRM_OPENCHROME)	+= via.o
+obj-$(CONFIG_DRM_VIA)	+= via.o

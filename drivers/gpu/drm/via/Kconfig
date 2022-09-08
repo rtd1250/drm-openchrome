@@ -1,4 +1,4 @@
-config DRM_OPENCHROME
+config DRM_VIA
 	tristate "OpenChrome (VIA Technologies Chrome)"
 	depends on DRM && PCI && X86
 	select DRM_KMS_HELPER
