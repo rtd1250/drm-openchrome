@@ -49,11 +49,11 @@
 
 
 #define DRIVER_MAJOR		3
-#define DRIVER_MINOR		5
-#define DRIVER_PATCHLEVEL	8
+#define DRIVER_MINOR		6
+#define DRIVER_PATCHLEVEL	0
 #define DRIVER_NAME		"via"
 #define DRIVER_DESC		"OpenChrome DRM for VIA Technologies Chrome"
-#define DRIVER_DATE		"20220728"
+#define DRIVER_DATE		"20220908"
 #define DRIVER_AUTHOR		"OpenChrome Project"
 
 
