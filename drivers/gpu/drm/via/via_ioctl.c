@@ -92,18 +92,3 @@ exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
 }
-
-int via_gem_unmap_ioctl(struct drm_device *dev,
-			void *data,
-			struct drm_file *file_priv)
-{
-	struct drm_via_gem_unmap *args = data;
-	int ret;
-
-	DRM_DEBUG_KMS("Entered %s.\n", __func__);
-
-	ret = drm_gem_handle_delete(file_priv, args->handle);
-
-	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
-	return ret;
-}
