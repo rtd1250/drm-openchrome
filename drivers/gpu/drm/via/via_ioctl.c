@@ -87,7 +87,7 @@ int via_gem_mmap_ioctl(struct drm_device *dev, void *data,
 
 	ttm_bo = container_of(gem, struct ttm_buffer_object, base);
 
-	args->map_offset = drm_vma_node_offset_addr(&ttm_bo->base.vma_node);
+	args->offset = drm_vma_node_offset_addr(&ttm_bo->base.vma_node);
 exit:
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 	return ret;
