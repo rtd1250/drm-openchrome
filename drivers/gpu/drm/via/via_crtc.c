@@ -42,7 +42,6 @@
 #include <drm/drm_mode.h>
 #include <drm/drm_modeset_helper_vtables.h>
 #include <drm/drm_plane.h>
-#include <drm/drm_plane_helper.h>
 
 #include <drm/ttm/ttm_bo_api.h>
 
