@@ -34,6 +34,7 @@
  *
  */
 
+#include <linux/aperture.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/errno.h>
@@ -2085,6 +2086,10 @@ static int cirrusfb_pci_register(struct pci_dev *pdev,
 	unsigned long board_addr, board_size;
 	int ret;
 
+	ret = aperture_remove_conflicting_pci_devices(pdev, "cirrusfb");
+	if (ret)
+		return ret;
+
 	ret = pci_enable_device(pdev);
 	if (ret < 0) {
 		printk(KERN_ERR "cirrusfb: Cannot enable PCI device\n");
@@ -2301,7 +2306,7 @@ err_release_fb:
 	return error;
 }
 
-void cirrusfb_zorro_unregister(struct zorro_dev *z)
+static void cirrusfb_zorro_unregister(struct zorro_dev *z)
 {
 	struct fb_info *info = zorro_get_drvdata(z);
 

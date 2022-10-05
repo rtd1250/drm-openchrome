@@ -1,25 +1,7 @@
+/* SPDX-License-Identifier: MIT */
 /*
  * Copyright 1998-2011 VIA Technologies, Inc. All Rights Reserved.
  * Copyright 2001-2011 S3 Graphics, Inc. All Rights Reserved.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sub license,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the
- * next paragraph) shall be included in all copies or substantial portions
- * of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) OR COPYRIGHT HOLDER(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- * DEALINGS IN THE SOFTWARE.
  */
 
 #ifndef VIA_3D_REG_H
@@ -174,7 +156,7 @@
 #define HC_HSPXOS_SHIFT         12
 #define HC_HSPYOS_MASK          0x00000fff
 
-/* Command
+/*
  * Command A
  */
 #define HC_HCmdHeader_MASK      0xfe000000  /*0xffe00000 */
@@ -1360,8 +1342,8 @@
 #define HC_HFthRTXA_MASK        0x000000ff
 
 /****************************************************************************
-** Define the Halcyon Internal register access constants. For simulator only.
-****************************************************************************/
+ * Define the Halcyon Internal register access constants. For simulator only.
+ ***************************************************************************/
 #define HC_SIMA_HAGPBstL        0x0000
 #define HC_SIMA_HAGPBendL       0x0001
 #define HC_SIMA_HAGPCMNT        0x0002
@@ -1684,8 +1666,8 @@
 #define HC_SIMA_FIFOstatus      0x0446
 
 /****************************************************************************
-** Define the AGP command header.
-****************************************************************************/
+ * Define the AGP command header.
+ ***************************************************************************/
 #define HC_ACMD_MASK            0xfe000000
 #define HC_ACMD_SUB_MASK        0x0c000000
 #define HC_ACMD_HCmdA           0xee000000
@@ -1709,17 +1691,17 @@
 #define HC_ACMD_H4COUNT_SHIFT   9
 
 /*****************************************************************************
-** Define Header
-*****************************************************************************/
+ * Define Header
+ ****************************************************************************/
 #define HC_HEADER2        0xF210F110
 
 /*****************************************************************************
-** Define Dummy Value
-*****************************************************************************/
+ * Define Dummy Value
+ ****************************************************************************/
 #define HC_DUMMY        0xCCCCCCCC
 /*****************************************************************************
-** Define for DMA use
-*****************************************************************************/
+ * Define for DMA use
+ ****************************************************************************/
 #define HALCYON_HEADER2     0XF210F110
 #define HALCYON_FIRECMD     0XEE100000
 #define HALCYON_FIREMASK    0XFFF00000
@@ -1753,8 +1735,8 @@
 #define VIA_VIDEOMASK           0xFFFF0000
 
 /*****************************************************************************
-** Define for H5 DMA use
-*****************************************************************************/
+ * Define for H5 DMA use
+ ****************************************************************************/
 #define H5_HC_DUMMY                    0xCC000000
 
 /* Command Header Type */
