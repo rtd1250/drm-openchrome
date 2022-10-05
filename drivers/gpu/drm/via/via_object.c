@@ -205,8 +205,8 @@ int via_bo_create(struct drm_device *dev,
 	ttm_bo->base.funcs = &via_gem_object_funcs;
 
 	via_ttm_domain_to_placement(bo, ttm_domain);
-	ret = ttm_bo_init(&dev_priv->bdev, ttm_bo,
-				size, type, &bo->placement,
+	ret = ttm_bo_init_validate(&dev_priv->bdev, ttm_bo,
+				type, &bo->placement,
 				PAGE_SIZE >> PAGE_SHIFT, false,
 				NULL, NULL, via_ttm_bo_destroy);
 	if (ret) {
