@@ -337,7 +337,6 @@ void via_vram_fini(struct via_drm_priv *dev_priv);
 int via_mmio_init(struct via_drm_priv *dev_priv);
 void via_mmio_fini(struct via_drm_priv *dev_priv);
 void via_graphics_unlock(struct via_drm_priv *dev_priv);
-void chip_revision_info(struct via_drm_priv *dev_priv);
 int via_device_init(struct via_drm_priv *dev_priv);
 void via_device_fini(struct via_drm_priv *dev_priv);
 void via_mode_config_init(struct via_drm_priv *dev_priv);

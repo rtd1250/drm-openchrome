@@ -1116,7 +1116,7 @@ void via_graphics_unlock(struct via_drm_priv *dev_priv)
 	DRM_DEBUG_KMS("Exiting %s.\n", __func__);
 }
 
-void chip_revision_info(struct via_drm_priv *dev_priv)
+static void via_chip_revision_info(struct via_drm_priv *dev_priv)
 {
 	struct drm_device *dev = &dev_priv->dev;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
@@ -1266,7 +1266,7 @@ int via_drm_init(struct drm_device *dev)
 		goto exit;
 	}
 
-	chip_revision_info(dev_priv);
+	via_chip_revision_info(dev_priv);
 
 	ret = via_modeset_init(dev);
 	if (ret) {
