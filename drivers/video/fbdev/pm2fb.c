@@ -618,6 +618,11 @@ static int pm2fb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 		return -EINVAL;
 	}
 
+	if (!var->pixclock) {
+		DPRINTK("pixclock is zero\n");
+		return -EINVAL;
+	}
+
 	if (PICOS2KHZ(var->pixclock) > PM2_MAX_PIXCLOCK) {
 		DPRINTK("pixclock too high (%ldKHz)\n",
 			PICOS2KHZ(var->pixclock));
@@ -1794,7 +1799,12 @@ static int __init pm2fb_init(void)
 {
 #ifndef MODULE
 	char *option = NULL;
+#endif
 
+	if (fb_modesetting_disabled("pm2fb"))
+		return -ENODEV;
+
+#ifndef MODULE
 	if (fb_get_options("pm2fb", &option))
 		return -ENODEV;
 	pm2fb_setup(option);

@@ -235,6 +235,14 @@ static int iso_chan_add(struct iso_conn *conn, struct sock *sk,
 	return err;
 }
 
+static inline u8 le_addr_type(u8 bdaddr_type)
+{
+	if (bdaddr_type == BDADDR_LE_PUBLIC)
+		return ADDR_LE_DEV_PUBLIC;
+	else
+		return ADDR_LE_DEV_RANDOM;
+}
+
 static int iso_connect_bis(struct sock *sk)
 {
 	struct iso_conn *conn;
@@ -328,14 +336,16 @@ static int iso_connect_cis(struct sock *sk)
 	/* Just bind if DEFER_SETUP has been set */
 	if (test_bit(BT_SK_DEFER_SETUP, &bt_sk(sk)->flags)) {
 		hcon = hci_bind_cis(hdev, &iso_pi(sk)->dst,
-				    iso_pi(sk)->dst_type, &iso_pi(sk)->qos);
+				    le_addr_type(iso_pi(sk)->dst_type),
+				    &iso_pi(sk)->qos);
 		if (IS_ERR(hcon)) {
 			err = PTR_ERR(hcon);
 			goto done;
 		}
 	} else {
 		hcon = hci_connect_cis(hdev, &iso_pi(sk)->dst,
-				       iso_pi(sk)->dst_type, &iso_pi(sk)->qos);
+				       le_addr_type(iso_pi(sk)->dst_type),
+				       &iso_pi(sk)->qos);
 		if (IS_ERR(hcon)) {
 			err = PTR_ERR(hcon);
 			goto done;
@@ -1309,7 +1319,7 @@ static int iso_sock_shutdown(struct socket *sock, int how)
 	struct sock *sk = sock->sk;
 	int err = 0;
 
-	BT_DBG("sock %p, sk %p", sock, sk);
+	BT_DBG("sock %p, sk %p, how %d", sock, sk, how);
 
 	if (!sk)
 		return 0;
@@ -1317,17 +1327,32 @@ static int iso_sock_shutdown(struct socket *sock, int how)
 	sock_hold(sk);
 	lock_sock(sk);
 
-	if (!sk->sk_shutdown) {
-		sk->sk_shutdown = SHUTDOWN_MASK;
-		iso_sock_clear_timer(sk);
-		__iso_sock_close(sk);
-
-		if (sock_flag(sk, SOCK_LINGER) && sk->sk_lingertime &&
-		    !(current->flags & PF_EXITING))
-			err = bt_sock_wait_state(sk, BT_CLOSED,
-						 sk->sk_lingertime);
+	switch (how) {
+	case SHUT_RD:
+		if (sk->sk_shutdown & RCV_SHUTDOWN)
+			goto unlock;
+		sk->sk_shutdown |= RCV_SHUTDOWN;
+		break;
+	case SHUT_WR:
+		if (sk->sk_shutdown & SEND_SHUTDOWN)
+			goto unlock;
+		sk->sk_shutdown |= SEND_SHUTDOWN;
+		break;
+	case SHUT_RDWR:
+		if (sk->sk_shutdown & SHUTDOWN_MASK)
+			goto unlock;
+		sk->sk_shutdown |= SHUTDOWN_MASK;
+		break;
 	}
 
+	iso_sock_clear_timer(sk);
+	__iso_sock_close(sk);
+
+	if (sock_flag(sk, SOCK_LINGER) && sk->sk_lingertime &&
+	    !(current->flags & PF_EXITING))
+		err = bt_sock_wait_state(sk, BT_CLOSED, sk->sk_lingertime);
+
+unlock:
 	release_sock(sk);
 	sock_put(sk);
 

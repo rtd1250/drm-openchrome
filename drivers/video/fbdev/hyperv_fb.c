@@ -59,7 +59,6 @@
 
 #include <linux/hyperv.h>
 
-
 /* Hyper-V Synthetic Video Protocol definitions and structures */
 #define MAX_VMBUS_PKT_SIZE 0x4000
 
@@ -74,10 +73,6 @@
 
 #define SYNTHVID_DEPTH_WIN8 32
 #define SYNTHVID_FB_SIZE_WIN8 (8 * 1024 * 1024)
-
-#define PCI_VENDOR_ID_MICROSOFT 0x1414
-#define PCI_DEVICE_ID_HYPERV_VIDEO 0x5353
-
 
 enum pipe_msg_type {
 	PIPE_MSG_INVALID,
@@ -1366,6 +1361,9 @@ static struct pci_driver hvfb_pci_stub_driver = {
 static int __init hvfb_drv_init(void)
 {
 	int ret;
+
+	if (fb_modesetting_disabled("hyper_fb"))
+		return -ENODEV;
 
 	ret = vmbus_driver_register(&hvfb_drv);
 	if (ret != 0)

@@ -611,6 +611,55 @@ static const struct dmi_system_id video_detect_dmi_table[] = {
 	},
 
 	/*
+	 * These Toshibas have a broken acpi-video interface for brightness
+	 * control. They also have an issue where the panel is off after
+	 * suspend until a special firmware call is made to turn it back
+	 * on. This is handled by the toshiba_acpi kernel module, so that
+	 * module must be enabled for these models to work correctly.
+	 */
+	{
+	 /* https://bugzilla.kernel.org/show_bug.cgi?id=21012 */
+	 .callback = video_detect_force_native,
+	 /* Toshiba Portégé R700 */
+	 .matches = {
+		DMI_MATCH(DMI_SYS_VENDOR, "TOSHIBA"),
+		DMI_MATCH(DMI_PRODUCT_NAME, "PORTEGE R700"),
+		},
+	},
+	{
+	 /* Portégé: https://bugs.freedesktop.org/show_bug.cgi?id=82634 */
+	 /* Satellite: https://bugzilla.kernel.org/show_bug.cgi?id=21012 */
+	 .callback = video_detect_force_native,
+	 /* Toshiba Satellite/Portégé R830 */
+	 .matches = {
+		DMI_MATCH(DMI_SYS_VENDOR, "TOSHIBA"),
+		DMI_MATCH(DMI_PRODUCT_NAME, "R830"),
+		},
+	},
+	{
+	 .callback = video_detect_force_native,
+	 /* Toshiba Satellite/Portégé Z830 */
+	 .matches = {
+		DMI_MATCH(DMI_SYS_VENDOR, "TOSHIBA"),
+		DMI_MATCH(DMI_PRODUCT_NAME, "Z830"),
+		},
+	},
+
+	/*
+	 * Models which have nvidia-ec-wmi support, but should not use it.
+	 * Note this indicates a likely firmware bug on these models and should
+	 * be revisited if/when Linux gets support for dynamic mux mode.
+	 */
+	{
+	 .callback = video_detect_force_native,
+	 /* Dell G15 5515 */
+	 .matches = {
+		DMI_MATCH(DMI_SYS_VENDOR, "Dell Inc."),
+		DMI_MATCH(DMI_PRODUCT_NAME, "Dell G15 5515"),
+		},
+	},
+
+	/*
 	 * Desktops which falsely report a backlight and which our heuristics
 	 * for this do not catch.
 	 */
@@ -632,6 +681,11 @@ static const struct dmi_system_id video_detect_dmi_table[] = {
 	},
 	{ },
 };
+
+static bool google_cros_ec_present(void)
+{
+	return acpi_dev_found("GOOG0004") || acpi_dev_found("GOOG000C");
+}
 
 /*
  * Determine which type of backlight interface to use on this system,
@@ -678,6 +732,10 @@ static enum acpi_backlight_type __acpi_video_get_backlight_type(bool native)
 	if (apple_gmux_present())
 		return acpi_backlight_apple_gmux;
 
+	/* Chromebooks should always prefer native backlight control. */
+	if (google_cros_ec_present() && native_available)
+		return acpi_backlight_native;
+
 	/* On systems with ACPI video use either native or ACPI video. */
 	if (video_caps & ACPI_VIDEO_BACKLIGHT) {
 		/*
@@ -707,6 +765,18 @@ EXPORT_SYMBOL(acpi_video_get_backlight_type);
 
 bool acpi_video_backlight_use_native(void)
 {
-	return __acpi_video_get_backlight_type(true) == acpi_backlight_native;
+	/*
+	 * Call __acpi_video_get_backlight_type() to let it know that
+	 * a native backlight is available.
+	 */
+	__acpi_video_get_backlight_type(true);
+
+	/*
+	 * For now just always return true. There is a whole bunch of laptop
+	 * models where (video_caps & ACPI_VIDEO_BACKLIGHT) is false causing
+	 * __acpi_video_get_backlight_type() to return vendor, while these
+	 * models only have a native backlight control.
+	 */
+	return true;
 }
 EXPORT_SYMBOL(acpi_video_backlight_use_native);

@@ -546,7 +546,7 @@ set_proto_ctx_engines_bond(struct i915_user_extension __user *base, void *data)
 	}
 
 	if (intel_engine_uses_guc(master)) {
-		DRM_DEBUG("bonding extension not supported with GuC submission");
+		drm_dbg(&i915->drm, "bonding extension not supported with GuC submission");
 		return -ENODEV;
 	}
 
@@ -1269,6 +1269,10 @@ static void i915_gem_context_release_work(struct work_struct *work)
 	trace_i915_context_free(ctx);
 	GEM_BUG_ON(!i915_gem_context_is_closed(ctx));
 
+	spin_lock(&ctx->i915->gem.contexts.lock);
+	list_del(&ctx->link);
+	spin_unlock(&ctx->i915->gem.contexts.lock);
+
 	if (ctx->syncobj)
 		drm_syncobj_put(ctx->syncobj);
 
@@ -1448,7 +1452,7 @@ static void engines_idle_release(struct i915_gem_context *ctx,
 		int err;
 
 		/* serialises with execbuf */
-		set_bit(CONTEXT_CLOSED_BIT, &ce->flags);
+		intel_context_close(ce);
 		if (!intel_context_pin_if_active(ce))
 			continue;
 
@@ -1514,10 +1518,6 @@ static void context_close(struct i915_gem_context *ctx)
 	lut_close(ctx);
 
 	ctx->file_priv = ERR_PTR(-EBADF);
-
-	spin_lock(&ctx->i915->gem.contexts.lock);
-	list_del(&ctx->link);
-	spin_unlock(&ctx->i915->gem.contexts.lock);
 
 	client = ctx->client;
 	if (client) {
@@ -2298,7 +2298,6 @@ int i915_gem_context_create_ioctl(struct drm_device *dev, void *data,
 	}
 
 	args->ctx_id = id;
-	drm_dbg(&i915->drm, "HW context %d created\n", args->ctx_id);
 
 	return 0;
 
