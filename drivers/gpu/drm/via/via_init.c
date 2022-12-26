@@ -1234,8 +1234,6 @@ void via_mode_config_init(struct via_drm_priv *dev_priv)
 
 	dev->mode_config.funcs = &via_drm_mode_config_funcs;
 
-	dev->mode_config.fb_base = dev_priv->vram_start;
-
 	dev->mode_config.preferred_depth = 24;
 	dev->mode_config.prefer_shadow_fbdev = true;
 
