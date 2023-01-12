@@ -37,7 +37,6 @@
 #include <drm/drm_crtc.h>
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_encoder.h>
-#include <drm/drm_fb_helper.h>
 #include <drm/drm_plane.h>
 
 #include <drm/ttm/ttm_bo_api.h>
