@@ -276,7 +276,7 @@ static int via_cursor_prepare_fb(struct drm_plane *plane,
 
 	ret = via_bo_pin(bo, TTM_PL_VRAM);
 	ttm_bo_unreserve(ttm_bo);
-	ret = ttm_bo_kmap(ttm_bo, 0, ttm_bo->resource->num_pages, &bo->kmap);
+	ret = ttm_bo_kmap(ttm_bo, 0, PFN_UP(ttm_bo->resource->size), &bo->kmap);
 	if (ret) {
 		goto exit;
 	}

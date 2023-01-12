@@ -228,7 +228,7 @@ int via_bo_create(struct drm_device *dev,
 			goto exit;
 		}
 
-		ret = ttm_bo_kmap(ttm_bo, 0, ttm_bo->resource->num_pages,
+		ret = ttm_bo_kmap(ttm_bo, 0, PFN_UP(ttm_bo->resource->size),
 					&bo->kmap);
 		if (ret) {
 			ttm_bo_put(ttm_bo);
