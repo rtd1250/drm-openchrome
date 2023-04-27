@@ -62,9 +62,9 @@ static int mipi_dsi_device_match(struct device *dev, struct device_driver *drv)
 	return 0;
 }
 
-static int mipi_dsi_uevent(struct device *dev, struct kobj_uevent_env *env)
+static int mipi_dsi_uevent(const struct device *dev, struct kobj_uevent_env *env)
 {
-	struct mipi_dsi_device *dsi = to_mipi_dsi_device(dev);
+	const struct mipi_dsi_device *dsi = to_mipi_dsi_device(dev);
 	int err;
 
 	err = of_device_uevent_modalias(dev, env);
@@ -329,7 +329,7 @@ int mipi_dsi_host_register(struct mipi_dsi_host *host)
 
 	for_each_available_child_of_node(host->dev->of_node, node) {
 		/* skip nodes without reg property */
-		if (!of_find_property(node, "reg", NULL))
+		if (!of_property_present(node, "reg"))
 			continue;
 		of_mipi_dsi_device_add(host, node);
 	}
